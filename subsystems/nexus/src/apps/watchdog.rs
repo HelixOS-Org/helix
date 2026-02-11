@@ -282,21 +282,20 @@ impl ProcessWatchdog {
                         }
                     })
                     .unwrap_or(RecoveryAction::LogOnly)
-            }
-            WatchdogStatus::Critical | WatchdogStatus::Unresponsive => {
-                self.recent_results
-                    .last()
-                    .and_then(|r| {
-                        if !r.passed {
-                            self.checks
-                                .get(&(r.check_type as u8))
-                                .map(|c| c.critical_action)
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or(RecoveryAction::Restart)
-            }
+            },
+            WatchdogStatus::Critical | WatchdogStatus::Unresponsive => self
+                .recent_results
+                .last()
+                .and_then(|r| {
+                    if !r.passed {
+                        self.checks
+                            .get(&(r.check_type as u8))
+                            .map(|c| c.critical_action)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(RecoveryAction::Restart),
             WatchdogStatus::Recovering => RecoveryAction::LogOnly,
         }
     }
@@ -419,7 +418,12 @@ impl AppWatchdogManager {
         self.stats.critical_count = self
             .watchdogs
             .values()
-            .filter(|w| matches!(w.status, WatchdogStatus::Critical | WatchdogStatus::Unresponsive))
+            .filter(|w| {
+                matches!(
+                    w.status,
+                    WatchdogStatus::Critical | WatchdogStatus::Unresponsive
+                )
+            })
             .count();
     }
 

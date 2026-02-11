@@ -40,11 +40,17 @@ impl FdFlags {
     pub const DSYNC: Self = Self(0x40);
 
     #[inline(always)]
-    pub fn contains(&self, flag: Self) -> bool { self.0 & flag.0 != 0 }
+    pub fn contains(&self, flag: Self) -> bool {
+        self.0 & flag.0 != 0
+    }
     #[inline(always)]
-    pub fn set(&mut self, flag: Self) { self.0 |= flag.0; }
+    pub fn set(&mut self, flag: Self) {
+        self.0 |= flag.0;
+    }
     #[inline(always)]
-    pub fn clear(&mut self, flag: Self) { self.0 &= !flag.0; }
+    pub fn clear(&mut self, flag: Self) {
+        self.0 &= !flag.0;
+    }
 }
 
 /// File descriptor entry
@@ -68,11 +74,19 @@ pub struct FdEntry {
 impl FdEntry {
     pub fn new(fd: i32, fd_type: FdType, flags: FdFlags, now: u64) -> Self {
         Self {
-            fd, fd_type, flags, offset: 0, inode: 0,
-            path: None, ref_count: 1,
-            read_bytes: 0, write_bytes: 0,
-            read_ops: 0, write_ops: 0,
-            created_at: now, last_access: now,
+            fd,
+            fd_type,
+            flags,
+            offset: 0,
+            inode: 0,
+            path: None,
+            ref_count: 1,
+            read_bytes: 0,
+            write_bytes: 0,
+            read_ops: 0,
+            write_ops: 0,
+            created_at: now,
+            last_access: now,
         }
     }
 
@@ -91,14 +105,22 @@ impl FdEntry {
     }
 
     #[inline(always)]
-    pub fn total_io_bytes(&self) -> u64 { self.read_bytes + self.write_bytes }
+    pub fn total_io_bytes(&self) -> u64 {
+        self.read_bytes + self.write_bytes
+    }
     #[inline(always)]
-    pub fn total_io_ops(&self) -> u64 { self.read_ops + self.write_ops }
+    pub fn total_io_ops(&self) -> u64 {
+        self.read_ops + self.write_ops
+    }
 
     #[inline(always)]
-    pub fn is_close_on_exec(&self) -> bool { self.flags.contains(FdFlags::CLOEXEC) }
+    pub fn is_close_on_exec(&self) -> bool {
+        self.flags.contains(FdFlags::CLOEXEC)
+    }
     #[inline(always)]
-    pub fn idle_time(&self, now: u64) -> u64 { now.saturating_sub(self.last_access) }
+    pub fn idle_time(&self, now: u64) -> u64 {
+        now.saturating_sub(self.last_access)
+    }
 }
 
 /// Process fd table
@@ -113,22 +135,34 @@ pub struct ProcessFdTable {
 
 impl ProcessFdTable {
     pub fn new(pid: u32, max_fds: i32) -> Self {
-        Self { pid, fds: BTreeMap::new(), max_fds, next_fd: 0, close_on_exec_count: 0 }
+        Self {
+            pid,
+            fds: BTreeMap::new(),
+            max_fds,
+            next_fd: 0,
+            close_on_exec_count: 0,
+        }
     }
 
     #[inline]
     pub fn alloc_fd(&mut self, fd_type: FdType, flags: FdFlags, now: u64) -> Option<i32> {
-        if self.fds.len() as i32 >= self.max_fds { return None; }
+        if self.fds.len() as i32 >= self.max_fds {
+            return None;
+        }
         let fd = self.find_lowest_free();
         let entry = FdEntry::new(fd, fd_type, flags, now);
-        if flags.contains(FdFlags::CLOEXEC) { self.close_on_exec_count += 1; }
+        if flags.contains(FdFlags::CLOEXEC) {
+            self.close_on_exec_count += 1;
+        }
         self.fds.insert(fd, entry);
         Some(fd)
     }
 
     fn find_lowest_free(&self) -> i32 {
         let mut fd = 0i32;
-        while self.fds.contains_key(&fd) { fd += 1; }
+        while self.fds.contains_key(&fd) {
+            fd += 1;
+        }
         fd
     }
 
@@ -139,14 +173,18 @@ impl ProcessFdTable {
                 self.close_on_exec_count -= 1;
             }
             Some(entry)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
     pub fn dup_fd(&mut self, old_fd: i32, new_fd: Option<i32>, now: u64) -> Option<i32> {
         let entry = self.fds.get(&old_fd)?.clone();
         let target_fd = new_fd.unwrap_or_else(|| self.find_lowest_free());
-        if target_fd >= self.max_fds { return None; }
+        if target_fd >= self.max_fds {
+            return None;
+        }
         let mut new_entry = entry;
         new_entry.fd = target_fd;
         new_entry.created_at = now;
@@ -156,24 +194,33 @@ impl ProcessFdTable {
 
     #[inline]
     pub fn exec_close(&mut self) -> u32 {
-        let to_close: Vec<i32> = self.fds.iter()
+        let to_close: Vec<i32> = self
+            .fds
+            .iter()
             .filter(|(_, e)| e.is_close_on_exec())
             .map(|(&fd, _)| fd)
             .collect();
         let count = to_close.len() as u32;
-        for fd in to_close { self.fds.remove(&fd); }
+        for fd in to_close {
+            self.fds.remove(&fd);
+        }
         self.close_on_exec_count = 0;
         count
     }
 
     #[inline(always)]
-    pub fn used_count(&self) -> usize { self.fds.len() }
+    pub fn used_count(&self) -> usize {
+        self.fds.len()
+    }
     #[inline(always)]
-    pub fn available(&self) -> i32 { self.max_fds - self.fds.len() as i32 }
+    pub fn available(&self) -> i32 {
+        self.max_fds - self.fds.len() as i32
+    }
 
     #[inline]
     pub fn fds_by_type(&self, fd_type: FdType) -> Vec<i32> {
-        self.fds.iter()
+        self.fds
+            .iter()
             .filter(|(_, e)| e.fd_type == fd_type)
             .map(|(&fd, _)| fd)
             .collect()
@@ -181,7 +228,8 @@ impl ProcessFdTable {
 
     #[inline]
     pub fn io_heavy_fds(&self, threshold: u64) -> Vec<(i32, u64)> {
-        self.fds.iter()
+        self.fds
+            .iter()
             .filter(|(_, e)| e.total_io_bytes() >= threshold)
             .map(|(&fd, e)| (fd, e.total_io_bytes()))
             .collect()
@@ -211,14 +259,18 @@ pub struct AppFdTable {
 impl AppFdTable {
     pub fn new(default_max: i32) -> Self {
         Self {
-            tables: BTreeMap::new(), default_max_fds: default_max,
-            total_allocs: 0, total_closes: 0, total_dups: 0,
+            tables: BTreeMap::new(),
+            default_max_fds: default_max,
+            total_allocs: 0,
+            total_closes: 0,
+            total_dups: 0,
         }
     }
 
     #[inline(always)]
     pub fn create_table(&mut self, pid: u32) {
-        self.tables.insert(pid, ProcessFdTable::new(pid, self.default_max_fds));
+        self.tables
+            .insert(pid, ProcessFdTable::new(pid, self.default_max_fds));
     }
 
     #[inline(always)]
@@ -254,7 +306,9 @@ impl AppFdTable {
             child_table.close_on_exec_count = parent_table.close_on_exec_count;
             self.tables.insert(child, child_table);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]

@@ -83,15 +83,15 @@ fn xorshift64(state: &mut u64) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DreamDepth {
     /// Awake — no dream activity
-    Awake   = 0,
+    Awake = 0,
     /// Light replay of recent events
-    Light   = 1,
+    Light = 1,
     /// Deep consolidation of patterns
-    Deep    = 2,
+    Deep  = 2,
     /// REM-like creative recombination
-    Rem     = 3,
+    Rem   = 3,
     /// Lucid — conscious exploration of alternatives
-    Lucid   = 4,
+    Lucid = 4,
 }
 
 impl DreamDepth {
@@ -460,7 +460,11 @@ impl HolisticDreamEngine {
         if self.insights.is_empty() {
             return 0.0;
         }
-        let total: f32 = self.insights.values().map(|i| i.confidence * i.estimated_gain).sum();
+        let total: f32 = self
+            .insights
+            .values()
+            .map(|i| i.confidence * i.estimated_gain)
+            .sum();
         total / self.insights.len() as f32
     }
 
@@ -543,8 +547,7 @@ impl HolisticDreamEngine {
     fn end_session(&mut self) {
         let depth_val = self.current_depth as u8 as f32;
         let quality = if self.current_events_replayed > 0 {
-            (self.current_insights_generated as f32 / self.current_events_replayed as f32)
-                .min(1.0)
+            (self.current_insights_generated as f32 / self.current_events_replayed as f32).min(1.0)
         } else {
             0.0
         };
@@ -562,10 +565,8 @@ impl HolisticDreamEngine {
         self.session_history[self.session_write_idx] = session;
         self.session_write_idx = (self.session_write_idx + 1) % MAX_DREAM_HISTORY;
         self.stats.total_sessions += 1;
-        self.stats.average_depth +=
-            EMA_ALPHA * (depth_val - self.stats.average_depth);
-        self.stats.average_quality +=
-            EMA_ALPHA * (quality - self.stats.average_quality);
+        self.stats.average_depth += EMA_ALPHA * (depth_val - self.stats.average_depth);
+        self.stats.average_quality += EMA_ALPHA * (quality - self.stats.average_quality);
         self.stats.total_cost_spent += self.current_cost;
         if self.current_depth > self.stats.deepest_ever {
             self.stats.deepest_ever = self.current_depth;

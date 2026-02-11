@@ -7,11 +7,11 @@
 //! - Machine learning training data
 //! - Regression testing
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use super::syscall::SyscallType;
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // HISTORY RECORDS

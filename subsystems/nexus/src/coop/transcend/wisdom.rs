@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -57,7 +58,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(val: u64, lo: u64, hi: u64) -> u64 {
-    if val < lo { lo } else if val > hi { hi } else { val }
+    if val < lo {
+        lo
+    } else if val > hi {
+        hi
+    } else {
+        val
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -202,8 +209,7 @@ impl CoopWisdom {
         // Multi-factor decision
         let coop_score = trust_level.wrapping_mul(3)
             + (100u64.saturating_sub(conflict_intensity)).wrapping_mul(2);
-        let compete_score = conflict_intensity.wrapping_mul(2)
-            + resource_pressure.wrapping_mul(2);
+        let compete_score = conflict_intensity.wrapping_mul(2) + resource_pressure.wrapping_mul(2);
         let negotiate_score = trust_level + resource_pressure + conflict_intensity;
         let yield_score = if trust_level > 80 && conflict_intensity > 70 {
             trust_level + 50
@@ -267,7 +273,9 @@ impl CoopWisdom {
 
         if self.decisions.len() >= MAX_DECISIONS {
             let oldest = self.decisions.keys().next().copied();
-            if let Some(k) = oldest { self.decisions.remove(&k); }
+            if let Some(k) = oldest {
+                self.decisions.remove(&k);
+            }
         }
         self.decisions.insert(did, decision);
 
@@ -276,7 +284,7 @@ impl CoopWisdom {
             Strategy::Compete => self.stats.competitions_chosen += 1,
             Strategy::Negotiate => self.stats.negotiations_chosen += 1,
             Strategy::Yield => self.stats.yields_chosen += 1,
-            Strategy::Wait => {}
+            Strategy::Wait => {},
         }
         self.stats.total_decisions += 1;
 
@@ -314,7 +322,9 @@ impl CoopWisdom {
 
         if self.patience_records.len() >= MAX_PATIENCE_RECORDS {
             let oldest = self.patience_records.keys().next().copied();
-            if let Some(k) = oldest { self.patience_records.remove(&k); }
+            if let Some(k) = oldest {
+                self.patience_records.remove(&k);
+            }
         }
         self.patience_records.insert(rid, record);
         self.stats.avg_patience = ema_update(self.stats.avg_patience, patience);
@@ -389,7 +399,9 @@ impl CoopWisdom {
 
         if self.mediations.len() >= MAX_MEDIATIONS {
             let oldest = self.mediations.keys().next().copied();
-            if let Some(k) = oldest { self.mediations.remove(&k); }
+            if let Some(k) = oldest {
+                self.mediations.remove(&k);
+            }
         }
         self.mediations.insert(mid, mediation);
         self.stats.mediations_performed += 1;
@@ -424,7 +436,9 @@ impl CoopWisdom {
 
             if self.crowd_votes.len() >= MAX_CROWD_VOTES {
                 let oldest = self.crowd_votes.keys().next().copied();
-                if let Some(k) = oldest { self.crowd_votes.remove(&k); }
+                if let Some(k) = oldest {
+                    self.crowd_votes.remove(&k);
+                }
             }
             self.crowd_votes.insert(vid, vote);
 
@@ -486,8 +500,8 @@ impl CoopWisdom {
             fairness_scores.push(proportion + history_bonus);
         }
 
-        let avg_fairness = fairness_scores.iter().sum::<u64>()
-            / core::cmp::max(fairness_scores.len() as u64, 1);
+        let avg_fairness =
+            fairness_scores.iter().sum::<u64>() / core::cmp::max(fairness_scores.len() as u64, 1);
 
         let wisdom_factor = (historical + avg_fairness) / 2;
         let noise = xorshift64(&mut self.rng_state) % 5;

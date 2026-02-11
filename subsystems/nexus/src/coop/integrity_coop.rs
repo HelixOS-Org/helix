@@ -26,8 +26,17 @@ pub struct IntegrityCoopRecord {
 impl IntegrityCoopRecord {
     pub fn new(event: IntegrityCoopEvent, path: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { event, path_hash: h, source_pid: 0, target_count: 0, digest_matches: true }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            event,
+            path_hash: h,
+            source_pid: 0,
+            target_count: 0,
+            digest_matches: true,
+        }
     }
 }
 
@@ -49,7 +58,14 @@ pub struct CoopIntegrity {
 
 impl CoopIntegrity {
     pub fn new() -> Self {
-        Self { stats: IntegrityCoopStats { total_events: 0, digest_shares: 0, measurement_syncs: 0, mismatches: 0 } }
+        Self {
+            stats: IntegrityCoopStats {
+                total_events: 0,
+                digest_shares: 0,
+                measurement_syncs: 0,
+                mismatches: 0,
+            },
+        }
     }
 
     #[inline]
@@ -58,8 +74,10 @@ impl CoopIntegrity {
         match rec.event {
             IntegrityCoopEvent::DigestShare => self.stats.digest_shares += 1,
             IntegrityCoopEvent::MeasurementSync => self.stats.measurement_syncs += 1,
-            _ => {}
+            _ => {},
         }
-        if !rec.digest_matches { self.stats.mismatches += 1; }
+        if !rec.digest_matches {
+            self.stats.mismatches += 1;
+        }
     }
 }

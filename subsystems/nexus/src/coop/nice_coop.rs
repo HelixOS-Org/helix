@@ -72,7 +72,11 @@ impl CoopNiceManager {
         self.stats.total_adjustments += 1;
         if let Some(e) = self.entries.get_mut(&pid) {
             let new = (e.nice + delta).clamp(-20, 19);
-            if new < e.nice { self.stats.raises += 1; } else { self.stats.lowers += 1; }
+            if new < e.nice {
+                self.stats.raises += 1;
+            } else {
+                self.stats.lowers += 1;
+            }
             e.nice = new;
             e.cpu_weight = ((20 - new) as u32).max(1) * 50;
             true

@@ -198,7 +198,7 @@ impl BridgeSendfile {
             SendfileMode::Zerocopy => self.stats.zerocopy_transfers += 1,
             SendfileMode::Splice => self.stats.splice_transfers += 1,
             SendfileMode::CopyFallback => self.stats.copy_fallback_count += 1,
-            _ => {}
+            _ => {},
         }
         id
     }
@@ -305,18 +305,30 @@ impl SendfileV2Op {
     #[inline(always)]
     pub fn throughput_bps(&self) -> u64 {
         let dur = self.end_ns.saturating_sub(self.start_ns);
-        if dur == 0 { 0 } else { (self.bytes_sent * 8 * 1_000_000_000) / dur }
+        if dur == 0 {
+            0
+        } else {
+            (self.bytes_sent * 8 * 1_000_000_000) / dur
+        }
     }
 
     #[inline(always)]
     pub fn completion_pct(&self) -> f64 {
-        if self.count == 0 { 0.0 } else { (self.bytes_sent as f64 / self.count as f64) * 100.0 }
+        if self.count == 0 {
+            0.0
+        } else {
+            (self.bytes_sent as f64 / self.count as f64) * 100.0
+        }
     }
 
     #[inline(always)]
     pub fn cache_hit_rate(&self) -> f64 {
         let total = self.page_cache_hits + self.page_cache_misses;
-        if total == 0 { 0.0 } else { self.page_cache_hits as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.page_cache_hits as f64 / total as f64
+        }
     }
 }
 
@@ -356,7 +368,14 @@ impl BridgeSendfileV2 {
     }
 
     #[inline]
-    pub fn start_sendfile(&mut self, in_fd: i32, out_fd: i32, offset: u64, count: u64, ts_ns: u64) -> u64 {
+    pub fn start_sendfile(
+        &mut self,
+        in_fd: i32,
+        out_fd: i32,
+        offset: u64,
+        count: u64,
+        ts_ns: u64,
+    ) -> u64 {
         let id = self.next_op_id;
         self.next_op_id += 1;
         let mut op = SendfileV2Op::new(id, in_fd, out_fd, offset, count);
@@ -375,7 +394,7 @@ impl BridgeSendfileV2 {
             match op.mode {
                 SendfileV2Mode::ZeroCopy | SendfileV2Mode::DmaCopy => self.stats.zero_copy_ops += 1,
                 SendfileV2Mode::Fallback => self.stats.fallback_ops += 1,
-                _ => {}
+                _ => {},
             }
             Some(bytes)
         } else {
@@ -385,7 +404,10 @@ impl BridgeSendfileV2 {
 
     #[inline(always)]
     pub fn avg_throughput_bps(&self) -> u64 {
-        if self.stats.total_duration_ns == 0 { 0 }
-        else { (self.stats.total_bytes_sent * 8 * 1_000_000_000) / self.stats.total_duration_ns }
+        if self.stats.total_duration_ns == 0 {
+            0
+        } else {
+            (self.stats.total_bytes_sent * 8 * 1_000_000_000) / self.stats.total_duration_ns
+        }
     }
 }

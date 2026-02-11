@@ -39,9 +39,9 @@ pub enum DmaChannelState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DmaPriority {
     Realtime = 0,
-    High = 1,
-    Normal = 2,
-    Low = 3,
+    High     = 1,
+    Normal   = 2,
+    Low      = 3,
 }
 
 /// Physical address range for DMA
@@ -54,11 +54,17 @@ pub struct DmaRegion {
 
 impl DmaRegion {
     pub fn new(addr: u64, size: u64, dir: DmaDirection) -> Self {
-        Self { phys_addr: addr, size, direction: dir }
+        Self {
+            phys_addr: addr,
+            size,
+            direction: dir,
+        }
     }
 
     #[inline(always)]
-    pub fn end(&self) -> u64 { self.phys_addr + self.size }
+    pub fn end(&self) -> u64 {
+        self.phys_addr + self.size
+    }
 
     #[inline(always)]
     pub fn overlaps(&self, other: &DmaRegion) -> bool {
@@ -93,18 +99,35 @@ pub struct DmaTransfer {
 }
 
 impl DmaTransfer {
-    pub fn new(id: u64, ch: u32, dir: DmaDirection, src: DmaRegion, dst: DmaRegion, now: u64) -> Self {
+    pub fn new(
+        id: u64,
+        ch: u32,
+        dir: DmaDirection,
+        src: DmaRegion,
+        dst: DmaRegion,
+        now: u64,
+    ) -> Self {
         Self {
-            id, channel_id: ch, transfer_type: DmaTransferType::Single,
-            direction: dir, priority: DmaPriority::Normal,
-            src, dst, sg_list: Vec::new(),
-            bytes_transferred: 0, submitted_at: now, started_at: 0, completed_at: 0,
+            id,
+            channel_id: ch,
+            transfer_type: DmaTransferType::Single,
+            direction: dir,
+            priority: DmaPriority::Normal,
+            src,
+            dst,
+            sg_list: Vec::new(),
+            bytes_transferred: 0,
+            submitted_at: now,
+            started_at: 0,
+            completed_at: 0,
             error_count: 0,
         }
     }
 
     #[inline(always)]
-    pub fn start(&mut self, now: u64) { self.started_at = now; }
+    pub fn start(&mut self, now: u64) {
+        self.started_at = now;
+    }
 
     #[inline(always)]
     pub fn complete(&mut self, bytes: u64, now: u64) {
@@ -114,13 +137,19 @@ impl DmaTransfer {
 
     #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
-        if self.completed_at > 0 { self.completed_at.saturating_sub(self.submitted_at) } else { 0 }
+        if self.completed_at > 0 {
+            self.completed_at.saturating_sub(self.submitted_at)
+        } else {
+            0
+        }
     }
 
     #[inline]
     pub fn throughput_mbps(&self) -> f64 {
         let lat = self.latency_ns();
-        if lat == 0 { return 0.0; }
+        if lat == 0 {
+            return 0.0;
+        }
         let bytes_per_sec = self.bytes_transferred as f64 * 1_000_000_000.0 / lat as f64;
         bytes_per_sec / (1024.0 * 1024.0)
     }
@@ -144,10 +173,16 @@ pub struct DmaChannel {
 impl DmaChannel {
     pub fn new(id: u32) -> Self {
         Self {
-            id, state: DmaChannelState::Idle, max_burst: 256,
-            addr_width: 64, supported_dirs: 0xFF,
-            active_transfer: None, pending: Vec::new(),
-            total_transfers: 0, total_bytes: 0, total_errors: 0,
+            id,
+            state: DmaChannelState::Idle,
+            max_burst: 256,
+            addr_width: 64,
+            supported_dirs: 0xFF,
+            active_transfer: None,
+            pending: Vec::new(),
+            total_transfers: 0,
+            total_bytes: 0,
+            total_errors: 0,
         }
     }
 
@@ -162,7 +197,9 @@ impl DmaChannel {
 
     #[inline]
     pub fn start_next(&mut self, now: u64) -> Option<u64> {
-        if self.active_transfer.is_some() { return None; }
+        if self.active_transfer.is_some() {
+            return None;
+        }
         if let Some(mut t) = self.pending.pop() {
             let id = t.id;
             t.start(now);
@@ -170,7 +207,9 @@ impl DmaChannel {
             self.state = DmaChannelState::Active;
             self.pending.push(t); // keep for tracking
             Some(id)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -183,7 +222,11 @@ impl DmaChannel {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.state == DmaChannelState::Active { 1.0 } else { 0.0 }
+        if self.state == DmaChannelState::Active {
+            1.0
+        } else {
+            0.0
+        }
     }
 }
 
@@ -209,34 +252,63 @@ pub struct HolisticDmaEngine {
 
 impl HolisticDmaEngine {
     pub fn new() -> Self {
-        Self { channels: BTreeMap::new(), completed: Vec::new(), next_transfer_id: 1, max_completed: 4096 }
+        Self {
+            channels: BTreeMap::new(),
+            completed: Vec::new(),
+            next_transfer_id: 1,
+            max_completed: 4096,
+        }
     }
 
     #[inline(always)]
     pub fn add_channel(&mut self, id: u32) {
-        self.channels.entry(id).or_insert_with(|| DmaChannel::new(id));
+        self.channels
+            .entry(id)
+            .or_insert_with(|| DmaChannel::new(id));
     }
 
     #[inline]
-    pub fn submit(&mut self, ch_id: u32, dir: DmaDirection, src: DmaRegion, dst: DmaRegion, now: u64) -> Option<u64> {
+    pub fn submit(
+        &mut self,
+        ch_id: u32,
+        dir: DmaDirection,
+        src: DmaRegion,
+        dst: DmaRegion,
+        now: u64,
+    ) -> Option<u64> {
         let tid = self.next_transfer_id;
         self.next_transfer_id += 1;
         let transfer = DmaTransfer::new(tid, ch_id, dir, src, dst, now);
-        self.channels.get_mut(&ch_id)?.submit(transfer).then_some(tid)
+        self.channels
+            .get_mut(&ch_id)?
+            .submit(transfer)
+            .then_some(tid)
     }
 
     pub fn stats(&self) -> DmaEngineStats {
-        let active = self.channels.values().filter(|c| c.state == DmaChannelState::Active).count() as u32;
+        let active = self
+            .channels
+            .values()
+            .filter(|c| c.state == DmaChannelState::Active)
+            .count() as u32;
         let tot_transfers: u64 = self.channels.values().map(|c| c.total_transfers).sum();
         let tot_bytes: u64 = self.channels.values().map(|c| c.total_bytes).sum();
         let tot_errors: u64 = self.channels.values().map(|c| c.total_errors).sum();
-        let avg_tp = if self.completed.is_empty() { 0.0 } else {
-            self.completed.iter().map(|t| t.throughput_mbps()).sum::<f64>() / self.completed.len() as f64
+        let avg_tp = if self.completed.is_empty() {
+            0.0
+        } else {
+            self.completed
+                .iter()
+                .map(|t| t.throughput_mbps())
+                .sum::<f64>()
+                / self.completed.len() as f64
         };
         DmaEngineStats {
             total_channels: self.channels.len() as u32,
-            active_channels: active, total_transfers: tot_transfers,
-            total_bytes: tot_bytes, total_errors: tot_errors,
+            active_channels: active,
+            total_transfers: tot_transfers,
+            total_bytes: tot_bytes,
+            total_errors: tot_errors,
             avg_throughput_mbps: avg_tp,
         }
     }

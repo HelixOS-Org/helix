@@ -3,9 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Audit event severity
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -72,17 +73,35 @@ pub struct AuditRule {
 }
 
 impl AuditRule {
-    pub fn new(id: u32, field: AuditField, value: u64, action: AuditAction, category: AuditCategory) -> Self {
-        Self { id, field, value, action, category, enabled: true, hit_count: 0 }
+    pub fn new(
+        id: u32,
+        field: AuditField,
+        value: u64,
+        action: AuditAction,
+        category: AuditCategory,
+    ) -> Self {
+        Self {
+            id,
+            field,
+            value,
+            action,
+            category,
+            enabled: true,
+            hit_count: 0,
+        }
     }
 
     #[inline]
     pub fn matches_value(&mut self, field: AuditField, val: u64) -> bool {
-        if !self.enabled || self.field != field { return false; }
+        if !self.enabled || self.field != field {
+            return false;
+        }
         if self.value == val {
             self.hit_count += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }
 
@@ -140,11 +159,17 @@ pub struct AppAuditLog {
 impl AppAuditLog {
     pub fn new(max_entries: usize) -> Self {
         Self {
-            entries: Vec::new(), rules: Vec::new(),
-            max_entries, sequence: 0, enabled: true,
-            lost_count: 0, backlog_limit: 8192,
-            rate_limit_per_sec: 0, rate_window_start: 0,
-            rate_window_count: 0, severity_counts: [0u64; 8],
+            entries: Vec::new(),
+            rules: Vec::new(),
+            max_entries,
+            sequence: 0,
+            enabled: true,
+            lost_count: 0,
+            backlog_limit: 8192,
+            rate_limit_per_sec: 0,
+            rate_window_start: 0,
+            rate_window_count: 0,
+            severity_counts: [0u64; 8],
             category_counts: ArrayMap::new(0),
         }
     }
@@ -161,9 +186,20 @@ impl AppAuditLog {
         self.rules.len() < before
     }
 
-    pub fn log_event(&mut self, category: AuditCategory, severity: AuditSeverity,
-                      pid: u32, uid: u32, syscall: u32, result: i32, message: String, now: u64) {
-        if !self.enabled { return; }
+    pub fn log_event(
+        &mut self,
+        category: AuditCategory,
+        severity: AuditSeverity,
+        pid: u32,
+        uid: u32,
+        syscall: u32,
+        result: i32,
+        message: String,
+        now: u64,
+    ) {
+        if !self.enabled {
+            return;
+        }
         if self.rate_limit_per_sec > 0 {
             if now.saturating_sub(self.rate_window_start) >= 1_000_000_000 {
                 self.rate_window_start = now;
@@ -186,12 +222,21 @@ impl AppAuditLog {
 
         self.sequence += 1;
         let idx = severity as usize;
-        if idx < 8 { self.severity_counts[idx] += 1; }
+        if idx < 8 {
+            self.severity_counts[idx] += 1;
+        }
         self.category_counts.add(category as usize, 1);
 
         self.entries.push(AuditEntry {
-            seq: self.sequence, timestamp: now, category, severity,
-            pid, uid, syscall, result, message,
+            seq: self.sequence,
+            timestamp: now,
+            category,
+            severity,
+            pid,
+            uid,
+            syscall,
+            result,
+            message,
         });
     }
 
@@ -202,7 +247,10 @@ impl AppAuditLog {
 
     #[inline(always)]
     pub fn search_by_severity(&self, min_sev: AuditSeverity) -> Vec<&AuditEntry> {
-        self.entries.iter().filter(|e| e.severity >= min_sev).collect()
+        self.entries
+            .iter()
+            .filter(|e| e.severity >= min_sev)
+            .collect()
     }
 
     #[inline(always)]
@@ -227,9 +275,13 @@ impl AppAuditLog {
     }
 
     #[inline(always)]
-    pub fn set_rate_limit(&mut self, per_sec: u32) { self.rate_limit_per_sec = per_sec; }
+    pub fn set_rate_limit(&mut self, per_sec: u32) {
+        self.rate_limit_per_sec = per_sec;
+    }
     #[inline(always)]
-    pub fn set_enabled(&mut self, en: bool) { self.enabled = en; }
+    pub fn set_enabled(&mut self, en: bool) {
+        self.enabled = en;
+    }
 
     #[inline]
     pub fn stats(&self) -> AuditLogStats {

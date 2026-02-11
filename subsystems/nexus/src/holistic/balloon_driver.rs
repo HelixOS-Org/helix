@@ -45,11 +45,18 @@ pub struct BalloonPage {
 
 impl BalloonPage {
     pub fn new(pfn: u64, ptype: BalloonPageType, order: u32, now: u64) -> Self {
-        Self { pfn, page_type: ptype, order, inflated_at: now }
+        Self {
+            pfn,
+            page_type: ptype,
+            order,
+            inflated_at: now,
+        }
     }
 
     #[inline(always)]
-    pub fn size_bytes(&self) -> u64 { 4096u64 << self.order }
+    pub fn size_bytes(&self) -> u64 {
+        4096u64 << self.order
+    }
 }
 
 /// Balloon instance
@@ -70,16 +77,24 @@ pub struct BalloonInstance {
 impl BalloonInstance {
     pub fn new(id: u64, max_pages: u64) -> Self {
         Self {
-            id, state: BalloonState::Deflated, target_pages: 0,
-            current_pages: 0, max_pages, pages: Vec::new(),
-            total_inflated: 0, total_deflated: 0, oom_deflations: 0,
+            id,
+            state: BalloonState::Deflated,
+            target_pages: 0,
+            current_pages: 0,
+            max_pages,
+            pages: Vec::new(),
+            total_inflated: 0,
+            total_deflated: 0,
+            oom_deflations: 0,
             last_adjust_at: 0,
         }
     }
 
     #[inline]
     pub fn inflate(&mut self, pfn: u64, ptype: BalloonPageType, order: u32, now: u64) -> bool {
-        if self.current_pages >= self.max_pages { return false; }
+        if self.current_pages >= self.max_pages {
+            return false;
+        }
         let count = 1u64 << order;
         self.pages.push(BalloonPage::new(pfn, ptype, order, now));
         self.current_pages += count;
@@ -98,19 +113,27 @@ impl BalloonInstance {
             released += n;
         }
         self.total_deflated += released;
-        self.state = if self.current_pages == 0 { BalloonState::Deflated } else { BalloonState::Deflating };
+        self.state = if self.current_pages == 0 {
+            BalloonState::Deflated
+        } else {
+            BalloonState::Deflating
+        };
         self.last_adjust_at = now;
         released
     }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.max_pages == 0 { return 0.0; }
+        if self.max_pages == 0 {
+            return 0.0;
+        }
         self.current_pages as f64 / self.max_pages as f64
     }
 
     #[inline(always)]
-    pub fn total_bytes(&self) -> u64 { self.current_pages * 4096 }
+    pub fn total_bytes(&self) -> u64 {
+        self.current_pages * 4096
+    }
 }
 
 /// Stats
@@ -132,24 +155,43 @@ pub struct HolisticBalloonDriver {
 }
 
 impl HolisticBalloonDriver {
-    pub fn new() -> Self { Self { balloons: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            balloons: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, max_pages: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.balloons.insert(id, BalloonInstance::new(id, max_pages));
+        self.balloons
+            .insert(id, BalloonInstance::new(id, max_pages));
         id
     }
 
     #[inline(always)]
-    pub fn inflate(&mut self, id: u64, pfn: u64, ptype: BalloonPageType, order: u32, now: u64) -> bool {
-        self.balloons.get_mut(&id).map(|b| b.inflate(pfn, ptype, order, now)).unwrap_or(false)
+    pub fn inflate(
+        &mut self,
+        id: u64,
+        pfn: u64,
+        ptype: BalloonPageType,
+        order: u32,
+        now: u64,
+    ) -> bool {
+        self.balloons
+            .get_mut(&id)
+            .map(|b| b.inflate(pfn, ptype, order, now))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
     pub fn deflate(&mut self, id: u64, count: u64, now: u64) -> u64 {
-        self.balloons.get_mut(&id).map(|b| b.deflate(count, now)).unwrap_or(0)
+        self.balloons
+            .get_mut(&id)
+            .map(|b| b.deflate(count, now))
+            .unwrap_or(0)
     }
 
     pub fn stats(&self) -> BalloonDriverStats {
@@ -158,11 +200,18 @@ impl HolisticBalloonDriver {
         let bytes: u64 = self.balloons.values().map(|b| b.total_bytes()).sum();
         let oom: u64 = self.balloons.values().map(|b| b.oom_deflations).sum();
         let utils: Vec<f64> = self.balloons.values().map(|b| b.utilization()).collect();
-        let avg = if utils.is_empty() { 0.0 } else { utils.iter().sum::<f64>() / utils.len() as f64 };
+        let avg = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
         BalloonDriverStats {
             total_balloons: self.balloons.len() as u32,
-            total_inflated_pages: inflated, total_deflated_pages: deflated,
-            current_balloon_bytes: bytes, oom_deflations: oom, avg_utilization: avg,
+            total_inflated_pages: inflated,
+            total_deflated_pages: deflated,
+            current_balloon_bytes: bytes,
+            oom_deflations: oom,
+            avg_utilization: avg,
         }
     }
 }

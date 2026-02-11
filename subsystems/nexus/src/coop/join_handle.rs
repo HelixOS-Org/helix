@@ -42,8 +42,14 @@ pub struct JoinHandle {
 impl JoinHandle {
     pub fn new(id: u64, task_id: u64, now: u64) -> Self {
         Self {
-            id, task_id, state: JoinState::Running, result_code: 0,
-            created_at: now, completed_at: 0, joiners: Vec::new(), detached: false,
+            id,
+            task_id,
+            state: JoinState::Running,
+            result_code: 0,
+            created_at: now,
+            completed_at: 0,
+            joiners: Vec::new(),
+            detached: false,
         }
     }
 
@@ -73,17 +79,25 @@ impl JoinHandle {
     }
 
     #[inline(always)]
-    pub fn add_joiner(&mut self, tid: u64) { self.joiners.push(tid); }
+    pub fn add_joiner(&mut self, tid: u64) {
+        self.joiners.push(tid);
+    }
 
     #[inline(always)]
     pub fn is_done(&self) -> bool {
-        matches!(self.state, JoinState::Completed | JoinState::Panicked | JoinState::Cancelled)
+        matches!(
+            self.state,
+            JoinState::Completed | JoinState::Panicked | JoinState::Cancelled
+        )
     }
 
     #[inline(always)]
     pub fn lifetime_ns(&self) -> u64 {
-        if self.completed_at > 0 { self.completed_at - self.created_at }
-        else { 0 }
+        if self.completed_at > 0 {
+            self.completed_at - self.created_at
+        } else {
+            0
+        }
     }
 }
 
@@ -98,16 +112,26 @@ pub struct JoinGroup {
 
 impl JoinGroup {
     pub fn new(id: u64, join_all: bool) -> Self {
-        Self { id, handles: Vec::new(), join_all, completed_count: 0 }
+        Self {
+            id,
+            handles: Vec::new(),
+            join_all,
+            completed_count: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn add(&mut self, handle_id: u64) { self.handles.push(handle_id); }
+    pub fn add(&mut self, handle_id: u64) {
+        self.handles.push(handle_id);
+    }
 
     #[inline(always)]
     pub fn is_satisfied(&self, done_count: u32) -> bool {
-        if self.join_all { done_count == self.handles.len() as u32 }
-        else { done_count > 0 }
+        if self.join_all {
+            done_count == self.handles.len() as u32
+        } else {
+            done_count > 0
+        }
     }
 }
 
@@ -135,7 +159,12 @@ pub struct CoopJoinHandle {
 
 impl CoopJoinHandle {
     pub fn new() -> Self {
-        Self { handles: BTreeMap::new(), groups: BTreeMap::new(), next_id: 1, next_group_id: 1 }
+        Self {
+            handles: BTreeMap::new(),
+            groups: BTreeMap::new(),
+            next_id: 1,
+            next_group_id: 1,
+        }
     }
 
     #[inline]
@@ -148,7 +177,9 @@ impl CoopJoinHandle {
 
     #[inline(always)]
     pub fn complete(&mut self, handle_id: u64, code: i64, now: u64) {
-        if let Some(h) = self.handles.get_mut(&handle_id) { h.complete(code, now); }
+        if let Some(h) = self.handles.get_mut(&handle_id) {
+            h.complete(code, now);
+        }
     }
 
     pub fn join(&mut self, handle_id: u64, joiner_tid: u64) -> JoinResult {
@@ -164,7 +195,9 @@ impl CoopJoinHandle {
                 h.add_joiner(joiner_tid);
                 JoinResult::Ok // would block
             }
-        } else { JoinResult::AlreadyJoined }
+        } else {
+            JoinResult::AlreadyJoined
+        }
     }
 
     #[inline]
@@ -176,16 +209,50 @@ impl CoopJoinHandle {
     }
 
     pub fn stats(&self) -> JoinHandleStats {
-        let running = self.handles.values().filter(|h| h.state == JoinState::Running).count() as u32;
-        let completed = self.handles.values().filter(|h| h.state == JoinState::Completed).count() as u32;
-        let panicked = self.handles.values().filter(|h| h.state == JoinState::Panicked).count() as u32;
-        let cancelled = self.handles.values().filter(|h| h.state == JoinState::Cancelled).count() as u32;
-        let detached = self.handles.values().filter(|h| h.state == JoinState::Detached).count() as u32;
-        let lifetimes: Vec<u64> = self.handles.values().filter(|h| h.is_done()).map(|h| h.lifetime_ns()).collect();
-        let avg = if lifetimes.is_empty() { 0 } else { lifetimes.iter().sum::<u64>() / lifetimes.len() as u64 };
+        let running = self
+            .handles
+            .values()
+            .filter(|h| h.state == JoinState::Running)
+            .count() as u32;
+        let completed = self
+            .handles
+            .values()
+            .filter(|h| h.state == JoinState::Completed)
+            .count() as u32;
+        let panicked = self
+            .handles
+            .values()
+            .filter(|h| h.state == JoinState::Panicked)
+            .count() as u32;
+        let cancelled = self
+            .handles
+            .values()
+            .filter(|h| h.state == JoinState::Cancelled)
+            .count() as u32;
+        let detached = self
+            .handles
+            .values()
+            .filter(|h| h.state == JoinState::Detached)
+            .count() as u32;
+        let lifetimes: Vec<u64> = self
+            .handles
+            .values()
+            .filter(|h| h.is_done())
+            .map(|h| h.lifetime_ns())
+            .collect();
+        let avg = if lifetimes.is_empty() {
+            0
+        } else {
+            lifetimes.iter().sum::<u64>() / lifetimes.len() as u64
+        };
         JoinHandleStats {
-            total_handles: self.handles.len() as u32, running, completed,
-            panicked, cancelled, detached, total_groups: self.groups.len() as u32,
+            total_handles: self.handles.len() as u32,
+            running,
+            completed,
+            panicked,
+            cancelled,
+            detached,
+            total_groups: self.groups.len() as u32,
             avg_lifetime_ns: avg,
         }
     }
@@ -226,21 +293,40 @@ pub struct JoinHandleV2 {
 
 impl JoinHandleV2 {
     pub fn new(id: u64, task_id: u64, now: u64) -> Self {
-        Self { id, task_id, state: JoinStateV2::Running, result: None, created_at: now, joiners: 0, cancel_requested: false }
+        Self {
+            id,
+            task_id,
+            state: JoinStateV2::Running,
+            result: None,
+            created_at: now,
+            joiners: 0,
+            cancel_requested: false,
+        }
     }
 
     #[inline(always)]
     pub fn complete(&mut self, result_hash: u64, now: u64) {
         self.state = JoinStateV2::Completed;
-        self.result = Some(JoinResultV2 { result_hash, completed_at: now, duration_ns: now - self.created_at });
+        self.result = Some(JoinResultV2 {
+            result_hash,
+            completed_at: now,
+            duration_ns: now - self.created_at,
+        });
     }
 
     #[inline(always)]
-    pub fn cancel(&mut self) { self.cancel_requested = true; self.state = JoinStateV2::Cancelled; }
+    pub fn cancel(&mut self) {
+        self.cancel_requested = true;
+        self.state = JoinStateV2::Cancelled;
+    }
     #[inline(always)]
-    pub fn detach(&mut self) { self.state = JoinStateV2::Detached; }
+    pub fn detach(&mut self) {
+        self.state = JoinStateV2::Detached;
+    }
     #[inline(always)]
-    pub fn is_finished(&self) -> bool { !matches!(self.state, JoinStateV2::Running) }
+    pub fn is_finished(&self) -> bool {
+        !matches!(self.state, JoinStateV2::Running)
+    }
 }
 
 /// Stats
@@ -262,33 +348,74 @@ pub struct CoopJoinHandleV2 {
 }
 
 impl CoopJoinHandleV2 {
-    pub fn new() -> Self { Self { handles: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            handles: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn spawn(&mut self, task_id: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.handles.insert(id, JoinHandleV2::new(id, task_id, now));
         id
     }
 
     #[inline(always)]
     pub fn complete(&mut self, id: u64, result_hash: u64, now: u64) {
-        if let Some(h) = self.handles.get_mut(&id) { h.complete(result_hash, now); }
+        if let Some(h) = self.handles.get_mut(&id) {
+            h.complete(result_hash, now);
+        }
     }
 
     #[inline(always)]
     pub fn cancel(&mut self, id: u64) {
-        if let Some(h) = self.handles.get_mut(&id) { h.cancel(); }
+        if let Some(h) = self.handles.get_mut(&id) {
+            h.cancel();
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> JoinHandleV2Stats {
-        let running = self.handles.values().filter(|h| h.state == JoinStateV2::Running).count() as u32;
-        let completed = self.handles.values().filter(|h| h.state == JoinStateV2::Completed).count() as u32;
-        let cancelled = self.handles.values().filter(|h| h.state == JoinStateV2::Cancelled).count() as u32;
-        let detached = self.handles.values().filter(|h| h.state == JoinStateV2::Detached).count() as u32;
-        let durs: Vec<u64> = self.handles.values().filter_map(|h| h.result.as_ref().map(|r| r.duration_ns)).collect();
-        let avg = if durs.is_empty() { 0 } else { durs.iter().sum::<u64>() / durs.len() as u64 };
-        JoinHandleV2Stats { total_handles: self.handles.len() as u32, running, completed, cancelled, detached, avg_duration_ns: avg }
+        let running = self
+            .handles
+            .values()
+            .filter(|h| h.state == JoinStateV2::Running)
+            .count() as u32;
+        let completed = self
+            .handles
+            .values()
+            .filter(|h| h.state == JoinStateV2::Completed)
+            .count() as u32;
+        let cancelled = self
+            .handles
+            .values()
+            .filter(|h| h.state == JoinStateV2::Cancelled)
+            .count() as u32;
+        let detached = self
+            .handles
+            .values()
+            .filter(|h| h.state == JoinStateV2::Detached)
+            .count() as u32;
+        let durs: Vec<u64> = self
+            .handles
+            .values()
+            .filter_map(|h| h.result.as_ref().map(|r| r.duration_ns))
+            .collect();
+        let avg = if durs.is_empty() {
+            0
+        } else {
+            durs.iter().sum::<u64>() / durs.len() as u64
+        };
+        JoinHandleV2Stats {
+            total_handles: self.handles.len() as u32,
+            running,
+            completed,
+            cancelled,
+            detached,
+            avg_duration_ns: avg,
+        }
     }
 }

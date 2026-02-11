@@ -88,7 +88,7 @@ impl BridgeExitManager {
             BridgeExitReason::Signal => self.stats.signal_exits += 1,
             BridgeExitReason::CoreDump => self.stats.core_dumps += 1,
             BridgeExitReason::OutOfMemory => self.stats.oom_kills += 1,
-            _ => {}
+            _ => {},
         }
         let cleanups = alloc::vec![
             BridgeExitCleanup::CloseFds,

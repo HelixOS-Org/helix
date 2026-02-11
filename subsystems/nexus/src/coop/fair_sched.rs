@@ -31,12 +31,25 @@ pub struct FairTask {
 
 impl FairTask {
     pub fn new(id: u64, class: FairSchedClass, weight: u32) -> Self {
-        Self { id, class, vruntime: 0, weight, total_runtime_ns: 0, slices_used: 0, last_scheduled: 0, waiting_since: 0 }
+        Self {
+            id,
+            class,
+            vruntime: 0,
+            weight,
+            total_runtime_ns: 0,
+            slices_used: 0,
+            last_scheduled: 0,
+            waiting_since: 0,
+        }
     }
 
     #[inline]
     pub fn account(&mut self, runtime_ns: u64) {
-        let weighted = if self.weight == 0 { runtime_ns } else { runtime_ns * 1024 / self.weight as u64 };
+        let weighted = if self.weight == 0 {
+            runtime_ns
+        } else {
+            runtime_ns * 1024 / self.weight as u64
+        };
         self.vruntime += weighted;
         self.total_runtime_ns += runtime_ns;
         self.slices_used += 1;
@@ -62,7 +75,13 @@ pub struct CoopFairSched {
 }
 
 impl CoopFairSched {
-    pub fn new(granularity_ns: u64) -> Self { Self { tasks: BTreeMap::new(), total_schedules: 0, min_granularity_ns: granularity_ns } }
+    pub fn new(granularity_ns: u64) -> Self {
+        Self {
+            tasks: BTreeMap::new(),
+            total_schedules: 0,
+            min_granularity_ns: granularity_ns,
+        }
+    }
 
     #[inline]
     pub fn add_task(&mut self, id: u64, class: FairSchedClass, weight: u32) {
@@ -80,22 +99,41 @@ impl CoopFairSched {
 
     #[inline(always)]
     pub fn account(&mut self, id: u64, runtime_ns: u64) {
-        if let Some(t) = self.tasks.get_mut(&id) { t.account(runtime_ns); }
+        if let Some(t) = self.tasks.get_mut(&id) {
+            t.account(runtime_ns);
+        }
     }
 
     #[inline(always)]
-    pub fn remove_task(&mut self, id: u64) { self.tasks.remove(&id); }
+    pub fn remove_task(&mut self, id: u64) {
+        self.tasks.remove(&id);
+    }
 
     #[inline]
     pub fn stats(&self) -> FairSchedStats {
         let vruntimes: Vec<u64> = self.tasks.values().map(|t| t.vruntime).collect();
         let min = vruntimes.iter().copied().min().unwrap_or(0);
         let max = vruntimes.iter().copied().max().unwrap_or(0);
-        let fairness = if max == 0 { 1.0 } else {
+        let fairness = if max == 0 {
+            1.0
+        } else {
             let avg = vruntimes.iter().sum::<u64>() as f64 / vruntimes.len().max(1) as f64;
-            let variance: f64 = vruntimes.iter().map(|&v| { let d = v as f64 - avg; d * d }).sum::<f64>() / vruntimes.len().max(1) as f64;
+            let variance: f64 = vruntimes
+                .iter()
+                .map(|&v| {
+                    let d = v as f64 - avg;
+                    d * d
+                })
+                .sum::<f64>()
+                / vruntimes.len().max(1) as f64;
             1.0 / (1.0 + libm::sqrt(variance) / avg.max(1.0))
         };
-        FairSchedStats { total_tasks: self.tasks.len() as u32, total_schedules: self.total_schedules, min_vruntime: min, max_vruntime: max, fairness_index: fairness }
+        FairSchedStats {
+            total_tasks: self.tasks.len() as u32,
+            total_schedules: self.total_schedules,
+            min_vruntime: min,
+            max_vruntime: max,
+            fairness_index: fairness,
+        }
     }
 }

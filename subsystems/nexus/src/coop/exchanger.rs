@@ -34,8 +34,11 @@ impl ExchangeSlot {
     pub fn new() -> Self {
         Self {
             state: ExchangeSlotState::Empty,
-            offered_value: 0, received_value: 0,
-            offerer_id: 0, matcher_id: 0, exchanges: 0,
+            offered_value: 0,
+            received_value: 0,
+            offerer_id: 0,
+            matcher_id: 0,
+            exchanges: 0,
         }
     }
 
@@ -54,7 +57,9 @@ impl ExchangeSlot {
             self.state = ExchangeSlotState::Matched;
             self.exchanges += 1;
             Some(offered)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -62,13 +67,19 @@ impl ExchangeSlot {
         if self.state == ExchangeSlotState::Matched {
             self.state = ExchangeSlotState::Empty;
             Some(self.received_value)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
-    pub fn cancel(&mut self) { self.state = ExchangeSlotState::Cancelled; }
+    pub fn cancel(&mut self) {
+        self.state = ExchangeSlotState::Cancelled;
+    }
     #[inline(always)]
-    pub fn reset(&mut self) { self.state = ExchangeSlotState::Empty; }
+    pub fn reset(&mut self) {
+        self.state = ExchangeSlotState::Empty;
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -111,8 +122,10 @@ impl CoopExchanger {
             arena: ExchangerArena::new(arena_size),
             rng_state: 0xfeedface12345678,
             stats: ExchangerStats {
-                total_offers: 0, total_exchanges: 0,
-                total_timeouts: 0, total_cancels: 0,
+                total_offers: 0,
+                total_exchanges: 0,
+                total_timeouts: 0,
+                total_cancels: 0,
                 avg_wait_ns: 0,
             },
         }
@@ -140,10 +153,15 @@ impl CoopExchanger {
 
     #[inline(always)]
     pub fn success_rate(&self) -> u64 {
-        if self.stats.total_offers == 0 { 0 }
-        else { (self.stats.total_exchanges * 100) / self.stats.total_offers }
+        if self.stats.total_offers == 0 {
+            0
+        } else {
+            (self.stats.total_exchanges * 100) / self.stats.total_offers
+        }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &ExchangerStats { &self.stats }
+    pub fn stats(&self) -> &ExchangerStats {
+        &self.stats
+    }
 }

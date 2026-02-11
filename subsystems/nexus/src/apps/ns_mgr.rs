@@ -60,20 +60,39 @@ pub struct NsDescriptor {
 impl NsDescriptor {
     pub fn new(id: u64, ns_type: NsType, owner: u64, parent: Option<u64>) -> Self {
         Self {
-            id, ns_type, state: NsState::Creating, parent_id: parent,
-            children: Vec::new(), owner_pid: owner, refcount: 1, created_at: 0,
+            id,
+            ns_type,
+            state: NsState::Creating,
+            parent_id: parent,
+            children: Vec::new(),
+            owner_pid: owner,
+            refcount: 1,
+            created_at: 0,
             id_mappings: Vec::new(),
         }
     }
 
     #[inline(always)]
-    pub fn activate(&mut self) { self.state = NsState::Active; }
+    pub fn activate(&mut self) {
+        self.state = NsState::Active;
+    }
     #[inline(always)]
-    pub fn add_ref(&mut self) { self.refcount += 1; }
+    pub fn add_ref(&mut self) {
+        self.refcount += 1;
+    }
     #[inline(always)]
-    pub fn release(&mut self) -> bool { self.refcount = self.refcount.saturating_sub(1); self.refcount == 0 }
+    pub fn release(&mut self) -> bool {
+        self.refcount = self.refcount.saturating_sub(1);
+        self.refcount == 0
+    }
     #[inline(always)]
-    pub fn add_mapping(&mut self, inner: u32, outer: u32, count: u32) { self.id_mappings.push(IdMapping { inner_start: inner, outer_start: outer, count }); }
+    pub fn add_mapping(&mut self, inner: u32, outer: u32, count: u32) {
+        self.id_mappings.push(IdMapping {
+            inner_start: inner,
+            outer_start: outer,
+            count,
+        });
+    }
 
     #[inline]
     pub fn map_id(&self, inner: u32) -> Option<u32> {
@@ -102,26 +121,44 @@ pub struct ProcessNsSet {
 
 impl ProcessNsSet {
     pub fn new(pid: u64) -> Self {
-        Self { pid, pid_ns: 0, mnt_ns: 0, net_ns: 0, user_ns: 0, ipc_ns: 0, uts_ns: 0, cgroup_ns: 0, time_ns: 0 }
+        Self {
+            pid,
+            pid_ns: 0,
+            mnt_ns: 0,
+            net_ns: 0,
+            user_ns: 0,
+            ipc_ns: 0,
+            uts_ns: 0,
+            cgroup_ns: 0,
+            time_ns: 0,
+        }
     }
 
     #[inline]
     pub fn get(&self, ns_type: NsType) -> u64 {
         match ns_type {
-            NsType::Pid => self.pid_ns, NsType::Mount => self.mnt_ns,
-            NsType::Network => self.net_ns, NsType::User => self.user_ns,
-            NsType::Ipc => self.ipc_ns, NsType::Uts => self.uts_ns,
-            NsType::Cgroup => self.cgroup_ns, NsType::Time => self.time_ns,
+            NsType::Pid => self.pid_ns,
+            NsType::Mount => self.mnt_ns,
+            NsType::Network => self.net_ns,
+            NsType::User => self.user_ns,
+            NsType::Ipc => self.ipc_ns,
+            NsType::Uts => self.uts_ns,
+            NsType::Cgroup => self.cgroup_ns,
+            NsType::Time => self.time_ns,
         }
     }
 
     #[inline]
     pub fn set(&mut self, ns_type: NsType, id: u64) {
         match ns_type {
-            NsType::Pid => self.pid_ns = id, NsType::Mount => self.mnt_ns = id,
-            NsType::Network => self.net_ns = id, NsType::User => self.user_ns = id,
-            NsType::Ipc => self.ipc_ns = id, NsType::Uts => self.uts_ns = id,
-            NsType::Cgroup => self.cgroup_ns = id, NsType::Time => self.time_ns = id,
+            NsType::Pid => self.pid_ns = id,
+            NsType::Mount => self.mnt_ns = id,
+            NsType::Network => self.net_ns = id,
+            NsType::User => self.user_ns = id,
+            NsType::Ipc => self.ipc_ns = id,
+            NsType::Uts => self.uts_ns = id,
+            NsType::Cgroup => self.cgroup_ns = id,
+            NsType::Time => self.time_ns = id,
         }
     }
 }
@@ -169,10 +206,26 @@ pub struct AppsNsMgr {
 
 impl AppsNsMgr {
     pub fn new() -> Self {
-        let mut mgr = Self { namespaces: BTreeMap::new(), processes: BTreeMap::new(), events: Vec::new(), stats: NsMgrStats::default(), next_id: 1 };
+        let mut mgr = Self {
+            namespaces: BTreeMap::new(),
+            processes: BTreeMap::new(),
+            events: Vec::new(),
+            stats: NsMgrStats::default(),
+            next_id: 1,
+        };
         // Create initial namespaces (init ns)
-        for &ns_type in &[NsType::Pid, NsType::Mount, NsType::Network, NsType::User, NsType::Ipc, NsType::Uts, NsType::Cgroup, NsType::Time] {
-            let id = mgr.next_id; mgr.next_id += 1;
+        for &ns_type in &[
+            NsType::Pid,
+            NsType::Mount,
+            NsType::Network,
+            NsType::User,
+            NsType::Ipc,
+            NsType::Uts,
+            NsType::Cgroup,
+            NsType::Time,
+        ] {
+            let id = mgr.next_id;
+            mgr.next_id += 1;
             let mut ns = NsDescriptor::new(id, ns_type, 1, None);
             ns.activate();
             mgr.namespaces.insert(id, ns);
@@ -182,13 +235,24 @@ impl AppsNsMgr {
 
     #[inline]
     pub fn create_ns(&mut self, ns_type: NsType, owner: u64, parent: Option<u64>, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         let mut ns = NsDescriptor::new(id, ns_type, owner, parent);
         ns.created_at = ts;
         ns.activate();
         self.namespaces.insert(id, ns);
-        if let Some(pid) = parent { if let Some(p) = self.namespaces.get_mut(&pid) { p.children.push(id); } }
-        self.events.push(NsEvent { ns_id: id, ns_type, kind: NsEventKind::Created, pid: owner, ts });
+        if let Some(pid) = parent {
+            if let Some(p) = self.namespaces.get_mut(&pid) {
+                p.children.push(id);
+            }
+        }
+        self.events.push(NsEvent {
+            ns_id: id,
+            ns_type,
+            kind: NsEventKind::Created,
+            pid: owner,
+            ts,
+        });
         id
     }
 
@@ -197,9 +261,18 @@ impl AppsNsMgr {
         if let Some(ns) = self.namespaces.get_mut(&ns_id) {
             ns.add_ref();
             let ns_type = ns.ns_type;
-            let proc_ns = self.processes.entry(pid).or_insert_with(|| ProcessNsSet::new(pid));
+            let proc_ns = self
+                .processes
+                .entry(pid)
+                .or_insert_with(|| ProcessNsSet::new(pid));
             proc_ns.set(ns_type, ns_id);
-            self.events.push(NsEvent { ns_id, ns_type, kind: NsEventKind::Entered, pid, ts });
+            self.events.push(NsEvent {
+                ns_id,
+                ns_type,
+                kind: NsEventKind::Entered,
+                pid,
+                ts,
+            });
         }
     }
 
@@ -209,21 +282,37 @@ impl AppsNsMgr {
             let ns_id = proc_ns.get(ns_type);
             if let Some(ns) = self.namespaces.get_mut(&ns_id) {
                 let dead = ns.release();
-                if dead { ns.state = NsState::Destroying; }
-                self.events.push(NsEvent { ns_id, ns_type, kind: NsEventKind::Exited, pid, ts });
+                if dead {
+                    ns.state = NsState::Destroying;
+                }
+                self.events.push(NsEvent {
+                    ns_id,
+                    ns_type,
+                    kind: NsEventKind::Exited,
+                    pid,
+                    ts,
+                });
             }
         }
     }
 
     #[inline(always)]
     pub fn add_id_mapping(&mut self, ns_id: u64, inner: u32, outer: u32, count: u32) {
-        if let Some(ns) = self.namespaces.get_mut(&ns_id) { ns.add_mapping(inner, outer, count); }
+        if let Some(ns) = self.namespaces.get_mut(&ns_id) {
+            ns.add_mapping(inner, outer, count);
+        }
     }
 
     #[inline(always)]
-    pub fn register_process(&mut self, pid: u64) { self.processes.entry(pid).or_insert_with(|| ProcessNsSet::new(pid)); }
+    pub fn register_process(&mut self, pid: u64) {
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessNsSet::new(pid));
+    }
     #[inline(always)]
-    pub fn unregister_process(&mut self, pid: u64) { self.processes.remove(&pid); }
+    pub fn unregister_process(&mut self, pid: u64) {
+        self.processes.remove(&pid);
+    }
 
     #[inline]
     pub fn same_ns(&self, pid1: u64, pid2: u64, ns_type: NsType) -> bool {
@@ -235,18 +324,40 @@ impl AppsNsMgr {
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_namespaces = self.namespaces.len();
-        self.stats.active_namespaces = self.namespaces.values().filter(|n| n.state == NsState::Active).count();
+        self.stats.active_namespaces = self
+            .namespaces
+            .values()
+            .filter(|n| n.state == NsState::Active)
+            .count();
         self.stats.tracked_processes = self.processes.len();
-        self.stats.pid_namespaces = self.namespaces.values().filter(|n| n.ns_type == NsType::Pid).count();
-        self.stats.net_namespaces = self.namespaces.values().filter(|n| n.ns_type == NsType::Network).count();
-        self.stats.user_namespaces = self.namespaces.values().filter(|n| n.ns_type == NsType::User).count();
+        self.stats.pid_namespaces = self
+            .namespaces
+            .values()
+            .filter(|n| n.ns_type == NsType::Pid)
+            .count();
+        self.stats.net_namespaces = self
+            .namespaces
+            .values()
+            .filter(|n| n.ns_type == NsType::Network)
+            .count();
+        self.stats.user_namespaces = self
+            .namespaces
+            .values()
+            .filter(|n| n.ns_type == NsType::User)
+            .count();
         self.stats.total_events = self.events.len();
     }
 
     #[inline(always)]
-    pub fn namespace(&self, id: u64) -> Option<&NsDescriptor> { self.namespaces.get(&id) }
+    pub fn namespace(&self, id: u64) -> Option<&NsDescriptor> {
+        self.namespaces.get(&id)
+    }
     #[inline(always)]
-    pub fn process_ns(&self, pid: u64) -> Option<&ProcessNsSet> { self.processes.get(&pid) }
+    pub fn process_ns(&self, pid: u64) -> Option<&ProcessNsSet> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &NsMgrStats { &self.stats }
+    pub fn stats(&self) -> &NsMgrStats {
+        &self.stats
+    }
 }

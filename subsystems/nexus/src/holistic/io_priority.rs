@@ -78,7 +78,9 @@ impl ProcessIoWeight {
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.io_ops == 0 { return 0; }
+        if self.io_ops == 0 {
+            return 0;
+        }
         self.total_latency_ns / self.io_ops
     }
 
@@ -90,13 +92,17 @@ impl ProcessIoWeight {
     #[inline]
     pub fn read_write_ratio(&self) -> f64 {
         let total = self.total_bytes();
-        if total == 0 { return 0.5; }
+        if total == 0 {
+            return 0.5;
+        }
         self.bytes_read as f64 / total as f64
     }
 
     #[inline(always)]
     pub fn budget_consumed_ratio(&self) -> f64 {
-        if self.budget_bytes == 0 { return 0.0; }
+        if self.budget_bytes == 0 {
+            return 0.0;
+        }
         1.0 - (self.budget_remaining as f64 / self.budget_bytes as f64)
     }
 }
@@ -132,13 +138,17 @@ impl DeviceSaturation {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.iops_capacity == 0 { return 0.0; }
+        if self.iops_capacity == 0 {
+            return 0.0;
+        }
         self.current_iops as f64 / self.iops_capacity as f64
     }
 
     #[inline(always)]
     pub fn bandwidth_utilization(&self) -> f64 {
-        if self.bandwidth_bps == 0 { return 0.0; }
+        if self.bandwidth_bps == 0 {
+            return 0.0;
+        }
         self.current_bandwidth_bps as f64 / self.bandwidth_bps as f64
     }
 
@@ -149,7 +159,9 @@ impl DeviceSaturation {
 
     #[inline(always)]
     pub fn queue_pressure(&self) -> f64 {
-        if self.max_queue_depth == 0 { return 0.0; }
+        if self.max_queue_depth == 0 {
+            return 0.0;
+        }
         self.queue_depth as f64 / self.max_queue_depth as f64
     }
 }
@@ -183,7 +195,9 @@ impl ReadaheadState {
     #[inline]
     pub fn sequential_ratio(&self) -> f64 {
         let total = self.sequential_hits + self.random_hits;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.sequential_hits as f64 / total as f64
     }
 
@@ -200,8 +214,11 @@ impl ReadaheadState {
 
         // Reduce if too many wasted pages
         let waste_ratio = if self.sequential_hits > 0 {
-            self.wasted_ra_pages as f64 / (self.sequential_hits * self.current_ra_pages as u64) as f64
-        } else { 0.0 };
+            self.wasted_ra_pages as f64
+                / (self.sequential_hits * self.current_ra_pages as u64) as f64
+        } else {
+            0.0
+        };
         if waste_ratio > 0.5 {
             self.current_ra_pages = (self.current_ra_pages * 3 / 4).max(4);
         }
@@ -252,10 +269,14 @@ impl HolisticIoPriority {
     pub fn submit_io(&mut self, req: &IoRequest, now_ns: u64) -> IoPriorityClass {
         let base_prio = if let Some(proc) = self.processes.get(&req.process_id) {
             proc.priority
-        } else { IoPriorityClass::BestEffort };
+        } else {
+            IoPriorityClass::BestEffort
+        };
 
         // Check device saturation
-        let saturated = self.devices.get(&req.device_id)
+        let saturated = self
+            .devices
+            .get(&req.device_id)
             .map(|d| d.is_saturated())
             .unwrap_or(false);
 
@@ -283,7 +304,7 @@ impl HolisticIoPriority {
             match req.op {
                 IoOpType::Read => proc.bytes_read += req.size as u64,
                 IoOpType::Write => proc.bytes_written += req.size as u64,
-                _ => {}
+                _ => {},
             }
             if let Some(deadline) = req.deadline_ns {
                 let completion = req.submitted_ns + latency_ns;
@@ -304,13 +325,23 @@ impl HolisticIoPriority {
         self.stats.total_deadline_misses = self.processes.values().map(|p| p.deadline_misses).sum();
         let total_lat: u64 = self.processes.values().map(|p| p.total_latency_ns).sum();
         let total_ops: u64 = self.processes.values().map(|p| p.io_ops).sum();
-        self.stats.avg_global_latency_ns = if total_ops > 0 { total_lat / total_ops } else { 0 };
+        self.stats.avg_global_latency_ns = if total_ops > 0 {
+            total_lat / total_ops
+        } else {
+            0
+        };
     }
 
     #[inline(always)]
-    pub fn process(&self, id: u64) -> Option<&ProcessIoWeight> { self.processes.get(&id) }
+    pub fn process(&self, id: u64) -> Option<&ProcessIoWeight> {
+        self.processes.get(&id)
+    }
     #[inline(always)]
-    pub fn device(&self, id: u32) -> Option<&DeviceSaturation> { self.devices.get(&id) }
+    pub fn device(&self, id: u32) -> Option<&DeviceSaturation> {
+        self.devices.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &HolisticIoPriorityStats { &self.stats }
+    pub fn stats(&self) -> &HolisticIoPriorityStats {
+        &self.stats
+    }
 }

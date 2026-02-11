@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Performance event type
@@ -103,7 +102,9 @@ impl PerfEventAttr {
             event_type: PerfEventType::Hardware,
             config: event as u64,
             sample_period: 100_000,
-            sample_type: SampleType::IP.combine(SampleType::TID).combine(SampleType::TIME),
+            sample_type: SampleType::IP
+                .combine(SampleType::TID)
+                .combine(SampleType::TIME),
             exclude_user: false,
             exclude_kernel: false,
             exclude_hv: true,
@@ -214,7 +215,9 @@ impl PerfEvent {
 
     #[inline(always)]
     pub fn multiplexing_ratio(&self) -> f64 {
-        if self.time_enabled_ns == 0 { return 0.0; }
+        if self.time_enabled_ns == 0 {
+            return 0.0;
+        }
         self.time_running_ns as f64 / self.time_enabled_ns as f64
     }
 
@@ -258,7 +261,9 @@ impl CpuPmuState {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.hw_counters_total == 0 { return 0.0; }
+        if self.hw_counters_total == 0 {
+            return 0.0;
+        }
         self.hw_counters_used as f64 / self.hw_counters_total as f64
     }
 }
@@ -305,7 +310,8 @@ impl BridgePerf {
 
     #[inline(always)]
     pub fn init_cpu(&mut self, cpu_id: u32, hw_counters: u32) {
-        self.cpu_pmu.insert(cpu_id, CpuPmuState::new(cpu_id, hw_counters));
+        self.cpu_pmu
+            .insert(cpu_id, CpuPmuState::new(cpu_id, hw_counters));
     }
 
     pub fn open_event(&mut self, pid: u64, cpu: i32, attr: PerfEventAttr) -> Option<i32> {
@@ -343,7 +349,8 @@ impl BridgePerf {
             if event.cpu >= 0 {
                 if let Some(pmu) = self.cpu_pmu.get_mut(&(event.cpu as u32)) {
                     pmu.events_active.retain(|&f| f != fd);
-                    if event.attr.event_type == PerfEventType::Hardware && pmu.hw_counters_used > 0 {
+                    if event.attr.event_type == PerfEventType::Hardware && pmu.hw_counters_used > 0
+                    {
                         pmu.hw_counters_used -= 1;
                     }
                 }
@@ -390,9 +397,9 @@ impl BridgePerf {
 
     #[inline]
     pub fn read_counter(&self, fd: i32) -> Option<(u64, u64, u64)> {
-        self.events.get(&fd).map(|e| {
-            (e.counter_value, e.time_enabled_ns, e.time_running_ns)
-        })
+        self.events
+            .get(&fd)
+            .map(|e| (e.counter_value, e.time_enabled_ns, e.time_running_ns))
     }
 
     #[inline]
@@ -416,7 +423,12 @@ impl BridgePerf {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PerfV2EventType {
-    Hardware, Software, Tracepoint, HwCache, RawPmu, Breakpoint,
+    Hardware,
+    Software,
+    Tracepoint,
+    HwCache,
+    RawPmu,
+    Breakpoint,
 }
 
 /// Sample type flags
@@ -442,7 +454,9 @@ impl PerfV2SampleType {
     pub const DATA_SRC: u64 = 1 << 15;
 
     #[inline(always)]
-    pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u64) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Perf v2 event attribute
@@ -476,7 +490,17 @@ pub struct PerfV2Event {
 
 impl PerfV2Event {
     pub fn new(id: u64, attr: PerfV2Attr) -> Self {
-        Self { id, attr, cpu: -1, pid: -1, count: 0, time_enabled: 0, time_running: 0, ring_buffer_pages: 16, lost_events: 0 }
+        Self {
+            id,
+            attr,
+            cpu: -1,
+            pid: -1,
+            count: 0,
+            time_enabled: 0,
+            time_running: 0,
+            ring_buffer_pages: 16,
+            lost_events: 0,
+        }
     }
 }
 
@@ -500,29 +524,58 @@ pub struct BridgePerfV2 {
 }
 
 impl BridgePerfV2 {
-    pub fn new() -> Self { Self { events: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            events: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn open_event(&mut self, attr: PerfV2Attr) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.events.insert(id, PerfV2Event::new(id, attr));
         id
     }
 
     #[inline(always)]
-    pub fn close_event(&mut self, id: u64) { self.events.remove(&id); }
+    pub fn close_event(&mut self, id: u64) {
+        self.events.remove(&id);
+    }
 
     #[inline(always)]
-    pub fn read(&self, id: u64) -> Option<u64> { self.events.get(&id).map(|e| e.count) }
+    pub fn read(&self, id: u64) -> Option<u64> {
+        self.events.get(&id).map(|e| e.count)
+    }
 
     #[inline]
     pub fn stats(&self) -> PerfV2BridgeStats {
-        let hw = self.events.values().filter(|e| e.attr.event_type == PerfV2EventType::Hardware).count() as u32;
-        let sw = self.events.values().filter(|e| e.attr.event_type == PerfV2EventType::Software).count() as u32;
-        let tp = self.events.values().filter(|e| e.attr.event_type == PerfV2EventType::Tracepoint).count() as u32;
+        let hw = self
+            .events
+            .values()
+            .filter(|e| e.attr.event_type == PerfV2EventType::Hardware)
+            .count() as u32;
+        let sw = self
+            .events
+            .values()
+            .filter(|e| e.attr.event_type == PerfV2EventType::Software)
+            .count() as u32;
+        let tp = self
+            .events
+            .values()
+            .filter(|e| e.attr.event_type == PerfV2EventType::Tracepoint)
+            .count() as u32;
         let samples: u64 = self.events.values().map(|e| e.count).sum();
         let lost: u64 = self.events.values().map(|e| e.lost_events).sum();
-        PerfV2BridgeStats { total_events: self.events.len() as u32, hw_events: hw, sw_events: sw, tracepoints: tp, total_samples: samples, lost_events: lost }
+        PerfV2BridgeStats {
+            total_events: self.events.len() as u32,
+            hw_events: hw,
+            sw_events: sw,
+            tracepoints: tp,
+            total_samples: samples,
+            lost_events: lost,
+        }
     }
 }
 
@@ -573,18 +626,35 @@ pub struct PerfV3Counter {
 
 impl PerfV3Counter {
     pub fn new(id: u64, etype: PerfV3EventType) -> Self {
-        Self { id, event_type: etype, hw_event: None, cpu: -1, pid: -1, count: 0, time_enabled: 0, time_running: 0, sample_period: 0, overflow_count: 0 }
+        Self {
+            id,
+            event_type: etype,
+            hw_event: None,
+            cpu: -1,
+            pid: -1,
+            count: 0,
+            time_enabled: 0,
+            time_running: 0,
+            sample_period: 0,
+            overflow_count: 0,
+        }
     }
 
     #[inline]
     pub fn read(&self) -> u64 {
-        if self.time_enabled == 0 { return self.count; }
-        if self.time_running == 0 { return 0; }
+        if self.time_enabled == 0 {
+            return self.count;
+        }
+        if self.time_running == 0 {
+            return 0;
+        }
         self.count * self.time_enabled / self.time_running
     }
 
     #[inline(always)]
-    pub fn increment(&mut self, delta: u64) { self.count += delta; }
+    pub fn increment(&mut self, delta: u64) {
+        self.count += delta;
+    }
 }
 
 /// Stats
@@ -605,11 +675,17 @@ pub struct BridgePerfV3 {
 }
 
 impl BridgePerfV3 {
-    pub fn new() -> Self { Self { counters: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            counters: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn open(&mut self, etype: PerfV3EventType, cpu: i32, pid: i64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         let mut c = PerfV3Counter::new(id, etype);
         c.cpu = cpu;
         c.pid = pid;
@@ -619,22 +695,43 @@ impl BridgePerfV3 {
 
     #[inline(always)]
     pub fn read(&self, id: u64) -> u64 {
-        if let Some(c) = self.counters.get(&id) { c.read() } else { 0 }
+        if let Some(c) = self.counters.get(&id) {
+            c.read()
+        } else {
+            0
+        }
     }
 
     #[inline(always)]
     pub fn increment(&mut self, id: u64, delta: u64) {
-        if let Some(c) = self.counters.get_mut(&id) { c.increment(delta); }
+        if let Some(c) = self.counters.get_mut(&id) {
+            c.increment(delta);
+        }
     }
 
     #[inline(always)]
-    pub fn close(&mut self, id: u64) { self.counters.remove(&id); }
+    pub fn close(&mut self, id: u64) {
+        self.counters.remove(&id);
+    }
 
     #[inline]
     pub fn stats(&self) -> PerfV3BridgeStats {
-        let hw = self.counters.values().filter(|c| c.event_type == PerfV3EventType::Hardware).count() as u32;
-        let sw = self.counters.values().filter(|c| c.event_type == PerfV3EventType::Software).count() as u32;
+        let hw = self
+            .counters
+            .values()
+            .filter(|c| c.event_type == PerfV3EventType::Hardware)
+            .count() as u32;
+        let sw = self
+            .counters
+            .values()
+            .filter(|c| c.event_type == PerfV3EventType::Software)
+            .count() as u32;
         let overflows: u64 = self.counters.values().map(|c| c.overflow_count).sum();
-        PerfV3BridgeStats { total_counters: self.counters.len() as u32, hw_counters: hw, sw_counters: sw, total_overflows: overflows }
+        PerfV3BridgeStats {
+            total_counters: self.counters.len() as u32,
+            hw_counters: hw,
+            sw_counters: sw,
+            total_overflows: overflows,
+        }
     }
 }

@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -58,7 +59,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(val: u64, lo: u64, hi: u64) -> u64 {
-    if val < lo { lo } else if val > hi { hi } else { val }
+    if val < lo {
+        lo
+    } else if val > hi {
+        hi
+    } else {
+        val
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -189,11 +196,7 @@ impl CoopCreativity {
     // -----------------------------------------------------------------------
     // creative_fairness — invent a new fairness algorithm
     // -----------------------------------------------------------------------
-    pub fn creative_fairness(
-        &mut self,
-        seed_params: &[u64],
-        equity_target: u64,
-    ) -> u64 {
+    pub fn creative_fairness(&mut self, seed_params: &[u64], equity_target: u64) -> u64 {
         self.current_tick += 1;
 
         // Generate novel parameters via mutation of seed
@@ -210,14 +213,16 @@ impl CoopCreativity {
         // Add a random new parameter for novelty
         params.push(xorshift64(&mut self.rng_state) % 100);
 
-        let alg_hash = params.iter().fold(FNV_OFFSET, |acc, &p| {
-            acc ^ fnv1a(&p.to_le_bytes())
-        });
+        let alg_hash = params
+            .iter()
+            .fold(FNV_OFFSET, |acc, &p| acc ^ fnv1a(&p.to_le_bytes()));
         let iid = alg_hash ^ self.current_tick;
 
         let novelty = self.compute_novelty(alg_hash);
         let equity = clamp(
-            equity_target.wrapping_add(xorshift64(&mut self.rng_state) % 10).saturating_sub(5),
+            equity_target
+                .wrapping_add(xorshift64(&mut self.rng_state) % 10)
+                .saturating_sub(5),
             0,
             100,
         );
@@ -234,7 +239,9 @@ impl CoopCreativity {
 
         if self.fairness_inventions.len() >= MAX_FAIRNESS_INVENTIONS {
             let oldest = self.fairness_inventions.keys().next().copied();
-            if let Some(k) = oldest { self.fairness_inventions.remove(&k); }
+            if let Some(k) = oldest {
+                self.fairness_inventions.remove(&k);
+            }
         }
         self.fairness_inventions.insert(iid, invention);
         self.register_invention(iid, InventionCategory::FairnessAlgorithm, novelty);
@@ -246,11 +253,7 @@ impl CoopCreativity {
     // -----------------------------------------------------------------------
     // novel_negotiation — invent a new negotiation protocol
     // -----------------------------------------------------------------------
-    pub fn novel_negotiation(
-        &mut self,
-        max_rounds: u64,
-        strategy_seeds: &[u64],
-    ) -> u64 {
+    pub fn novel_negotiation(&mut self, max_rounds: u64, strategy_seeds: &[u64]) -> u64 {
         self.current_tick += 1;
 
         let mut strategy = strategy_seeds.to_vec();
@@ -260,17 +263,13 @@ impl CoopCreativity {
         }
         strategy.push(xorshift64(&mut self.rng_state) % 50);
 
-        let proto_hash = strategy.iter().fold(FNV_OFFSET, |acc, &s| {
-            acc ^ fnv1a(&s.to_le_bytes())
-        });
+        let proto_hash = strategy
+            .iter()
+            .fold(FNV_OFFSET, |acc, &s| acc ^ fnv1a(&s.to_le_bytes()));
         let pid = proto_hash ^ self.current_tick;
 
         let novelty = self.compute_novelty(proto_hash);
-        let convergence = clamp(
-            100u64.saturating_sub(max_rounds.wrapping_mul(3)),
-            10,
-            100,
-        );
+        let convergence = clamp(100u64.saturating_sub(max_rounds.wrapping_mul(3)), 10, 100);
 
         let protocol = NegotiationProtocol {
             protocol_id: pid,
@@ -284,7 +283,9 @@ impl CoopCreativity {
 
         if self.negotiation_protocols.len() >= MAX_NEGOTIATION_PROTOCOLS {
             let oldest = self.negotiation_protocols.keys().next().copied();
-            if let Some(k) = oldest { self.negotiation_protocols.remove(&k); }
+            if let Some(k) = oldest {
+                self.negotiation_protocols.remove(&k);
+            }
         }
         self.negotiation_protocols.insert(pid, protocol);
         self.register_invention(pid, InventionCategory::NegotiationProtocol, novelty);
@@ -296,11 +297,7 @@ impl CoopCreativity {
     // -----------------------------------------------------------------------
     // trust_innovation — invent a new trust mechanism
     // -----------------------------------------------------------------------
-    pub fn trust_innovation(
-        &mut self,
-        trust_seeds: &[u64],
-        robustness_target: u64,
-    ) -> u64 {
+    pub fn trust_innovation(&mut self, trust_seeds: &[u64], robustness_target: u64) -> u64 {
         self.current_tick += 1;
 
         let mut params = trust_seeds.to_vec();
@@ -314,18 +311,14 @@ impl CoopCreativity {
             };
         }
 
-        let mech_hash = params.iter().fold(FNV_OFFSET, |acc, &p| {
-            acc ^ fnv1a(&p.to_le_bytes())
-        });
+        let mech_hash = params
+            .iter()
+            .fold(FNV_OFFSET, |acc, &p| acc ^ fnv1a(&p.to_le_bytes()));
         let tid = mech_hash ^ self.current_tick;
 
         let novelty = self.compute_novelty(mech_hash);
         let robustness = clamp(robustness_target, 10, 100);
-        let adaptability = clamp(
-            novelty.wrapping_mul(robustness) / 100,
-            10,
-            100,
-        );
+        let adaptability = clamp(novelty.wrapping_mul(robustness) / 100, 10, 100);
 
         let innovation = TrustInnovation {
             innovation_id: tid,
@@ -339,7 +332,9 @@ impl CoopCreativity {
 
         if self.trust_innovations.len() >= MAX_TRUST_INNOVATIONS {
             let oldest = self.trust_innovations.keys().next().copied();
-            if let Some(k) = oldest { self.trust_innovations.remove(&k); }
+            if let Some(k) = oldest {
+                self.trust_innovations.remove(&k);
+            }
         }
         self.trust_innovations.insert(tid, innovation);
         self.register_invention(tid, InventionCategory::TrustMechanism, novelty);
@@ -351,10 +346,7 @@ impl CoopCreativity {
     // -----------------------------------------------------------------------
     // cooperation_invention — generic invention combining multiple categories
     // -----------------------------------------------------------------------
-    pub fn cooperation_invention(
-        &mut self,
-        parent_ids: &[u64],
-    ) -> u64 {
+    pub fn cooperation_invention(&mut self, parent_ids: &[u64]) -> u64 {
         self.current_tick += 1;
 
         // Combine fingerprints of parents
@@ -416,8 +408,8 @@ impl CoopCreativity {
                     InventionCategory::HybridInvention => has_hybrid = true,
                 }
             }
-            let count = has_fairness as u64 + has_negotiation as u64
-                + has_trust as u64 + has_hybrid as u64;
+            let count =
+                has_fairness as u64 + has_negotiation as u64 + has_trust as u64 + has_hybrid as u64;
             count * 25
         };
 
@@ -443,8 +435,7 @@ impl CoopCreativity {
         self.stats.avg_impact = if self.impact_scores.is_empty() {
             0
         } else {
-            self.impact_scores.values().sum::<u64>()
-                / self.impact_scores.len() as u64
+            self.impact_scores.values().sum::<u64>() / self.impact_scores.len() as u64
         };
 
         updated

@@ -25,7 +25,13 @@ pub struct SemPerm {
 
 impl SemPerm {
     pub fn new(uid: u32, gid: u32, mode: u16) -> Self {
-        Self { uid, gid, cuid: uid, cgid: gid, mode }
+        Self {
+            uid,
+            gid,
+            cuid: uid,
+            cgid: gid,
+            mode,
+        }
     }
 }
 
@@ -42,14 +48,23 @@ pub struct Semaphore {
 
 impl Semaphore {
     pub fn new() -> Self {
-        Self { value: 0, last_pid: 0, wait_count: 0, total_ops: 0, peak_value: 0, zero_wait_count: 0 }
+        Self {
+            value: 0,
+            last_pid: 0,
+            wait_count: 0,
+            total_ops: 0,
+            peak_value: 0,
+            zero_wait_count: 0,
+        }
     }
 
     #[inline]
     pub fn set_value(&mut self, val: i32, pid: u64) {
         self.value = val;
         self.last_pid = pid;
-        if val > self.peak_value { self.peak_value = val; }
+        if val > self.peak_value {
+            self.peak_value = val;
+        }
     }
 }
 
@@ -66,19 +81,33 @@ impl SemOp {
     pub const SEM_UNDO: u16 = 0x1000;
 
     pub fn new(num: u16, op: i16, flg: u16) -> Self {
-        Self { sem_num: num, sem_op: op, sem_flg: flg }
+        Self {
+            sem_num: num,
+            sem_op: op,
+            sem_flg: flg,
+        }
     }
 
     #[inline(always)]
-    pub fn is_nowait(&self) -> bool { self.sem_flg & Self::IPC_NOWAIT != 0 }
+    pub fn is_nowait(&self) -> bool {
+        self.sem_flg & Self::IPC_NOWAIT != 0
+    }
     #[inline(always)]
-    pub fn has_undo(&self) -> bool { self.sem_flg & Self::SEM_UNDO != 0 }
+    pub fn has_undo(&self) -> bool {
+        self.sem_flg & Self::SEM_UNDO != 0
+    }
     #[inline(always)]
-    pub fn is_wait(&self) -> bool { self.sem_op < 0 }
+    pub fn is_wait(&self) -> bool {
+        self.sem_op < 0
+    }
     #[inline(always)]
-    pub fn is_signal(&self) -> bool { self.sem_op > 0 }
+    pub fn is_signal(&self) -> bool {
+        self.sem_op > 0
+    }
     #[inline(always)]
-    pub fn is_zero_wait(&self) -> bool { self.sem_op == 0 }
+    pub fn is_zero_wait(&self) -> bool {
+        self.sem_op == 0
+    }
 }
 
 /// Undo entry for a process
@@ -91,7 +120,10 @@ pub struct SemUndo {
 
 impl SemUndo {
     pub fn new(pid: u64) -> Self {
-        Self { pid, adjustments: BTreeMap::new() }
+        Self {
+            pid,
+            adjustments: BTreeMap::new(),
+        }
     }
 
     #[inline(always)]
@@ -135,26 +167,45 @@ impl SemaphoreSet {
             sems.push(Semaphore::new());
         }
         Self {
-            sem_id: id, key, perm, sems, nsems, undos: BTreeMap::new(),
-            waiters: Vec::new(), creator_pid: pid, change_time: ts,
-            op_time: 0, total_ops: 0, ns_id: 0,
+            sem_id: id,
+            key,
+            perm,
+            sems,
+            nsems,
+            undos: BTreeMap::new(),
+            waiters: Vec::new(),
+            creator_pid: pid,
+            change_time: ts,
+            op_time: 0,
+            total_ops: 0,
+            ns_id: 0,
         }
     }
 
     /// Try to apply a single operation
     pub fn try_op(&mut self, op: &SemOp, pid: u64, ts: u64) -> Result<(), bool> {
         let idx = op.sem_num as usize;
-        if idx >= self.sems.len() { return Err(true); } // invalid
+        if idx >= self.sems.len() {
+            return Err(true);
+        } // invalid
 
         let sem = &self.sems[idx];
         if op.is_zero_wait() {
             if sem.value != 0 {
-                return if op.is_nowait() { Err(true) } else { Err(false) }; // would block
+                return if op.is_nowait() {
+                    Err(true)
+                } else {
+                    Err(false)
+                }; // would block
             }
         } else if op.is_wait() {
             let needed = (-op.sem_op) as i32;
             if sem.value < needed {
-                return if op.is_nowait() { Err(true) } else { Err(false) };
+                return if op.is_nowait() {
+                    Err(true)
+                } else {
+                    Err(false)
+                };
             }
         }
 
@@ -163,7 +214,9 @@ impl SemaphoreSet {
         sem.value += op.sem_op as i32;
         sem.last_pid = pid;
         sem.total_ops += 1;
-        if sem.value > sem.peak_value { sem.peak_value = sem.value; }
+        if sem.value > sem.peak_value {
+            sem.peak_value = sem.value;
+        }
 
         if op.has_undo() {
             let undo = self.undos.entry(pid).or_insert_with(|| SemUndo::new(pid));
@@ -180,15 +233,25 @@ impl SemaphoreSet {
         // Check all ops first
         for op in ops {
             let idx = op.sem_num as usize;
-            if idx >= self.sems.len() { return Err(true); }
+            if idx >= self.sems.len() {
+                return Err(true);
+            }
             let sem = &self.sems[idx];
             if op.is_zero_wait() && sem.value != 0 {
-                return if op.is_nowait() { Err(true) } else { Err(false) };
+                return if op.is_nowait() {
+                    Err(true)
+                } else {
+                    Err(false)
+                };
             }
             if op.is_wait() {
                 let needed = (-op.sem_op) as i32;
                 if sem.value < needed {
-                    return if op.is_nowait() { Err(true) } else { Err(false) };
+                    return if op.is_nowait() {
+                        Err(true)
+                    } else {
+                        Err(false)
+                    };
                 }
             }
         }
@@ -215,11 +278,15 @@ impl SemaphoreSet {
     }
 
     #[inline(always)]
-    pub fn total_waiters(&self) -> usize { self.waiters.len() }
+    pub fn total_waiters(&self) -> usize {
+        self.waiters.len()
+    }
     #[inline]
     pub fn contention_score(&self) -> f64 {
         let total_waits: u32 = self.sems.iter().map(|s| s.wait_count).sum();
-        if self.total_ops == 0 { return 0.0; }
+        if self.total_ops == 0 {
+            return 0.0;
+        }
         total_waits as f64 / self.total_ops as f64
     }
 }
@@ -249,12 +316,23 @@ pub struct BridgeSemBridge {
 impl BridgeSemBridge {
     pub fn new() -> Self {
         Self {
-            sets: BTreeMap::new(), key_to_id: BTreeMap::new(),
-            next_id: 1, stats: SemBridgeStats::default(),
+            sets: BTreeMap::new(),
+            key_to_id: BTreeMap::new(),
+            next_id: 1,
+            stats: SemBridgeStats::default(),
         }
     }
 
-    pub fn semget(&mut self, key: i32, nsems: u16, uid: u32, gid: u32, mode: u16, pid: u64, ts: u64) -> u32 {
+    pub fn semget(
+        &mut self,
+        key: i32,
+        nsems: u16,
+        uid: u32,
+        gid: u32,
+        mode: u16,
+        pid: u64,
+        ts: u64,
+    ) -> u32 {
         if key != 0 {
             if let Some(&existing) = self.key_to_id.get(&key) {
                 return existing;
@@ -264,7 +342,9 @@ impl BridgeSemBridge {
         self.next_id += 1;
         let set = SemaphoreSet::new(id, key, SemPerm::new(uid, gid, mode), nsems, pid, ts);
         self.sets.insert(id, set);
-        if key != 0 { self.key_to_id.insert(key, id); }
+        if key != 0 {
+            self.key_to_id.insert(key, id);
+        }
         id
     }
 
@@ -272,7 +352,9 @@ impl BridgeSemBridge {
     pub fn semop(&mut self, sem_id: u32, ops: &[SemOp], pid: u64, ts: u64) -> Result<(), bool> {
         if let Some(set) = self.sets.get_mut(&sem_id) {
             set.try_ops(ops, pid, ts)
-        } else { Err(true) }
+        } else {
+            Err(true)
+        }
     }
 
     #[inline]
@@ -280,9 +362,13 @@ impl BridgeSemBridge {
         if let Some(set) = self.sets.get(&sem_id) {
             let key = set.key;
             self.sets.remove(&sem_id);
-            if key != 0 { self.key_to_id.remove(&key); }
+            if key != 0 {
+                self.key_to_id.remove(&key);
+            }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -312,12 +398,22 @@ impl BridgeSemBridge {
         self.stats.total_waiters = self.sets.values().map(|s| s.waiters.len()).sum();
         self.stats.total_undo_entries = self.sets.values().map(|s| s.undos.len()).sum();
         self.stats.total_ops = self.sets.values().map(|s| s.total_ops).sum();
-        if self.stats.total_sets > self.stats.peak_sets { self.stats.peak_sets = self.stats.total_sets; }
-        self.stats.high_contention_sets = self.sets.values().filter(|s| s.contention_score() > 0.5).count();
+        if self.stats.total_sets > self.stats.peak_sets {
+            self.stats.peak_sets = self.stats.total_sets;
+        }
+        self.stats.high_contention_sets = self
+            .sets
+            .values()
+            .filter(|s| s.contention_score() > 0.5)
+            .count();
     }
 
     #[inline(always)]
-    pub fn set(&self, id: u32) -> Option<&SemaphoreSet> { self.sets.get(&id) }
+    pub fn set(&self, id: u32) -> Option<&SemaphoreSet> {
+        self.sets.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &SemBridgeStats { &self.stats }
+    pub fn stats(&self) -> &SemBridgeStats {
+        &self.stats
+    }
 }

@@ -13,11 +13,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -332,22 +332,22 @@ impl CoopPeerReview {
                 ReviewVerdict::Accept => {
                     weighted_accept += weight;
                     accept_count += 1;
-                }
+                },
                 ReviewVerdict::WeakAccept => {
                     weighted_accept += weight * 0.6;
                     accept_count += 1;
-                }
+                },
                 ReviewVerdict::Neutral => {
                     neutral_count += 1;
-                }
+                },
                 ReviewVerdict::WeakReject => {
                     weighted_reject += weight * 0.6;
                     reject_count += 1;
-                }
+                },
                 ReviewVerdict::Reject => {
                     weighted_reject += weight;
                     reject_count += 1;
-                }
+                },
             }
             total_weight += weight;
         }
@@ -430,7 +430,12 @@ impl CoopPeerReview {
     pub fn pending_count(&self) -> usize {
         self.findings
             .iter()
-            .filter(|f| matches!(f.status, ReviewStatus::Submitted | ReviewStatus::UnderReview))
+            .filter(|f| {
+                matches!(
+                    f.status,
+                    ReviewStatus::Submitted | ReviewStatus::UnderReview
+                )
+            })
             .count()
     }
 
@@ -478,14 +483,17 @@ impl CoopPeerReview {
         let prev = self.domain_consensus.get(domain_key).unwrap_or(0.5);
         let new_ema = EMA_ALPHA * consensus.consensus_level + (1.0 - EMA_ALPHA) * prev;
         self.domain_consensus.insert(domain_key, new_ema);
-        self.stats.avg_consensus_ema =
-            EMA_ALPHA * consensus.consensus_level + (1.0 - EMA_ALPHA) * self.stats.avg_consensus_ema;
+        self.stats.avg_consensus_ema = EMA_ALPHA * consensus.consensus_level
+            + (1.0 - EMA_ALPHA) * self.stats.avg_consensus_ema;
         let total_resolved = self.stats.accepted_findings + self.stats.rejected_findings;
         if total_resolved > 0 {
             let strong_count = self
                 .findings
                 .iter()
-                .filter(|f| f.consensus_score >= STRONG_CONSENSUS || f.consensus_score <= (1.0 - STRONG_CONSENSUS))
+                .filter(|f| {
+                    f.consensus_score >= STRONG_CONSENSUS
+                        || f.consensus_score <= (1.0 - STRONG_CONSENSUS)
+                })
                 .count() as f32;
             self.stats.strong_consensus_rate = strong_count / total_resolved as f32;
         }
@@ -506,14 +514,15 @@ impl CoopPeerReview {
             };
             if let Some(reviewer) = self.reviewers.get_mut(&review.reviewer_id) {
                 if agreed {
-                    reviewer.quality_score = (reviewer.quality_score + QUALITY_BONUS_AGREE).min(1.0);
+                    reviewer.quality_score =
+                        (reviewer.quality_score + QUALITY_BONUS_AGREE).min(1.0);
                     reviewer.correct_predictions += 1;
                 } else {
-                    reviewer.quality_score = (reviewer.quality_score - QUALITY_PENALTY_OUTLIER).max(0.0);
+                    reviewer.quality_score =
+                        (reviewer.quality_score - QUALITY_PENALTY_OUTLIER).max(0.0);
                 }
-                self.stats.avg_review_quality_ema =
-                    EMA_ALPHA * reviewer.quality_score
-                        + (1.0 - EMA_ALPHA) * self.stats.avg_review_quality_ema;
+                self.stats.avg_review_quality_ema = EMA_ALPHA * reviewer.quality_score
+                    + (1.0 - EMA_ALPHA) * self.stats.avg_review_quality_ema;
             }
         }
     }

@@ -467,10 +467,12 @@ pub struct PriorityV2Task {
 impl PriorityV2Task {
     pub fn new(tid: u64, priority: CoopPriorityLevel) -> Self {
         Self {
-            tid, base_priority: priority,
+            tid,
+            base_priority: priority,
             effective_priority: priority,
             boosts: Vec::new(),
-            wait_ticks: 0, run_ticks: 0,
+            wait_ticks: 0,
+            run_ticks: 0,
             priority_inversions: 0,
         }
     }
@@ -513,8 +515,10 @@ impl CoopPriorityV2 {
         Self {
             tasks: BTreeMap::new(),
             stats: PriorityV2CoopStats {
-                tasks_registered: 0, boosts_applied: 0,
-                inversions_detected: 0, starvation_prevents: 0,
+                tasks_registered: 0,
+                boosts_applied: 0,
+                inversions_detected: 0,
+                starvation_prevents: 0,
                 deadline_misses: 0,
             },
         }
@@ -527,12 +531,19 @@ impl CoopPriorityV2 {
     }
 
     #[inline]
-    pub fn boost(&mut self, tid: u64, reason: PriorityBoostReason, level: CoopPriorityLevel) -> bool {
+    pub fn boost(
+        &mut self,
+        tid: u64,
+        reason: PriorityBoostReason,
+        level: CoopPriorityLevel,
+    ) -> bool {
         if let Some(task) = self.tasks.get_mut(&tid) {
             task.boost(reason, level);
             self.stats.boosts_applied += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn detect_inversion(&mut self, holder_tid: u64, waiter_tid: u64) -> bool {
@@ -553,7 +564,8 @@ impl CoopPriorityV2 {
 
     #[inline]
     pub fn highest_priority_task(&self) -> Option<u64> {
-        self.tasks.values()
+        self.tasks
+            .values()
             .max_by_key(|t| t.effective_priority)
             .map(|t| t.tid)
     }

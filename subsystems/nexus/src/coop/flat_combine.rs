@@ -35,7 +35,15 @@ pub struct FlatCombineRequest {
 
 impl FlatCombineRequest {
     pub fn new(thread_id: u32, op: FlatCombineOpType, key: u64, value: u64, ts: u64) -> Self {
-        Self { thread_id, op_type: op, key, value, state: FlatCombineState::Pending, result: None, timestamp: ts }
+        Self {
+            thread_id,
+            op_type: op,
+            key,
+            value,
+            state: FlatCombineState::Pending,
+            result: None,
+            timestamp: ts,
+        }
     }
 
     #[inline(always)]
@@ -55,7 +63,12 @@ pub struct FlatCombineSlot {
 
 impl FlatCombineSlot {
     pub fn new(thread_id: u32) -> Self {
-        Self { thread_id, request: None, age: 0, combine_count: 0 }
+        Self {
+            thread_id,
+            request: None,
+            age: 0,
+            combine_count: 0,
+        }
     }
 
     #[inline(always)]
@@ -102,9 +115,12 @@ impl CoopFlatCombine {
             current_combiner: None,
             lock: AtomicU64::new(0),
             stats: FlatCombineStats {
-                total_threads: 0, total_operations: 0,
-                total_rounds: 0, total_ops_combined: 0,
-                avg_batch_size: 0, combiner_changes: 0,
+                total_threads: 0,
+                total_operations: 0,
+                total_rounds: 0,
+                total_ops_combined: 0,
+                avg_batch_size: 0,
+                combiner_changes: 0,
             },
         }
     }
@@ -147,5 +163,7 @@ impl CoopFlatCombine {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &FlatCombineStats { &self.stats }
+    pub fn stats(&self) -> &FlatCombineStats {
+        &self.stats
+    }
 }

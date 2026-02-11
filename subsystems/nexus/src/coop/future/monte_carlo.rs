@@ -7,8 +7,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic identifier generation.

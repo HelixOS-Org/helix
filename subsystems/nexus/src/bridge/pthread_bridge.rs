@@ -94,7 +94,9 @@ impl BridgePthreadManager {
         self.threads.insert(tid, entry);
         self.stats.total_created += 1;
         self.stats.active_threads += 1;
-        if detached { self.stats.detached_threads += 1; }
+        if detached {
+            self.stats.detached_threads += 1;
+        }
         if self.stats.active_threads > self.stats.peak_threads {
             self.stats.peak_threads = self.stats.active_threads;
         }
@@ -104,7 +106,9 @@ impl BridgePthreadManager {
     #[inline]
     pub fn join_thread(&mut self, tid: u64) -> bool {
         if let Some(entry) = self.threads.get_mut(&tid) {
-            if entry.attr.detached { return false; }
+            if entry.attr.detached {
+                return false;
+            }
             entry.state = BridgePthreadState::Dead;
             self.stats.joins_completed += 1;
             self.stats.active_threads = self.stats.active_threads.saturating_sub(1);

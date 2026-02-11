@@ -60,37 +60,67 @@ pub struct IpcChannel {
 impl IpcChannel {
     pub fn new(id: u64, ipc_type: IpcType, pid_a: u64) -> Self {
         Self {
-            id, ipc_type, state: IpcEndpointState::Open, pid_a, pid_b: None,
-            bytes_sent: 0, bytes_recv: 0, msgs_sent: 0, msgs_recv: 0,
-            errors: 0, buffer_size: 65536, buffer_used: 0,
-            created_ts: 0, last_activity_ts: 0, avg_latency_ns: 0,
+            id,
+            ipc_type,
+            state: IpcEndpointState::Open,
+            pid_a,
+            pid_b: None,
+            bytes_sent: 0,
+            bytes_recv: 0,
+            msgs_sent: 0,
+            msgs_recv: 0,
+            errors: 0,
+            buffer_size: 65536,
+            buffer_used: 0,
+            created_ts: 0,
+            last_activity_ts: 0,
+            avg_latency_ns: 0,
         }
     }
 
     #[inline(always)]
-    pub fn connect(&mut self, pid_b: u64) { self.pid_b = Some(pid_b); self.state = IpcEndpointState::Connected; }
+    pub fn connect(&mut self, pid_b: u64) {
+        self.pid_b = Some(pid_b);
+        self.state = IpcEndpointState::Connected;
+    }
 
     #[inline(always)]
     pub fn send(&mut self, bytes: u64, ts: u64) {
-        self.bytes_sent += bytes; self.msgs_sent += 1; self.last_activity_ts = ts;
+        self.bytes_sent += bytes;
+        self.msgs_sent += 1;
+        self.last_activity_ts = ts;
     }
 
     #[inline(always)]
     pub fn recv(&mut self, bytes: u64, ts: u64) {
-        self.bytes_recv += bytes; self.msgs_recv += 1; self.last_activity_ts = ts;
+        self.bytes_recv += bytes;
+        self.msgs_recv += 1;
+        self.last_activity_ts = ts;
     }
 
     #[inline(always)]
-    pub fn close(&mut self) { self.state = IpcEndpointState::Closed; }
+    pub fn close(&mut self) {
+        self.state = IpcEndpointState::Closed;
+    }
 
     #[inline(always)]
     pub fn throughput_bps(&self, now: u64) -> f64 {
         let elapsed = now.saturating_sub(self.created_ts);
-        if elapsed == 0 { 0.0 } else { (self.bytes_sent + self.bytes_recv) as f64 / (elapsed as f64 / 1_000_000_000.0) }
+        if elapsed == 0 {
+            0.0
+        } else {
+            (self.bytes_sent + self.bytes_recv) as f64 / (elapsed as f64 / 1_000_000_000.0)
+        }
     }
 
     #[inline(always)]
-    pub fn buffer_util(&self) -> f64 { if self.buffer_size == 0 { 0.0 } else { self.buffer_used as f64 / self.buffer_size as f64 * 100.0 } }
+    pub fn buffer_util(&self) -> f64 {
+        if self.buffer_size == 0 {
+            0.0
+        } else {
+            self.buffer_used as f64 / self.buffer_size as f64 * 100.0
+        }
+    }
 }
 
 /// Shared memory segment
@@ -112,16 +142,27 @@ pub struct ShmSegment {
 impl ShmSegment {
     pub fn new(id: u64, key: u64, size: u64, owner: u64) -> Self {
         Self {
-            id, key, size, owner_pid: owner, attached_pids: Vec::new(),
-            nattach: 0, created_ts: 0, last_attach_ts: 0, last_detach_ts: 0,
-            read_bytes: 0, write_bytes: 0,
+            id,
+            key,
+            size,
+            owner_pid: owner,
+            attached_pids: Vec::new(),
+            nattach: 0,
+            created_ts: 0,
+            last_attach_ts: 0,
+            last_detach_ts: 0,
+            read_bytes: 0,
+            write_bytes: 0,
         }
     }
 
     #[inline(always)]
     pub fn attach(&mut self, pid: u64, ts: u64) {
-        if !self.attached_pids.contains(&pid) { self.attached_pids.push(pid); }
-        self.nattach += 1; self.last_attach_ts = ts;
+        if !self.attached_pids.contains(&pid) {
+            self.attached_pids.push(pid);
+        }
+        self.nattach += 1;
+        self.last_attach_ts = ts;
     }
 
     #[inline]
@@ -146,7 +187,15 @@ pub struct ProcessIpcSummary {
 
 impl ProcessIpcSummary {
     pub fn new(pid: u64) -> Self {
-        Self { pid, channels: Vec::new(), shm_segments: Vec::new(), total_bytes_sent: 0, total_bytes_recv: 0, total_msgs: 0, active_peers: Vec::new() }
+        Self {
+            pid,
+            channels: Vec::new(),
+            shm_segments: Vec::new(),
+            total_bytes_sent: 0,
+            total_bytes_recv: 0,
+            total_msgs: 0,
+            active_peers: Vec::new(),
+        }
     }
 }
 
@@ -174,75 +223,125 @@ pub struct AppsIpcTracker {
 
 impl AppsIpcTracker {
     pub fn new() -> Self {
-        Self { channels: BTreeMap::new(), shm_segments: BTreeMap::new(), process_summaries: BTreeMap::new(), stats: IpcTrackerStats::default(), next_id: 1 }
+        Self {
+            channels: BTreeMap::new(),
+            shm_segments: BTreeMap::new(),
+            process_summaries: BTreeMap::new(),
+            stats: IpcTrackerStats::default(),
+            next_id: 1,
+        }
     }
 
     #[inline]
     pub fn create_channel(&mut self, ipc_type: IpcType, pid: u64, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         let mut ch = IpcChannel::new(id, ipc_type, pid);
         ch.created_ts = ts;
         self.channels.insert(id, ch);
-        self.process_summaries.entry(pid).or_insert_with(|| ProcessIpcSummary::new(pid)).channels.push(id);
+        self.process_summaries
+            .entry(pid)
+            .or_insert_with(|| ProcessIpcSummary::new(pid))
+            .channels
+            .push(id);
         id
     }
 
     #[inline(always)]
     pub fn connect(&mut self, ch_id: u64, pid_b: u64) {
-        if let Some(ch) = self.channels.get_mut(&ch_id) { ch.connect(pid_b); }
-        self.process_summaries.entry(pid_b).or_insert_with(|| ProcessIpcSummary::new(pid_b)).channels.push(ch_id);
+        if let Some(ch) = self.channels.get_mut(&ch_id) {
+            ch.connect(pid_b);
+        }
+        self.process_summaries
+            .entry(pid_b)
+            .or_insert_with(|| ProcessIpcSummary::new(pid_b))
+            .channels
+            .push(ch_id);
     }
 
     #[inline(always)]
     pub fn send(&mut self, ch_id: u64, bytes: u64, ts: u64) {
-        if let Some(ch) = self.channels.get_mut(&ch_id) { ch.send(bytes, ts); }
+        if let Some(ch) = self.channels.get_mut(&ch_id) {
+            ch.send(bytes, ts);
+        }
     }
 
     #[inline(always)]
     pub fn recv(&mut self, ch_id: u64, bytes: u64, ts: u64) {
-        if let Some(ch) = self.channels.get_mut(&ch_id) { ch.recv(bytes, ts); }
+        if let Some(ch) = self.channels.get_mut(&ch_id) {
+            ch.recv(bytes, ts);
+        }
     }
 
     #[inline(always)]
     pub fn close_channel(&mut self, ch_id: u64) {
-        if let Some(ch) = self.channels.get_mut(&ch_id) { ch.close(); }
+        if let Some(ch) = self.channels.get_mut(&ch_id) {
+            ch.close();
+        }
     }
 
     #[inline]
     pub fn create_shm(&mut self, key: u64, size: u64, owner: u64, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         let mut seg = ShmSegment::new(id, key, size, owner);
         seg.created_ts = ts;
         self.shm_segments.insert(id, seg);
-        self.process_summaries.entry(owner).or_insert_with(|| ProcessIpcSummary::new(owner)).shm_segments.push(id);
+        self.process_summaries
+            .entry(owner)
+            .or_insert_with(|| ProcessIpcSummary::new(owner))
+            .shm_segments
+            .push(id);
         id
     }
 
     #[inline(always)]
     pub fn attach_shm(&mut self, seg_id: u64, pid: u64, ts: u64) {
-        if let Some(s) = self.shm_segments.get_mut(&seg_id) { s.attach(pid, ts); }
+        if let Some(s) = self.shm_segments.get_mut(&seg_id) {
+            s.attach(pid, ts);
+        }
     }
 
     #[inline(always)]
     pub fn detach_shm(&mut self, seg_id: u64, pid: u64, ts: u64) {
-        if let Some(s) = self.shm_segments.get_mut(&seg_id) { s.detach(pid, ts); }
+        if let Some(s) = self.shm_segments.get_mut(&seg_id) {
+            s.detach(pid, ts);
+        }
     }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_channels = self.channels.len();
-        self.stats.active_channels = self.channels.values().filter(|c| c.state == IpcEndpointState::Connected || c.state == IpcEndpointState::Open).count();
+        self.stats.active_channels = self
+            .channels
+            .values()
+            .filter(|c| c.state == IpcEndpointState::Connected || c.state == IpcEndpointState::Open)
+            .count();
         self.stats.total_shm_segments = self.shm_segments.len();
-        self.stats.total_bytes_transferred = self.channels.values().map(|c| c.bytes_sent + c.bytes_recv).sum();
-        self.stats.total_messages = self.channels.values().map(|c| c.msgs_sent + c.msgs_recv).sum();
+        self.stats.total_bytes_transferred = self
+            .channels
+            .values()
+            .map(|c| c.bytes_sent + c.bytes_recv)
+            .sum();
+        self.stats.total_messages = self
+            .channels
+            .values()
+            .map(|c| c.msgs_sent + c.msgs_recv)
+            .sum();
         self.stats.tracked_processes = self.process_summaries.len();
         self.stats.total_errors = self.channels.values().map(|c| c.errors).sum();
     }
 
     #[inline(always)]
-    pub fn channel(&self, id: u64) -> Option<&IpcChannel> { self.channels.get(&id) }
+    pub fn channel(&self, id: u64) -> Option<&IpcChannel> {
+        self.channels.get(&id)
+    }
     #[inline(always)]
-    pub fn shm(&self, id: u64) -> Option<&ShmSegment> { self.shm_segments.get(&id) }
+    pub fn shm(&self, id: u64) -> Option<&ShmSegment> {
+        self.shm_segments.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &IpcTrackerStats { &self.stats }
+    pub fn stats(&self) -> &IpcTrackerStats {
+        &self.stats
+    }
 }

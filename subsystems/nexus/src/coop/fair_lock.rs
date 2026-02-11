@@ -54,7 +54,13 @@ pub struct LockWaiter {
 }
 
 impl LockWaiter {
-    pub fn new(thread_id: u64, hold_type: HoldType, priority: u32, ticket: u64, now_ns: u64) -> Self {
+    pub fn new(
+        thread_id: u64,
+        hold_type: HoldType,
+        priority: u32,
+        ticket: u64,
+        now_ns: u64,
+    ) -> Self {
         Self {
             thread_id,
             hold_type,
@@ -129,25 +135,38 @@ impl FairLock {
         }
     }
 
-    pub fn try_acquire(&mut self, thread_id: u64, hold_type: HoldType, _priority: u32, now_ns: u64) -> bool {
+    pub fn try_acquire(
+        &mut self,
+        thread_id: u64,
+        hold_type: HoldType,
+        _priority: u32,
+        now_ns: u64,
+    ) -> bool {
         // Check if can be granted immediately
         match hold_type {
             HoldType::Exclusive => {
                 if !self.holders.is_empty() || !self.waiters.is_empty() {
                     return false;
                 }
-            }
+            },
             HoldType::Shared => {
-                if self.holders.iter().any(|h| h.hold_type == HoldType::Exclusive) {
+                if self
+                    .holders
+                    .iter()
+                    .any(|h| h.hold_type == HoldType::Exclusive)
+                {
                     return false;
                 }
                 // Writer preference: block if writers waiting
                 if matches!(self.policy, FairnessPolicy::RwWriterPref)
-                    && self.waiters.iter().any(|w| w.hold_type == HoldType::Exclusive)
+                    && self
+                        .waiters
+                        .iter()
+                        .any(|w| w.hold_type == HoldType::Exclusive)
                 {
                     return false;
                 }
-            }
+            },
         }
         self.holders.push(LockHolder {
             thread_id,
@@ -160,25 +179,36 @@ impl FairLock {
     }
 
     #[inline]
-    pub fn enqueue(&mut self, thread_id: u64, hold_type: HoldType, priority: u32, now_ns: u64) -> u64 {
+    pub fn enqueue(
+        &mut self,
+        thread_id: u64,
+        hold_type: HoldType,
+        priority: u32,
+        now_ns: u64,
+    ) -> u64 {
         let ticket = self.next_ticket;
         self.next_ticket += 1;
-        self.waiters.push(LockWaiter::new(thread_id, hold_type, priority, ticket, now_ns));
+        self.waiters.push(LockWaiter::new(
+            thread_id, hold_type, priority, ticket, now_ns,
+        ));
         self.total_waits += 1;
         ticket
     }
 
     pub fn grant_next(&mut self, now_ns: u64) -> Option<u64> {
-        if self.waiters.is_empty() { return None; }
+        if self.waiters.is_empty() {
+            return None;
+        }
 
         let idx = match self.policy {
             FairnessPolicy::Fifo | FairnessPolicy::Ticket => 0,
-            FairnessPolicy::PriorityAging => {
-                self.waiters.iter().enumerate()
-                    .max_by_key(|(_, w)| w.effective_priority)
-                    .map(|(i, _)| i)
-                    .unwrap_or(0)
-            }
+            FairnessPolicy::PriorityAging => self
+                .waiters
+                .iter()
+                .enumerate()
+                .max_by_key(|(_, w)| w.effective_priority)
+                .map(|(i, _)| i)
+                .unwrap_or(0),
             _ => 0,
         };
 
@@ -186,11 +216,19 @@ impl FairLock {
         // Check compatibility with current holders
         match waiter.hold_type {
             HoldType::Exclusive => {
-                if !self.holders.is_empty() { return None; }
-            }
+                if !self.holders.is_empty() {
+                    return None;
+                }
+            },
             HoldType::Shared => {
-                if self.holders.iter().any(|h| h.hold_type == HoldType::Exclusive) { return None; }
-            }
+                if self
+                    .holders
+                    .iter()
+                    .any(|h| h.hold_type == HoldType::Exclusive)
+                {
+                    return None;
+                }
+            },
         }
 
         let waiter = self.waiters.remove(idx);
@@ -256,19 +294,25 @@ impl FairLock {
 
     #[inline(always)]
     pub fn contention_level(&self) -> f64 {
-        if self.total_acquires == 0 { return 0.0; }
+        if self.total_acquires == 0 {
+            return 0.0;
+        }
         self.total_waits as f64 / self.total_acquires as f64
     }
 
     #[inline(always)]
     pub fn avg_wait_ns(&self) -> f64 {
-        if self.total_waits == 0 { return 0.0; }
+        if self.total_waits == 0 {
+            return 0.0;
+        }
         self.total_wait_ns as f64 / self.total_waits as f64
     }
 
     #[inline(always)]
     pub fn avg_hold_ns(&self) -> f64 {
-        if self.total_releases == 0 { return 0.0; }
+        if self.total_releases == 0 {
+            return 0.0;
+        }
         self.total_hold_ns as f64 / self.total_releases as f64
     }
 }
@@ -316,7 +360,14 @@ impl CoopFairLock {
     }
 
     #[inline]
-    pub fn try_acquire(&mut self, lock_id: u64, thread_id: u64, hold_type: HoldType, priority: u32, now_ns: u64) -> bool {
+    pub fn try_acquire(
+        &mut self,
+        lock_id: u64,
+        thread_id: u64,
+        hold_type: HoldType,
+        priority: u32,
+        now_ns: u64,
+    ) -> bool {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             let result = lock.try_acquire(thread_id, hold_type, priority, now_ns);
             if result {
@@ -329,7 +380,14 @@ impl CoopFairLock {
     }
 
     #[inline]
-    pub fn enqueue_waiter(&mut self, lock_id: u64, thread_id: u64, hold_type: HoldType, priority: u32, now_ns: u64) -> Option<u64> {
+    pub fn enqueue_waiter(
+        &mut self,
+        lock_id: u64,
+        thread_id: u64,
+        hold_type: HoldType,
+        priority: u32,
+        now_ns: u64,
+    ) -> Option<u64> {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             Some(lock.enqueue(thread_id, hold_type, priority, now_ns))
         } else {
@@ -360,7 +418,9 @@ impl CoopFairLock {
 
     #[inline]
     pub fn most_contended(&self, top: usize) -> Vec<(u64, f64)> {
-        let mut v: Vec<(u64, f64)> = self.locks.iter()
+        let mut v: Vec<(u64, f64)> = self
+            .locks
+            .iter()
             .map(|(&id, l)| (id, l.contention_level()))
             .collect();
         v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
@@ -403,13 +463,29 @@ pub struct McsNode {
 
 impl McsNode {
     pub fn new(tid: u64, now: u64) -> Self {
-        Self { thread_id: tid, state: McsNodeState::Waiting, next: None, spin_count: 0, wait_start: now, wait_end: 0 }
+        Self {
+            thread_id: tid,
+            state: McsNodeState::Waiting,
+            next: None,
+            spin_count: 0,
+            wait_start: now,
+            wait_end: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn grant(&mut self, now: u64) { self.state = McsNodeState::Granted; self.wait_end = now; }
+    pub fn grant(&mut self, now: u64) {
+        self.state = McsNodeState::Granted;
+        self.wait_end = now;
+    }
     #[inline(always)]
-    pub fn wait_time(&self) -> u64 { if self.wait_end > 0 { self.wait_end - self.wait_start } else { 0 } }
+    pub fn wait_time(&self) -> u64 {
+        if self.wait_end > 0 {
+            self.wait_end - self.wait_start
+        } else {
+            0
+        }
+    }
 }
 
 /// Fair lock v2
@@ -427,17 +503,30 @@ pub struct FairLockV2 {
 
 impl FairLockV2 {
     pub fn new(id: u64) -> Self {
-        Self { id, owner: None, tail: None, nodes: BTreeMap::new(), acquisitions: 0, contentions: 0, total_wait_ns: 0, max_wait_ns: 0 }
+        Self {
+            id,
+            owner: None,
+            tail: None,
+            nodes: BTreeMap::new(),
+            acquisitions: 0,
+            contentions: 0,
+            total_wait_ns: 0,
+            max_wait_ns: 0,
+        }
     }
 
     pub fn lock(&mut self, tid: u64, now: u64) -> bool {
         if self.owner.is_none() {
-            self.owner = Some(tid); self.acquisitions += 1; return true;
+            self.owner = Some(tid);
+            self.acquisitions += 1;
+            return true;
         }
         self.contentions += 1;
         let node = McsNode::new(tid, now);
         if let Some(tail_tid) = self.tail {
-            if let Some(tail_node) = self.nodes.get_mut(&tail_tid) { tail_node.next = Some(tid); }
+            if let Some(tail_node) = self.nodes.get_mut(&tail_tid) {
+                tail_node.next = Some(tid);
+            }
         }
         self.tail = Some(tid);
         self.nodes.insert(tid, node);
@@ -451,7 +540,9 @@ impl FairLockV2 {
                     node.grant(now);
                     let wait = node.wait_time();
                     self.total_wait_ns += wait;
-                    if wait > self.max_wait_ns { self.max_wait_ns = wait; }
+                    if wait > self.max_wait_ns {
+                        self.max_wait_ns = wait;
+                    }
                 }
                 self.owner = Some(first_tid);
                 self.acquisitions += 1;
@@ -461,7 +552,13 @@ impl FairLockV2 {
     }
 
     #[inline(always)]
-    pub fn avg_wait(&self) -> u64 { if self.acquisitions == 0 { 0 } else { self.total_wait_ns / self.acquisitions } }
+    pub fn avg_wait(&self) -> u64 {
+        if self.acquisitions == 0 {
+            0
+        } else {
+            self.total_wait_ns / self.acquisitions
+        }
+    }
 }
 
 /// Stats
@@ -482,11 +579,17 @@ pub struct CoopFairLockV2 {
 }
 
 impl CoopFairLockV2 {
-    pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            locks: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.locks.insert(id, FairLockV2::new(id));
         id
     }
@@ -496,8 +599,23 @@ impl CoopFairLockV2 {
         let acqs: u64 = self.locks.values().map(|l| l.acquisitions).sum();
         let conts: u64 = self.locks.values().map(|l| l.contentions).sum();
         let waits: Vec<u64> = self.locks.values().map(|l| l.avg_wait()).collect();
-        let avg = if waits.is_empty() { 0 } else { waits.iter().sum::<u64>() / waits.len() as u64 };
-        let max = self.locks.values().map(|l| l.max_wait_ns).max().unwrap_or(0);
-        FairLockV2Stats { total_locks: self.locks.len() as u32, total_acquisitions: acqs, total_contentions: conts, avg_wait_ns: avg, max_wait_ns: max }
+        let avg = if waits.is_empty() {
+            0
+        } else {
+            waits.iter().sum::<u64>() / waits.len() as u64
+        };
+        let max = self
+            .locks
+            .values()
+            .map(|l| l.max_wait_ns)
+            .max()
+            .unwrap_or(0);
+        FairLockV2Stats {
+            total_locks: self.locks.len() as u32,
+            total_acquisitions: acqs,
+            total_contentions: conts,
+            avg_wait_ns: avg,
+            max_wait_ns: max,
+        }
     }
 }

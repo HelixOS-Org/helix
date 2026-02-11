@@ -13,9 +13,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -215,7 +216,8 @@ impl CoopBreakthroughDetector {
             new_performance,
             evidence_count,
             confidence,
-            status: if confidence >= SIGNIFICANCE_THRESHOLD && evidence_count >= MIN_EVIDENCE_COUNT {
+            status: if confidence >= SIGNIFICANCE_THRESHOLD && evidence_count >= MIN_EVIDENCE_COUNT
+            {
                 BreakthroughStatus::UnderValidation
             } else {
                 BreakthroughStatus::Candidate

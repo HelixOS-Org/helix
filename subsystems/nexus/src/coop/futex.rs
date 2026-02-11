@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Futex operation
@@ -45,7 +44,13 @@ pub struct CoopFutexBucket {
 }
 
 impl CoopFutexBucket {
-    pub fn new() -> Self { Self { waiters: Vec::new(), wake_count: 0, wait_count: 0 } }
+    pub fn new() -> Self {
+        Self {
+            waiters: Vec::new(),
+            wake_count: 0,
+            wait_count: 0,
+        }
+    }
 
     #[inline(always)]
     pub fn wait(&mut self, waiter: CoopFutexWaiter) {
@@ -72,7 +77,10 @@ impl CoopFutexBucket {
 fn hash_addr(addr: u64) -> u64 {
     let mut h: u64 = 0xcbf29ce484222325;
     let bytes = addr.to_le_bytes();
-    for &b in &bytes { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
+    for &b in &bytes {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
     h
 }
 
@@ -95,8 +103,13 @@ pub struct CoopFutex {
 impl CoopFutex {
     pub fn new(n_buckets: u32) -> Self {
         let mut buckets = BTreeMap::new();
-        for i in 0..n_buckets { buckets.insert(i as u64, CoopFutexBucket::new()); }
-        Self { buckets, bucket_count: n_buckets }
+        for i in 0..n_buckets {
+            buckets.insert(i as u64, CoopFutexBucket::new());
+        }
+        Self {
+            buckets,
+            bucket_count: n_buckets,
+        }
     }
 
     fn bucket_id(&self, addr: u64) -> u64 {
@@ -106,14 +119,19 @@ impl CoopFutex {
     #[inline(always)]
     pub fn wait(&mut self, waiter: CoopFutexWaiter) {
         let bid = self.bucket_id(waiter.addr);
-        if let Some(b) = self.buckets.get_mut(&bid) { b.wait(waiter); }
+        if let Some(b) = self.buckets.get_mut(&bid) {
+            b.wait(waiter);
+        }
     }
 
     #[inline]
     pub fn wake(&mut self, addr: u64, count: u32, bitset: u32) -> u32 {
         let bid = self.bucket_id(addr);
-        if let Some(b) = self.buckets.get_mut(&bid) { b.wake(count, bitset) }
-        else { 0 }
+        if let Some(b) = self.buckets.get_mut(&bid) {
+            b.wake(count, bitset)
+        } else {
+            0
+        }
     }
 
     #[inline]
@@ -121,7 +139,12 @@ impl CoopFutex {
         let waiters: u32 = self.buckets.values().map(|b| b.waiters.len() as u32).sum();
         let waits: u64 = self.buckets.values().map(|b| b.wait_count).sum();
         let wakes: u64 = self.buckets.values().map(|b| b.wake_count).sum();
-        CoopFutexStats { total_buckets: self.bucket_count, total_waiters: waiters, total_waits: waits, total_wakes: wakes }
+        CoopFutexStats {
+            total_buckets: self.bucket_count,
+            total_waiters: waiters,
+            total_waits: waits,
+            total_wakes: wakes,
+        }
     }
 }
 
@@ -143,9 +166,12 @@ pub struct CoopFutexV2Instance {
 impl CoopFutexV2Instance {
     pub fn new(addr: u64, value: u32) -> Self {
         Self {
-            addr, value,
+            addr,
+            value,
             waiters: Vec::new(),
-            wake_ops: 0, wait_ops: 0, contentions: 0,
+            wake_ops: 0,
+            wait_ops: 0,
+            contentions: 0,
         }
     }
 
@@ -154,8 +180,10 @@ impl CoopFutexV2Instance {
             return false;
         }
         self.waiters.push(CoopFutexWaiter {
-            tid, expected_val: expected,
-            enqueue_tick: tick, woken: false,
+            tid,
+            expected_val: expected,
+            enqueue_tick: tick,
+            woken: false,
             ..Default::default()
         });
         self.wait_ops += 1;
@@ -169,7 +197,9 @@ impl CoopFutexV2Instance {
             if !w.woken {
                 w.woken = true;
                 woken += 1;
-                if woken >= count as u64 { break; }
+                if woken >= count as u64 {
+                    break;
+                }
             }
         }
         self.wake_ops += 1;
@@ -209,8 +239,10 @@ impl CoopFutexV2 {
         Self {
             futexes: BTreeMap::new(),
             stats: CoopFutexV2Stats {
-                futexes_created: 0, total_waits: 0,
-                total_wakes: 0, total_contentions: 0,
+                futexes_created: 0,
+                total_waits: 0,
+                total_wakes: 0,
+                total_contentions: 0,
                 spurious_wakeups: 0,
             },
         }
@@ -219,7 +251,8 @@ impl CoopFutexV2 {
     #[inline]
     pub fn get_or_create(&mut self, addr: u64, value: u32) -> &mut CoopFutexV2Instance {
         if !self.futexes.contains_key(&addr) {
-            self.futexes.insert(addr, CoopFutexV2Instance::new(addr, value));
+            self.futexes
+                .insert(addr, CoopFutexV2Instance::new(addr, value));
             self.stats.futexes_created += 1;
         }
         self.futexes.get_mut(&addr).unwrap()
@@ -229,7 +262,9 @@ impl CoopFutexV2 {
     pub fn wait(&mut self, addr: u64, tid: u64, expected: u32, tick: u64) -> bool {
         let futex = self.get_or_create(addr, expected);
         let ok = futex.wait(tid, expected, tick);
-        if ok { self.stats.total_waits += 1; }
+        if ok {
+            self.stats.total_waits += 1;
+        }
         ok
     }
 
@@ -239,7 +274,9 @@ impl CoopFutexV2 {
             let woken = futex.wake(count);
             self.stats.total_wakes += woken;
             woken
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     #[inline(always)]

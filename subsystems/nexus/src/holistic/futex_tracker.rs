@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Futex operation type
@@ -55,8 +54,13 @@ pub struct FutexWaiter {
 impl FutexWaiter {
     pub fn new(task_id: u64, ts: u64, bitset: u32) -> Self {
         Self {
-            task_id, state: WaiterState::Waiting, enqueue_ts: ts,
-            wake_ts: 0, bitset, priority: 0, pi_boosted: false,
+            task_id,
+            state: WaiterState::Waiting,
+            enqueue_ts: ts,
+            wake_ts: 0,
+            bitset,
+            priority: 0,
+            pi_boosted: false,
             timeout_ns: u64::MAX,
         }
     }
@@ -75,7 +79,11 @@ impl FutexWaiter {
 
     #[inline(always)]
     pub fn wait_time_ns(&self) -> u64 {
-        if self.wake_ts > self.enqueue_ts { self.wake_ts - self.enqueue_ts } else { 0 }
+        if self.wake_ts > self.enqueue_ts {
+            self.wake_ts - self.enqueue_ts
+        } else {
+            0
+        }
     }
 }
 
@@ -99,10 +107,17 @@ impl FutexBucket {
     pub fn new(addr: u64) -> Self {
         let hash = Self::hash_addr(addr);
         Self {
-            addr, hash, waiters: Vec::new(),
-            total_waits: 0, total_wakes: 0, total_requeues: 0,
-            total_timeouts: 0, contention_count: 0, max_waiters_seen: 0,
-            owner_task: None, pi_enabled: false,
+            addr,
+            hash,
+            waiters: Vec::new(),
+            total_waits: 0,
+            total_wakes: 0,
+            total_requeues: 0,
+            total_timeouts: 0,
+            contention_count: 0,
+            max_waiters_seen: 0,
+            owner_task: None,
+            pi_enabled: false,
         }
     }
 
@@ -121,8 +136,12 @@ impl FutexBucket {
         self.total_waits += 1;
         self.waiters.push(waiter);
         let cur = self.waiters.len() as u32;
-        if cur > self.max_waiters_seen { self.max_waiters_seen = cur; }
-        if cur > 1 { self.contention_count += 1; }
+        if cur > self.max_waiters_seen {
+            self.max_waiters_seen = cur;
+        }
+        if cur > 1 {
+            self.contention_count += 1;
+        }
     }
 
     #[inline]
@@ -140,7 +159,9 @@ impl FutexBucket {
     pub fn wake_n(&mut self, n: u32, ts: u64, bitset: u32) -> u32 {
         let mut woken = 0u32;
         for w in &mut self.waiters {
-            if woken >= n { break; }
+            if woken >= n {
+                break;
+            }
             if w.state == WaiterState::Waiting && (w.bitset & bitset) != 0 {
                 w.wake(ts);
                 woken += 1;
@@ -170,13 +191,22 @@ impl FutexBucket {
 
     #[inline(always)]
     pub fn active_waiters(&self) -> usize {
-        self.waiters.iter().filter(|w| w.state == WaiterState::Waiting).count()
+        self.waiters
+            .iter()
+            .filter(|w| w.state == WaiterState::Waiting)
+            .count()
     }
 
     #[inline]
     pub fn avg_wait_time_ns(&self) -> u64 {
-        let completed: Vec<&FutexWaiter> = self.waiters.iter().filter(|w| w.state != WaiterState::Waiting).collect();
-        if completed.is_empty() { return 0; }
+        let completed: Vec<&FutexWaiter> = self
+            .waiters
+            .iter()
+            .filter(|w| w.state != WaiterState::Waiting)
+            .collect();
+        if completed.is_empty() {
+            return 0;
+        }
         let total: u64 = completed.iter().map(|w| w.wait_time_ns()).sum();
         total / completed.len() as u64
     }
@@ -193,7 +223,12 @@ pub struct PiChain {
 
 impl PiChain {
     pub fn new() -> Self {
-        Self { chain: Vec::new(), boosted_priority: 0, depth: 0, has_cycle: false }
+        Self {
+            chain: Vec::new(),
+            boosted_priority: 0,
+            depth: 0,
+            has_cycle: false,
+        }
     }
 
     #[inline]
@@ -249,17 +284,24 @@ pub struct HolisticFutexTracker {
 impl HolisticFutexTracker {
     pub fn new() -> Self {
         Self {
-            buckets: BTreeMap::new(), pi_chains: Vec::new(),
-            requeue_history: VecDeque::new(), max_history: 256,
+            buckets: BTreeMap::new(),
+            pi_chains: Vec::new(),
+            requeue_history: VecDeque::new(),
+            max_history: 256,
             stats: FutexTrackerStats::default(),
         }
     }
 
     #[inline]
     pub fn wait(&mut self, addr: u64, task_id: u64, ts: u64, bitset: u32, timeout_ns: Option<u64>) {
-        let bucket = self.buckets.entry(addr).or_insert_with(|| FutexBucket::new(addr));
+        let bucket = self
+            .buckets
+            .entry(addr)
+            .or_insert_with(|| FutexBucket::new(addr));
         let mut waiter = FutexWaiter::new(task_id, ts, bitset);
-        if let Some(t) = timeout_ns { waiter.timeout_ns = t; }
+        if let Some(t) = timeout_ns {
+            waiter.timeout_ns = t;
+        }
         bucket.add_waiter(waiter);
     }
 
@@ -267,17 +309,28 @@ impl HolisticFutexTracker {
     pub fn wake(&mut self, addr: u64, nr_wake: u32, ts: u64) -> u32 {
         if let Some(bucket) = self.buckets.get_mut(&addr) {
             bucket.wake_n(nr_wake, ts, u32::MAX)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     #[inline]
     pub fn wake_bitset(&mut self, addr: u64, nr_wake: u32, ts: u64, bitset: u32) -> u32 {
         if let Some(bucket) = self.buckets.get_mut(&addr) {
             bucket.wake_n(nr_wake, ts, bitset)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
-    pub fn requeue(&mut self, src: u64, dst: u64, nr_wake: u32, nr_requeue: u32, ts: u64) -> (u32, u32) {
+    pub fn requeue(
+        &mut self,
+        src: u64,
+        dst: u64,
+        nr_wake: u32,
+        nr_requeue: u32,
+        ts: u64,
+    ) -> (u32, u32) {
         let woken = self.wake(src, nr_wake, ts);
         let mut requeued = 0u32;
 
@@ -285,7 +338,9 @@ impl HolisticFutexTracker {
             let mut to_move: Vec<FutexWaiter> = Vec::new();
             let mut count = 0u32;
             for w in &mut src_bucket.waiters {
-                if count >= nr_requeue { break; }
+                if count >= nr_requeue {
+                    break;
+                }
                 if w.state == WaiterState::Waiting {
                     w.state = WaiterState::Requeued;
                     let mut new_w = FutexWaiter::new(w.task_id, w.enqueue_ts, w.bitset);
@@ -297,15 +352,27 @@ impl HolisticFutexTracker {
             requeued = to_move.len() as u32;
             src_bucket.total_requeues += requeued as u64;
 
-            let dst_bucket = self.buckets.entry(dst).or_insert_with(|| FutexBucket::new(dst));
-            for w in to_move { dst_bucket.add_waiter(w); }
+            let dst_bucket = self
+                .buckets
+                .entry(dst)
+                .or_insert_with(|| FutexBucket::new(dst));
+            for w in to_move {
+                dst_bucket.add_waiter(w);
+            }
         }
 
         self.requeue_history.push_back(RequeueOp {
-            src_addr: src, dst_addr: dst, nr_wake, nr_requeue,
-            actual_woken: woken, actual_requeued: requeued, timestamp: ts,
+            src_addr: src,
+            dst_addr: dst,
+            nr_wake,
+            nr_requeue,
+            actual_woken: woken,
+            actual_requeued: requeued,
+            timestamp: ts,
         });
-        if self.requeue_history.len() > self.max_history { self.requeue_history.remove(0); }
+        if self.requeue_history.len() > self.max_history {
+            self.requeue_history.remove(0);
+        }
 
         (woken, requeued)
     }
@@ -327,7 +394,8 @@ impl HolisticFutexTracker {
         let mut current_task = start_task;
         let mut visited = Vec::new();
 
-        for _ in 0..32 { // Max chain depth
+        for _ in 0..32 {
+            // Max chain depth
             if visited.contains(&current_task) {
                 chain.has_cycle = true;
                 break;
@@ -338,7 +406,10 @@ impl HolisticFutexTracker {
             let mut found = false;
             for (addr, bucket) in &self.buckets {
                 if bucket.pi_enabled
-                    && bucket.waiters.iter().any(|w| w.task_id == current_task && w.state == WaiterState::Waiting)
+                    && bucket
+                        .waiters
+                        .iter()
+                        .any(|w| w.task_id == current_task && w.state == WaiterState::Waiting)
                 {
                     chain.add_link(current_task, *addr);
                     if let Some(owner) = bucket.owner_task {
@@ -348,7 +419,9 @@ impl HolisticFutexTracker {
                     break;
                 }
             }
-            if !found { break; }
+            if !found {
+                break;
+            }
         }
 
         let is_deadlock = chain.has_cycle;
@@ -360,29 +433,61 @@ impl HolisticFutexTracker {
     pub fn cleanup(&mut self) {
         let addrs: Vec<u64> = self.buckets.keys().copied().collect();
         for addr in addrs {
-            if let Some(b) = self.buckets.get_mut(&addr) { b.cleanup_completed(); }
+            if let Some(b) = self.buckets.get_mut(&addr) {
+                b.cleanup_completed();
+            }
         }
-        self.buckets.retain(|_, b| !b.waiters.is_empty() || b.total_waits > 0);
+        self.buckets
+            .retain(|_, b| !b.waiters.is_empty() || b.total_waits > 0);
     }
 
     pub fn recompute(&mut self) {
         self.stats.total_futexes = self.buckets.len();
-        self.stats.total_active_waiters = self.buckets.values().map(|b| b.active_waiters() as u64).sum();
+        self.stats.total_active_waiters = self
+            .buckets
+            .values()
+            .map(|b| b.active_waiters() as u64)
+            .sum();
         self.stats.total_waits = self.buckets.values().map(|b| b.total_waits).sum();
         self.stats.total_wakes = self.buckets.values().map(|b| b.total_wakes).sum();
         self.stats.total_timeouts = self.buckets.values().map(|b| b.total_timeouts).sum();
         self.stats.total_requeues = self.buckets.values().map(|b| b.total_requeues).sum();
-        let conts: Vec<f64> = self.buckets.values().map(|b| b.contention_count as f64).collect();
-        self.stats.avg_contention = if conts.is_empty() { 0.0 } else { conts.iter().sum::<f64>() / conts.len() as f64 };
-        self.stats.max_contention = self.buckets.values().map(|b| b.max_waiters_seen).max().unwrap_or(0);
-        let waits: Vec<u64> = self.buckets.values().map(|b| b.avg_wait_time_ns()).collect();
-        self.stats.avg_wait_time_ns = if waits.is_empty() { 0 } else { waits.iter().sum::<u64>() / waits.len() as u64 };
+        let conts: Vec<f64> = self
+            .buckets
+            .values()
+            .map(|b| b.contention_count as f64)
+            .collect();
+        self.stats.avg_contention = if conts.is_empty() {
+            0.0
+        } else {
+            conts.iter().sum::<f64>() / conts.len() as f64
+        };
+        self.stats.max_contention = self
+            .buckets
+            .values()
+            .map(|b| b.max_waiters_seen)
+            .max()
+            .unwrap_or(0);
+        let waits: Vec<u64> = self
+            .buckets
+            .values()
+            .map(|b| b.avg_wait_time_ns())
+            .collect();
+        self.stats.avg_wait_time_ns = if waits.is_empty() {
+            0
+        } else {
+            waits.iter().sum::<u64>() / waits.len() as u64
+        };
         self.stats.pi_chains = self.pi_chains.len();
         self.stats.deadlocks_detected = self.pi_chains.iter().filter(|c| c.has_cycle).count();
     }
 
     #[inline(always)]
-    pub fn bucket(&self, addr: u64) -> Option<&FutexBucket> { self.buckets.get(&addr) }
+    pub fn bucket(&self, addr: u64) -> Option<&FutexBucket> {
+        self.buckets.get(&addr)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &FutexTrackerStats { &self.stats }
+    pub fn stats(&self) -> &FutexTrackerStats {
+        &self.stats
+    }
 }

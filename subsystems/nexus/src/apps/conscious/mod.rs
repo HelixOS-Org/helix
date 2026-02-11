@@ -95,20 +95,19 @@ pub mod qualia;
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
 
+pub use self::attention::AppsAttentionEngine;
 pub use self::awareness::AppsAwareness;
+pub use self::conscience::AppsConscience;
+pub use self::dream::AppsDreamEngine;
+pub use self::emotion::AppsEmotionEngine;
+pub use self::empathy::AppsEmpathyEngine;
 pub use self::goal_tracker::AppsGoalTracker;
 pub use self::identity::AppsIdentity;
 pub use self::introspect::AppsIntrospector;
+pub use self::intuition::AppsIntuitionEngine;
+pub use self::memory_palace::AppsMemoryPalace;
 pub use self::meta_apps::AppsMetaCognition;
+pub use self::qualia::AppsQualiaEngine;
 pub use self::reflection::AppsReflection;
 pub use self::self_model::AppsSelfModel;
 pub use self::world_model::AppsWorldModel;
-
-pub use self::emotion::AppsEmotionEngine;
-pub use self::attention::AppsAttentionEngine;
-pub use self::dream::AppsDreamEngine;
-pub use self::empathy::AppsEmpathyEngine;
-pub use self::intuition::AppsIntuitionEngine;
-pub use self::memory_palace::AppsMemoryPalace;
-pub use self::conscience::AppsConscience;
-pub use self::qualia::AppsQualiaEngine;

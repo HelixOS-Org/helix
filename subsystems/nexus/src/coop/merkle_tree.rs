@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Node type in Merkle tree
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,9 +43,16 @@ impl MerkleNode {
     pub fn leaf(id: u64, key: u64, value_hash: u64, depth: u32) -> Self {
         let hash = Self::compute_leaf_hash(key, value_hash);
         Self {
-            id, node_type: MerkleNodeType::Leaf, hash, left_child: None,
-            right_child: None, parent: None, depth, key: Some(key),
-            value_hash: Some(value_hash), subtree_count: 1,
+            id,
+            node_type: MerkleNodeType::Leaf,
+            hash,
+            left_child: None,
+            right_child: None,
+            parent: None,
+            depth,
+            key: Some(key),
+            value_hash: Some(value_hash),
+            subtree_count: 1,
         }
     }
 
@@ -52,23 +60,42 @@ impl MerkleNode {
     pub fn internal(id: u64, left_hash: u64, right_hash: u64, depth: u32) -> Self {
         let hash = Self::compute_internal_hash(left_hash, right_hash);
         Self {
-            id, node_type: MerkleNodeType::Internal, hash,
-            left_child: None, right_child: None, parent: None,
-            depth, key: None, value_hash: None, subtree_count: 0,
+            id,
+            node_type: MerkleNodeType::Internal,
+            hash,
+            left_child: None,
+            right_child: None,
+            parent: None,
+            depth,
+            key: None,
+            value_hash: None,
+            subtree_count: 0,
         }
     }
 
     fn compute_leaf_hash(key: u64, value: u64) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
-        for &b in &key.to_le_bytes() { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
-        for &b in &value.to_le_bytes() { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for &b in &key.to_le_bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        for &b in &value.to_le_bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         h
     }
 
     fn compute_internal_hash(left: u64, right: u64) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
-        for &b in &left.to_le_bytes() { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
-        for &b in &right.to_le_bytes() { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for &b in &left.to_le_bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        for &b in &right.to_le_bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         h
     }
 
@@ -145,7 +172,7 @@ pub struct MerkleTreeStats {
 /// Coop Merkle tree
 pub struct CoopMerkleTree {
     nodes: BTreeMap<u64, MerkleNode>,
-    leaves: LinearMap<u64, 64>,  // key -> node_id
+    leaves: LinearMap<u64, 64>, // key -> node_id
     root_id: Option<u64>,
     stats: MerkleTreeStats,
     next_id: u64,
@@ -153,12 +180,19 @@ pub struct CoopMerkleTree {
 
 impl CoopMerkleTree {
     pub fn new() -> Self {
-        Self { nodes: BTreeMap::new(), leaves: LinearMap::new(), root_id: None, stats: MerkleTreeStats::default(), next_id: 1 }
+        Self {
+            nodes: BTreeMap::new(),
+            leaves: LinearMap::new(),
+            root_id: None,
+            stats: MerkleTreeStats::default(),
+            next_id: 1,
+        }
     }
 
     #[inline]
     pub fn insert(&mut self, key: u64, value_hash: u64) {
-        let node_id = self.next_id; self.next_id += 1;
+        let node_id = self.next_id;
+        self.next_id += 1;
         let node = MerkleNode::leaf(node_id, key, value_hash, 0);
         self.nodes.insert(node_id, node);
         self.leaves.insert(key, node_id);
@@ -189,8 +223,14 @@ impl CoopMerkleTree {
         let leaf_ids: Vec<u64> = self.leaves.values().collect();
         self.nodes.retain(|id, _| leaf_ids.contains(id));
 
-        if leaf_ids.is_empty() { self.root_id = None; return; }
-        if leaf_ids.len() == 1 { self.root_id = Some(leaf_ids[0]); return; }
+        if leaf_ids.is_empty() {
+            self.root_id = None;
+            return;
+        }
+        if leaf_ids.len() == 1 {
+            self.root_id = Some(leaf_ids[0]);
+            return;
+        }
 
         let mut current_level: Vec<u64> = leaf_ids;
         let mut depth = 0u32;
@@ -204,15 +244,22 @@ impl CoopMerkleTree {
                 if i + 1 < current_level.len() {
                     let right = current_level[i + 1];
                     let right_hash = self.nodes.get(&right).map(|n| n.hash).unwrap_or(0);
-                    let parent_id = self.next_id; self.next_id += 1;
-                    let mut parent = MerkleNode::internal(parent_id, left_hash, right_hash, depth + 1);
+                    let parent_id = self.next_id;
+                    self.next_id += 1;
+                    let mut parent =
+                        MerkleNode::internal(parent_id, left_hash, right_hash, depth + 1);
                     parent.left_child = Some(left);
                     parent.right_child = Some(right);
-                    parent.subtree_count = self.nodes.get(&left).map(|n| n.subtree_count).unwrap_or(0)
-                        + self.nodes.get(&right).map(|n| n.subtree_count).unwrap_or(0);
+                    parent.subtree_count =
+                        self.nodes.get(&left).map(|n| n.subtree_count).unwrap_or(0)
+                            + self.nodes.get(&right).map(|n| n.subtree_count).unwrap_or(0);
                     self.nodes.insert(parent_id, parent);
-                    if let Some(n) = self.nodes.get_mut(&left) { n.parent = Some(parent_id); }
-                    if let Some(n) = self.nodes.get_mut(&right) { n.parent = Some(parent_id); }
+                    if let Some(n) = self.nodes.get_mut(&left) {
+                        n.parent = Some(parent_id);
+                    }
+                    if let Some(n) = self.nodes.get_mut(&right) {
+                        n.parent = Some(parent_id);
+                    }
                     next_level.push(parent_id);
                     i += 2;
                 } else {
@@ -229,7 +276,10 @@ impl CoopMerkleTree {
 
     #[inline(always)]
     pub fn root_hash(&self) -> u64 {
-        self.root_id.and_then(|id| self.nodes.get(&id)).map(|n| n.hash).unwrap_or(0)
+        self.root_id
+            .and_then(|id| self.nodes.get(&id))
+            .map(|n| n.hash)
+            .unwrap_or(0)
     }
 
     pub fn generate_proof(&mut self, key: u64) -> Option<MerkleProof> {
@@ -244,17 +294,28 @@ impl CoopMerkleTree {
             if parent.left_child == Some(current) {
                 if let Some(right) = parent.right_child {
                     let rh = self.nodes.get(&right).map(|n| n.hash).unwrap_or(0);
-                    steps.push(ProofStep { hash: rh, is_left: false });
+                    steps.push(ProofStep {
+                        hash: rh,
+                        is_left: false,
+                    });
                 }
             } else if let Some(left) = parent.left_child {
                 let lh = self.nodes.get(&left).map(|n| n.hash).unwrap_or(0);
-                steps.push(ProofStep { hash: lh, is_left: true });
+                steps.push(ProofStep {
+                    hash: lh,
+                    is_left: true,
+                });
             }
             current = parent_id;
         }
 
         self.stats.proofs_generated += 1;
-        Some(MerkleProof { key, value_hash, steps, root_hash: self.root_hash() })
+        Some(MerkleProof {
+            key,
+            value_hash,
+            steps,
+            root_hash: self.root_hash(),
+        })
     }
 
     #[inline(always)]
@@ -271,15 +332,30 @@ impl CoopMerkleTree {
             let local_hash = self.nodes.get(&local_node_id).and_then(|n| n.value_hash);
             if let Some(&remote_hash) = other_leaves.get(&key) {
                 if local_hash != Some(remote_hash) {
-                    diffs.push(MerkleDiff { key, diff_type: DiffType::Modified, local_hash, remote_hash: Some(remote_hash) });
+                    diffs.push(MerkleDiff {
+                        key,
+                        diff_type: DiffType::Modified,
+                        local_hash,
+                        remote_hash: Some(remote_hash),
+                    });
                 }
             } else {
-                diffs.push(MerkleDiff { key, diff_type: DiffType::Removed, local_hash, remote_hash: None });
+                diffs.push(MerkleDiff {
+                    key,
+                    diff_type: DiffType::Removed,
+                    local_hash,
+                    remote_hash: None,
+                });
             }
         }
         for (&key, &hash) in other_leaves {
             if !self.leaves.contains_key(key) {
-                diffs.push(MerkleDiff { key, diff_type: DiffType::Added, local_hash: None, remote_hash: Some(hash) });
+                diffs.push(MerkleDiff {
+                    key,
+                    diff_type: DiffType::Added,
+                    local_hash: None,
+                    remote_hash: Some(hash),
+                });
             }
         }
         diffs
@@ -295,5 +371,7 @@ impl CoopMerkleTree {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &MerkleTreeStats { &self.stats }
+    pub fn stats(&self) -> &MerkleTreeStats {
+        &self.stats
+    }
 }

@@ -39,25 +39,57 @@ pub struct CapBitmask {
 
 impl CapBitmask {
     #[inline(always)]
-    pub fn empty() -> Self { Self { bits: 0 } }
+    pub fn empty() -> Self {
+        Self { bits: 0 }
+    }
     #[inline(always)]
-    pub fn full() -> Self { Self { bits: u64::MAX } }
+    pub fn full() -> Self {
+        Self { bits: u64::MAX }
+    }
 
     #[inline(always)]
-    pub fn set(&mut self, cap: u32) { if cap < 64 { self.bits |= 1u64 << cap; } }
+    pub fn set(&mut self, cap: u32) {
+        if cap < 64 {
+            self.bits |= 1u64 << cap;
+        }
+    }
     #[inline(always)]
-    pub fn clear(&mut self, cap: u32) { if cap < 64 { self.bits &= !(1u64 << cap); } }
+    pub fn clear(&mut self, cap: u32) {
+        if cap < 64 {
+            self.bits &= !(1u64 << cap);
+        }
+    }
     #[inline(always)]
-    pub fn has(&self, cap: u32) -> bool { if cap < 64 { (self.bits & (1u64 << cap)) != 0 } else { false } }
+    pub fn has(&self, cap: u32) -> bool {
+        if cap < 64 {
+            (self.bits & (1u64 << cap)) != 0
+        } else {
+            false
+        }
+    }
     #[inline(always)]
-    pub fn count(&self) -> u32 { self.bits.count_ones() }
+    pub fn count(&self) -> u32 {
+        self.bits.count_ones()
+    }
 
     #[inline(always)]
-    pub fn intersect(&self, other: &CapBitmask) -> CapBitmask { CapBitmask { bits: self.bits & other.bits } }
+    pub fn intersect(&self, other: &CapBitmask) -> CapBitmask {
+        CapBitmask {
+            bits: self.bits & other.bits,
+        }
+    }
     #[inline(always)]
-    pub fn union(&self, other: &CapBitmask) -> CapBitmask { CapBitmask { bits: self.bits | other.bits } }
+    pub fn union(&self, other: &CapBitmask) -> CapBitmask {
+        CapBitmask {
+            bits: self.bits | other.bits,
+        }
+    }
     #[inline(always)]
-    pub fn subtract(&self, other: &CapBitmask) -> CapBitmask { CapBitmask { bits: self.bits & !other.bits } }
+    pub fn subtract(&self, other: &CapBitmask) -> CapBitmask {
+        CapBitmask {
+            bits: self.bits & !other.bits,
+        }
+    }
 }
 
 /// Securebits flags
@@ -98,7 +130,11 @@ pub struct AppCredState {
 impl AppCredState {
     pub fn new(pid: u64, uid: u32, gid: u32, max_hist: usize) -> Self {
         Self {
-            process_id: pid, uid, gid, euid: uid, egid: gid,
+            process_id: pid,
+            uid,
+            gid,
+            euid: uid,
+            egid: gid,
             cap_effective: CapBitmask::empty(),
             cap_permitted: CapBitmask::empty(),
             cap_inheritable: CapBitmask::empty(),
@@ -114,14 +150,20 @@ impl AppCredState {
     }
 
     #[inline(always)]
-    pub fn is_privileged(&self) -> bool { self.euid == 0 || self.cap_effective.count() > 0 }
+    pub fn is_privileged(&self) -> bool {
+        self.euid == 0 || self.cap_effective.count() > 0
+    }
 
     #[inline]
     pub fn record_change(&mut self, change: CredentialChange) {
         // Detect privilege escalation
-        if change.gained_privilege { self.escalation_count += 1; }
+        if change.gained_privilege {
+            self.escalation_count += 1;
+        }
         self.change_history.push(change);
-        while self.change_history.len() > self.max_history { self.change_history.remove(0); }
+        while self.change_history.len() > self.max_history {
+            self.change_history.remove(0);
+        }
     }
 
     #[inline]
@@ -204,7 +246,9 @@ impl AppsCredTracker {
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64, uid: u32, gid: u32, max_hist: usize) {
-        self.states.entry(pid).or_insert_with(|| AppCredState::new(pid, uid, gid, max_hist));
+        self.states
+            .entry(pid)
+            .or_insert_with(|| AppCredState::new(pid, uid, gid, max_hist));
     }
 
     pub fn update_uid(&mut self, pid: u64, new_uid: u32, ts: u64) {
@@ -215,16 +259,21 @@ impl AppsCredTracker {
             state.record_change(CredentialChange {
                 timestamp_ns: ts,
                 change_type: AppCredChangeType::UidChange,
-                old_value: old as u64, new_value: new_uid as u64,
-                gained_privilege: gained, syscall_nr: 0,
+                old_value: old as u64,
+                new_value: new_uid as u64,
+                gained_privilege: gained,
+                syscall_nr: 0,
             });
             if gained {
                 self.alerts.push(EscalationAlert {
-                    process_id: pid, timestamp_ns: ts,
+                    process_id: pid,
+                    timestamp_ns: ts,
                     escalation_type: EscalationType::SetuidRoot,
                     details_hash: 0,
                 });
-                while self.alerts.len() > self.max_alerts { self.alerts.remove(0); }
+                while self.alerts.len() > self.max_alerts {
+                    self.alerts.remove(0);
+                }
             }
         }
     }
@@ -239,8 +288,10 @@ impl AppsCredTracker {
             state.record_change(CredentialChange {
                 timestamp_ns: ts,
                 change_type: AppCredChangeType::CapChange,
-                old_value: old_count as u64, new_value: new_count as u64,
-                gained_privilege: gained, syscall_nr: 0,
+                old_value: old_count as u64,
+                new_value: new_count as u64,
+                gained_privilege: gained,
+                syscall_nr: 0,
             });
         }
     }
@@ -252,28 +303,42 @@ impl AppsCredTracker {
             state.record_change(CredentialChange {
                 timestamp_ns: ts,
                 change_type: AppCredChangeType::NoNewPrivs,
-                old_value: 0, new_value: 1,
-                gained_privilege: false, syscall_nr: 0,
+                old_value: 0,
+                new_value: 1,
+                gained_privilege: false,
+                syscall_nr: 0,
             });
         }
     }
 
     #[inline(always)]
-    pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
+    pub fn remove_process(&mut self, pid: u64) {
+        self.states.remove(&pid);
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.states.len();
         self.stats.privileged_count = self.states.values().filter(|s| s.is_privileged()).count();
         self.stats.total_changes = self.states.values().map(|s| s.change_history.len()).sum();
-        self.stats.total_escalations = self.states.values().map(|s| s.escalation_count as u64).sum();
+        self.stats.total_escalations = self
+            .states
+            .values()
+            .map(|s| s.escalation_count as u64)
+            .sum();
         self.stats.no_new_privs_count = self.states.values().filter(|s| s.no_new_privs).count();
     }
 
     #[inline(always)]
-    pub fn app_creds(&self, pid: u64) -> Option<&AppCredState> { self.states.get(&pid) }
+    pub fn app_creds(&self, pid: u64) -> Option<&AppCredState> {
+        self.states.get(&pid)
+    }
     #[inline(always)]
-    pub fn alerts(&self) -> &[EscalationAlert] { &self.alerts }
+    pub fn alerts(&self) -> &[EscalationAlert] {
+        &self.alerts
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsCredTrackerStats { &self.stats }
+    pub fn stats(&self) -> &AppsCredTrackerStats {
+        &self.stats
+    }
 }

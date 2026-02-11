@@ -164,13 +164,7 @@ pub struct MmapRegion {
 }
 
 impl MmapRegion {
-    pub fn new(
-        start: u64,
-        size: u64,
-        prot: MmapProtection,
-        map_type: MmapType,
-        now: u64,
-    ) -> Self {
+    pub fn new(start: u64, size: u64, prot: MmapProtection, map_type: MmapType, now: u64) -> Self {
         Self {
             start,
             end: start + size,
@@ -332,13 +326,19 @@ impl ProcessAddressSpace {
     /// Shared regions
     #[inline(always)]
     pub fn shared_regions(&self) -> Vec<&MmapRegion> {
-        self.regions.iter().filter(|r| r.map_type.is_shared()).collect()
+        self.regions
+            .iter()
+            .filter(|r| r.map_type.is_shared())
+            .collect()
     }
 
     /// W+X regions (security concern)
     #[inline(always)]
     pub fn wx_regions(&self) -> Vec<&MmapRegion> {
-        self.regions.iter().filter(|r| r.is_security_concern()).collect()
+        self.regions
+            .iter()
+            .filter(|r| r.is_security_concern())
+            .collect()
     }
 
     /// VAS statistics
@@ -347,7 +347,9 @@ impl ProcessAddressSpace {
         let mut largest_gap = 0u64;
         let mut total_gaps = 0u64;
         for i in 1..self.regions.len() {
-            let gap = self.regions[i].start.saturating_sub(self.regions[i - 1].end);
+            let gap = self.regions[i]
+                .start
+                .saturating_sub(self.regions[i - 1].end);
             total_gaps += gap;
             if gap > largest_gap {
                 largest_gap = gap;
@@ -453,11 +455,7 @@ impl AppMmapTracker {
             .values()
             .filter_map(|s| {
                 let wx = s.wx_regions().len();
-                if wx > 0 {
-                    Some((s.pid, wx))
-                } else {
-                    None
-                }
+                if wx > 0 { Some((s.pid, wx)) } else { None }
             })
             .collect()
     }
@@ -465,11 +463,7 @@ impl AppMmapTracker {
     fn update_stats(&mut self) {
         self.stats.processes = self.spaces.len();
         self.stats.total_regions = self.spaces.values().map(|s| s.region_count()).sum();
-        self.stats.wx_regions = self
-            .spaces
-            .values()
-            .map(|s| s.wx_regions().len())
-            .sum();
+        self.stats.wx_regions = self.spaces.values().map(|s| s.wx_regions().len()).sum();
     }
 
     /// Stats
@@ -523,17 +517,27 @@ pub struct TrackedMmapRegion {
 impl TrackedMmapRegion {
     pub fn new(start: u64, end: u64, prot: MmapTrackerProt, map_type: MmapTrackerType) -> Self {
         Self {
-            start, end, prot, map_type,
-            file_ino: None, offset: 0,
-            fault_count: 0, cow_count: 0,
-            resident_pages: 0, swap_pages: 0,
+            start,
+            end,
+            prot,
+            map_type,
+            file_ino: None,
+            offset: 0,
+            fault_count: 0,
+            cow_count: 0,
+            resident_pages: 0,
+            swap_pages: 0,
         }
     }
 
     #[inline(always)]
-    pub fn length(&self) -> u64 { self.end - self.start }
+    pub fn length(&self) -> u64 {
+        self.end - self.start
+    }
     #[inline(always)]
-    pub fn pages(&self) -> u64 { self.length() / 4096 }
+    pub fn pages(&self) -> u64 {
+        self.length() / 4096
+    }
 
     #[inline(always)]
     pub fn page_fault(&mut self) {
@@ -565,8 +569,11 @@ impl ProcessMmapV2State {
         Self {
             pid,
             regions: BTreeMap::new(),
-            total_virtual: 0, total_resident: 0,
-            peak_virtual: 0, mmap_calls: 0, munmap_calls: 0,
+            total_virtual: 0,
+            total_resident: 0,
+            peak_virtual: 0,
+            mmap_calls: 0,
+            munmap_calls: 0,
         }
     }
 
@@ -587,7 +594,9 @@ impl ProcessMmapV2State {
             self.total_virtual -= r.length();
             self.munmap_calls += 1;
             Some(r)
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 
@@ -615,9 +624,12 @@ impl AppMmapV2Tracker {
         Self {
             processes: BTreeMap::new(),
             stats: MmapV2TrackerStats {
-                processes_tracked: 0, total_mmaps: 0,
-                total_munmaps: 0, total_faults: 0,
-                total_cow_faults: 0, peak_virtual_bytes: 0,
+                processes_tracked: 0,
+                total_mmaps: 0,
+                total_munmaps: 0,
+                total_faults: 0,
+                total_cow_faults: 0,
+                peak_virtual_bytes: 0,
             },
         }
     }
@@ -629,7 +641,14 @@ impl AppMmapV2Tracker {
     }
 
     #[inline]
-    pub fn mmap(&mut self, pid: u64, start: u64, end: u64, prot: MmapTrackerProt, map_type: MmapTrackerType) -> bool {
+    pub fn mmap(
+        &mut self,
+        pid: u64,
+        start: u64,
+        end: u64,
+        prot: MmapTrackerProt,
+        map_type: MmapTrackerType,
+    ) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.add_region(TrackedMmapRegion::new(start, end, prot, map_type));
             self.stats.total_mmaps += 1;
@@ -637,7 +656,9 @@ impl AppMmapV2Tracker {
                 self.stats.peak_virtual_bytes = proc.peak_virtual;
             }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]

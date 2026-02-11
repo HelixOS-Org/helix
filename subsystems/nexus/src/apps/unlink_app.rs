@@ -3,10 +3,9 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-
 /// Unlink result
 use alloc::string::String;
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnlinkResult {
     Success,
@@ -44,7 +43,10 @@ pub struct UnlinkRecord {
 impl UnlinkRecord {
     pub fn new(path: &[u8], mode: UnlinkMode) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
             path_hash: h,
             mode,
@@ -75,7 +77,12 @@ pub struct OrphanInodeTracker {
 
 impl OrphanInodeTracker {
     pub fn new(inode: u64, size_bytes: u64, ts_ns: u64) -> Self {
-        Self { inode, open_fds: 1, size_bytes, unlinked_ns: ts_ns }
+        Self {
+            inode,
+            open_fds: 1,
+            size_bytes,
+            unlinked_ns: ts_ns,
+        }
     }
 
     #[inline(always)]
@@ -128,14 +135,16 @@ impl AppUnlink {
                     self.stats.bytes_freed += record.size_bytes;
                 }
                 if record.orphan {
-                    self.orphans.insert(record.inode,
-                        OrphanInodeTracker::new(record.inode, record.size_bytes, ts_ns));
+                    self.orphans.insert(
+                        record.inode,
+                        OrphanInodeTracker::new(record.inode, record.size_bytes, ts_ns),
+                    );
                     self.stats.orphan_inodes += 1;
                 }
                 if record.deferred {
                     self.stats.deferred_removals += 1;
                 }
-            }
+            },
             _ => self.stats.failures += 1,
         }
     }
@@ -222,7 +231,13 @@ impl AppUnlinkV2Manager {
         }
     }
 
-    pub fn unlink(&mut self, path: &str, inode: u64, unlink_type: AppUnlinkType, link_count: u32) -> AppUnlinkResult {
+    pub fn unlink(
+        &mut self,
+        path: &str,
+        inode: u64,
+        unlink_type: AppUnlinkType,
+        link_count: u32,
+    ) -> AppUnlinkResult {
         self.stats.total_unlinks += 1;
         if unlink_type == AppUnlinkType::Directory {
             self.stats.failed_unlinks += 1;

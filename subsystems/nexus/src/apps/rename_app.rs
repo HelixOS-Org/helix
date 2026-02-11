@@ -2,11 +2,11 @@
 //! NEXUS Apps — Rename App (file rename/move tracking)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::VecDeque;
-
 /// Rename flags
 use alloc::string::String;
+
+use crate::fast::linear_map::LinearMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenameFlag {
     NoReplace,
@@ -67,9 +67,13 @@ impl AppRename {
             history: VecDeque::new(),
             max_history,
             stats: RenameAppStats {
-                total_calls: 0, successful: 0, failed: 0,
-                cross_dir_moves: 0, exchanges: 0,
-                overwrites: 0, dir_renames: 0,
+                total_calls: 0,
+                successful: 0,
+                failed: 0,
+                cross_dir_moves: 0,
+                exchanges: 0,
+                overwrites: 0,
+                dir_renames: 0,
             },
         }
     }
@@ -83,7 +87,15 @@ impl AppRename {
         h
     }
 
-    pub fn rename(&mut self, src: &str, dst: &str, flags: u32, pid: u64, is_dir: bool, tick: u64) -> RenameResult {
+    pub fn rename(
+        &mut self,
+        src: &str,
+        dst: &str,
+        flags: u32,
+        pid: u64,
+        is_dir: bool,
+        tick: u64,
+    ) -> RenameResult {
         self.stats.total_calls += 1;
         let result = RenameResult::Success;
         self.stats.successful += 1;
@@ -97,7 +109,11 @@ impl AppRename {
         let record = RenameRecord {
             src_hash: Self::hash_path(src),
             dst_hash: Self::hash_path(dst),
-            flags, pid, result, is_directory: is_dir, tick,
+            flags,
+            pid,
+            result,
+            is_directory: is_dir,
+            tick,
         };
         if self.history.len() >= self.max_history {
             self.history.remove(0);
@@ -158,7 +174,10 @@ impl RenameV2Record {
     pub fn new(old_path: &[u8], new_path: &[u8], flag: RenameV2Flag) -> Self {
         let hash = |path: &[u8]| -> u64 {
             let mut h: u64 = 0xcbf29ce484222325;
-            for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+            for b in path {
+                h ^= *b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
             h
         };
         Self {
@@ -221,19 +240,29 @@ impl AppRenameV2 {
         self.stats.total_ops += 1;
         match record.result {
             RenameV2Result::Success => {
-                if record.same_dir { self.stats.same_dir_renames += 1; }
-                else { self.stats.cross_dir_renames += 1; }
-                if record.was_exchange() { self.stats.exchanges += 1; }
-                if record.overwrote_target() { self.stats.overwrites += 1; }
-            }
+                if record.same_dir {
+                    self.stats.same_dir_renames += 1;
+                } else {
+                    self.stats.cross_dir_renames += 1;
+                }
+                if record.was_exchange() {
+                    self.stats.exchanges += 1;
+                }
+                if record.overwrote_target() {
+                    self.stats.overwrites += 1;
+                }
+            },
             _ => self.stats.failures += 1,
         }
     }
 
     #[inline(always)]
     pub fn success_rate(&self) -> f64 {
-        if self.stats.total_ops == 0 { 0.0 }
-        else { (self.stats.total_ops - self.stats.failures) as f64 / self.stats.total_ops as f64 }
+        if self.stats.total_ops == 0 {
+            0.0
+        } else {
+            (self.stats.total_ops - self.stats.failures) as f64 / self.stats.total_ops as f64
+        }
     }
 }
 
@@ -313,7 +342,13 @@ impl AppRenameV3Manager {
         h
     }
 
-    pub fn rename(&mut self, old_path: &str, new_path: &str, inode: u64, flags: AppRenameFlags) -> AppRenameResult {
+    pub fn rename(
+        &mut self,
+        old_path: &str,
+        new_path: &str,
+        inode: u64,
+        flags: AppRenameFlags,
+    ) -> AppRenameResult {
         self.stats.total_renames += 1;
         let old_hash = Self::hash_path(old_path);
         let new_hash = Self::hash_path(new_path);

@@ -58,7 +58,10 @@ pub struct CpuAffinityMask {
 impl CpuAffinityMask {
     pub fn new(nr_cpus: u32) -> Self {
         let words = ((nr_cpus as usize) + 63) / 64;
-        Self { bits: alloc::vec![0u64; words], nr_cpus }
+        Self {
+            bits: alloc::vec![0u64; words],
+            nr_cpus,
+        }
     }
 
     #[inline]
@@ -66,7 +69,9 @@ impl CpuAffinityMask {
         if cpu < self.nr_cpus {
             let word = (cpu / 64) as usize;
             let bit = cpu % 64;
-            if word < self.bits.len() { self.bits[word] |= 1u64 << bit; }
+            if word < self.bits.len() {
+                self.bits[word] |= 1u64 << bit;
+            }
         }
     }
 
@@ -75,13 +80,17 @@ impl CpuAffinityMask {
         if cpu < self.nr_cpus {
             let word = (cpu / 64) as usize;
             let bit = cpu % 64;
-            if word < self.bits.len() { self.bits[word] &= !(1u64 << bit); }
+            if word < self.bits.len() {
+                self.bits[word] &= !(1u64 << bit);
+            }
         }
     }
 
     #[inline]
     pub fn is_set(&self, cpu: u32) -> bool {
-        if cpu >= self.nr_cpus { return false; }
+        if cpu >= self.nr_cpus {
+            return false;
+        }
         let word = (cpu / 64) as usize;
         let bit = cpu % 64;
         word < self.bits.len() && (self.bits[word] & (1u64 << bit)) != 0
@@ -94,7 +103,9 @@ impl CpuAffinityMask {
 
     #[inline(always)]
     pub fn set_all(&mut self) {
-        for i in 0..self.nr_cpus { self.set(i); }
+        for i in 0..self.nr_cpus {
+            self.set(i);
+        }
     }
 }
 
@@ -109,12 +120,19 @@ pub struct DeadlineParams {
 
 impl DeadlineParams {
     pub fn new(runtime: u64, deadline: u64, period: u64) -> Self {
-        Self { runtime_ns: runtime, deadline_ns: deadline, period_ns: period, flags: 0 }
+        Self {
+            runtime_ns: runtime,
+            deadline_ns: deadline,
+            period_ns: period,
+            flags: 0,
+        }
     }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.period_ns == 0 { return 0.0; }
+        if self.period_ns == 0 {
+            return 0.0;
+        }
         self.runtime_ns as f64 / self.period_ns as f64
     }
 }
@@ -131,12 +149,20 @@ pub struct BandwidthThrottle {
 
 impl BandwidthThrottle {
     pub fn new(quota: i64, period: u64) -> Self {
-        Self { quota_us: quota, period_us: period, burst_us: 0, throttled_count: 0, throttled_time_ns: 0 }
+        Self {
+            quota_us: quota,
+            period_us: period,
+            burst_us: 0,
+            throttled_count: 0,
+            throttled_time_ns: 0,
+        }
     }
 
     #[inline(always)]
     pub fn utilization_limit(&self) -> f64 {
-        if self.period_us == 0 || self.quota_us <= 0 { return 1.0; }
+        if self.period_us == 0 || self.quota_us <= 0 {
+            return 1.0;
+        }
         self.quota_us as f64 / self.period_us as f64
     }
 }
@@ -171,11 +197,25 @@ impl TaskSchedState {
         let mut affinity = CpuAffinityMask::new(nr_cpus);
         affinity.set_all();
         Self {
-            tid, pid, policy: SchedPolicyType::Normal, sched_class: SchedClass::Fair,
-            nice: 0, rt_priority: 0, affinity, deadline: None, bandwidth: None,
-            latency_nice: 0, energy_aware: false, util_avg: 0, runnable_avg: 0,
-            last_cpu: 0, nr_migrations: 0, nr_voluntary_switches: 0,
-            nr_involuntary_switches: 0, total_runtime_ns: 0, total_wait_ns: 0,
+            tid,
+            pid,
+            policy: SchedPolicyType::Normal,
+            sched_class: SchedClass::Fair,
+            nice: 0,
+            rt_priority: 0,
+            affinity,
+            deadline: None,
+            bandwidth: None,
+            latency_nice: 0,
+            energy_aware: false,
+            util_avg: 0,
+            runnable_avg: 0,
+            last_cpu: 0,
+            nr_migrations: 0,
+            nr_voluntary_switches: 0,
+            nr_involuntary_switches: 0,
+            total_runtime_ns: 0,
+            total_wait_ns: 0,
         }
     }
 
@@ -194,7 +234,11 @@ impl TaskSchedState {
     #[inline(always)]
     pub fn avg_wait_pct(&self) -> f64 {
         let total = self.total_runtime_ns + self.total_wait_ns;
-        if total == 0 { 0.0 } else { self.total_wait_ns as f64 / total as f64 * 100.0 }
+        if total == 0 {
+            0.0
+        } else {
+            self.total_wait_ns as f64 / total as f64 * 100.0
+        }
     }
 }
 
@@ -212,7 +256,15 @@ pub struct ProcessSchedProfile {
 
 impl ProcessSchedProfile {
     pub fn new(pid: u64) -> Self {
-        Self { pid, tasks: Vec::new(), default_policy: SchedPolicyType::Normal, default_nice: 0, total_runtime_ns: 0, total_wait_ns: 0, avg_util: 0 }
+        Self {
+            pid,
+            tasks: Vec::new(),
+            default_policy: SchedPolicyType::Normal,
+            default_nice: 0,
+            total_runtime_ns: 0,
+            total_wait_ns: 0,
+            avg_util: 0,
+        }
     }
 }
 
@@ -240,14 +292,23 @@ pub struct AppsSchedPolicy {
 
 impl AppsSchedPolicy {
     pub fn new(nr_cpus: u32) -> Self {
-        Self { tasks: BTreeMap::new(), processes: BTreeMap::new(), stats: SchedPolicyStats::default(), nr_cpus }
+        Self {
+            tasks: BTreeMap::new(),
+            processes: BTreeMap::new(),
+            stats: SchedPolicyStats::default(),
+            nr_cpus,
+        }
     }
 
     #[inline]
     pub fn add_task(&mut self, tid: u64, pid: u64) {
         let task = TaskSchedState::new(tid, pid, self.nr_cpus);
         self.tasks.insert(tid, task);
-        self.processes.entry(pid).or_insert_with(|| ProcessSchedProfile::new(pid)).tasks.push(tid);
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessSchedProfile::new(pid))
+            .tasks
+            .push(tid);
     }
 
     #[inline]
@@ -262,7 +323,9 @@ impl AppsSchedPolicy {
     pub fn set_affinity(&mut self, tid: u64, cpus: &[u32]) {
         if let Some(t) = self.tasks.get_mut(&tid) {
             t.affinity = CpuAffinityMask::new(self.nr_cpus);
-            for &cpu in cpus { t.affinity.set(cpu); }
+            for &cpu in cpus {
+                t.affinity.set(cpu);
+            }
         }
     }
 
@@ -287,7 +350,9 @@ impl AppsSchedPolicy {
         if let Some(t) = self.tasks.get_mut(&tid) {
             t.total_runtime_ns += runtime_ns;
             t.total_wait_ns += wait_ns;
-            if t.last_cpu != cpu { t.nr_migrations += 1; }
+            if t.last_cpu != cpu {
+                t.nr_migrations += 1;
+            }
             t.last_cpu = cpu;
         }
     }
@@ -296,19 +361,46 @@ impl AppsSchedPolicy {
     pub fn recompute(&mut self) {
         self.stats.total_tasks = self.tasks.len();
         self.stats.total_processes = self.processes.len();
-        self.stats.rt_tasks = self.tasks.values().filter(|t| t.sched_class == SchedClass::Realtime).count();
-        self.stats.dl_tasks = self.tasks.values().filter(|t| t.sched_class == SchedClass::Deadline).count();
-        self.stats.idle_tasks = self.tasks.values().filter(|t| t.sched_class == SchedClass::Idle).count();
-        self.stats.fair_tasks = self.tasks.values().filter(|t| t.sched_class == SchedClass::Fair).count();
-        self.stats.total_throttled = self.tasks.values().filter_map(|t| t.bandwidth.as_ref()).map(|b| b.throttled_count).sum();
+        self.stats.rt_tasks = self
+            .tasks
+            .values()
+            .filter(|t| t.sched_class == SchedClass::Realtime)
+            .count();
+        self.stats.dl_tasks = self
+            .tasks
+            .values()
+            .filter(|t| t.sched_class == SchedClass::Deadline)
+            .count();
+        self.stats.idle_tasks = self
+            .tasks
+            .values()
+            .filter(|t| t.sched_class == SchedClass::Idle)
+            .count();
+        self.stats.fair_tasks = self
+            .tasks
+            .values()
+            .filter(|t| t.sched_class == SchedClass::Fair)
+            .count();
+        self.stats.total_throttled = self
+            .tasks
+            .values()
+            .filter_map(|t| t.bandwidth.as_ref())
+            .map(|b| b.throttled_count)
+            .sum();
     }
 
     #[inline(always)]
-    pub fn task(&self, tid: u64) -> Option<&TaskSchedState> { self.tasks.get(&tid) }
+    pub fn task(&self, tid: u64) -> Option<&TaskSchedState> {
+        self.tasks.get(&tid)
+    }
     #[inline(always)]
-    pub fn process(&self, pid: u64) -> Option<&ProcessSchedProfile> { self.processes.get(&pid) }
+    pub fn process(&self, pid: u64) -> Option<&ProcessSchedProfile> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &SchedPolicyStats { &self.stats }
+    pub fn stats(&self) -> &SchedPolicyStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -325,7 +417,11 @@ pub struct SchedPriority {
 
 impl SchedPriority {
     pub fn new(policy: SchedPolicyType, prio: i32, nice: i32) -> Self {
-        Self { policy, priority: prio, nice }
+        Self {
+            policy,
+            priority: prio,
+            nice,
+        }
     }
 
     #[inline]
@@ -337,8 +433,6 @@ impl SchedPriority {
         }
     }
 }
-
-
 
 /// Process scheduling state
 #[derive(Debug)]
@@ -359,10 +453,16 @@ pub struct ProcessSchedState {
 impl ProcessSchedState {
     pub fn new(pid: u64, policy: SchedPolicyType) -> Self {
         Self {
-            pid, sched_prio: SchedPriority::new(policy, 0, 0),
-            deadline: None, cpu_affinity_mask: u64::MAX,
-            runtime_ns: 0, wait_ns: 0, switches: 0,
-            migrations: 0, preemptions: 0, overruns: 0,
+            pid,
+            sched_prio: SchedPriority::new(policy, 0, 0),
+            deadline: None,
+            cpu_affinity_mask: u64::MAX,
+            runtime_ns: 0,
+            wait_ns: 0,
+            switches: 0,
+            migrations: 0,
+            preemptions: 0,
+            overruns: 0,
         }
     }
 
@@ -384,13 +484,18 @@ impl ProcessSchedState {
 
     #[inline(always)]
     pub fn avg_timeslice_ns(&self) -> u64 {
-        if self.switches == 0 { return 0; }
+        if self.switches == 0 {
+            return 0;
+        }
         self.runtime_ns / self.switches
     }
 
     #[inline(always)]
     pub fn is_realtime(&self) -> bool {
-        matches!(self.sched_prio.policy, SchedPolicyType::Fifo | SchedPolicyType::RoundRobin | SchedPolicyType::Deadline)
+        matches!(
+            self.sched_prio.policy,
+            SchedPolicyType::Fifo | SchedPolicyType::RoundRobin | SchedPolicyType::Deadline
+        )
     }
 }
 
@@ -413,21 +518,30 @@ pub struct AppSchedPolicyV2 {
 }
 
 impl AppSchedPolicyV2 {
-    pub fn new() -> Self { Self { processes: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            processes: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64, policy: SchedPolicyType) {
-        self.processes.insert(pid, ProcessSchedState::new(pid, policy));
+        self.processes
+            .insert(pid, ProcessSchedState::new(pid, policy));
     }
 
     #[inline(always)]
     pub fn set_policy(&mut self, pid: u64, policy: SchedPolicyType, prio: i32) {
-        if let Some(p) = self.processes.get_mut(&pid) { p.set_policy(policy, prio); }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.set_policy(policy, prio);
+        }
     }
 
     #[inline(always)]
     pub fn set_nice(&mut self, pid: u64, nice: i32) {
-        if let Some(p) = self.processes.get_mut(&pid) { p.set_nice(nice); }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.set_nice(nice);
+        }
     }
 
     #[inline]
@@ -439,16 +553,42 @@ impl AppSchedPolicyV2 {
     }
 
     pub fn stats(&self) -> SchedPolicyV2Stats {
-        let normal = self.processes.values().filter(|p| matches!(p.sched_prio.policy, SchedPolicyType::Normal | SchedPolicyType::Batch | SchedPolicyType::Idle)).count() as u32;
-        let rt = self.processes.values().filter(|p| matches!(p.sched_prio.policy, SchedPolicyType::Fifo | SchedPolicyType::RoundRobin)).count() as u32;
-        let dl = self.processes.values().filter(|p| p.sched_prio.policy == SchedPolicyType::Deadline).count() as u32;
+        let normal = self
+            .processes
+            .values()
+            .filter(|p| {
+                matches!(
+                    p.sched_prio.policy,
+                    SchedPolicyType::Normal | SchedPolicyType::Batch | SchedPolicyType::Idle
+                )
+            })
+            .count() as u32;
+        let rt = self
+            .processes
+            .values()
+            .filter(|p| {
+                matches!(
+                    p.sched_prio.policy,
+                    SchedPolicyType::Fifo | SchedPolicyType::RoundRobin
+                )
+            })
+            .count() as u32;
+        let dl = self
+            .processes
+            .values()
+            .filter(|p| p.sched_prio.policy == SchedPolicyType::Deadline)
+            .count() as u32;
         let switches: u64 = self.processes.values().map(|p| p.switches).sum();
         let preemptions: u64 = self.processes.values().map(|p| p.preemptions).sum();
         let migrations: u64 = self.processes.values().map(|p| p.migrations).sum();
         SchedPolicyV2Stats {
-            total_processes: self.processes.len() as u32, normal_count: normal,
-            rt_count: rt, deadline_count: dl, total_switches: switches,
-            total_preemptions: preemptions, total_migrations: migrations,
+            total_processes: self.processes.len() as u32,
+            normal_count: normal,
+            rt_count: rt,
+            deadline_count: dl,
+            total_switches: switches,
+            total_preemptions: preemptions,
+            total_migrations: migrations,
         }
     }
 }

@@ -222,10 +222,16 @@ impl HolisticBreakthroughDetector {
     #[inline]
     pub fn register_domain(&mut self, domain: BreakthroughDomain) {
         let key = domain as u64;
-        if self.domain_momentum.contains_key(&key) { return; }
+        if self.domain_momentum.contains_key(&key) {
+            return;
+        }
         self.domain_momentum.insert(key, DomainMomentum {
-            domain, recent_effects: Vec::new(), momentum_ema: 0.0,
-            acceleration: 0.0, breakthrough_count: 0, last_breakthrough_tick: 0,
+            domain,
+            recent_effects: Vec::new(),
+            momentum_ema: 0.0,
+            acceleration: 0.0,
+            breakthrough_count: 0,
+            last_breakthrough_tick: 0,
         });
     }
 
@@ -238,26 +244,38 @@ impl HolisticBreakthroughDetector {
             }
             let old_momentum = momentum.momentum_ema;
             momentum.recent_effects.push(effect);
-            momentum.momentum_ema = momentum.momentum_ema
-                * (1.0 - EMA_ALPHA) + effect * EMA_ALPHA;
+            momentum.momentum_ema = momentum.momentum_ema * (1.0 - EMA_ALPHA) + effect * EMA_ALPHA;
             momentum.acceleration = momentum.momentum_ema - old_momentum;
         }
     }
 
     /// Detect a system-level breakthrough
-    pub fn system_breakthrough(&mut self, domain: BreakthroughDomain,
-                                description: String, effect: f32, confidence: f32)
-        -> Option<Breakthrough>
-    {
-        if effect < BREAKTHROUGH_THRESHOLD || confidence < 0.5 { return None; }
-        let magnitude = if effect >= 0.98 { BreakthroughMagnitude::Revolutionary }
-            else if effect >= 0.95 { BreakthroughMagnitude::Paradigmatic }
-            else if effect >= 0.90 { BreakthroughMagnitude::Major }
-            else if effect >= 0.85 { BreakthroughMagnitude::Significant }
-            else if effect >= 0.82 { BreakthroughMagnitude::Notable }
-            else { BreakthroughMagnitude::Minor };
+    pub fn system_breakthrough(
+        &mut self,
+        domain: BreakthroughDomain,
+        description: String,
+        effect: f32,
+        confidence: f32,
+    ) -> Option<Breakthrough> {
+        if effect < BREAKTHROUGH_THRESHOLD || confidence < 0.5 {
+            return None;
+        }
+        let magnitude = if effect >= 0.98 {
+            BreakthroughMagnitude::Revolutionary
+        } else if effect >= 0.95 {
+            BreakthroughMagnitude::Paradigmatic
+        } else if effect >= 0.90 {
+            BreakthroughMagnitude::Major
+        } else if effect >= 0.85 {
+            BreakthroughMagnitude::Significant
+        } else if effect >= 0.82 {
+            BreakthroughMagnitude::Notable
+        } else {
+            BreakthroughMagnitude::Minor
+        };
         let paradigm_impact = if magnitude == BreakthroughMagnitude::Paradigmatic
-            || magnitude == BreakthroughMagnitude::Revolutionary {
+            || magnitude == BreakthroughMagnitude::Revolutionary
+        {
             effect * confidence
         } else {
             effect * confidence * 0.5
@@ -266,31 +284,45 @@ impl HolisticBreakthroughDetector {
         let hash = fnv1a_hash(description.as_bytes());
         let rank = self.compute_historical_rank(effect, paradigm_impact);
         let bt = Breakthrough {
-            id, domain, description, magnitude, effect_size: effect,
-            confidence, domains_affected: alloc::vec![domain],
-            paradigm_impact, historical_rank: rank,
-            detected_tick: self.tick, hash,
+            id,
+            domain,
+            description,
+            magnitude,
+            effect_size: effect,
+            confidence,
+            domains_affected: alloc::vec![domain],
+            paradigm_impact,
+            historical_rank: rank,
+            detected_tick: self.tick,
+            hash,
         };
         if self.breakthroughs.len() >= MAX_BREAKTHROUGHS {
             let oldest = self.breakthroughs.keys().next().copied();
-            if let Some(k) = oldest { self.breakthroughs.remove(&k); }
+            if let Some(k) = oldest {
+                self.breakthroughs.remove(&k);
+            }
         }
         self.breakthroughs.insert(id, bt.clone());
         self.history.push(HistoricalRecord {
-            breakthrough_id: id, effect_size: effect,
-            domains_count: 1, paradigm_impact,
+            breakthrough_id: id,
+            effect_size: effect,
+            domains_count: 1,
+            paradigm_impact,
             composite_score: effect * confidence * paradigm_impact,
             tick: self.tick,
         });
-        if self.history.len() > MAX_HISTORY { self.history.remove(0); }
+        if self.history.len() > MAX_HISTORY {
+            self.history.remove(0);
+        }
         self.stats.total_detected += 1;
-        self.stats.avg_effect_size_ema = self.stats.avg_effect_size_ema
-            * (1.0 - EMA_ALPHA) + effect * EMA_ALPHA;
-        self.stats.avg_paradigm_impact_ema = self.stats.avg_paradigm_impact_ema
-            * (1.0 - EMA_ALPHA) + paradigm_impact * EMA_ALPHA;
+        self.stats.avg_effect_size_ema =
+            self.stats.avg_effect_size_ema * (1.0 - EMA_ALPHA) + effect * EMA_ALPHA;
+        self.stats.avg_paradigm_impact_ema =
+            self.stats.avg_paradigm_impact_ema * (1.0 - EMA_ALPHA) + paradigm_impact * EMA_ALPHA;
         self.stats.historical_records = self.history.len() as u64;
         if magnitude == BreakthroughMagnitude::Paradigmatic
-            || magnitude == BreakthroughMagnitude::Revolutionary {
+            || magnitude == BreakthroughMagnitude::Revolutionary
+        {
             self.stats.paradigmatic_breakthroughs += 1;
         }
         if let Some(m) = self.domain_momentum.get_mut(&(domain as u64)) {
@@ -302,35 +334,58 @@ impl HolisticBreakthroughDetector {
     }
 
     /// Detect cross-domain breakthroughs spanning multiple subsystems
-    pub fn cross_domain_breakthrough(&mut self, domains: Vec<BreakthroughDomain>,
-                                      description: String, effect: f32, confidence: f32)
-        -> Option<Breakthrough>
-    {
-        if domains.len() < 2 || effect < CROSS_DOMAIN_THRESHOLD { return None; }
+    pub fn cross_domain_breakthrough(
+        &mut self,
+        domains: Vec<BreakthroughDomain>,
+        description: String,
+        effect: f32,
+        confidence: f32,
+    ) -> Option<Breakthrough> {
+        if domains.len() < 2 || effect < CROSS_DOMAIN_THRESHOLD {
+            return None;
+        }
         let cross_bonus = (domains.len() as f32 - 1.0) * 0.1;
         let adjusted_effect = (effect + cross_bonus).min(1.0);
-        let magnitude = if adjusted_effect >= 0.95 { BreakthroughMagnitude::Revolutionary }
-            else if adjusted_effect >= 0.88 { BreakthroughMagnitude::Paradigmatic }
-            else if adjusted_effect >= 0.80 { BreakthroughMagnitude::Major }
-            else if adjusted_effect >= 0.72 { BreakthroughMagnitude::Significant }
-            else { BreakthroughMagnitude::Notable };
+        let magnitude = if adjusted_effect >= 0.95 {
+            BreakthroughMagnitude::Revolutionary
+        } else if adjusted_effect >= 0.88 {
+            BreakthroughMagnitude::Paradigmatic
+        } else if adjusted_effect >= 0.80 {
+            BreakthroughMagnitude::Major
+        } else if adjusted_effect >= 0.72 {
+            BreakthroughMagnitude::Significant
+        } else {
+            BreakthroughMagnitude::Notable
+        };
         let paradigm_impact = adjusted_effect * confidence * (1.0 + cross_bonus);
         let id = self.stats.total_detected;
         let hash = fnv1a_hash(description.as_bytes());
         let rank = self.compute_historical_rank(adjusted_effect, paradigm_impact);
-        let primary = domains.first().copied().unwrap_or(BreakthroughDomain::SystemWide);
+        let primary = domains
+            .first()
+            .copied()
+            .unwrap_or(BreakthroughDomain::SystemWide);
         let bt = Breakthrough {
-            id, domain: primary, description, magnitude,
-            effect_size: adjusted_effect, confidence,
-            domains_affected: domains.clone(), paradigm_impact,
-            historical_rank: rank, detected_tick: self.tick, hash,
+            id,
+            domain: primary,
+            description,
+            magnitude,
+            effect_size: adjusted_effect,
+            confidence,
+            domains_affected: domains.clone(),
+            paradigm_impact,
+            historical_rank: rank,
+            detected_tick: self.tick,
+            hash,
         };
         self.breakthroughs.insert(id, bt.clone());
         self.stats.total_detected += 1;
         self.stats.cross_domain_breakthroughs += 1;
         self.history.push(HistoricalRecord {
-            breakthrough_id: id, effect_size: adjusted_effect,
-            domains_count: domains.len() as u64, paradigm_impact,
+            breakthrough_id: id,
+            effect_size: adjusted_effect,
+            domains_count: domains.len() as u64,
+            paradigm_impact,
             composite_score: adjusted_effect * confidence * paradigm_impact,
             tick: self.tick,
         });
@@ -341,7 +396,8 @@ impl HolisticBreakthroughDetector {
     /// Assess paradigm impact of a breakthrough
     #[inline]
     pub fn paradigm_impact(&self, breakthrough_id: u64) -> f32 {
-        self.breakthroughs.get(&breakthrough_id)
+        self.breakthroughs
+            .get(&breakthrough_id)
             .map(|bt| bt.paradigm_impact)
             .unwrap_or(0.0)
     }
@@ -354,24 +410,35 @@ impl HolisticBreakthroughDetector {
         };
         let mut cascades = Vec::new();
         let all_domains = [
-            BreakthroughDomain::Scheduling, BreakthroughDomain::Memory,
-            BreakthroughDomain::Ipc, BreakthroughDomain::FileSystem,
-            BreakthroughDomain::Networking, BreakthroughDomain::Trust,
-            BreakthroughDomain::Energy, BreakthroughDomain::Hardware,
+            BreakthroughDomain::Scheduling,
+            BreakthroughDomain::Memory,
+            BreakthroughDomain::Ipc,
+            BreakthroughDomain::FileSystem,
+            BreakthroughDomain::Networking,
+            BreakthroughDomain::Trust,
+            BreakthroughDomain::Energy,
+            BreakthroughDomain::Hardware,
         ];
         let mut current_strength = bt.effect_size;
         for depth in 1..=MAX_CASCADE_DEPTH {
-            if current_strength < 0.05 { break; }
+            if current_strength < 0.05 {
+                break;
+            }
             for &domain in &all_domains {
-                if bt.domains_affected.contains(&domain) { continue; }
+                if bt.domains_affected.contains(&domain) {
+                    continue;
+                }
                 let noise = xorshift_f32(&mut self.rng_state) * 0.1;
                 let effect = current_strength * (0.3 + noise);
                 if effect > 0.05 {
                     let cas_id = self.stats.total_cascades;
                     let cascade = BreakthroughCascade {
-                        id: cas_id, source_breakthrough: breakthrough_id,
-                        affected_domain: domain, cascade_depth: depth as u32,
-                        effect_strength: effect, propagation_tick: self.tick,
+                        id: cas_id,
+                        source_breakthrough: breakthrough_id,
+                        affected_domain: domain,
+                        cascade_depth: depth as u32,
+                        effect_strength: effect,
+                        propagation_tick: self.tick,
                     };
                     cascades.push(cascade.clone());
                     self.cascades.push(cascade);
@@ -389,15 +456,19 @@ impl HolisticBreakthroughDetector {
     /// Rank a breakthrough historically
     #[inline]
     pub fn historical_rank(&self, breakthrough_id: u64) -> u32 {
-        self.breakthroughs.get(&breakthrough_id)
+        self.breakthroughs
+            .get(&breakthrough_id)
             .map(|bt| bt.historical_rank)
             .unwrap_or(0)
     }
 
     fn compute_historical_rank(&self, effect: f32, paradigm_impact: f32) -> u32 {
         let composite = effect * paradigm_impact;
-        let higher = self.history.iter()
-            .filter(|h| h.composite_score > composite).count();
+        let higher = self
+            .history
+            .iter()
+            .filter(|h| h.composite_score > composite)
+            .count();
         (higher as u32) + 1
     }
 
@@ -405,18 +476,29 @@ impl HolisticBreakthroughDetector {
     pub fn breakthrough_prediction(&mut self) -> Vec<BreakthroughPrediction> {
         let mut predictions = Vec::new();
         for momentum in self.domain_momentum.values() {
-            if momentum.momentum_ema < 0.3 { continue; }
-            let probability = (momentum.momentum_ema * 0.5
-                + momentum.acceleration.max(0.0) * 2.0).min(1.0);
-            if probability < 0.2 { continue; }
-            let est_magnitude = if probability > 0.8 { BreakthroughMagnitude::Major }
-                else if probability > 0.6 { BreakthroughMagnitude::Significant }
-                else if probability > 0.4 { BreakthroughMagnitude::Notable }
-                else { BreakthroughMagnitude::Minor };
+            if momentum.momentum_ema < 0.3 {
+                continue;
+            }
+            let probability =
+                (momentum.momentum_ema * 0.5 + momentum.acceleration.max(0.0) * 2.0).min(1.0);
+            if probability < 0.2 {
+                continue;
+            }
+            let est_magnitude = if probability > 0.8 {
+                BreakthroughMagnitude::Major
+            } else if probability > 0.6 {
+                BreakthroughMagnitude::Significant
+            } else if probability > 0.4 {
+                BreakthroughMagnitude::Notable
+            } else {
+                BreakthroughMagnitude::Minor
+            };
             let id = self.stats.predictions_made;
             let noise = xorshift64(&mut self.rng_state) % PREDICTION_HORIZON;
             predictions.push(BreakthroughPrediction {
-                id, predicted_domain: momentum.domain, probability,
+                id,
+                predicted_domain: momentum.domain,
+                probability,
                 estimated_magnitude: est_magnitude,
                 momentum_score: momentum.momentum_ema,
                 predicted_tick: self.tick + noise,
@@ -424,14 +506,20 @@ impl HolisticBreakthroughDetector {
             });
             self.stats.predictions_made += 1;
         }
-        predictions.sort_by(|a, b| b.probability.partial_cmp(&a.probability)
-            .unwrap_or(core::cmp::Ordering::Equal));
+        predictions.sort_by(|a, b| {
+            b.probability
+                .partial_cmp(&a.probability)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         predictions.truncate(MAX_PREDICTIONS);
-        let global_momentum: f32 = self.domain_momentum.values()
-            .map(|m| m.momentum_ema).sum::<f32>()
+        let global_momentum: f32 = self
+            .domain_momentum
+            .values()
+            .map(|m| m.momentum_ema)
+            .sum::<f32>()
             / (self.domain_momentum.len().max(1) as f32);
-        self.stats.momentum_global_ema = self.stats.momentum_global_ema
-            * (1.0 - EMA_ALPHA) + global_momentum * EMA_ALPHA;
+        self.stats.momentum_global_ema =
+            self.stats.momentum_global_ema * (1.0 - EMA_ALPHA) + global_momentum * EMA_ALPHA;
         for p in &predictions {
             if self.predictions.len() < MAX_PREDICTIONS {
                 self.predictions.push(p.clone());
@@ -442,21 +530,24 @@ impl HolisticBreakthroughDetector {
 
     /// Advance the engine tick
     #[inline(always)]
-    pub fn tick(&mut self) { self.tick += 1; }
+    pub fn tick(&mut self) {
+        self.tick += 1;
+    }
 
     /// Validate a previous prediction against actual outcome
     #[inline]
-    pub fn validate_prediction(&mut self, prediction_idx: usize,
-                                actual_breakthrough: bool) {
-        if prediction_idx >= self.predictions.len() { return; }
+    pub fn validate_prediction(&mut self, prediction_idx: usize, actual_breakthrough: bool) {
+        if prediction_idx >= self.predictions.len() {
+            return;
+        }
         let correct = if actual_breakthrough {
             self.predictions[prediction_idx].probability >= 0.5
         } else {
             self.predictions[prediction_idx].probability < 0.5
         };
         let accuracy_delta = if correct { 1.0f32 } else { 0.0 };
-        self.stats.prediction_accuracy_ema = self.stats.prediction_accuracy_ema
-            * (1.0 - EMA_ALPHA) + accuracy_delta * EMA_ALPHA;
+        self.stats.prediction_accuracy_ema =
+            self.stats.prediction_accuracy_ema * (1.0 - EMA_ALPHA) + accuracy_delta * EMA_ALPHA;
     }
 
     /// Get the top-N breakthroughs by composite historical score
@@ -466,7 +557,9 @@ impl HolisticBreakthroughDetector {
         sorted.sort_by(|a, b| {
             let score_a = a.effect_size * a.confidence * a.paradigm_impact;
             let score_b = b.effect_size * b.confidence * b.paradigm_impact;
-            score_b.partial_cmp(&score_a).unwrap_or(core::cmp::Ordering::Equal)
+            score_b
+                .partial_cmp(&score_a)
+                .unwrap_or(core::cmp::Ordering::Equal)
         });
         sorted.truncate(n);
         sorted
@@ -480,23 +573,33 @@ impl HolisticBreakthroughDetector {
 
     /// Get current statistics
     #[inline(always)]
-    pub fn stats(&self) -> &BreakthroughStats { &self.stats }
+    pub fn stats(&self) -> &BreakthroughStats {
+        &self.stats
+    }
 
     /// Get all detected breakthroughs
     #[inline(always)]
-    pub fn breakthroughs(&self) -> &BTreeMap<u64, Breakthrough> { &self.breakthroughs }
+    pub fn breakthroughs(&self) -> &BTreeMap<u64, Breakthrough> {
+        &self.breakthroughs
+    }
 
     /// Get cascade log
     #[inline(always)]
-    pub fn cascade_log(&self) -> &[BreakthroughCascade] { &self.cascades }
+    pub fn cascade_log(&self) -> &[BreakthroughCascade] {
+        &self.cascades
+    }
 
     /// Get all predictions
     #[inline(always)]
-    pub fn predictions(&self) -> &[BreakthroughPrediction] { &self.predictions }
+    pub fn predictions(&self) -> &[BreakthroughPrediction] {
+        &self.predictions
+    }
 
     /// Get historical records
     #[inline(always)]
-    pub fn historical_records(&self) -> &[HistoricalRecord] { &self.history }
+    pub fn historical_records(&self) -> &[HistoricalRecord] {
+        &self.history
+    }
 
     /// Get all domain momentum entries
     #[inline(always)]

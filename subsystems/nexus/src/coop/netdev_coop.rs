@@ -44,7 +44,15 @@ pub struct SharedNetQueue {
 
 impl SharedNetQueue {
     pub fn new(queue_id: u32, capacity: u32) -> Self {
-        Self { queue_id, capacity, enqueued: 0, processed: 0, dropped: 0, bytes_total: 0, consumers: Vec::new() }
+        Self {
+            queue_id,
+            capacity,
+            enqueued: 0,
+            processed: 0,
+            dropped: 0,
+            bytes_total: 0,
+            consumers: Vec::new(),
+        }
     }
 
     #[inline]
@@ -61,19 +69,32 @@ impl SharedNetQueue {
 
     #[inline(always)]
     pub fn dequeue(&mut self) -> bool {
-        if self.enqueued == 0 { false }
-        else { self.enqueued -= 1; self.processed += 1; true }
+        if self.enqueued == 0 {
+            false
+        } else {
+            self.enqueued -= 1;
+            self.processed += 1;
+            true
+        }
     }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.capacity == 0 { 0.0 } else { self.enqueued as f64 / self.capacity as f64 }
+        if self.capacity == 0 {
+            0.0
+        } else {
+            self.enqueued as f64 / self.capacity as f64
+        }
     }
 
     #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         let total = self.processed + self.dropped;
-        if total == 0 { 0.0 } else { self.dropped as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.dropped as f64 / total as f64
+        }
     }
 }
 
@@ -93,25 +114,42 @@ pub struct CoopNetdevInstance {
 impl CoopNetdevInstance {
     pub fn new(dev_id: u64, name: &[u8], dev_type: CoopNetdevType) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in name { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in name {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            dev_id, name_hash: h, dev_type, state: CoopNetdevState::Down,
-            tx_queues: Vec::new(), rx_queues: Vec::new(), mtu: 1500, shared_ns: Vec::new(),
+            dev_id,
+            name_hash: h,
+            dev_type,
+            state: CoopNetdevState::Down,
+            tx_queues: Vec::new(),
+            rx_queues: Vec::new(),
+            mtu: 1500,
+            shared_ns: Vec::new(),
         }
     }
 
     #[inline(always)]
-    pub fn bring_up(&mut self) { self.state = CoopNetdevState::Up; }
+    pub fn bring_up(&mut self) {
+        self.state = CoopNetdevState::Up;
+    }
     #[inline(always)]
     pub fn share_with(&mut self, ns_id: u64) {
-        if !self.shared_ns.contains(&ns_id) { self.shared_ns.push(ns_id); }
+        if !self.shared_ns.contains(&ns_id) {
+            self.shared_ns.push(ns_id);
+        }
         self.state = CoopNetdevState::Shared;
     }
 
     #[inline(always)]
-    pub fn total_tx_bytes(&self) -> u64 { self.tx_queues.iter().map(|q| q.bytes_total).sum() }
+    pub fn total_tx_bytes(&self) -> u64 {
+        self.tx_queues.iter().map(|q| q.bytes_total).sum()
+    }
     #[inline(always)]
-    pub fn total_rx_bytes(&self) -> u64 { self.rx_queues.iter().map(|q| q.bytes_total).sum() }
+    pub fn total_rx_bytes(&self) -> u64 {
+        self.rx_queues.iter().map(|q| q.bytes_total).sum()
+    }
 }
 
 /// Coop netdev stats
@@ -135,7 +173,12 @@ impl CoopNetdev {
     pub fn new() -> Self {
         Self {
             devices: BTreeMap::new(),
-            stats: CoopNetdevStats { total_devices: 0, shared_devices: 0, total_queues: 0, total_bytes: 0 },
+            stats: CoopNetdevStats {
+                total_devices: 0,
+                shared_devices: 0,
+                total_queues: 0,
+                total_bytes: 0,
+            },
         }
     }
 
@@ -151,6 +194,8 @@ impl CoopNetdev {
             dev.share_with(ns_id);
             self.stats.shared_devices += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }

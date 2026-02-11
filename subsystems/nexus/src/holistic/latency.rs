@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -427,7 +426,10 @@ impl HolisticLatencyAnalyzer {
 
     /// Get component percentiles
     #[inline(always)]
-    pub fn component_percentiles(&self, component: LatencyComponent) -> Option<&LatencyPercentiles> {
+    pub fn component_percentiles(
+        &self,
+        component: LatencyComponent,
+    ) -> Option<&LatencyPercentiles> {
         self.component_percentiles.get(&(component as u8))
     }
 

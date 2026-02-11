@@ -11,10 +11,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -280,11 +281,7 @@ impl BridgeTeaching {
 
     /// Assess a student on a lesson, returning the score.
     #[inline]
-    pub fn assess_learning(
-        &mut self,
-        student_id: u64,
-        lesson_id: u64,
-    ) -> Option<f32> {
+    pub fn assess_learning(&mut self, student_id: u64, lesson_id: u64) -> Option<f32> {
         self.tick += 1;
         let lesson = self.lessons.get(&lesson_id)?;
         let difficulty = lesson.difficulty_score;
@@ -364,11 +361,7 @@ impl BridgeTeaching {
     }
 
     /// Curriculum completion rate for a student.
-    pub fn curriculum_completion(
-        &self,
-        student_id: u64,
-        curriculum_id: u64,
-    ) -> f32 {
+    pub fn curriculum_completion(&self, student_id: u64, curriculum_id: u64) -> f32 {
         let curriculum = match self.curricula.get(&curriculum_id) {
             Some(c) => c,
             None => return 0.0,

@@ -24,15 +24,25 @@ impl FileMode {
     pub const S_IWOTH: u32 = 0o0002;
     pub const S_IXOTH: u32 = 0o0001;
 
-    pub fn new(mode: u32) -> Self { Self(mode & 0o7777) }
+    pub fn new(mode: u32) -> Self {
+        Self(mode & 0o7777)
+    }
     #[inline(always)]
-    pub fn apply_umask(&self, umask: &UmaskValue) -> Self { Self(self.0 & !umask.0) }
+    pub fn apply_umask(&self, umask: &UmaskValue) -> Self {
+        Self(self.0 & !umask.0)
+    }
     #[inline(always)]
-    pub fn has(&self, perm: u32) -> bool { self.0 & perm != 0 }
+    pub fn has(&self, perm: u32) -> bool {
+        self.0 & perm != 0
+    }
     #[inline(always)]
-    pub fn is_world_writable(&self) -> bool { self.has(Self::S_IWOTH) }
+    pub fn is_world_writable(&self) -> bool {
+        self.has(Self::S_IWOTH)
+    }
     #[inline(always)]
-    pub fn is_setuid(&self) -> bool { self.has(Self::S_ISUID) }
+    pub fn is_setuid(&self) -> bool {
+        self.has(Self::S_ISUID)
+    }
 }
 
 /// Umask value
@@ -40,13 +50,21 @@ impl FileMode {
 pub struct UmaskValue(pub u32);
 
 impl UmaskValue {
-    pub fn new(mask: u32) -> Self { Self(mask & 0o777) }
+    pub fn new(mask: u32) -> Self {
+        Self(mask & 0o777)
+    }
     #[inline(always)]
-    pub fn default_value() -> Self { Self(0o022) }
+    pub fn default_value() -> Self {
+        Self(0o022)
+    }
     #[inline(always)]
-    pub fn restrictive() -> Self { Self(0o077) }
+    pub fn restrictive() -> Self {
+        Self(0o077)
+    }
     #[inline(always)]
-    pub fn permissive() -> Self { Self(0o000) }
+    pub fn permissive() -> Self {
+        Self(0o000)
+    }
 }
 
 /// Process umask state
@@ -62,7 +80,14 @@ pub struct ProcessUmask {
 
 impl ProcessUmask {
     pub fn new(pid: u64) -> Self {
-        Self { pid, current: UmaskValue::default_value(), change_count: 0, files_created: 0, last_change: 0, history: Vec::new() }
+        Self {
+            pid,
+            current: UmaskValue::default_value(),
+            change_count: 0,
+            files_created: 0,
+            last_change: 0,
+            history: Vec::new(),
+        }
     }
 
     #[inline]
@@ -71,7 +96,9 @@ impl ProcessUmask {
         self.current = mask;
         self.change_count += 1;
         self.last_change = now;
-        if self.history.len() < 64 { self.history.push((now, mask)); }
+        if self.history.len() < 64 {
+            self.history.push((now, mask));
+        }
         old
     }
 
@@ -112,18 +139,34 @@ pub struct AppUmask {
 }
 
 impl AppUmask {
-    pub fn new() -> Self { Self { processes: BTreeMap::new(), audit_log: Vec::new(), max_audit: 4096 } }
+    pub fn new() -> Self {
+        Self {
+            processes: BTreeMap::new(),
+            audit_log: Vec::new(),
+            max_audit: 4096,
+        }
+    }
 
     #[inline(always)]
-    pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessUmask::new(pid)); }
+    pub fn register(&mut self, pid: u64) {
+        self.processes.insert(pid, ProcessUmask::new(pid));
+    }
 
     #[inline]
     pub fn set_umask(&mut self, pid: u64, mask: UmaskValue, now: u64) -> Option<UmaskValue> {
         let proc = self.processes.get_mut(&pid)?;
         let old = proc.set_umask(mask, now);
         let suspicious = mask == UmaskValue::permissive();
-        if self.audit_log.len() >= self.max_audit { self.audit_log.drain(..self.max_audit / 2); }
-        self.audit_log.push(UmaskAuditEvent { pid, old_mask: old, new_mask: mask, timestamp: now, suspicious });
+        if self.audit_log.len() >= self.max_audit {
+            self.audit_log.drain(..self.max_audit / 2);
+        }
+        self.audit_log.push(UmaskAuditEvent {
+            pid,
+            old_mask: old,
+            new_mask: mask,
+            timestamp: now,
+            suspicious,
+        });
         Some(old)
     }
 
@@ -131,10 +174,25 @@ impl AppUmask {
     pub fn stats(&self) -> UmaskAppStats {
         let changes: u64 = self.processes.values().map(|p| p.change_count).sum();
         let files: u64 = self.processes.values().map(|p| p.files_created).sum();
-        let perm = self.processes.values().filter(|p| p.current == UmaskValue::permissive()).count() as u32;
-        let rest = self.processes.values().filter(|p| p.current == UmaskValue::restrictive()).count() as u32;
+        let perm = self
+            .processes
+            .values()
+            .filter(|p| p.current == UmaskValue::permissive())
+            .count() as u32;
+        let rest = self
+            .processes
+            .values()
+            .filter(|p| p.current == UmaskValue::restrictive())
+            .count() as u32;
         let susp = self.audit_log.iter().filter(|e| e.suspicious).count() as u64;
-        UmaskAppStats { total_processes: self.processes.len() as u32, total_changes: changes, total_files_created: files, permissive_count: perm, restrictive_count: rest, suspicious_changes: susp }
+        UmaskAppStats {
+            total_processes: self.processes.len() as u32,
+            total_changes: changes,
+            total_files_created: files,
+            permissive_count: perm,
+            restrictive_count: rest,
+            suspicious_changes: susp,
+        }
     }
 }
 
@@ -158,27 +216,47 @@ pub struct UmaskV2Bits {
 
 impl UmaskV2Bits {
     pub fn new(value: u32) -> Self {
-        Self { value: value & 0o777 }
+        Self {
+            value: value & 0o777,
+        }
     }
 
     #[inline(always)]
-    pub fn owner_read(&self) -> bool { (self.value & 0o400) != 0 }
+    pub fn owner_read(&self) -> bool {
+        (self.value & 0o400) != 0
+    }
     #[inline(always)]
-    pub fn owner_write(&self) -> bool { (self.value & 0o200) != 0 }
+    pub fn owner_write(&self) -> bool {
+        (self.value & 0o200) != 0
+    }
     #[inline(always)]
-    pub fn owner_exec(&self) -> bool { (self.value & 0o100) != 0 }
+    pub fn owner_exec(&self) -> bool {
+        (self.value & 0o100) != 0
+    }
     #[inline(always)]
-    pub fn group_read(&self) -> bool { (self.value & 0o040) != 0 }
+    pub fn group_read(&self) -> bool {
+        (self.value & 0o040) != 0
+    }
     #[inline(always)]
-    pub fn group_write(&self) -> bool { (self.value & 0o020) != 0 }
+    pub fn group_write(&self) -> bool {
+        (self.value & 0o020) != 0
+    }
     #[inline(always)]
-    pub fn group_exec(&self) -> bool { (self.value & 0o010) != 0 }
+    pub fn group_exec(&self) -> bool {
+        (self.value & 0o010) != 0
+    }
     #[inline(always)]
-    pub fn other_read(&self) -> bool { (self.value & 0o004) != 0 }
+    pub fn other_read(&self) -> bool {
+        (self.value & 0o004) != 0
+    }
     #[inline(always)]
-    pub fn other_write(&self) -> bool { (self.value & 0o002) != 0 }
+    pub fn other_write(&self) -> bool {
+        (self.value & 0o002) != 0
+    }
     #[inline(always)]
-    pub fn other_exec(&self) -> bool { (self.value & 0o001) != 0 }
+    pub fn other_exec(&self) -> bool {
+        (self.value & 0o001) != 0
+    }
 
     #[inline(always)]
     pub fn apply_to_mode(&self, mode: u32) -> u32 {
@@ -285,7 +363,10 @@ impl AppUmaskV2 {
 
     #[inline]
     pub fn set_umask(&mut self, pid: u64, new_umask: u32) -> u32 {
-        let state = self.processes.entry(pid).or_insert_with(|| ProcessUmaskV2State::new(pid, 0o022));
+        let state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessUmaskV2State::new(pid, 0o022));
         let old = state.set_umask(new_umask);
         self.stats.total_umask_calls += 1;
         if UmaskV2Bits::new(new_umask).is_restrictive() {
@@ -365,17 +446,29 @@ impl UmaskV3Record {
     }
 
     #[inline(always)]
-    pub fn is_restrictive_change(&self) -> bool { self.new_mask > self.old_mask }
+    pub fn is_restrictive_change(&self) -> bool {
+        self.new_mask > self.old_mask
+    }
     #[inline(always)]
-    pub fn is_permissive_change(&self) -> bool { self.new_mask < self.old_mask }
+    pub fn is_permissive_change(&self) -> bool {
+        self.new_mask < self.old_mask
+    }
     #[inline(always)]
-    pub fn effective_permissions(&self, requested: u16) -> u16 { requested & !self.new_mask }
+    pub fn effective_permissions(&self, requested: u16) -> u16 {
+        requested & !self.new_mask
+    }
     #[inline(always)]
-    pub fn blocks_group_write(&self) -> bool { self.new_mask & 0o020 != 0 }
+    pub fn blocks_group_write(&self) -> bool {
+        self.new_mask & 0o020 != 0
+    }
     #[inline(always)]
-    pub fn blocks_other_all(&self) -> bool { self.new_mask & 0o007 == 0o007 }
+    pub fn blocks_other_all(&self) -> bool {
+        self.new_mask & 0o007 == 0o007
+    }
     #[inline(always)]
-    pub fn is_secure_default(&self) -> bool { self.new_mask >= 0o077 }
+    pub fn is_secure_default(&self) -> bool {
+        self.new_mask >= 0o077
+    }
 }
 
 /// Per-thread umask v3 state
@@ -392,7 +485,14 @@ pub struct ThreadUmaskV3State {
 
 impl ThreadUmaskV3State {
     pub fn new(tid: u32, mask: u16) -> Self {
-        Self { tid, current_mask: mask, acl_mask: None, changes: 0, files_created: 0, dirs_created: 0 }
+        Self {
+            tid,
+            current_mask: mask,
+            acl_mask: None,
+            changes: 0,
+            files_created: 0,
+            dirs_created: 0,
+        }
     }
 
     #[inline]
@@ -417,9 +517,13 @@ impl ThreadUmaskV3State {
     }
 
     #[inline(always)]
-    pub fn record_file_create(&mut self) { self.files_created += 1; }
+    pub fn record_file_create(&mut self) {
+        self.files_created += 1;
+    }
     #[inline(always)]
-    pub fn record_dir_create(&mut self) { self.dirs_created += 1; }
+    pub fn record_dir_create(&mut self) {
+        self.dirs_created += 1;
+    }
 }
 
 /// Namespace umask policy
@@ -433,12 +537,21 @@ pub struct NsUmaskPolicy {
 
 impl NsUmaskPolicy {
     pub fn new(ns_id: u32, min_mask: u16) -> Self {
-        Self { ns_id, min_mask, enforced: true, thread_count: 0 }
+        Self {
+            ns_id,
+            min_mask,
+            enforced: true,
+            thread_count: 0,
+        }
     }
 
     #[inline(always)]
     pub fn apply(&self, requested_mask: u16) -> u16 {
-        if self.enforced { requested_mask | self.min_mask } else { requested_mask }
+        if self.enforced {
+            requested_mask | self.min_mask
+        } else {
+            requested_mask
+        }
     }
 }
 
@@ -480,20 +593,31 @@ impl AppUmaskV3 {
 
     pub fn record(&mut self, record: &UmaskV3Record) {
         self.stats.total_changes += 1;
-        if record.is_restrictive_change() { self.stats.restrictive_changes += 1; }
-        else if record.is_permissive_change() { self.stats.permissive_changes += 1; }
+        if record.is_restrictive_change() {
+            self.stats.restrictive_changes += 1;
+        } else if record.is_permissive_change() {
+            self.stats.permissive_changes += 1;
+        }
         let effective_mask = if let Some(policy) = self.ns_policies.get(&record.ns_id) {
             policy.apply(record.new_mask)
-        } else { record.new_mask };
+        } else {
+            record.new_mask
+        };
         *self.stats.common_masks.entry(effective_mask).or_insert(0) += 1;
-        let state = self.thread_states.entry(record.tid)
+        let state = self
+            .thread_states
+            .entry(record.tid)
             .or_insert_with(|| ThreadUmaskV3State::new(record.tid, self.default_mask));
         state.set_mask(effective_mask);
     }
 
     #[inline(always)]
     pub fn most_common_mask(&self) -> Option<(u16, u64)> {
-        self.stats.common_masks.iter().max_by_key(|&(_, &c)| c).map(|(&m, &c)| (m, c))
+        self.stats
+            .common_masks
+            .iter()
+            .max_by_key(|&(_, &c)| c)
+            .map(|(&m, &c)| (m, c))
     }
 }
 
@@ -511,7 +635,12 @@ pub struct UmaskV4Record {
 
 impl UmaskV4Record {
     pub fn new(new_mask: u32) -> Self {
-        Self { old_mask: 0o022, new_mask, pid: 0, tid: 0 }
+        Self {
+            old_mask: 0o022,
+            new_mask,
+            pid: 0,
+            tid: 0,
+        }
     }
 
     #[inline(always)]
@@ -538,7 +667,14 @@ pub struct AppUmaskV4 {
 
 impl AppUmaskV4 {
     pub fn new() -> Self {
-        Self { stats: UmaskV4AppStats { total_ops: 0, restrictive_masks: 0, permissive_masks: 0 }, default_mask: 0o022 }
+        Self {
+            stats: UmaskV4AppStats {
+                total_ops: 0,
+                restrictive_masks: 0,
+                permissive_masks: 0,
+            },
+            default_mask: 0o022,
+        }
     }
 
     #[inline]

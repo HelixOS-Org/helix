@@ -3,8 +3,7 @@
 //! The transaction manager provides ACID-like semantics for kernel
 //! actions, allowing rollback on failure and atomic state changes.
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};

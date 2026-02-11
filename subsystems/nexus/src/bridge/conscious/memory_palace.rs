@@ -15,11 +15,11 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -212,7 +212,10 @@ impl MemoryRoom {
     }
 
     fn entries_needing_review(&self, tick: u64) -> usize {
-        self.entries.values().filter(|e| e.needs_review(tick)).count()
+        self.entries
+            .values()
+            .filter(|e| e.needs_review(tick))
+            .count()
     }
 }
 
@@ -326,16 +329,13 @@ impl BridgeMemoryPalace {
         if importance >= IMPORTANCE_THRESHOLD_VAULT && self.vault.len() < MAX_VAULT_ENTRIES {
             let key_hash = fnv1a_hash(key.as_bytes());
             if !self.vault.contains_key(&key_hash) {
-                self.vault.insert(
+                self.vault.insert(key_hash, VaultEntry {
                     key_hash,
-                    VaultEntry {
-                        key_hash,
-                        key: String::from(key),
-                        value: String::from(value),
-                        importance,
-                        stored_tick: self.current_tick,
-                    },
-                );
+                    key: String::from(key),
+                    value: String::from(value),
+                    importance,
+                    stored_tick: self.current_tick,
+                });
             }
         }
 
@@ -357,15 +357,14 @@ impl BridgeMemoryPalace {
         };
 
         // If not found in room, check vault
-        let result = result.or_else(|| {
-            self.vault.get(&key_hash).map(|v| v.value.clone())
-        });
+        let result = result.or_else(|| self.vault.get(&key_hash).map(|v| v.value.clone()));
 
         let found = result.is_some();
         if self.recall_history.len() >= MAX_RECALL_HISTORY {
             self.recall_history.remove(0);
         }
-        self.recall_history.push_back((room_hash, self.current_tick, found));
+        self.recall_history
+            .push_back((room_hash, self.current_tick, found));
 
         result
     }
@@ -384,7 +383,8 @@ impl BridgeMemoryPalace {
                 // Count co-accesses in recall history
                 let co_access = self
                     .recall_history
-                    .make_contiguous().windows(2)
+                    .make_contiguous()
+                    .windows(2)
                     .filter(|w| {
                         (w[0].0 == hash_a && w[1].0 == hash_b)
                             || (w[0].0 == hash_b && w[1].0 == hash_a)

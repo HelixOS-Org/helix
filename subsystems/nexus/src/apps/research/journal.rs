@@ -11,10 +11,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -191,10 +192,8 @@ impl TermIndex {
         let mut term_hashes: Vec<u64> = Vec::new();
         let mut start = 0;
         for i in 0..=bytes.len() {
-            let is_sep = i == bytes.len()
-                || bytes[i] == b' '
-                || bytes[i] == b'\n'
-                || bytes[i] == b'\t';
+            let is_sep =
+                i == bytes.len() || bytes[i] == b' ' || bytes[i] == b'\n' || bytes[i] == b'\t';
             if is_sep && i > start {
                 term_hashes.push(fnv1a_hash(&bytes[start..i]));
                 start = i + 1;

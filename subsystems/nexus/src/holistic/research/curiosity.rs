@@ -238,25 +238,37 @@ impl HolisticCuriosityEngine {
     pub fn register_dimension(&mut self, domain: ExplorationDomain, name: String) {
         let hash = fnv1a_hash(name.as_bytes());
         let id = hash;
-        if self.dimensions.len() >= MAX_DIMENSIONS { return; }
+        if self.dimensions.len() >= MAX_DIMENSIONS {
+            return;
+        }
         let dim = CuriosityDimension {
-            id, domain, name, curiosity_score: 1.0,
-            times_explored: 0, depth_reached: DepthLevel::Surface,
-            last_novelty: 0.0, knowledge_gained: 0.0,
-            last_explored_tick: 0, hash,
+            id,
+            domain,
+            name,
+            curiosity_score: 1.0,
+            times_explored: 0,
+            depth_reached: DepthLevel::Surface,
+            last_novelty: 0.0,
+            knowledge_gained: 0.0,
+            last_explored_tick: 0,
+            hash,
         };
         self.dimensions.insert(id, dim);
     }
 
     /// Compute system-wide curiosity score
     pub fn system_curiosity(&mut self) -> f32 {
-        if self.dimensions.is_empty() { return 0.0; }
+        if self.dimensions.is_empty() {
+            return 0.0;
+        }
         let mut total_curiosity = 0.0f32;
         let mut total_weight = 0.0f32;
         for dim in self.dimensions.values() {
             let age_factor = if self.tick > dim.last_explored_tick {
                 ((self.tick - dim.last_explored_tick) as f32 * 0.01).min(2.0)
-            } else { 0.0 };
+            } else {
+                0.0
+            };
             let depth_bonus = match dim.depth_reached {
                 DepthLevel::Surface => 1.0,
                 DepthLevel::Shallow => 0.8,
@@ -270,7 +282,9 @@ impl HolisticCuriosityEngine {
         }
         let system_score = if total_weight > 0.0 {
             total_curiosity / total_weight
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         system_score.min(2.0)
     }
 
@@ -285,7 +299,8 @@ impl HolisticCuriosityEngine {
                 ExplorationPhase::Consolidation => ExplorationPhase::Reassessment,
                 ExplorationPhase::Reassessment => ExplorationPhase::BroadSurvey,
             };
-            self.strategy.phase_ticks_remaining = 80 + (xorshift64(&mut self.rng_state) % 40) as u64;
+            self.strategy.phase_ticks_remaining =
+                80 + (xorshift64(&mut self.rng_state) % 40) as u64;
             self.stats.grand_strategy_switches += 1;
         }
         match self.strategy.exploration_phase {
@@ -295,7 +310,7 @@ impl HolisticCuriosityEngine {
                         recommendations.push((dim.domain, dim.curiosity_score * NOVELTY_BONUS));
                     }
                 }
-            }
+            },
             ExplorationPhase::FocusedDive => {
                 let mut best_domain = ExplorationDomain::HardwareConfig;
                 let mut best_score = 0.0f32;
@@ -306,29 +321,31 @@ impl HolisticCuriosityEngine {
                     }
                 }
                 recommendations.push((best_domain, best_score * 2.0));
-            }
+            },
             ExplorationPhase::FrontierPush => {
                 for frontier in &self.frontiers {
                     if frontier.priority > 0.5 {
-                        recommendations.push((frontier.domain, frontier.estimated_value * FRONTIER_REWARD));
+                        recommendations
+                            .push((frontier.domain, frontier.estimated_value * FRONTIER_REWARD));
                     }
                 }
-            }
+            },
             ExplorationPhase::Consolidation => {
                 for dim in self.dimensions.values() {
                     if dim.depth_reached == DepthLevel::Shallow
-                        || dim.depth_reached == DepthLevel::Moderate {
+                        || dim.depth_reached == DepthLevel::Moderate
+                    {
                         recommendations.push((dim.domain, dim.curiosity_score * 0.8));
                     }
                 }
-            }
+            },
             ExplorationPhase::Reassessment => {
                 let noise = xorshift_f32(&mut self.rng_state);
                 for dim in self.dimensions.values() {
                     let score = dim.curiosity_score * (0.5 + noise * 0.5);
                     recommendations.push((dim.domain, score));
                 }
-            }
+            },
         }
         self.strategy.phase_ticks_remaining = self.strategy.phase_ticks_remaining.saturating_sub(1);
         recommendations.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
@@ -339,19 +356,30 @@ impl HolisticCuriosityEngine {
     /// Allocate curiosity budget across exploration domains
     pub fn curiosity_allocation(&mut self) -> Vec<CuriosityAllocation> {
         let domains = [
-            ExplorationDomain::HardwareConfig, ExplorationDomain::SchedulingStrategy,
-            ExplorationDomain::MemoryLayout, ExplorationDomain::IoPattern,
-            ExplorationDomain::IpcProtocol, ExplorationDomain::TrustModel,
-            ExplorationDomain::EnergyPolicy, ExplorationDomain::CacheStrategy,
+            ExplorationDomain::HardwareConfig,
+            ExplorationDomain::SchedulingStrategy,
+            ExplorationDomain::MemoryLayout,
+            ExplorationDomain::IoPattern,
+            ExplorationDomain::IpcProtocol,
+            ExplorationDomain::TrustModel,
+            ExplorationDomain::EnergyPolicy,
+            ExplorationDomain::CacheStrategy,
         ];
         let mut scores: Vec<(ExplorationDomain, f32)> = Vec::new();
         let mut total_score = 0.0f32;
         for &domain in &domains {
-            let dim_score: f32 = self.dimensions.values()
+            let dim_score: f32 = self
+                .dimensions
+                .values()
                 .filter(|d| d.domain == domain)
-                .map(|d| d.curiosity_score * (1.0 + 0.1 * (self.tick.saturating_sub(d.last_explored_tick)) as f32))
+                .map(|d| {
+                    d.curiosity_score
+                        * (1.0 + 0.1 * (self.tick.saturating_sub(d.last_explored_tick)) as f32)
+                })
                 .sum();
-            let frontier_bonus: f32 = self.frontiers.iter()
+            let frontier_bonus: f32 = self
+                .frontiers
+                .iter()
                 .filter(|f| f.domain == domain)
                 .map(|f| f.estimated_value * 0.5)
                 .sum();
@@ -361,9 +389,16 @@ impl HolisticCuriosityEngine {
         }
         let mut allocations = Vec::new();
         for (rank, (domain, score)) in scores.iter().enumerate() {
-            let fraction = if total_score > 0.0 { score / total_score } else { 1.0 / domains.len() as f32 };
-            let roi = self.allocations.get(&(*domain as u64))
-                .map(|a| a.roi_ema).unwrap_or(0.5);
+            let fraction = if total_score > 0.0 {
+                score / total_score
+            } else {
+                1.0 / domains.len() as f32
+            };
+            let roi = self
+                .allocations
+                .get(&(*domain as u64))
+                .map(|a| a.roi_ema)
+                .unwrap_or(0.5);
             let alloc = CuriosityAllocation {
                 domain: *domain,
                 budget_fraction: fraction * EXPLORATION_BUDGET,
@@ -395,7 +430,8 @@ impl HolisticCuriosityEngine {
                 };
                 let id = fnv1a_hash(&[dim.domain as u8, (self.tick & 0xFF) as u8, 0xFE]);
                 let frontier = Frontier {
-                    id, domain: dim.domain,
+                    id,
+                    domain: dim.domain,
                     description: dim.name.clone(),
                     estimated_value: value,
                     exploration_cost: cost,
@@ -406,7 +442,11 @@ impl HolisticCuriosityEngine {
                 new_frontiers.push(frontier);
             }
         }
-        new_frontiers.sort_by(|a, b| b.priority.partial_cmp(&a.priority).unwrap_or(core::cmp::Ordering::Equal));
+        new_frontiers.sort_by(|a, b| {
+            b.priority
+                .partial_cmp(&a.priority)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         for f in &new_frontiers {
             if self.frontiers.len() < MAX_FRONTIERS {
                 self.frontiers.push(f.clone());
@@ -419,11 +459,11 @@ impl HolisticCuriosityEngine {
 
     /// Measure exploration efficiency — knowledge gained per unit cost
     pub fn exploration_efficiency(&self) -> f32 {
-        if self.exploration_log.is_empty() { return 0.0; }
-        let total_knowledge: f32 = self.exploration_log.iter()
-            .map(|e| e.knowledge_delta).sum();
-        let total_cost: f32 = self.exploration_log.iter()
-            .map(|e| e.cost).sum();
+        if self.exploration_log.is_empty() {
+            return 0.0;
+        }
+        let total_knowledge: f32 = self.exploration_log.iter().map(|e| e.knowledge_delta).sum();
+        let total_cost: f32 = self.exploration_log.iter().map(|e| e.cost).sum();
         if total_cost > EFFICIENCY_FLOOR {
             total_knowledge / total_cost
         } else {
@@ -433,7 +473,9 @@ impl HolisticCuriosityEngine {
 
     /// Compute curiosity satisfaction — how much of the curiosity has been addressed
     pub fn curiosity_satisfaction(&mut self) -> f32 {
-        if self.dimensions.is_empty() { return 1.0; }
+        if self.dimensions.is_empty() {
+            return 1.0;
+        }
         let mut satisfied = 0u64;
         let mut total = 0u64;
         for dim in self.dimensions.values() {
@@ -449,43 +491,60 @@ impl HolisticCuriosityEngine {
                 satisfied += 1;
             }
         }
-        let sat = if total > 0 { satisfied as f32 / total as f32 } else { 0.0 };
-        self.stats.curiosity_satisfaction = self.stats.curiosity_satisfaction
-            * (1.0 - EMA_ALPHA) + sat * EMA_ALPHA;
+        let sat = if total > 0 {
+            satisfied as f32 / total as f32
+        } else {
+            0.0
+        };
+        self.stats.curiosity_satisfaction =
+            self.stats.curiosity_satisfaction * (1.0 - EMA_ALPHA) + sat * EMA_ALPHA;
         sat
     }
 
     /// Record an exploration event
-    pub fn record_exploration(&mut self, domain: ExplorationDomain,
-                              novelty: f32, knowledge: f32, cost: f32) {
+    pub fn record_exploration(
+        &mut self,
+        domain: ExplorationDomain,
+        novelty: f32,
+        knowledge: f32,
+        cost: f32,
+    ) {
         let id = self.stats.total_explorations;
         let event = ExplorationEvent {
-            id, domain, novelty_found: novelty,
-            knowledge_delta: knowledge, cost, tick: self.tick,
+            id,
+            domain,
+            novelty_found: novelty,
+            knowledge_delta: knowledge,
+            cost,
+            tick: self.tick,
         };
         if self.exploration_log.len() >= MAX_EXPLORATION_LOG {
             self.exploration_log.remove(0);
         }
         self.exploration_log.push(event);
-        if let Some(dim) = self.dimensions.values_mut()
-            .find(|d| d.domain == domain) {
+        if let Some(dim) = self.dimensions.values_mut().find(|d| d.domain == domain) {
             dim.times_explored += 1;
             dim.last_novelty = novelty;
             dim.knowledge_gained += knowledge;
             dim.last_explored_tick = self.tick;
             dim.curiosity_score *= CURIOSITY_DECAY;
-            if dim.times_explored > 20 { dim.depth_reached = DepthLevel::Exhaustive; }
-            else if dim.times_explored > 12 { dim.depth_reached = DepthLevel::Deep; }
-            else if dim.times_explored > 6 { dim.depth_reached = DepthLevel::Moderate; }
-            else if dim.times_explored > 2 { dim.depth_reached = DepthLevel::Shallow; }
+            if dim.times_explored > 20 {
+                dim.depth_reached = DepthLevel::Exhaustive;
+            } else if dim.times_explored > 12 {
+                dim.depth_reached = DepthLevel::Deep;
+            } else if dim.times_explored > 6 {
+                dim.depth_reached = DepthLevel::Moderate;
+            } else if dim.times_explored > 2 {
+                dim.depth_reached = DepthLevel::Shallow;
+            }
         }
         self.stats.total_explorations += 1;
         self.stats.total_knowledge_gained += knowledge;
-        self.stats.avg_novelty_ema = self.stats.avg_novelty_ema
-            * (1.0 - EMA_ALPHA) + novelty * EMA_ALPHA;
+        self.stats.avg_novelty_ema =
+            self.stats.avg_novelty_ema * (1.0 - EMA_ALPHA) + novelty * EMA_ALPHA;
         let eff = if cost > 0.001 { knowledge / cost } else { 0.0 };
-        self.stats.avg_efficiency_ema = self.stats.avg_efficiency_ema
-            * (1.0 - EMA_ALPHA) + eff * EMA_ALPHA;
+        self.stats.avg_efficiency_ema =
+            self.stats.avg_efficiency_ema * (1.0 - EMA_ALPHA) + eff * EMA_ALPHA;
         self.strategy.total_explored += 1;
         self.stats.last_tick = self.tick;
     }

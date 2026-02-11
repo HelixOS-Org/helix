@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -29,11 +28,17 @@ pub enum XattrNamespace {
 impl XattrNamespace {
     #[inline]
     pub fn from_name(name: &str) -> Self {
-        if name.starts_with("user.") { Self::User }
-        else if name.starts_with("trusted.") { Self::Trusted }
-        else if name.starts_with("security.") { Self::Security }
-        else if name.starts_with("system.") { Self::System }
-        else { Self::Unknown }
+        if name.starts_with("user.") {
+            Self::User
+        } else if name.starts_with("trusted.") {
+            Self::Trusted
+        } else if name.starts_with("security.") {
+            Self::Security
+        } else if name.starts_with("system.") {
+            Self::System
+        } else {
+            Self::Unknown
+        }
     }
 }
 
@@ -77,7 +82,16 @@ impl XattrEntry {
     pub fn new(name: String, size: usize, ts: u64) -> Self {
         let ns = XattrNamespace::from_name(&name);
         let hash = Self::hash_value(&name);
-        Self { name, namespace: ns, value_size: size, value_hash: hash, set_count: 1, get_count: 0, last_modified_ts: ts, ..Default::default() }
+        Self {
+            name,
+            namespace: ns,
+            value_size: size,
+            value_hash: hash,
+            set_count: 1,
+            get_count: 0,
+            last_modified_ts: ts,
+            ..Default::default()
+        }
     }
 
     fn hash_value(s: &str) -> u64 {
@@ -110,9 +124,13 @@ pub struct InodeXattrs {
 impl InodeXattrs {
     pub fn new(inode: u64) -> Self {
         Self {
-            inode, attrs: BTreeMap::new(), total_size: 0,
-            max_total_size: 65536, acl_access: false,
-            acl_default: false, security_label: None,
+            inode,
+            attrs: BTreeMap::new(),
+            total_size: 0,
+            max_total_size: 65536,
+            acl_access: false,
+            acl_default: false,
+            security_label: None,
             inode_id: 0,
             max_size: 65536,
         }
@@ -123,15 +141,23 @@ impl InodeXattrs {
         match flag {
             XattrSetFlag::Create if exists => return false,
             XattrSetFlag::Replace if !exists => return false,
-            _ => {}
+            _ => {},
         }
 
-        if name == "system.posix_acl_access" { self.acl_access = true; }
-        if name == "system.posix_acl_default" { self.acl_default = true; }
-        if name.starts_with("security.") { self.security_label = Some(name.clone()); }
+        if name == "system.posix_acl_access" {
+            self.acl_access = true;
+        }
+        if name == "system.posix_acl_default" {
+            self.acl_default = true;
+        }
+        if name.starts_with("security.") {
+            self.security_label = Some(name.clone());
+        }
 
         let old_size = self.attrs.get(&name).map(|e| e.value_size).unwrap_or(0);
-        if self.total_size - old_size + size > self.max_total_size { return false; }
+        if self.total_size - old_size + size > self.max_total_size {
+            return false;
+        }
         self.total_size = self.total_size - old_size + size;
 
         if let Some(entry) = self.attrs.get_mut(&name) {
@@ -139,7 +165,8 @@ impl InodeXattrs {
             entry.set_count += 1;
             entry.last_modified_ts = ts;
         } else {
-            self.attrs.insert(name.clone(), XattrEntry::new(name, size, ts));
+            self.attrs
+                .insert(name.clone(), XattrEntry::new(name, size, ts));
         }
         true
     }
@@ -157,10 +184,16 @@ impl InodeXattrs {
         let key = String::from(name);
         if let Some(e) = self.attrs.remove(&key) {
             self.total_size -= e.value_size;
-            if key == "system.posix_acl_access" { self.acl_access = false; }
-            if key == "system.posix_acl_default" { self.acl_default = false; }
+            if key == "system.posix_acl_access" {
+                self.acl_access = false;
+            }
+            if key == "system.posix_acl_default" {
+                self.acl_default = false;
+            }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -169,7 +202,9 @@ impl InodeXattrs {
     }
 
     #[inline(always)]
-    pub fn count(&self) -> usize { self.attrs.len() }
+    pub fn count(&self) -> usize {
+        self.attrs.len()
+    }
 
     #[inline(always)]
     pub fn count_in_ns(&self, ns: XattrNamespace) -> usize {
@@ -215,31 +250,79 @@ pub struct BridgeXattrBridge {
 
 impl BridgeXattrBridge {
     pub fn new() -> Self {
-        Self { inodes: BTreeMap::new(), ops: VecDeque::new(), max_ops: 1024, stats: XattrBridgeStats::default() }
+        Self {
+            inodes: BTreeMap::new(),
+            ops: VecDeque::new(),
+            max_ops: 1024,
+            stats: XattrBridgeStats::default(),
+        }
     }
 
     #[inline]
-    pub fn setxattr(&mut self, inode: u64, name: String, size: usize, flag: XattrSetFlag, pid: u64, ts: u64) -> bool {
-        let ix = self.inodes.entry(inode).or_insert_with(|| InodeXattrs::new(inode));
+    pub fn setxattr(
+        &mut self,
+        inode: u64,
+        name: String,
+        size: usize,
+        flag: XattrSetFlag,
+        pid: u64,
+        ts: u64,
+    ) -> bool {
+        let ix = self
+            .inodes
+            .entry(inode)
+            .or_insert_with(|| InodeXattrs::new(inode));
         let success = ix.set(name.clone(), size, ts, flag);
-        self.ops.push_back(XattrOpRecord { op: XattrOp::Set, inode, name, size, success, timestamp: ts, pid });
-        if self.ops.len() > self.max_ops { self.ops.remove(0); }
+        self.ops.push_back(XattrOpRecord {
+            op: XattrOp::Set,
+            inode,
+            name,
+            size,
+            success,
+            timestamp: ts,
+            pid,
+        });
+        if self.ops.len() > self.max_ops {
+            self.ops.remove(0);
+        }
         success
     }
 
     #[inline]
     pub fn getxattr(&mut self, inode: u64, name: &str, pid: u64, ts: u64) -> Option<usize> {
-        let ix = self.inodes.entry(inode).or_insert_with(|| InodeXattrs::new(inode));
+        let ix = self
+            .inodes
+            .entry(inode)
+            .or_insert_with(|| InodeXattrs::new(inode));
         let result = ix.get(name).map(|e| e.value_size);
-        self.ops.push_back(XattrOpRecord { op: XattrOp::Get, inode, name: String::from(name), size: result.unwrap_or(0), success: result.is_some(), timestamp: ts, pid });
+        self.ops.push_back(XattrOpRecord {
+            op: XattrOp::Get,
+            inode,
+            name: String::from(name),
+            size: result.unwrap_or(0),
+            success: result.is_some(),
+            timestamp: ts,
+            pid,
+        });
         result
     }
 
     #[inline]
     pub fn removexattr(&mut self, inode: u64, name: &str, pid: u64, ts: u64) -> bool {
-        let ix = self.inodes.entry(inode).or_insert_with(|| InodeXattrs::new(inode));
+        let ix = self
+            .inodes
+            .entry(inode)
+            .or_insert_with(|| InodeXattrs::new(inode));
         let success = ix.remove(name);
-        self.ops.push_back(XattrOpRecord { op: XattrOp::Remove, inode, name: String::from(name), size: 0, success, timestamp: ts, pid });
+        self.ops.push_back(XattrOpRecord {
+            op: XattrOp::Remove,
+            inode,
+            name: String::from(name),
+            size: 0,
+            success,
+            timestamp: ts,
+            pid,
+        });
         success
     }
 
@@ -247,7 +330,9 @@ impl BridgeXattrBridge {
     pub fn listxattr(&mut self, inode: u64) -> Vec<String> {
         if let Some(ix) = self.inodes.get(&inode) {
             ix.list().into_iter().map(|s| String::from(s)).collect()
-        } else { Vec::new() }
+        } else {
+            Vec::new()
+        }
     }
 
     #[inline]
@@ -257,16 +342,29 @@ impl BridgeXattrBridge {
         self.stats.total_size_bytes = self.inodes.values().map(|ix| ix.total_size).sum();
         self.stats.total_sets = self.ops.iter().filter(|o| o.op == XattrOp::Set).count() as u64;
         self.stats.total_gets = self.ops.iter().filter(|o| o.op == XattrOp::Get).count() as u64;
-        self.stats.total_removes = self.ops.iter().filter(|o| o.op == XattrOp::Remove).count() as u64;
+        self.stats.total_removes =
+            self.ops.iter().filter(|o| o.op == XattrOp::Remove).count() as u64;
         self.stats.total_lists = self.ops.iter().filter(|o| o.op == XattrOp::List).count() as u64;
-        self.stats.acl_inodes = self.inodes.values().filter(|ix| ix.acl_access || ix.acl_default).count();
-        self.stats.security_labeled = self.inodes.values().filter(|ix| ix.security_label.is_some()).count();
+        self.stats.acl_inodes = self
+            .inodes
+            .values()
+            .filter(|ix| ix.acl_access || ix.acl_default)
+            .count();
+        self.stats.security_labeled = self
+            .inodes
+            .values()
+            .filter(|ix| ix.security_label.is_some())
+            .count();
     }
 
     #[inline(always)]
-    pub fn inode_xattrs(&self, inode: u64) -> Option<&InodeXattrs> { self.inodes.get(&inode) }
+    pub fn inode_xattrs(&self, inode: u64) -> Option<&InodeXattrs> {
+        self.inodes.get(&inode)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &XattrBridgeStats { &self.stats }
+    pub fn stats(&self) -> &XattrBridgeStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -283,16 +381,18 @@ impl XattrFlags {
     pub const CREATE: u32 = 1;
     pub const REPLACE: u32 = 2;
 
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn create_only(&self) -> bool { self.bits & Self::CREATE != 0 }
+    pub fn create_only(&self) -> bool {
+        self.bits & Self::CREATE != 0
+    }
     #[inline(always)]
-    pub fn replace_only(&self) -> bool { self.bits & Self::REPLACE != 0 }
+    pub fn replace_only(&self) -> bool {
+        self.bits & Self::REPLACE != 0
+    }
 }
-
-
-
-
 
 /// Bridge stats
 #[derive(Debug, Clone)]
@@ -313,14 +413,36 @@ pub struct BridgeXattrV2 {
 }
 
 impl BridgeXattrV2 {
-    pub fn new() -> Self { Self { inodes: BTreeMap::new(), total_ops: 0 } }
+    pub fn new() -> Self {
+        Self {
+            inodes: BTreeMap::new(),
+            total_ops: 0,
+        }
+    }
 
     #[inline]
-    pub fn set_xattr(&mut self, inode: u64, name: String, _ns: XattrNamespace, value: Vec<u8>, flags: XattrFlags, now: u64) -> bool {
-        let store = self.inodes.entry(inode).or_insert_with(|| InodeXattrs::new(inode));
+    pub fn set_xattr(
+        &mut self,
+        inode: u64,
+        name: String,
+        _ns: XattrNamespace,
+        value: Vec<u8>,
+        flags: XattrFlags,
+        now: u64,
+    ) -> bool {
+        let store = self
+            .inodes
+            .entry(inode)
+            .or_insert_with(|| InodeXattrs::new(inode));
         let size = value.len();
         self.total_ops += 1;
-        let flag = if flags.create_only() { XattrSetFlag::Create } else if flags.replace_only() { XattrSetFlag::Replace } else { XattrSetFlag::Any };
+        let flag = if flags.create_only() {
+            XattrSetFlag::Create
+        } else if flags.replace_only() {
+            XattrSetFlag::Replace
+        } else {
+            XattrSetFlag::Any
+        };
         store.set(name, size, now, flag)
     }
 
@@ -333,12 +455,18 @@ impl BridgeXattrV2 {
     #[inline(always)]
     pub fn remove_xattr(&mut self, inode: u64, name: &str) -> bool {
         self.total_ops += 1;
-        self.inodes.get_mut(&inode).map(|s| s.remove(name)).unwrap_or(false)
+        self.inodes
+            .get_mut(&inode)
+            .map(|s| s.remove(name))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
     pub fn list_xattrs(&self, inode: u64) -> Vec<String> {
-        self.inodes.get(&inode).map(|s| s.list().into_iter().map(String::from).collect()).unwrap_or_default()
+        self.inodes
+            .get(&inode)
+            .map(|s| s.list().into_iter().map(String::from).collect())
+            .unwrap_or_default()
     }
 
     pub fn stats(&self) -> XattrV2BridgeStats {
@@ -352,7 +480,9 @@ impl BridgeXattrV2 {
         }
         XattrV2BridgeStats {
             total_inodes_tracked: self.inodes.len() as u32,
-            total_attrs, total_bytes, total_operations: self.total_ops,
+            total_attrs,
+            total_bytes,
+            total_operations: self.total_ops,
             attrs_by_namespace: by_ns,
         }
     }
@@ -382,7 +512,12 @@ pub struct XattrV3Entry {
 
 impl XattrV3Entry {
     pub fn new(name_hash: u64, ns: XattrV3Namespace, size: u32, value_hash: u64) -> Self {
-        Self { name_hash, namespace: ns, value_size: size, value_hash }
+        Self {
+            name_hash,
+            namespace: ns,
+            value_size: size,
+            value_hash,
+        }
     }
 }
 
@@ -401,18 +536,36 @@ pub struct InodeXattrsV3 {
 
 impl InodeXattrsV3 {
     pub fn new(inode: u64, max_size: u32) -> Self {
-        Self { inode, attrs: Vec::new(), total_size: 0, max_size, get_count: 0, set_count: 0, remove_count: 0, list_count: 0 }
+        Self {
+            inode,
+            attrs: Vec::new(),
+            total_size: 0,
+            max_size,
+            get_count: 0,
+            set_count: 0,
+            remove_count: 0,
+            list_count: 0,
+        }
     }
 
-    pub fn set(&mut self, name_hash: u64, ns: XattrV3Namespace, size: u32, value_hash: u64) -> bool {
+    pub fn set(
+        &mut self,
+        name_hash: u64,
+        ns: XattrV3Namespace,
+        size: u32,
+        value_hash: u64,
+    ) -> bool {
         let new_total = self.total_size + size;
-        if new_total > self.max_size { return false; }
+        if new_total > self.max_size {
+            return false;
+        }
         if let Some(existing) = self.attrs.iter_mut().find(|a| a.name_hash == name_hash) {
             self.total_size -= existing.value_size;
             existing.value_size = size;
             existing.value_hash = value_hash;
         } else {
-            self.attrs.push(XattrV3Entry::new(name_hash, ns, size, value_hash));
+            self.attrs
+                .push(XattrV3Entry::new(name_hash, ns, size, value_hash));
         }
         self.total_size += size;
         self.set_count += 1;
@@ -422,7 +575,10 @@ impl InodeXattrsV3 {
     #[inline(always)]
     pub fn get(&mut self, name_hash: u64) -> Option<u64> {
         self.get_count += 1;
-        self.attrs.iter().find(|a| a.name_hash == name_hash).map(|a| a.value_hash)
+        self.attrs
+            .iter()
+            .find(|a| a.name_hash == name_hash)
+            .map(|a| a.value_hash)
     }
 
     #[inline]
@@ -432,11 +588,16 @@ impl InodeXattrsV3 {
             self.attrs.remove(idx);
             self.remove_count += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn list(&mut self) -> Vec<u64> { self.list_count += 1; self.attrs.iter().map(|a| a.name_hash).collect() }
+    pub fn list(&mut self) -> Vec<u64> {
+        self.list_count += 1;
+        self.attrs.iter().map(|a| a.name_hash).collect()
+    }
 }
 
 /// Stats
@@ -456,24 +617,48 @@ pub struct BridgeXattrV3 {
 }
 
 impl BridgeXattrV3 {
-    pub fn new() -> Self { Self { inodes: BTreeMap::new() } }
-
-    #[inline(always)]
-    pub fn ensure_inode(&mut self, inode: u64, max_size: u32) {
-        self.inodes.entry(inode).or_insert_with(|| InodeXattrsV3::new(inode, max_size));
+    pub fn new() -> Self {
+        Self {
+            inodes: BTreeMap::new(),
+        }
     }
 
     #[inline(always)]
-    pub fn setxattr(&mut self, inode: u64, name_hash: u64, ns: XattrV3Namespace, size: u32, value_hash: u64) -> bool {
+    pub fn ensure_inode(&mut self, inode: u64, max_size: u32) {
+        self.inodes
+            .entry(inode)
+            .or_insert_with(|| InodeXattrsV3::new(inode, max_size));
+    }
+
+    #[inline(always)]
+    pub fn setxattr(
+        &mut self,
+        inode: u64,
+        name_hash: u64,
+        ns: XattrV3Namespace,
+        size: u32,
+        value_hash: u64,
+    ) -> bool {
         self.ensure_inode(inode, 65536);
-        self.inodes.get_mut(&inode).map_or(false, |i| i.set(name_hash, ns, size, value_hash))
+        self.inodes
+            .get_mut(&inode)
+            .map_or(false, |i| i.set(name_hash, ns, size, value_hash))
     }
 
     #[inline]
     pub fn stats(&self) -> XattrV3BridgeStats {
         let attrs: u32 = self.inodes.values().map(|i| i.attrs.len() as u32).sum();
         let size: u64 = self.inodes.values().map(|i| i.total_size as u64).sum();
-        let ops: u64 = self.inodes.values().map(|i| i.get_count + i.set_count + i.remove_count + i.list_count).sum();
-        XattrV3BridgeStats { total_inodes: self.inodes.len() as u32, total_attrs: attrs, total_size: size, total_ops: ops }
+        let ops: u64 = self
+            .inodes
+            .values()
+            .map(|i| i.get_count + i.set_count + i.remove_count + i.list_count)
+            .sum();
+        XattrV3BridgeStats {
+            total_inodes: self.inodes.len() as u32,
+            total_attrs: attrs,
+            total_size: size,
+            total_ops: ops,
+        }
     }
 }

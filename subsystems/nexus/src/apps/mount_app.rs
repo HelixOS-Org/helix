@@ -44,7 +44,17 @@ pub struct MountEntry {
 
 impl MountEntry {
     pub fn new(id: u64, source: u64, target: u64, fstype: String, flags: u64, now: u64) -> Self {
-        Self { id, source_hash: source, target_hash: target, fstype, flags, mount_time: now, reads: 0, writes: 0, parent_id: None }
+        Self {
+            id,
+            source_hash: source,
+            target_hash: target,
+            fstype,
+            flags,
+            mount_time: now,
+            reads: 0,
+            writes: 0,
+            parent_id: None,
+        }
     }
 }
 
@@ -65,23 +75,41 @@ pub struct AppMount {
 }
 
 impl AppMount {
-    pub fn new() -> Self { Self { mounts: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            mounts: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn mount(&mut self, source: u64, target: u64, fstype: String, flags: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.mounts.insert(id, MountEntry::new(id, source, target, fstype, flags, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.mounts
+            .insert(id, MountEntry::new(id, source, target, fstype, flags, now));
         id
     }
 
     #[inline(always)]
-    pub fn umount(&mut self, id: u64) -> bool { self.mounts.remove(&id).is_some() }
+    pub fn umount(&mut self, id: u64) -> bool {
+        self.mounts.remove(&id).is_some()
+    }
 
     #[inline]
     pub fn stats(&self) -> MountAppStats {
         let ro = self.mounts.values().filter(|m| m.flags & 1 != 0).count() as u32;
-        let bind = self.mounts.values().filter(|m| m.flags & (1 << 12) != 0).count() as u32;
+        let bind = self
+            .mounts
+            .values()
+            .filter(|m| m.flags & (1 << 12) != 0)
+            .count() as u32;
         let io: u64 = self.mounts.values().map(|m| m.reads + m.writes).sum();
-        MountAppStats { total_mounts: self.mounts.len() as u32, readonly_mounts: ro, bind_mounts: bind, total_io: io }
+        MountAppStats {
+            total_mounts: self.mounts.len() as u32,
+            readonly_mounts: ro,
+            bind_mounts: bind,
+            total_io: io,
+        }
     }
 }

@@ -40,7 +40,7 @@ pub enum IrqDeliveryMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoalesceStrategy {
     Disabled,
-    Static(u32),        // fixed interval in us
+    Static(u32), // fixed interval in us
     Adaptive,
     EthtoolCompatible,
 }
@@ -90,7 +90,9 @@ impl IrqDescriptor {
 
     #[inline(always)]
     pub fn spurious_ratio(&self) -> f64 {
-        if self.fire_count == 0 { return 0.0; }
+        if self.fire_count == 0 {
+            return 0.0;
+        }
         self.spurious_count as f64 / self.fire_count as f64
     }
 }
@@ -164,7 +166,9 @@ impl MsiXAssignment {
     pub fn spread_across(&mut self, cpus: &[u32]) {
         self.vectors.clear();
         for (i, &cpu) in cpus.iter().enumerate() {
-            if i as u32 >= self.max_vectors { break; }
+            if i as u32 >= self.max_vectors {
+                break;
+            }
             self.vectors.push((i as u32, cpu));
         }
     }
@@ -244,27 +248,47 @@ impl HolisticIrqBalance {
         self.compute_loads();
         let mut suggestions = Vec::new();
 
-        let max_load = self.cpus.values().map(|c| c.total_irq_time_ns).max().unwrap_or(0);
-        let min_load = self.cpus.values().map(|c| c.total_irq_time_ns).min().unwrap_or(0);
-        let avg_load = if self.cpus.is_empty() { 0 } else {
+        let max_load = self
+            .cpus
+            .values()
+            .map(|c| c.total_irq_time_ns)
+            .max()
+            .unwrap_or(0);
+        let min_load = self
+            .cpus
+            .values()
+            .map(|c| c.total_irq_time_ns)
+            .min()
+            .unwrap_or(0);
+        let avg_load = if self.cpus.is_empty() {
+            0
+        } else {
             self.cpus.values().map(|c| c.total_irq_time_ns).sum::<u64>() / self.cpus.len() as u64
         };
 
         // Find overloaded CPUs
         let threshold = avg_load + avg_load / 4;
-        let overloaded: Vec<u32> = self.cpus.iter()
+        let overloaded: Vec<u32> = self
+            .cpus
+            .iter()
             .filter(|(_, c)| c.total_irq_time_ns > threshold)
             .map(|(&id, _)| id)
             .collect();
 
-        let underloaded: Vec<u32> = self.cpus.iter()
+        let underloaded: Vec<u32> = self
+            .cpus
+            .iter()
             .filter(|(_, c)| c.total_irq_time_ns < avg_load)
             .map(|(&id, _)| id)
             .collect();
 
         for &src_cpu in &overloaded {
-            if underloaded.is_empty() { break; }
-            let irqs_on_cpu: Vec<u32> = self.cpus.get(&src_cpu)
+            if underloaded.is_empty() {
+                break;
+            }
+            let irqs_on_cpu: Vec<u32> = self
+                .cpus
+                .get(&src_cpu)
                 .map(|c| c.assigned_irqs.clone())
                 .unwrap_or_default();
 
@@ -272,12 +296,16 @@ impl HolisticIrqBalance {
                 if let Some(irq) = self.irqs.get(&irq_num) {
                     // Find best target CPU (NUMA-local and underloaded)
                     let src_numa = self.cpus.get(&src_cpu).map(|c| c.numa_node).unwrap_or(0);
-                    let best_target = underloaded.iter()
+                    let best_target = underloaded
+                        .iter()
                         .filter(|&&cpu| {
                             self.cpus.get(&cpu).map(|c| c.numa_node).unwrap_or(0) == src_numa
                         })
                         .min_by_key(|&&cpu| {
-                            self.cpus.get(&cpu).map(|c| c.total_irq_time_ns).unwrap_or(u64::MAX)
+                            self.cpus
+                                .get(&cpu)
+                                .map(|c| c.total_irq_time_ns)
+                                .unwrap_or(u64::MAX)
                         })
                         .or_else(|| underloaded.first())
                         .copied();
@@ -305,20 +333,30 @@ impl HolisticIrqBalance {
         self.stats.total_cpus = self.cpus.len();
         self.stats.max_cpu_irq_load_ns = max_load;
         self.stats.min_cpu_irq_load_ns = min_load;
-        let avg = if self.cpus.is_empty() { 1 } else {
+        let avg = if self.cpus.is_empty() {
+            1
+        } else {
             self.cpus.values().map(|c| c.total_irq_time_ns).sum::<u64>() / self.cpus.len() as u64
         };
         self.stats.imbalance_ratio = if avg > 0 {
             (max_load - min_load) as f64 / avg as f64
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         self.stats.total_migrations = self.migrations;
         self.stats.high_rate_irqs = self.irqs.values().filter(|i| i.is_high_rate()).count();
     }
 
     #[inline(always)]
-    pub fn irq(&self, num: u32) -> Option<&IrqDescriptor> { self.irqs.get(&num) }
+    pub fn irq(&self, num: u32) -> Option<&IrqDescriptor> {
+        self.irqs.get(&num)
+    }
     #[inline(always)]
-    pub fn cpu_load(&self, id: u32) -> Option<&CpuIrqLoad> { self.cpus.get(&id) }
+    pub fn cpu_load(&self, id: u32) -> Option<&CpuIrqLoad> {
+        self.cpus.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &HolisticIrqBalanceStats { &self.stats }
+    pub fn stats(&self) -> &HolisticIrqBalanceStats {
+        &self.stats
+    }
 }

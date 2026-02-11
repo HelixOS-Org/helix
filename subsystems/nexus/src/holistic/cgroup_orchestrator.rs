@@ -59,7 +59,9 @@ impl CgroupLimits {
 
     #[inline(always)]
     pub fn cpu_quota(&self) -> f64 {
-        if self.cpu_max_us == 0 || self.cpu_period_us == 0 { return 1.0; }
+        if self.cpu_max_us == 0 || self.cpu_period_us == 0 {
+            return 1.0;
+        }
         self.cpu_max_us as f64 / self.cpu_period_us as f64
     }
 }
@@ -82,22 +84,32 @@ pub struct CgroupUsage {
 impl CgroupUsage {
     pub fn new() -> Self {
         Self {
-            cpu_usage_ns: 0, user_ns: 0, system_ns: 0,
-            memory_current: 0, memory_swap: 0,
-            io_read_bytes: 0, io_write_bytes: 0,
-            pids_current: 0, nr_throttled: 0, throttled_ns: 0,
+            cpu_usage_ns: 0,
+            user_ns: 0,
+            system_ns: 0,
+            memory_current: 0,
+            memory_swap: 0,
+            io_read_bytes: 0,
+            io_write_bytes: 0,
+            pids_current: 0,
+            nr_throttled: 0,
+            throttled_ns: 0,
         }
     }
 
     #[inline(always)]
     pub fn memory_utilization(&self, limit: u64) -> f64 {
-        if limit == 0 || limit == u64::MAX { return 0.0; }
+        if limit == 0 || limit == u64::MAX {
+            return 0.0;
+        }
         self.memory_current as f64 / limit as f64
     }
 
     #[inline(always)]
     pub fn throttle_rate(&self, cpu_total_ns: u64) -> f64 {
-        if cpu_total_ns == 0 { return 0.0; }
+        if cpu_total_ns == 0 {
+            return 0.0;
+        }
         self.throttled_ns as f64 / cpu_total_ns as f64
     }
 }
@@ -121,7 +133,9 @@ pub struct CgroupNode {
 impl CgroupNode {
     pub fn new(id: u64, path: String, parent: Option<u64>, depth: u32) -> Self {
         Self {
-            id, path, parent_id: parent,
+            id,
+            path,
+            parent_id: parent,
             children: Vec::new(),
             controllers: Vec::new(),
             limits: CgroupLimits::default_limits(),
@@ -238,7 +252,9 @@ impl HolisticCgroupOrch {
         };
 
         let depth = parent_depth + 1;
-        if depth > self.stats.max_depth { self.stats.max_depth = depth; }
+        if depth > self.stats.max_depth {
+            self.stats.max_depth = depth;
+        }
 
         let node = CgroupNode::new(id, path, Some(parent_id), depth);
         self.nodes.insert(id, node);
@@ -295,17 +311,23 @@ impl HolisticCgroupOrch {
 
     #[inline]
     pub fn high_pressure_groups(&self, threshold: f64) -> Vec<(u64, f64)> {
-        self.nodes.iter()
+        self.nodes
+            .iter()
             .filter_map(|(&id, n)| {
                 let pressure = n.memory_pressure();
-                if pressure > threshold { Some((id, pressure)) } else { None }
+                if pressure > threshold {
+                    Some((id, pressure))
+                } else {
+                    None
+                }
             })
             .collect()
     }
 
     #[inline]
     pub fn throttled_groups(&self) -> Vec<u64> {
-        self.nodes.iter()
+        self.nodes
+            .iter()
             .filter(|(_, n)| n.is_throttled())
             .map(|(&id, _)| id)
             .collect()

@@ -85,7 +85,9 @@ impl ResourceCapacity {
     /// Available capacity
     #[inline(always)]
     pub fn available(&self) -> u64 {
-        self.total.saturating_sub(self.used).saturating_sub(self.reserved)
+        self.total
+            .saturating_sub(self.used)
+            .saturating_sub(self.reserved)
     }
 
     /// Utilization (0.0 - 1.0)
@@ -413,12 +415,9 @@ impl CapacityPlanner {
         let mut utilizations = BTreeMap::new();
         let mut exhausted = Vec::new();
 
-        let additional_cpu = scenario.additional_processes as u64
-            * scenario.cpu_per_process as u64;
-        let additional_mem = scenario.additional_processes as u64
-            * scenario.memory_per_process;
-        let additional_io = scenario.additional_processes as u64
-            * scenario.io_per_process;
+        let additional_cpu = scenario.additional_processes as u64 * scenario.cpu_per_process as u64;
+        let additional_mem = scenario.additional_processes as u64 * scenario.memory_per_process;
+        let additional_io = scenario.additional_processes as u64 * scenario.io_per_process;
 
         for (&key, rc) in &self.resources {
             let additional = match rc.resource {
@@ -443,10 +442,7 @@ impl CapacityPlanner {
         }
 
         let feasibility = if exhausted.is_empty() {
-            let max_util = utilizations
-                .values()
-                .copied()
-                .fold(0.0f64, f64::max);
+            let max_util = utilizations.values().copied().fold(0.0f64, f64::max);
             1.0 - max_util
         } else {
             0.0

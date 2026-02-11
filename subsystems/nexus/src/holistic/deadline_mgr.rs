@@ -12,7 +12,8 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use crate::fast::math::{F64Ext};
+
+use crate::fast::math::F64Ext;
 
 /// Deadline class
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

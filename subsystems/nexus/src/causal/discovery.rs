@@ -1469,7 +1469,7 @@ fn chi_squared_pvalue(chi_sq: f64, df: usize) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     fn create_test_dataset() -> Dataset {
         let mut data = Dataset::new();

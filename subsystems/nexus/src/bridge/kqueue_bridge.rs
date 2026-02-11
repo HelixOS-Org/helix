@@ -129,7 +129,9 @@ impl KqueueInstance {
 
     pub fn kevent_poll(&mut self, max_events: u32) -> u32 {
         self.total_kevents += 1;
-        let ready: Vec<u64> = self.events.iter()
+        let ready: Vec<u64> = self
+            .events
+            .iter()
             .filter(|(_, e)| e.active && e.triggered)
             .map(|(&id, _)| id)
             .take(max_events as usize)
@@ -152,7 +154,11 @@ impl KqueueInstance {
 
     #[inline(always)]
     pub fn avg_events(&self) -> f64 {
-        if self.total_kevents == 0 { 0.0 } else { self.total_returns as f64 / self.total_kevents as f64 }
+        if self.total_kevents == 0 {
+            0.0
+        } else {
+            self.total_returns as f64 / self.total_kevents as f64
+        }
     }
 }
 

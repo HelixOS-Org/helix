@@ -9,8 +9,9 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // TELEMETRY TYPES
@@ -349,7 +350,13 @@ impl CoopTelemetryV2 {
     }
 
     /// Start trace span
-    pub fn start_span(&mut self, operation: &str, pid: u64, parent: Option<TraceContext>, now: u64) -> u64 {
+    pub fn start_span(
+        &mut self,
+        operation: &str,
+        pid: u64,
+        parent: Option<TraceContext>,
+        now: u64,
+    ) -> u64 {
         let span_id = self.next_span_id();
         let context = match parent {
             Some(p) => TraceContext {
@@ -398,7 +405,9 @@ impl CoopTelemetryV2 {
             hash ^= *b as u64;
             hash = hash.wrapping_mul(0x100000001b3);
         }
-        let agg = self.metrics.entry(hash)
+        let agg = self
+            .metrics
+            .entry(hash)
             .or_insert_with(|| MetricAggregation::new(hash, kind));
         agg.record(value);
         self.stats.total_points += 1;

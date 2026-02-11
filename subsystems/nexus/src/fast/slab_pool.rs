@@ -24,8 +24,8 @@
 //! ```rust
 //! let mut pool: SlabPool<TaskState, 256> = SlabPool::new();
 //! let id = pool.alloc(TaskState::new()); // O(1), returns handle
-//! pool[id].priority = 5;                 // O(1) direct access
-//! pool.free(id);                         // O(1)
+//! pool[id].priority = 5; // O(1) direct access
+//! pool.free(id); // O(1)
 //! ```
 
 use core::mem::MaybeUninit;
@@ -107,12 +107,13 @@ impl<T, const N: usize> SlabPool<T, N> {
         assert!(idx < N, "SlabPool::free: index out of bounds");
         let word = idx / 64;
         let bit = idx % 64;
-        assert!(self.occupied[word] & (1 << bit) != 0, "SlabPool::free: double-free");
+        assert!(
+            self.occupied[word] & (1 << bit) != 0,
+            "SlabPool::free: double-free"
+        );
 
         // Read value out
-        let value = unsafe {
-            core::ptr::read(self.slots[idx].as_ptr())
-        };
+        let value = unsafe { core::ptr::read(self.slots[idx].as_ptr()) };
 
         // Mark free
         self.occupied[word] &= !(1 << bit);
@@ -299,7 +300,12 @@ mod tests {
         let mut pool: SlabPool<Task, 8> = SlabPool::new();
         assert!(pool.is_empty());
 
-        let id = pool.alloc(Task { pid: 100, priority: 5 }).unwrap();
+        let id = pool
+            .alloc(Task {
+                pid: 100,
+                priority: 5,
+            })
+            .unwrap();
         assert_eq!(pool.len(), 1);
         assert_eq!(pool[id].pid, 100);
         assert_eq!(pool[id].priority, 5);
@@ -360,7 +366,12 @@ mod tests {
     #[test]
     fn test_mutate() {
         let mut pool: SlabPool<Task, 8> = SlabPool::new();
-        let id = pool.alloc(Task { pid: 1, priority: 0 }).unwrap();
+        let id = pool
+            .alloc(Task {
+                pid: 1,
+                priority: 0,
+            })
+            .unwrap();
         pool[id].priority = 99;
         assert_eq!(pool[id].priority, 99);
     }

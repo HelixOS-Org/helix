@@ -33,10 +33,10 @@ pub enum WorkItemState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WorkPriority {
     Realtime = 0,
-    High = 1,
-    Normal = 2,
-    Low = 3,
-    Idle = 4,
+    High     = 1,
+    Normal   = 2,
+    Low      = 3,
+    Idle     = 4,
 }
 
 /// Work item flags
@@ -53,9 +53,13 @@ impl WorkFlags {
     pub const UNBOUND: u32 = 1 << 4;
     pub const ORDERED: u32 = 1 << 5;
 
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u32) -> bool {
+        self.bits & flag != 0
+    }
 }
 
 /// Work item descriptor
@@ -78,11 +82,18 @@ pub struct WorkItem {
 impl WorkItem {
     pub fn new(id: u64, wq_id: u32, priority: WorkPriority) -> Self {
         Self {
-            id, wq_id, state: WorkItemState::Pending,
-            priority, flags: WorkFlags::new(0),
-            cpu_affinity: None, delay_ns: 0,
-            enqueued_at: 0, started_at: 0, completed_at: 0,
-            execution_ns: 0, retries: 0,
+            id,
+            wq_id,
+            state: WorkItemState::Pending,
+            priority,
+            flags: WorkFlags::new(0),
+            cpu_affinity: None,
+            delay_ns: 0,
+            enqueued_at: 0,
+            started_at: 0,
+            completed_at: 0,
+            execution_ns: 0,
+            retries: 0,
         }
     }
 
@@ -112,9 +123,17 @@ impl WorkItem {
     }
 
     #[inline(always)]
-    pub fn wait_time(&self, now: u64) -> u64 { now.saturating_sub(self.enqueued_at) }
+    pub fn wait_time(&self, now: u64) -> u64 {
+        now.saturating_sub(self.enqueued_at)
+    }
     #[inline(always)]
-    pub fn latency_ns(&self) -> u64 { if self.completed_at > 0 { self.completed_at.saturating_sub(self.enqueued_at) } else { 0 } }
+    pub fn latency_ns(&self) -> u64 {
+        if self.completed_at > 0 {
+            self.completed_at.saturating_sub(self.enqueued_at)
+        } else {
+            0
+        }
+    }
 }
 
 /// Worker thread state
@@ -133,8 +152,14 @@ pub struct WqWorker {
 impl WqWorker {
     pub fn new(id: u32, wq_id: u32, cpu_id: u32) -> Self {
         Self {
-            id, wq_id, cpu_id, active: false, current_work: None,
-            items_processed: 0, total_exec_ns: 0, idle_since: 0,
+            id,
+            wq_id,
+            cpu_id,
+            active: false,
+            current_work: None,
+            items_processed: 0,
+            total_exec_ns: 0,
+            idle_since: 0,
         }
     }
 
@@ -155,7 +180,11 @@ impl WqWorker {
 
     #[inline(always)]
     pub fn avg_exec_ns(&self) -> u64 {
-        if self.items_processed == 0 { 0 } else { self.total_exec_ns / self.items_processed }
+        if self.items_processed == 0 {
+            0
+        } else {
+            self.total_exec_ns / self.items_processed
+        }
     }
 }
 
@@ -175,9 +204,14 @@ pub struct Workqueue {
 impl Workqueue {
     pub fn new(id: u32, wq_type: WqType, max_workers: u32) -> Self {
         Self {
-            id, wq_type, max_workers, workers: Vec::new(),
-            pending: Vec::new(), total_submitted: 0,
-            total_completed: 0, total_failed: 0,
+            id,
+            wq_type,
+            max_workers,
+            workers: Vec::new(),
+            pending: Vec::new(),
+            total_submitted: 0,
+            total_completed: 0,
+            total_failed: 0,
         }
     }
 
@@ -201,13 +235,17 @@ impl Workqueue {
 
     #[inline]
     pub fn utilization(&self) -> f64 {
-        if self.workers.is_empty() { return 0.0; }
+        if self.workers.is_empty() {
+            return 0.0;
+        }
         let active = self.workers.iter().filter(|w| w.active).count();
         active as f64 / self.workers.len() as f64
     }
 
     #[inline(always)]
-    pub fn queue_depth(&self) -> u32 { self.pending.len() as u32 }
+    pub fn queue_depth(&self) -> u32 {
+        self.pending.len() as u32
+    }
 }
 
 /// WQ scheduler stats
@@ -235,8 +273,11 @@ pub struct HolisticWqScheduler {
 impl HolisticWqScheduler {
     pub fn new() -> Self {
         Self {
-            workqueues: BTreeMap::new(), completed_items: Vec::new(),
-            next_wq_id: 1, next_work_id: 1, max_completed: 4096,
+            workqueues: BTreeMap::new(),
+            completed_items: Vec::new(),
+            next_wq_id: 1,
+            next_work_id: 1,
+            max_completed: 4096,
         }
     }
 
@@ -244,7 +285,8 @@ impl HolisticWqScheduler {
     pub fn create_workqueue(&mut self, wq_type: WqType, max_workers: u32) -> u32 {
         let id = self.next_wq_id;
         self.next_wq_id += 1;
-        self.workqueues.insert(id, Workqueue::new(id, wq_type, max_workers));
+        self.workqueues
+            .insert(id, Workqueue::new(id, wq_type, max_workers));
         id
     }
 
@@ -266,21 +308,41 @@ impl HolisticWqScheduler {
     }
 
     pub fn stats(&self) -> WqSchedulerStats {
-        let total_workers: u32 = self.workqueues.values().map(|wq| wq.workers.len() as u32).sum();
-        let active: u32 = self.workqueues.values()
+        let total_workers: u32 = self
+            .workqueues
+            .values()
+            .map(|wq| wq.workers.len() as u32)
+            .sum();
+        let active: u32 = self
+            .workqueues
+            .values()
             .flat_map(|wq| wq.workers.iter())
-            .filter(|w| w.active).count() as u32;
-        let pending: u64 = self.workqueues.values().map(|wq| wq.pending.len() as u64).sum();
+            .filter(|w| w.active)
+            .count() as u32;
+        let pending: u64 = self
+            .workqueues
+            .values()
+            .map(|wq| wq.pending.len() as u64)
+            .sum();
         let submitted: u64 = self.workqueues.values().map(|wq| wq.total_submitted).sum();
         let completed: u64 = self.workqueues.values().map(|wq| wq.total_completed).sum();
-        let avg_lat = if self.completed_items.is_empty() { 0 } else {
-            self.completed_items.iter().map(|i| i.latency_ns()).sum::<u64>() / self.completed_items.len() as u64
+        let avg_lat = if self.completed_items.is_empty() {
+            0
+        } else {
+            self.completed_items
+                .iter()
+                .map(|i| i.latency_ns())
+                .sum::<u64>()
+                / self.completed_items.len() as u64
         };
         WqSchedulerStats {
             total_workqueues: self.workqueues.len() as u32,
-            total_workers, active_workers: active,
-            total_pending: pending, total_submitted: submitted,
-            total_completed: completed, avg_latency_ns: avg_lat,
+            total_workers,
+            active_workers: active,
+            total_pending: pending,
+            total_submitted: submitted,
+            total_completed: completed,
+            avg_latency_ns: avg_lat,
         }
     }
 }

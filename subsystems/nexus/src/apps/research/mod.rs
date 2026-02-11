@@ -95,19 +95,18 @@ pub mod paradigm;
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
 
+pub use self::analysis::AppsAnalysisEngine;
+pub use self::breakthrough::AppsBreakthroughDetector;
+pub use self::curiosity::AppsCuriosityEngine;
 pub use self::experiment::AppsExperiment;
 pub use self::explorer::AppsExplorer;
 pub use self::hypothesis::AppsHypothesisEngine;
 pub use self::journal::AppsJournal;
+pub use self::knowledge_base::AppsKnowledgeBase;
 pub use self::literature::AppsLiterature;
+pub use self::methodology::AppsMethodology;
+pub use self::paradigm::AppsParadigm;
+pub use self::peer_review::AppsPeerReview;
+pub use self::replication::AppsReplication;
 pub use self::synthesis::AppsSynthesis;
 pub use self::validator::AppsDiscoveryValidator;
-
-pub use self::analysis::AppsAnalysisEngine;
-pub use self::curiosity::AppsCuriosityEngine;
-pub use self::peer_review::AppsPeerReview;
-pub use self::knowledge_base::AppsKnowledgeBase;
-pub use self::breakthrough::AppsBreakthroughDetector;
-pub use self::methodology::AppsMethodology;
-pub use self::replication::AppsReplication;
-pub use self::paradigm::AppsParadigm;

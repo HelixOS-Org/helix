@@ -36,7 +36,14 @@ pub struct Freelist {
 
 impl Freelist {
     pub fn new(order: u32, ltype: FreelistType) -> Self {
-        Self { order, list_type: ltype, pages: Vec::new(), nr_free: 0, total_alloc: 0, total_free: 0 }
+        Self {
+            order,
+            list_type: ltype,
+            pages: Vec::new(),
+            nr_free: 0,
+            total_alloc: 0,
+            total_free: 0,
+        }
     }
 
     #[inline]
@@ -52,11 +59,15 @@ impl Freelist {
             self.nr_free -= 1;
             self.total_alloc += 1;
             Some(pfn)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
-    pub fn count(&self) -> u64 { self.nr_free }
+    pub fn count(&self) -> u64 {
+        self.nr_free
+    }
 }
 
 /// Stats
@@ -75,7 +86,9 @@ pub struct HolisticFreelist {
 }
 
 impl HolisticFreelist {
-    pub fn new() -> Self { Self { lists: Vec::new() } }
+    pub fn new() -> Self {
+        Self { lists: Vec::new() }
+    }
 
     #[inline]
     pub fn create(&mut self, order: u32, ltype: FreelistType) -> usize {
@@ -86,12 +99,18 @@ impl HolisticFreelist {
 
     #[inline(always)]
     pub fn add_page(&mut self, list: usize, pfn: u64) {
-        if list < self.lists.len() { self.lists[list].add_page(pfn); }
+        if list < self.lists.len() {
+            self.lists[list].add_page(pfn);
+        }
     }
 
     #[inline(always)]
     pub fn remove_page(&mut self, list: usize) -> Option<u64> {
-        if list < self.lists.len() { self.lists[list].remove_page() } else { None }
+        if list < self.lists.len() {
+            self.lists[list].remove_page()
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -99,6 +118,11 @@ impl HolisticFreelist {
         let free: u64 = self.lists.iter().map(|l| l.nr_free).sum();
         let allocs: u64 = self.lists.iter().map(|l| l.total_alloc).sum();
         let frees: u64 = self.lists.iter().map(|l| l.total_free).sum();
-        FreelistStats { total_lists: self.lists.len() as u32, total_free_pages: free, total_allocs: allocs, total_frees: frees }
+        FreelistStats {
+            total_lists: self.lists.len() as u32,
+            total_free_pages: free,
+            total_allocs: allocs,
+            total_frees: frees,
+        }
     }
 }

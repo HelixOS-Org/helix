@@ -9,8 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 
 /// Credential type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -272,8 +271,15 @@ impl BridgeCredentialProxy {
     }
 
     /// Record escalation attempt
-    pub fn record_escalation(&mut self, pid: u64, from: PrivilegeLevel, to: PrivilegeLevel,
-                              syscall_nr: u32, now_ns: u64, allowed: bool) {
+    pub fn record_escalation(
+        &mut self,
+        pid: u64,
+        from: PrivilegeLevel,
+        to: PrivilegeLevel,
+        syscall_nr: u32,
+        now_ns: u64,
+        allowed: bool,
+    ) {
         if allowed {
             self.stats.escalations_allowed += 1;
         } else {
@@ -283,7 +289,12 @@ impl BridgeCredentialProxy {
             self.escalations.remove(0);
         }
         self.escalations.push_back(EscalationEvent {
-            pid, from, to, syscall_nr, timestamp_ns: now_ns, allowed,
+            pid,
+            from,
+            to,
+            syscall_nr,
+            timestamp_ns: now_ns,
+            allowed,
         });
     }
 

@@ -23,7 +23,11 @@ pub struct KernelVersion {
 
 impl KernelVersion {
     pub fn new(major: u16, minor: u16, patch: u16) -> Self {
-        Self { major, minor, patch }
+        Self {
+            major,
+            minor,
+            patch,
+        }
     }
 
     #[inline(always)]
@@ -72,11 +76,19 @@ impl ArchCaps {
     pub fn x86_64_default() -> Self {
         Self {
             arch: ArchType::X86_64,
-            has_sse: true, has_sse2: true, has_avx: false, has_avx2: false,
-            has_avx512: false, has_neon: false, has_sve: false,
-            page_size: 4096, huge_page_sizes: [2 * 1024 * 1024, 1024 * 1024 * 1024, 0, 0],
-            num_huge_sizes: 2, cache_line_size: 64,
-            physical_addr_bits: 48, virtual_addr_bits: 48,
+            has_sse: true,
+            has_sse2: true,
+            has_avx: false,
+            has_avx2: false,
+            has_avx512: false,
+            has_neon: false,
+            has_sve: false,
+            page_size: 4096,
+            huge_page_sizes: [2 * 1024 * 1024, 1024 * 1024 * 1024, 0, 0],
+            num_huge_sizes: 2,
+            cache_line_size: 64,
+            physical_addr_bits: 48,
+            virtual_addr_bits: 48,
         }
     }
 }
@@ -109,8 +121,22 @@ pub struct UnameInfo {
 }
 
 impl UnameInfo {
-    pub fn new(sysname: String, node: String, release: String, ver: String, machine: String, kv: KernelVersion) -> Self {
-        Self { sysname, nodename: node, release, version_string: ver, machine, parsed_version: kv }
+    pub fn new(
+        sysname: String,
+        node: String,
+        release: String,
+        ver: String,
+        machine: String,
+        kv: KernelVersion,
+    ) -> Self {
+        Self {
+            sysname,
+            nodename: node,
+            release,
+            version_string: ver,
+            machine,
+            parsed_version: kv,
+        }
     }
 }
 
@@ -144,16 +170,22 @@ pub struct AppsUnameCache {
 impl AppsUnameCache {
     pub fn new() -> Self {
         Self {
-            uname: None, arch: ArchCaps::x86_64_default(),
-            features: BTreeMap::new(), boot_params: BTreeMap::new(),
+            uname: None,
+            arch: ArchCaps::x86_64_default(),
+            features: BTreeMap::new(),
+            boot_params: BTreeMap::new(),
             stats: UnameCacheStats::default(),
         }
     }
 
     #[inline(always)]
-    pub fn set_uname(&mut self, info: UnameInfo) { self.uname = Some(info); }
+    pub fn set_uname(&mut self, info: UnameInfo) {
+        self.uname = Some(info);
+    }
     #[inline(always)]
-    pub fn set_arch(&mut self, caps: ArchCaps) { self.arch = caps; }
+    pub fn set_arch(&mut self, caps: ArchCaps) {
+        self.arch = caps;
+    }
 
     #[inline(always)]
     pub fn register_feature(&mut self, feature: KernelFeature, available: bool) {
@@ -163,7 +195,10 @@ impl AppsUnameCache {
     #[inline(always)]
     pub fn has_feature(&mut self, feature: KernelFeature) -> bool {
         self.stats.feature_queries += 1;
-        self.features.get(&(feature as u8)).copied().unwrap_or(false)
+        self.features
+            .get(&(feature as u8))
+            .copied()
+            .unwrap_or(false)
     }
 
     #[inline(always)]
@@ -174,27 +209,41 @@ impl AppsUnameCache {
     #[inline(always)]
     pub fn is_at_least(&mut self, major: u16, minor: u16, patch: u16) -> bool {
         self.stats.version_checks += 1;
-        self.kernel_version().map(|v| v.is_at_least(major, minor, patch)).unwrap_or(false)
+        self.kernel_version()
+            .map(|v| v.is_at_least(major, minor, patch))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
     pub fn add_boot_param(&mut self, key: String, value: Option<String>) {
-        let param = BootParam { key: key.clone(), value };
+        let param = BootParam {
+            key: key.clone(),
+            value,
+        };
         self.boot_params.insert(key, param);
     }
 
     #[inline(always)]
-    pub fn get_boot_param(&self, key: &str) -> Option<&BootParam> { self.boot_params.get(key) }
+    pub fn get_boot_param(&self, key: &str) -> Option<&BootParam> {
+        self.boot_params.get(key)
+    }
 
     #[inline]
     pub fn uname(&mut self) -> Option<&UnameInfo> {
-        if self.uname.is_some() { self.stats.cache_hits += 1; }
-        else { self.stats.cache_misses += 1; }
+        if self.uname.is_some() {
+            self.stats.cache_hits += 1;
+        } else {
+            self.stats.cache_misses += 1;
+        }
         self.uname.as_ref()
     }
 
     #[inline(always)]
-    pub fn arch(&self) -> &ArchCaps { &self.arch }
+    pub fn arch(&self) -> &ArchCaps {
+        &self.arch
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &UnameCacheStats { &self.stats }
+    pub fn stats(&self) -> &UnameCacheStats {
+        &self.stats
+    }
 }

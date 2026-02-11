@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -134,7 +133,9 @@ impl PathLookup {
     #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.cache_hits + self.cache_misses;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.cache_hits as f64 / total as f64
     }
 
@@ -203,7 +204,9 @@ impl DentryCacheStats {
     #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.hits as f64 / total as f64
     }
 }
@@ -326,7 +329,9 @@ impl AppDentryCache {
     }
 
     pub fn invalidate_subtree(&mut self, inode: u64) -> u32 {
-        let to_remove: Vec<u64> = self.cache.iter()
+        let to_remove: Vec<u64> = self
+            .cache
+            .iter()
             .filter(|(_, d)| d.parent_inode == inode)
             .map(|(h, _)| *h)
             .collect();

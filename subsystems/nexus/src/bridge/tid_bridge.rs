@@ -63,7 +63,8 @@ impl BridgeTidManager {
     }
 
     pub fn allocate(&mut self, pid: u64, tgid: u64, cpu: u32) -> u64 {
-        let tid = if matches!(self.policy, BridgeTidPolicy::Recycled) && !self.free_list.is_empty() {
+        let tid = if matches!(self.policy, BridgeTidPolicy::Recycled) && !self.free_list.is_empty()
+        {
             self.stats.recycle_count += 1;
             self.free_list.pop().unwrap()
         } else {

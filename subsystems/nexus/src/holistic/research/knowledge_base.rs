@@ -19,8 +19,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -243,9 +242,14 @@ impl HolisticKnowledgeBase {
     }
 
     /// Store knowledge in the grand repository
-    pub fn grand_knowledge_store(&mut self, domain: KnowledgeDomain, title: String,
-                                  confidence: ConfidenceLevel, source_subsystem: u64,
-                                  tags: Vec<u64>) -> u64 {
+    pub fn grand_knowledge_store(
+        &mut self,
+        domain: KnowledgeDomain,
+        title: String,
+        confidence: ConfidenceLevel,
+        source_subsystem: u64,
+        tags: Vec<u64>,
+    ) -> u64 {
         let content_hash = fnv1a_hash(title.as_bytes());
         let id = self.stats.total_entries;
         let conf_score = match confidence {
@@ -257,19 +261,33 @@ impl HolisticKnowledgeBase {
             ConfidenceLevel::Canonical => 1.0,
         };
         let entry = KnowledgeEntry {
-            id, domain, title, content_hash, confidence,
-            confidence_score: conf_score, source_subsystem,
-            version: 1, created_tick: self.tick, updated_tick: self.tick,
-            access_count: 0, citation_count: 0, tags: tags.clone(),
+            id,
+            domain,
+            title,
+            content_hash,
+            confidence,
+            confidence_score: conf_score,
+            source_subsystem,
+            version: 1,
+            created_tick: self.tick,
+            updated_tick: self.tick,
+            access_count: 0,
+            citation_count: 0,
+            tags: tags.clone(),
         };
         if self.entries.len() >= MAX_ENTRIES {
             let oldest = self.entries.keys().next().copied();
-            if let Some(k) = oldest { self.entries.remove(&k); }
+            if let Some(k) = oldest {
+                self.entries.remove(&k);
+            }
         }
         self.entries.insert(id, entry);
         self.versions.push_back(KnowledgeVersion {
-            entry_id: id, version: 1, confidence_at_version: conf_score,
-            content_hash, tick: self.tick,
+            entry_id: id,
+            version: 1,
+            confidence_at_version: conf_score,
+            content_hash,
+            tick: self.tick,
         });
         if self.versions.len() > MAX_VERSIONS {
             self.versions.remove(0);
@@ -278,8 +296,8 @@ impl HolisticKnowledgeBase {
             self.tag_index.entry(tag).or_insert_with(Vec::new).push(id);
         }
         self.stats.total_entries += 1;
-        self.stats.avg_confidence_ema = self.stats.avg_confidence_ema
-            * (1.0 - EMA_ALPHA) + conf_score * EMA_ALPHA;
+        self.stats.avg_confidence_ema =
+            self.stats.avg_confidence_ema * (1.0 - EMA_ALPHA) + conf_score * EMA_ALPHA;
         if confidence == ConfidenceLevel::Canonical {
             self.stats.canonical_entries += 1;
         }
@@ -293,10 +311,15 @@ impl HolisticKnowledgeBase {
         for entry in self.entries.values() {
             let mut shared = 0u64;
             for &qt in query_tags {
-                if entry.tags.contains(&qt) { shared += 1; }
+                if entry.tags.contains(&qt) {
+                    shared += 1;
+                }
             }
-            let relevance = if query_tags.is_empty() { 0.0 }
-                else { shared as f32 / query_tags.len() as f32 };
+            let relevance = if query_tags.is_empty() {
+                0.0
+            } else {
+                shared as f32 / query_tags.len() as f32
+            };
             if relevance >= RELEVANCE_THRESHOLD {
                 results.push(QueryResult {
                     entry_id: entry.id,
@@ -307,13 +330,16 @@ impl HolisticKnowledgeBase {
                 });
             }
         }
-        results.sort_by(|a, b| b.relevance_score.partial_cmp(&a.relevance_score)
-            .unwrap_or(core::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.relevance_score
+                .partial_cmp(&a.relevance_score)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         results.truncate(MAX_QUERY_RESULTS);
         self.stats.total_queries += 1;
         if let Some(top) = results.first() {
-            self.stats.avg_relevance_ema = self.stats.avg_relevance_ema
-                * (1.0 - EMA_ALPHA) + top.relevance_score * EMA_ALPHA;
+            self.stats.avg_relevance_ema =
+                self.stats.avg_relevance_ema * (1.0 - EMA_ALPHA) + top.relevance_score * EMA_ALPHA;
         }
         for r in &results {
             if let Some(entry) = self.entries.get_mut(&r.entry_id) {
@@ -330,29 +356,44 @@ impl HolisticKnowledgeBase {
         let max_pairs = 500;
         let mut pair_count = 0;
         for i in 0..entry_ids.len() {
-            if pair_count >= max_pairs { break; }
+            if pair_count >= max_pairs {
+                break;
+            }
             for j in (i + 1)..entry_ids.len() {
-                if pair_count >= max_pairs { break; }
+                if pair_count >= max_pairs {
+                    break;
+                }
                 let id_a = entry_ids[i];
                 let id_b = entry_ids[j];
                 let (shared_tags, domain_match) = {
-                    let ea = match self.entries.get(&id_a) { Some(e) => e, None => continue };
-                    let eb = match self.entries.get(&id_b) { Some(e) => e, None => continue };
-                    let shared: u64 = ea.tags.iter()
-                        .filter(|t| eb.tags.contains(t)).count() as u64;
+                    let ea = match self.entries.get(&id_a) {
+                        Some(e) => e,
+                        None => continue,
+                    };
+                    let eb = match self.entries.get(&id_b) {
+                        Some(e) => e,
+                        None => continue,
+                    };
+                    let shared: u64 = ea.tags.iter().filter(|t| eb.tags.contains(t)).count() as u64;
                     (shared, ea.domain == eb.domain)
                 };
                 if shared_tags > 0 || domain_match {
-                    let strength = shared_tags as f32 * 0.3
-                        + if domain_match { 0.4 } else { 0.0 };
+                    let strength = shared_tags as f32 * 0.3 + if domain_match { 0.4 } else { 0.0 };
                     let noise = xorshift_f32(&mut self.rng_state) * 0.1;
-                    let relation = if strength > 0.6 { RelationType::Supports }
-                        else if domain_match { RelationType::Correlates }
-                        else { RelationType::Extends };
+                    let relation = if strength > 0.6 {
+                        RelationType::Supports
+                    } else if domain_match {
+                        RelationType::Correlates
+                    } else {
+                        RelationType::Extends
+                    };
                     let edge_id = self.stats.total_edges;
                     let edge = KnowledgeEdge {
-                        id: edge_id, from_entry: id_a, to_entry: id_b,
-                        relation, strength: (strength + noise).min(1.0),
+                        id: edge_id,
+                        from_entry: id_a,
+                        to_entry: id_b,
+                        relation,
+                        strength: (strength + noise).min(1.0),
                         created_tick: self.tick,
                     };
                     new_edges.push(edge.clone());
@@ -360,8 +401,12 @@ impl HolisticKnowledgeBase {
                         self.edges.push(edge);
                         self.stats.total_edges += 1;
                     }
-                    if let Some(ea) = self.entries.get_mut(&id_a) { ea.citation_count += 1; }
-                    if let Some(eb) = self.entries.get_mut(&id_b) { eb.citation_count += 1; }
+                    if let Some(ea) = self.entries.get_mut(&id_a) {
+                        ea.citation_count += 1;
+                    }
+                    if let Some(eb) = self.entries.get_mut(&id_b) {
+                        eb.citation_count += 1;
+                    }
                 }
                 pair_count += 1;
             }
@@ -370,7 +415,9 @@ impl HolisticKnowledgeBase {
         let max_edges = n * (n - 1.0) / 2.0;
         self.stats.graph_density = if max_edges > 0.0 {
             self.edges.len() as f32 / max_edges
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         new_edges
     }
 
@@ -381,24 +428,42 @@ impl HolisticKnowledgeBase {
         let max_refs = 200;
         let mut ref_count = 0;
         for i in 0..entry_ids.len() {
-            if ref_count >= max_refs { break; }
+            if ref_count >= max_refs {
+                break;
+            }
             for j in (i + 1)..entry_ids.len() {
-                if ref_count >= max_refs { break; }
+                if ref_count >= max_refs {
+                    break;
+                }
                 let id_a = entry_ids[i];
                 let id_b = entry_ids[j];
                 let (shared, relevance) = {
-                    let ea = match self.entries.get(&id_a) { Some(e) => e, None => continue };
-                    let eb = match self.entries.get(&id_b) { Some(e) => e, None => continue };
+                    let ea = match self.entries.get(&id_a) {
+                        Some(e) => e,
+                        None => continue,
+                    };
+                    let eb = match self.entries.get(&id_b) {
+                        Some(e) => e,
+                        None => continue,
+                    };
                     let s: u64 = ea.tags.iter().filter(|t| eb.tags.contains(t)).count() as u64;
                     let total_tags = (ea.tags.len() + eb.tags.len()) as f32;
-                    let rel = if total_tags > 0.0 { s as f32 * 2.0 / total_tags } else { 0.0 };
+                    let rel = if total_tags > 0.0 {
+                        s as f32 * 2.0 / total_tags
+                    } else {
+                        0.0
+                    };
                     (s, rel)
                 };
                 if relevance > RELEVANCE_THRESHOLD {
                     let xref_id = self.stats.total_cross_refs;
                     let xref = CrossReference {
-                        id: xref_id, entry_a: id_a, entry_b: id_b,
-                        relevance, shared_tags: shared, tick: self.tick,
+                        id: xref_id,
+                        entry_a: id_a,
+                        entry_b: id_b,
+                        relevance,
+                        shared_tags: shared,
+                        tick: self.tick,
                     };
                     new_refs.push(xref.clone());
                     if self.cross_refs.len() < MAX_CROSS_REFS {
@@ -415,32 +480,47 @@ impl HolisticKnowledgeBase {
     /// Score knowledge completeness across all domains
     pub fn knowledge_completeness(&mut self) -> f32 {
         let domains = [
-            KnowledgeDomain::Scheduling, KnowledgeDomain::Memory,
-            KnowledgeDomain::Ipc, KnowledgeDomain::FileSystem,
-            KnowledgeDomain::Networking, KnowledgeDomain::Trust,
-            KnowledgeDomain::Energy, KnowledgeDomain::Hardware,
-            KnowledgeDomain::Security, KnowledgeDomain::Emergent,
+            KnowledgeDomain::Scheduling,
+            KnowledgeDomain::Memory,
+            KnowledgeDomain::Ipc,
+            KnowledgeDomain::FileSystem,
+            KnowledgeDomain::Networking,
+            KnowledgeDomain::Trust,
+            KnowledgeDomain::Energy,
+            KnowledgeDomain::Hardware,
+            KnowledgeDomain::Security,
+            KnowledgeDomain::Emergent,
         ];
         let mut covered = 0u64;
         for &domain in &domains {
-            let count = self.entries.values()
-                .filter(|e| e.domain == domain).count() as u64;
+            let count = self.entries.values().filter(|e| e.domain == domain).count() as u64;
             let avg_conf = {
-                let entries: Vec<f32> = self.entries.values()
+                let entries: Vec<f32> = self
+                    .entries
+                    .values()
                     .filter(|e| e.domain == domain)
-                    .map(|e| e.confidence_score).collect();
-                if entries.is_empty() { 0.0 }
-                else { entries.iter().sum::<f32>() / entries.len() as f32 }
+                    .map(|e| e.confidence_score)
+                    .collect();
+                if entries.is_empty() {
+                    0.0
+                } else {
+                    entries.iter().sum::<f32>() / entries.len() as f32
+                }
             };
             let coverage = (count as f32 / 50.0).min(1.0) * avg_conf;
             let gap = (1.0 - coverage).max(0.0);
             let key = domain as u64;
             self.domain_completeness.insert(key, DomainCompleteness {
-                domain, entry_count: count, avg_confidence: avg_conf,
-                coverage_score: coverage, gap_severity: gap,
+                domain,
+                entry_count: count,
+                avg_confidence: avg_conf,
+                coverage_score: coverage,
+                gap_severity: gap,
                 last_update_tick: self.tick,
             });
-            if coverage > 0.5 { covered += 1; }
+            if coverage > 0.5 {
+                covered += 1;
+            }
         }
         let completeness = covered as f32 / domains.len() as f32;
         self.stats.knowledge_completeness = completeness;
@@ -450,24 +530,30 @@ impl HolisticKnowledgeBase {
 
     /// Track knowledge evolution — how understanding changes over time
     pub fn knowledge_evolution(&mut self) -> f32 {
-        if self.versions.len() < 2 { return 0.0; }
-        let recent: Vec<&KnowledgeVersion> = self.versions.iter()
-            .rev().take(EVOLUTION_WINDOW).collect();
+        if self.versions.len() < 2 {
+            return 0.0;
+        }
+        let recent: Vec<&KnowledgeVersion> =
+            self.versions.iter().rev().take(EVOLUTION_WINDOW).collect();
         let mut change_sum = 0.0f32;
         let mut pairs = 0u64;
         for i in 0..recent.len() {
             for j in (i + 1)..recent.len() {
                 if recent[i].entry_id == recent[j].entry_id {
-                    let delta = (recent[i].confidence_at_version
-                        - recent[j].confidence_at_version).abs();
+                    let delta =
+                        (recent[i].confidence_at_version - recent[j].confidence_at_version).abs();
                     change_sum += delta;
                     pairs += 1;
                 }
             }
         }
-        let evolution_rate = if pairs > 0 { change_sum / pairs as f32 } else { 0.0 };
-        self.stats.evolution_rate_ema = self.stats.evolution_rate_ema
-            * (1.0 - EMA_ALPHA) + evolution_rate * EMA_ALPHA;
+        let evolution_rate = if pairs > 0 {
+            change_sum / pairs as f32
+        } else {
+            0.0
+        };
+        self.stats.evolution_rate_ema =
+            self.stats.evolution_rate_ema * (1.0 - EMA_ALPHA) + evolution_rate * EMA_ALPHA;
         evolution_rate
     }
 
@@ -487,9 +573,11 @@ impl HolisticKnowledgeBase {
             entry.confidence_score = conf_score;
             entry.updated_tick = self.tick;
             self.versions.push_back(KnowledgeVersion {
-                entry_id, version: entry.version,
+                entry_id,
+                version: entry.version,
                 confidence_at_version: conf_score,
-                content_hash: entry.content_hash, tick: self.tick,
+                content_hash: entry.content_hash,
+                tick: self.tick,
             });
             if new_confidence == ConfidenceLevel::Canonical {
                 self.stats.canonical_entries += 1;
@@ -499,23 +587,33 @@ impl HolisticKnowledgeBase {
 
     /// Advance the engine tick
     #[inline(always)]
-    pub fn tick(&mut self) { self.tick += 1; }
+    pub fn tick(&mut self) {
+        self.tick += 1;
+    }
 
     /// Get current statistics
     #[inline(always)]
-    pub fn stats(&self) -> &KnowledgeBaseStats { &self.stats }
+    pub fn stats(&self) -> &KnowledgeBaseStats {
+        &self.stats
+    }
 
     /// Get all entries
     #[inline(always)]
-    pub fn entries(&self) -> &BTreeMap<u64, KnowledgeEntry> { &self.entries }
+    pub fn entries(&self) -> &BTreeMap<u64, KnowledgeEntry> {
+        &self.entries
+    }
 
     /// Get all graph edges
     #[inline(always)]
-    pub fn graph_edges(&self) -> &[KnowledgeEdge] { &self.edges }
+    pub fn graph_edges(&self) -> &[KnowledgeEdge] {
+        &self.edges
+    }
 
     /// Get all cross-references
     #[inline(always)]
-    pub fn cross_references(&self) -> &[CrossReference] { &self.cross_refs }
+    pub fn cross_references(&self) -> &[CrossReference] {
+        &self.cross_refs
+    }
 
     /// Get domain completeness map
     #[inline(always)]

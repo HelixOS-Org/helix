@@ -189,9 +189,7 @@ impl FeedbackLoop {
         self.apply_gain_schedule(process_value);
 
         let output = match self.controller_type {
-            ControllerType::P => {
-                self.kp * self.state.error
-            }
+            ControllerType::P => self.kp * self.state.error,
             ControllerType::Pi => {
                 self.state.integral += self.state.error * dt;
                 // Anti-windup
@@ -201,7 +199,7 @@ impl FeedbackLoop {
                     self.state.integral = -self.state.integral_limit;
                 }
                 self.kp * self.state.error + self.ki * self.state.integral
-            }
+            },
             ControllerType::Pid => {
                 self.state.integral += self.state.error * dt;
                 if self.state.integral > self.state.integral_limit {
@@ -215,14 +213,14 @@ impl FeedbackLoop {
                 self.kp * self.state.error
                     + self.ki * self.state.integral
                     + self.kd * self.state.derivative
-            }
+            },
             ControllerType::OnOff => {
                 if self.state.error > 0.0 {
                     self.state.output_max
                 } else {
                     self.state.output_min
                 }
-            }
+            },
         };
 
         self.state.prev_error = self.state.error;
@@ -275,10 +273,15 @@ impl FeedbackLoop {
         }
         let n = self.error_history.len() as f64;
         let mean: f64 = self.error_history.iter().sum::<f64>() / n;
-        let var: f64 = self.error_history.iter().map(|&e| {
-            let d = e - mean;
-            d * d
-        }).sum::<f64>() / (n - 1.0);
+        let var: f64 = self
+            .error_history
+            .iter()
+            .map(|&e| {
+                let d = e - mean;
+                d * d
+            })
+            .sum::<f64>()
+            / (n - 1.0);
         var
     }
 }
@@ -343,7 +346,12 @@ impl HolisticFeedbackEngine {
 
     /// Update a loop
     #[inline]
-    pub fn update(&mut self, variable: FeedbackVariable, process_value: f64, dt: f64) -> Option<f64> {
+    pub fn update(
+        &mut self,
+        variable: FeedbackVariable,
+        process_value: f64,
+        dt: f64,
+    ) -> Option<f64> {
         let key = variable as u8;
         if let Some(fl) = self.loops.get_mut(&key) {
             let output = fl.update(process_value, dt);
@@ -372,7 +380,9 @@ impl HolisticFeedbackEngine {
     /// Process cascades (outer drives inner)
     pub fn process_cascades(&mut self) {
         // Collect outputs from outer loops
-        let outputs: BTreeMap<u8, f64> = self.loops.iter()
+        let outputs: BTreeMap<u8, f64> = self
+            .loops
+            .iter()
             .map(|(&k, fl)| (k, fl.state.output))
             .collect();
         for cascade in &self.cascades {

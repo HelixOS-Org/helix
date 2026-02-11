@@ -75,23 +75,34 @@ impl FutexAddrStats {
 
     #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
-        if self.wait_count == 0 { return 0; }
+        if self.wait_count == 0 {
+            return 0;
+        }
         self.total_wait_ns / self.wait_count
     }
 
     #[inline]
     pub fn contention_level(&self) -> FutexContentionLevel {
-        if self.wait_count < 10 { return FutexContentionLevel::None; }
+        if self.wait_count < 10 {
+            return FutexContentionLevel::None;
+        }
         let avg = self.avg_wait_ns();
-        if avg < 10_000 { FutexContentionLevel::Low }
-        else if avg < 100_000 { FutexContentionLevel::Moderate }
-        else if avg < 1_000_000 { FutexContentionLevel::High }
-        else { FutexContentionLevel::Severe }
+        if avg < 10_000 {
+            FutexContentionLevel::Low
+        } else if avg < 100_000 {
+            FutexContentionLevel::Moderate
+        } else if avg < 1_000_000 {
+            FutexContentionLevel::High
+        } else {
+            FutexContentionLevel::Severe
+        }
     }
 
     #[inline(always)]
     pub fn spin_efficiency(&self) -> f64 {
-        if self.spin_attempts == 0 { return 0.0; }
+        if self.spin_attempts == 0 {
+            return 0.0;
+        }
         self.spin_successes as f64 / self.spin_attempts as f64
     }
 
@@ -99,9 +110,13 @@ impl FutexAddrStats {
     pub fn record_wait(&mut self, duration_ns: u64) {
         self.wait_count += 1;
         self.total_wait_ns += duration_ns;
-        if duration_ns > self.max_wait_ns { self.max_wait_ns = duration_ns; }
+        if duration_ns > self.max_wait_ns {
+            self.max_wait_ns = duration_ns;
+        }
         self.current_waiters += 1;
-        if self.current_waiters > self.max_waiters { self.max_waiters = self.current_waiters; }
+        if self.current_waiters > self.max_waiters {
+            self.max_waiters = self.current_waiters;
+        }
     }
 
     #[inline]
@@ -153,7 +168,9 @@ impl ProcessFutexProfile {
 
     #[inline]
     pub fn record_wait(&mut self, addr: u64, duration_ns: u64) {
-        let stats = self.futex_stats.entry(addr)
+        let stats = self
+            .futex_stats
+            .entry(addr)
             .or_insert_with(|| FutexAddrStats::new(addr));
         stats.record_wait(duration_ns);
         self.total_waits += 1;
@@ -162,19 +179,27 @@ impl ProcessFutexProfile {
 
     #[inline]
     pub fn record_wake(&mut self, addr: u64, count: u32) {
-        let stats = self.futex_stats.entry(addr)
+        let stats = self
+            .futex_stats
+            .entry(addr)
             .or_insert_with(|| FutexAddrStats::new(addr));
         stats.record_wake(count);
         self.total_wakes += 1;
-        if count > 4 { self.total_thundering_herds += 1; }
+        if count > 4 {
+            self.total_thundering_herds += 1;
+        }
     }
 
     #[inline]
     pub fn record_spin(&mut self, addr: u64, success: bool) {
-        let stats = self.futex_stats.entry(addr)
+        let stats = self
+            .futex_stats
+            .entry(addr)
             .or_insert_with(|| FutexAddrStats::new(addr));
         stats.spin_attempts += 1;
-        if success { stats.spin_successes += 1; }
+        if success {
+            stats.spin_successes += 1;
+        }
     }
 
     #[inline]
@@ -187,7 +212,8 @@ impl ProcessFutexProfile {
 
     #[inline]
     pub fn severe_contention_addrs(&self) -> Vec<u64> {
-        self.futex_stats.values()
+        self.futex_stats
+            .values()
             .filter(|s| s.contention_level() == FutexContentionLevel::Severe)
             .map(|s| s.addr)
             .collect()
@@ -196,7 +222,9 @@ impl ProcessFutexProfile {
     #[inline]
     pub fn update_chain(&mut self, chain: Vec<WaiterChainLink>) {
         let depth = chain.iter().map(|l| l.depth).max().unwrap_or(0);
-        if depth > self.max_chain_depth { self.max_chain_depth = depth; }
+        if depth > self.max_chain_depth {
+            self.max_chain_depth = depth;
+        }
         self.waiter_chains = chain;
     }
 }
@@ -231,7 +259,9 @@ impl AppFutexProfiler {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.profiles.entry(pid).or_insert_with(|| ProcessFutexProfile::new(pid));
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ProcessFutexProfile::new(pid));
     }
 
     #[inline]
@@ -261,13 +291,20 @@ impl AppFutexProfiler {
         self.stats.total_waits = self.profiles.values().map(|p| p.total_waits).sum();
         self.stats.total_wakes = self.profiles.values().map(|p| p.total_wakes).sum();
         self.stats.total_wait_ns = self.profiles.values().map(|p| p.total_wait_ns).sum();
-        self.stats.thundering_herd_count = self.profiles.values()
-            .map(|p| p.total_thundering_herds).sum();
-        self.stats.severe_contention_count = self.profiles.values()
+        self.stats.thundering_herd_count = self
+            .profiles
+            .values()
+            .map(|p| p.total_thundering_herds)
+            .sum();
+        self.stats.severe_contention_count = self
+            .profiles
+            .values()
             .flat_map(|p| p.futex_stats.values())
             .filter(|s| s.contention_level() == FutexContentionLevel::Severe)
             .count();
-        self.stats.max_chain_depth = self.profiles.values()
+        self.stats.max_chain_depth = self
+            .profiles
+            .values()
             .map(|p| p.max_chain_depth)
             .max()
             .unwrap_or(0);

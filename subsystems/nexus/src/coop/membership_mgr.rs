@@ -56,31 +56,69 @@ pub struct MemberDesc {
 impl MemberDesc {
     pub fn new(id: u64, role: MemberRole, ts: u64, epoch: u64) -> Self {
         Self {
-            id, status: MemberStatus::Joining, role, join_epoch: epoch,
-            join_ts: ts, last_heartbeat: ts, incarnation: 0,
-            suspicion_count: 0, capabilities: 0, weight: 100,
+            id,
+            status: MemberStatus::Joining,
+            role,
+            join_epoch: epoch,
+            join_ts: ts,
+            last_heartbeat: ts,
+            incarnation: 0,
+            suspicion_count: 0,
+            capabilities: 0,
+            weight: 100,
             metadata_hash: 0,
         }
     }
 
     #[inline(always)]
-    pub fn activate(&mut self) { self.status = MemberStatus::Active; self.suspicion_count = 0; }
+    pub fn activate(&mut self) {
+        self.status = MemberStatus::Active;
+        self.suspicion_count = 0;
+    }
     #[inline(always)]
-    pub fn suspect(&mut self) { self.suspicion_count += 1; if self.suspicion_count >= 3 { self.status = MemberStatus::Suspect; } }
+    pub fn suspect(&mut self) {
+        self.suspicion_count += 1;
+        if self.suspicion_count >= 3 {
+            self.status = MemberStatus::Suspect;
+        }
+    }
     #[inline(always)]
-    pub fn mark_faulty(&mut self) { self.status = MemberStatus::Faulty; }
+    pub fn mark_faulty(&mut self) {
+        self.status = MemberStatus::Faulty;
+    }
     #[inline(always)]
-    pub fn begin_leave(&mut self) { self.status = MemberStatus::Leaving; }
+    pub fn begin_leave(&mut self) {
+        self.status = MemberStatus::Leaving;
+    }
     #[inline(always)]
-    pub fn complete_leave(&mut self) { self.status = MemberStatus::Left; }
+    pub fn complete_leave(&mut self) {
+        self.status = MemberStatus::Left;
+    }
     #[inline(always)]
-    pub fn expel(&mut self) { self.status = MemberStatus::Expelled; }
+    pub fn expel(&mut self) {
+        self.status = MemberStatus::Expelled;
+    }
     #[inline(always)]
-    pub fn heartbeat(&mut self, ts: u64) { self.last_heartbeat = ts; self.suspicion_count = 0; if self.status == MemberStatus::Suspect { self.status = MemberStatus::Active; } }
+    pub fn heartbeat(&mut self, ts: u64) {
+        self.last_heartbeat = ts;
+        self.suspicion_count = 0;
+        if self.status == MemberStatus::Suspect {
+            self.status = MemberStatus::Active;
+        }
+    }
     #[inline(always)]
-    pub fn is_alive(&self) -> bool { matches!(self.status, MemberStatus::Active | MemberStatus::Joining | MemberStatus::Leaving) }
+    pub fn is_alive(&self) -> bool {
+        matches!(
+            self.status,
+            MemberStatus::Active | MemberStatus::Joining | MemberStatus::Leaving
+        )
+    }
     #[inline(always)]
-    pub fn refute(&mut self) { self.incarnation += 1; self.status = MemberStatus::Active; self.suspicion_count = 0; }
+    pub fn refute(&mut self) {
+        self.incarnation += 1;
+        self.status = MemberStatus::Active;
+        self.suspicion_count = 0;
+    }
 }
 
 /// View (membership epoch)
@@ -98,8 +136,17 @@ impl MembershipView {
         let mut ck: u64 = 0xcbf29ce484222325;
         ck ^= epoch;
         ck = ck.wrapping_mul(0x100000001b3);
-        for &m in &members { ck ^= m; ck = ck.wrapping_mul(0x100000001b3); }
-        Self { epoch, members, coordinator: coord, ts, checksum: ck }
+        for &m in &members {
+            ck ^= m;
+            ck = ck.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            epoch,
+            members,
+            coordinator: coord,
+            ts,
+            checksum: ck,
+        }
     }
 }
 
@@ -164,9 +211,12 @@ pub struct CoopMembershipMgr {
 impl CoopMembershipMgr {
     pub fn new(suspect_timeout: u64, faulty_timeout: u64) -> Self {
         Self {
-            members: BTreeMap::new(), views: Vec::new(),
-            events: Vec::new(), stats: MembershipStats::default(),
-            current_epoch: 0, suspect_timeout_ns: suspect_timeout,
+            members: BTreeMap::new(),
+            views: Vec::new(),
+            events: Vec::new(),
+            stats: MembershipStats::default(),
+            current_epoch: 0,
+            suspect_timeout_ns: suspect_timeout,
             faulty_timeout_ns: faulty_timeout,
         }
     }
@@ -176,7 +226,12 @@ impl CoopMembershipMgr {
         let mut m = MemberDesc::new(req.member_id, req.role, req.ts, self.current_epoch);
         m.capabilities = req.capabilities;
         self.members.insert(req.member_id, m);
-        self.events.push(MembershipEvent { ts: req.ts, kind: MembershipEventKind::Joined, member_id: req.member_id, epoch: self.current_epoch });
+        self.events.push(MembershipEvent {
+            ts: req.ts,
+            kind: MembershipEventKind::Joined,
+            member_id: req.member_id,
+            epoch: self.current_epoch,
+        });
         self.stats.joins += 1;
         req.member_id
     }
@@ -185,13 +240,20 @@ impl CoopMembershipMgr {
     pub fn activate(&mut self, id: u64, ts: u64) {
         if let Some(m) = self.members.get_mut(&id) {
             m.activate();
-            self.events.push(MembershipEvent { ts, kind: MembershipEventKind::Activated, member_id: id, epoch: self.current_epoch });
+            self.events.push(MembershipEvent {
+                ts,
+                kind: MembershipEventKind::Activated,
+                member_id: id,
+                epoch: self.current_epoch,
+            });
         }
     }
 
     #[inline(always)]
     pub fn heartbeat(&mut self, id: u64, ts: u64) {
-        if let Some(m) = self.members.get_mut(&id) { m.heartbeat(ts); }
+        if let Some(m) = self.members.get_mut(&id) {
+            m.heartbeat(ts);
+        }
     }
 
     #[inline]
@@ -199,7 +261,12 @@ impl CoopMembershipMgr {
         if let Some(m) = self.members.get_mut(&id) {
             m.begin_leave();
             m.complete_leave();
-            self.events.push(MembershipEvent { ts, kind: MembershipEventKind::Left, member_id: id, epoch: self.current_epoch });
+            self.events.push(MembershipEvent {
+                ts,
+                kind: MembershipEventKind::Left,
+                member_id: id,
+                epoch: self.current_epoch,
+            });
             self.stats.leaves += 1;
         }
     }
@@ -208,7 +275,12 @@ impl CoopMembershipMgr {
     pub fn expel(&mut self, id: u64, ts: u64) {
         if let Some(m) = self.members.get_mut(&id) {
             m.expel();
-            self.events.push(MembershipEvent { ts, kind: MembershipEventKind::Expelled, member_id: id, epoch: self.current_epoch });
+            self.events.push(MembershipEvent {
+                ts,
+                kind: MembershipEventKind::Expelled,
+                member_id: id,
+                epoch: self.current_epoch,
+            });
             self.stats.expulsions += 1;
         }
     }
@@ -218,60 +290,128 @@ impl CoopMembershipMgr {
         let ids: Vec<u64> = self.members.keys().copied().collect();
         for id in ids {
             if let Some(m) = self.members.get_mut(&id) {
-                if !m.is_alive() { continue; }
+                if !m.is_alive() {
+                    continue;
+                }
                 let elapsed = now.saturating_sub(m.last_heartbeat);
                 if elapsed >= self.faulty_timeout_ns && m.status != MemberStatus::Faulty {
                     m.mark_faulty();
                     faulted.push(id);
-                    self.events.push(MembershipEvent { ts: now, kind: MembershipEventKind::Faulted, member_id: id, epoch: self.current_epoch });
+                    self.events.push(MembershipEvent {
+                        ts: now,
+                        kind: MembershipEventKind::Faulted,
+                        member_id: id,
+                        epoch: self.current_epoch,
+                    });
                 } else if elapsed >= self.suspect_timeout_ns && m.status == MemberStatus::Active {
                     m.suspect();
                     if m.status == MemberStatus::Suspect {
-                        self.events.push(MembershipEvent { ts: now, kind: MembershipEventKind::Suspected, member_id: id, epoch: self.current_epoch });
+                        self.events.push(MembershipEvent {
+                            ts: now,
+                            kind: MembershipEventKind::Suspected,
+                            member_id: id,
+                            epoch: self.current_epoch,
+                        });
                     }
                 }
             }
         }
-        if !faulted.is_empty() { self.advance_view(now); }
+        if !faulted.is_empty() {
+            self.advance_view(now);
+        }
         faulted
     }
 
     #[inline]
     pub fn advance_view(&mut self, ts: u64) {
         self.current_epoch += 1;
-        let members: Vec<u64> = self.members.values().filter(|m| m.is_alive()).map(|m| m.id).collect();
-        let coord = self.members.values().filter(|m| m.role == MemberRole::Coordinator && m.is_alive()).map(|m| m.id).next();
+        let members: Vec<u64> = self
+            .members
+            .values()
+            .filter(|m| m.is_alive())
+            .map(|m| m.id)
+            .collect();
+        let coord = self
+            .members
+            .values()
+            .filter(|m| m.role == MemberRole::Coordinator && m.is_alive())
+            .map(|m| m.id)
+            .next();
         let view = MembershipView::new(self.current_epoch, members, coord, ts);
         self.views.push(view);
-        self.events.push(MembershipEvent { ts, kind: MembershipEventKind::ViewChanged, member_id: 0, epoch: self.current_epoch });
+        self.events.push(MembershipEvent {
+            ts,
+            kind: MembershipEventKind::ViewChanged,
+            member_id: 0,
+            epoch: self.current_epoch,
+        });
     }
 
     #[inline]
     pub fn set_coordinator(&mut self, id: u64, ts: u64) {
-        for m in self.members.values_mut() { if m.role == MemberRole::Coordinator { m.role = MemberRole::Regular; } }
-        if let Some(m) = self.members.get_mut(&id) { m.role = MemberRole::Coordinator; }
-        self.events.push(MembershipEvent { ts, kind: MembershipEventKind::CoordinatorChanged, member_id: id, epoch: self.current_epoch });
+        for m in self.members.values_mut() {
+            if m.role == MemberRole::Coordinator {
+                m.role = MemberRole::Regular;
+            }
+        }
+        if let Some(m) = self.members.get_mut(&id) {
+            m.role = MemberRole::Coordinator;
+        }
+        self.events.push(MembershipEvent {
+            ts,
+            kind: MembershipEventKind::CoordinatorChanged,
+            member_id: id,
+            epoch: self.current_epoch,
+        });
     }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_members = self.members.len();
-        self.stats.active = self.members.values().filter(|m| m.status == MemberStatus::Active).count();
-        self.stats.suspect = self.members.values().filter(|m| m.status == MemberStatus::Suspect).count();
-        self.stats.faulty = self.members.values().filter(|m| m.status == MemberStatus::Faulty).count();
+        self.stats.active = self
+            .members
+            .values()
+            .filter(|m| m.status == MemberStatus::Active)
+            .count();
+        self.stats.suspect = self
+            .members
+            .values()
+            .filter(|m| m.status == MemberStatus::Suspect)
+            .count();
+        self.stats.faulty = self
+            .members
+            .values()
+            .filter(|m| m.status == MemberStatus::Faulty)
+            .count();
         self.stats.current_epoch = self.current_epoch;
     }
 
     #[inline(always)]
-    pub fn member(&self, id: u64) -> Option<&MemberDesc> { self.members.get(&id) }
+    pub fn member(&self, id: u64) -> Option<&MemberDesc> {
+        self.members.get(&id)
+    }
     #[inline(always)]
-    pub fn current_view(&self) -> Option<&MembershipView> { self.views.last() }
+    pub fn current_view(&self) -> Option<&MembershipView> {
+        self.views.last()
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &MembershipStats { &self.stats }
+    pub fn stats(&self) -> &MembershipStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn events(&self) -> &[MembershipEvent] { &self.events }
+    pub fn events(&self) -> &[MembershipEvent] {
+        &self.events
+    }
     #[inline(always)]
-    pub fn active_members(&self) -> Vec<u64> { self.members.values().filter(|m| m.is_alive()).map(|m| m.id).collect() }
+    pub fn active_members(&self) -> Vec<u64> {
+        self.members
+            .values()
+            .filter(|m| m.is_alive())
+            .map(|m| m.id)
+            .collect()
+    }
     #[inline(always)]
-    pub fn epoch(&self) -> u64 { self.current_epoch }
+    pub fn epoch(&self) -> u64 {
+        self.current_epoch
+    }
 }

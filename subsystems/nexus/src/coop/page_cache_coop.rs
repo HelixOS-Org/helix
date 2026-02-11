@@ -110,7 +110,10 @@ impl CoopPageCacheManager {
             last_access: id,
         };
         self.pages.insert(key, entry);
-        self.inode_pages.entry(inode).or_insert_with(Vec::new).push(key);
+        self.inode_pages
+            .entry(inode)
+            .or_insert_with(Vec::new)
+            .push(key);
         self.stats.total_pages += 1;
         id
     }

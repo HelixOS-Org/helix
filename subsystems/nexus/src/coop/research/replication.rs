@@ -13,11 +13,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -192,7 +192,13 @@ impl CoopReplication {
     }
 
     /// Register an environment for replication testing
-    pub fn register_environment(&mut self, name: String, load: f32, subsystems: u32, contention: f32) -> u64 {
+    pub fn register_environment(
+        &mut self,
+        name: String,
+        load: f32,
+        subsystems: u32,
+        contention: f32,
+    ) -> u64 {
         let id = fnv1a_hash(name.as_bytes()) ^ xorshift64(&mut self.rng_state);
         let env = ReplicationEnvironment {
             id,
@@ -255,7 +261,11 @@ impl CoopReplication {
     }
 
     /// Match environments for replication — find similar environments
-    pub fn environment_matching(&self, target_load: f32, target_contention: f32) -> Vec<&ReplicationEnvironment> {
+    pub fn environment_matching(
+        &self,
+        target_load: f32,
+        target_contention: f32,
+    ) -> Vec<&ReplicationEnvironment> {
         let mut matches: Vec<(&ReplicationEnvironment, f32)> = self
             .environments
             .iter()
@@ -348,7 +358,6 @@ impl CoopReplication {
     pub fn domain_replication_rate(&self, domain: ReplicationDomain) -> f32 {
         self.domain_replication_rates
             .get(&(domain as u64))
-            
             .unwrap_or(0.0)
     }
 
@@ -403,7 +412,7 @@ impl CoopReplication {
             ReplicationOutcome::Replicated => self.stats.successful_replications += 1,
             ReplicationOutcome::FailedToReplicate => self.stats.failed_replications += 1,
             ReplicationOutcome::PartialReplication => self.stats.partial_replications += 1,
-            ReplicationOutcome::Inconclusive => {}
+            ReplicationOutcome::Inconclusive => {},
         }
         self.stats.avg_effect_ratio_ema =
             EMA_ALPHA * effect_ratio.abs() + (1.0 - EMA_ALPHA) * self.stats.avg_effect_ratio_ema;
@@ -444,22 +453,15 @@ impl CoopReplication {
             finding.replication_rate = (replicated as f32 + partial as f32 * 0.5) / total;
             // Update confidence based on replications
             let base_confidence = 0.5;
-            let replication_bonus =
-                CONFIDENCE_BOOST_PER_REPLICATION * replicated as f32;
+            let replication_bonus = CONFIDENCE_BOOST_PER_REPLICATION * replicated as f32;
             finding.confidence = (base_confidence + replication_bonus).min(1.0);
             // Update domain replication rate
             let domain_key = finding.domain as u64;
-            let prev_rate = self
-                .domain_replication_rates
-                .get(domain_key)
-                
-                .unwrap_or(0.5);
-            let new_rate =
-                EMA_ALPHA * finding.replication_rate + (1.0 - EMA_ALPHA) * prev_rate;
+            let prev_rate = self.domain_replication_rates.get(domain_key).unwrap_or(0.5);
+            let new_rate = EMA_ALPHA * finding.replication_rate + (1.0 - EMA_ALPHA) * prev_rate;
             self.domain_replication_rates.insert(domain_key, new_rate);
-            self.stats.avg_replication_rate_ema =
-                EMA_ALPHA * finding.replication_rate
-                    + (1.0 - EMA_ALPHA) * self.stats.avg_replication_rate_ema;
+            self.stats.avg_replication_rate_ema = EMA_ALPHA * finding.replication_rate
+                + (1.0 - EMA_ALPHA) * self.stats.avg_replication_rate_ema;
         }
     }
 

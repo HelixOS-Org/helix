@@ -372,7 +372,9 @@ impl HolisticSchedulingEngine {
         let cpu_list: Vec<CpuState> = self.cpus.values().cloned().collect();
         if let Some(imbalance) = self.balancer.detect_imbalance(&cpu_list) {
             // Find tasks on busiest that can migrate
-            let busiest_tasks: Vec<u64> = self.cpus.get(&imbalance.busiest_cpu)
+            let busiest_tasks: Vec<u64> = self
+                .cpus
+                .get(&imbalance.busiest_cpu)
                 .map(|c| c.assigned_tasks.clone())
                 .unwrap_or_default();
 
@@ -421,9 +423,11 @@ impl HolisticSchedulingEngine {
             let loads: Vec<f64> = self.cpus.values().map(|c| c.load).collect();
             let sum: f64 = loads.iter().sum();
             self.stats.avg_load = sum / loads.len() as f64;
-            let variance: f64 = loads.iter()
+            let variance: f64 = loads
+                .iter()
                 .map(|l| (l - self.stats.avg_load) * (l - self.stats.avg_load))
-                .sum::<f64>() / loads.len() as f64;
+                .sum::<f64>()
+                / loads.len() as f64;
             self.stats.load_stddev = libm::sqrt(variance);
         }
         self.stats.total_migrations = self.balancer.total_migrations;

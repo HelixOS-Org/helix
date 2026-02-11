@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // SYNC PRIMITIVE TYPES
@@ -948,15 +949,26 @@ pub struct Futex2Waiter {
 impl Futex2Waiter {
     pub fn new(tid: u64, uaddr: u64, val: u64, size: Futex2Size, now: u64) -> Self {
         Self {
-            tid, uaddr, val, bitset: u32::MAX, size, priority: 0,
-            enqueued_at: now, is_pi: false, timeout_ns: None,
+            tid,
+            uaddr,
+            val,
+            bitset: u32::MAX,
+            size,
+            priority: 0,
+            enqueued_at: now,
+            is_pi: false,
+            timeout_ns: None,
         }
     }
 
     #[inline(always)]
-    pub fn wait_time(&self, now: u64) -> u64 { now.saturating_sub(self.enqueued_at) }
+    pub fn wait_time(&self, now: u64) -> u64 {
+        now.saturating_sub(self.enqueued_at)
+    }
     #[inline(always)]
-    pub fn matches_bitset(&self, mask: u32) -> bool { self.bitset & mask != 0 }
+    pub fn matches_bitset(&self, mask: u32) -> bool {
+        self.bitset & mask != 0
+    }
 }
 
 /// Futex2 hash bucket
@@ -972,13 +984,22 @@ pub struct Futex2Bucket {
 
 impl Futex2Bucket {
     pub fn new(key: u64) -> Self {
-        Self { key, waiters: Vec::new(), pi_owner: None, total_waits: 0, total_wakes: 0, total_contended: 0 }
+        Self {
+            key,
+            waiters: Vec::new(),
+            pi_owner: None,
+            total_waits: 0,
+            total_wakes: 0,
+            total_contended: 0,
+        }
     }
 
     #[inline]
     pub fn enqueue(&mut self, waiter: Futex2Waiter) {
         self.total_waits += 1;
-        if !self.waiters.is_empty() { self.total_contended += 1; }
+        if !self.waiters.is_empty() {
+            self.total_contended += 1;
+        }
         self.waiters.push(waiter);
     }
 
@@ -989,15 +1010,20 @@ impl Futex2Bucket {
             let w = self.waiters.remove(idx);
             self.total_wakes += 1;
             Some(w.tid)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
     pub fn wake_n(&mut self, n: u32, bitset: u32) -> Vec<u64> {
         let mut woken = Vec::new();
         for _ in 0..n {
-            if let Some(tid) = self.wake_one(bitset) { woken.push(tid); }
-            else { break; }
+            if let Some(tid) = self.wake_one(bitset) {
+                woken.push(tid);
+            } else {
+                break;
+            }
         }
         woken
     }
@@ -1007,13 +1033,17 @@ impl Futex2Bucket {
         let take = (n as usize).min(self.waiters.len());
         let moved: Vec<Futex2Waiter> = self.waiters.drain(..take).collect();
         let count = moved.len() as u32;
-        for w in moved { dst.waiters.push(w); }
+        for w in moved {
+            dst.waiters.push(w);
+        }
         count
     }
 
     #[inline(always)]
     pub fn contention_rate(&self) -> f64 {
-        if self.total_waits == 0 { return 0.0; }
+        if self.total_waits == 0 {
+            return 0.0;
+        }
         self.total_contended as f64 / self.total_waits as f64
     }
 }
@@ -1025,7 +1055,11 @@ pub struct Futex2WaitV {
 }
 
 impl Futex2WaitV {
-    pub fn new() -> Self { Self { entries: Vec::new() } }
+    pub fn new() -> Self {
+        Self {
+            entries: Vec::new(),
+        }
+    }
     #[inline(always)]
     pub fn add(&mut self, uaddr: u64, val: u64, size: Futex2Size, flags: u32) {
         self.entries.push((uaddr, val, size, flags));
@@ -1051,26 +1085,39 @@ pub struct AppFutexV3 {
 }
 
 impl AppFutexV3 {
-    pub fn new() -> Self { Self { buckets: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            buckets: BTreeMap::new(),
+        }
+    }
 
     fn hash_key(uaddr: u64) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
         let bytes = uaddr.to_le_bytes();
-        for b in &bytes { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in &bytes {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         h
     }
 
     #[inline]
     pub fn wait(&mut self, uaddr: u64, tid: u64, val: u64, size: Futex2Size, now: u64) {
         let key = Self::hash_key(uaddr);
-        let bucket = self.buckets.entry(key).or_insert_with(|| Futex2Bucket::new(key));
+        let bucket = self
+            .buckets
+            .entry(key)
+            .or_insert_with(|| Futex2Bucket::new(key));
         bucket.enqueue(Futex2Waiter::new(tid, uaddr, val, size, now));
     }
 
     #[inline(always)]
     pub fn wake(&mut self, uaddr: u64, n: u32, bitset: u32) -> Vec<u64> {
         let key = Self::hash_key(uaddr);
-        self.buckets.get_mut(&key).map(|b| b.wake_n(n, bitset)).unwrap_or_default()
+        self.buckets
+            .get_mut(&key)
+            .map(|b| b.wake_n(n, bitset))
+            .unwrap_or_default()
     }
 
     pub fn stats(&self) -> Futex3Stats {
@@ -1078,13 +1125,30 @@ impl AppFutexV3 {
         let waits: u64 = self.buckets.values().map(|b| b.total_waits).sum();
         let wakes: u64 = self.buckets.values().map(|b| b.total_wakes).sum();
         let contended: u64 = self.buckets.values().map(|b| b.total_contended).sum();
-        let pi = self.buckets.values().filter(|b| b.pi_owner.is_some()).count() as u32;
-        let rates: Vec<f64> = self.buckets.values().filter(|b| b.total_waits > 0).map(|b| b.contention_rate()).collect();
-        let avg = if rates.is_empty() { 0.0 } else { rates.iter().sum::<f64>() / rates.len() as f64 };
+        let pi = self
+            .buckets
+            .values()
+            .filter(|b| b.pi_owner.is_some())
+            .count() as u32;
+        let rates: Vec<f64> = self
+            .buckets
+            .values()
+            .filter(|b| b.total_waits > 0)
+            .map(|b| b.contention_rate())
+            .collect();
+        let avg = if rates.is_empty() {
+            0.0
+        } else {
+            rates.iter().sum::<f64>() / rates.len() as f64
+        };
         Futex3Stats {
-            total_buckets: self.buckets.len() as u32, total_waiters: waiters,
-            total_waits: waits, total_wakes: wakes, total_contended: contended,
-            pi_buckets: pi, avg_contention: avg,
+            total_buckets: self.buckets.len() as u32,
+            total_waiters: waiters,
+            total_waits: waits,
+            total_wakes: wakes,
+            total_contended: contended,
+            pi_buckets: pi,
+            avg_contention: avg,
         }
     }
 }

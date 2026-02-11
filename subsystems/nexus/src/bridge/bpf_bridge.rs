@@ -135,15 +135,23 @@ impl BpfProgram {
 
     #[inline(always)]
     pub fn avg_run_ns(&self) -> u64 {
-        if self.run_count == 0 { 0 } else { self.run_time_ns / self.run_count }
+        if self.run_count == 0 {
+            0
+        } else {
+            self.run_time_ns / self.run_count
+        }
     }
 
     #[inline]
     pub fn complexity_score(&self) -> u32 {
         let mut score = self.insns.len() as u32;
         for insn in &self.insns {
-            if insn.is_call() { score += 5; }
-            if insn.is_jump() { score += 2; }
+            if insn.is_call() {
+                score += 5;
+            }
+            if insn.is_jump() {
+                score += 2;
+            }
         }
         score
     }
@@ -165,7 +173,14 @@ pub struct BpfMap {
 }
 
 impl BpfMap {
-    pub fn new(id: u64, name: String, map_type: BpfMapType, key_size: u32, value_size: u32, max_entries: u32) -> Self {
+    pub fn new(
+        id: u64,
+        name: String,
+        map_type: BpfMapType,
+        key_size: u32,
+        value_size: u32,
+        max_entries: u32,
+    ) -> Self {
         Self {
             id,
             name,
@@ -187,7 +202,9 @@ impl BpfMap {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.max_entries == 0 { return 0.0; }
+        if self.max_entries == 0 {
+            return 0.0;
+        }
         self.current_entries as f64 / self.max_entries as f64
     }
 
@@ -339,12 +356,12 @@ impl BridgeBpf {
             VerifyResult::Rejected => {
                 self.stats.programs_rejected += 1;
                 None
-            }
+            },
             _ => {
                 self.programs.insert(id, prog);
                 self.stats.programs_loaded += 1;
                 Some(id)
-            }
+            },
         }
     }
 
@@ -367,7 +384,7 @@ impl BridgeBpf {
             }
             match prog.verify_result {
                 VerifyResult::Rejected => return false,
-                _ => {}
+                _ => {},
             }
             prog.attached = true;
             prog.attach_point = attach_point;
@@ -403,7 +420,10 @@ impl BridgeBpf {
     ) -> u64 {
         let id = self.next_map_id;
         self.next_map_id += 1;
-        self.maps.insert(id, BpfMap::new(id, name, map_type, key_size, value_size, max_entries));
+        self.maps.insert(
+            id,
+            BpfMap::new(id, name, map_type, key_size, value_size, max_entries),
+        );
         self.stats.maps_created += 1;
         id
     }
@@ -457,7 +477,12 @@ impl BridgeBpf {
     #[inline]
     pub fn program_info(&self, prog_id: u64) -> Option<(u64, &str, BpfProgType, bool)> {
         self.programs.get(&prog_id).map(|p| {
-            (p.run_count, p.attach_point.as_str(), p.prog_type, p.attached)
+            (
+                p.run_count,
+                p.attach_point.as_str(),
+                p.prog_type,
+                p.attached,
+            )
         })
     }
 
@@ -522,10 +547,25 @@ pub struct BpfV2Program {
 
 impl BpfV2Program {
     pub fn new(id: u64, pt: BpfV2ProgType, insns: u32) -> Self {
-        Self { id, prog_type: pt, insn_count: insns, verified: false, jitted: false, attach_count: 0, run_count: 0, run_time_ns: 0 }
+        Self {
+            id,
+            prog_type: pt,
+            insn_count: insns,
+            verified: false,
+            jitted: false,
+            attach_count: 0,
+            run_count: 0,
+            run_time_ns: 0,
+        }
     }
     #[inline(always)]
-    pub fn avg_run_ns(&self) -> u64 { if self.run_count == 0 { 0 } else { self.run_time_ns / self.run_count } }
+    pub fn avg_run_ns(&self) -> u64 {
+        if self.run_count == 0 {
+            0
+        } else {
+            self.run_time_ns / self.run_count
+        }
+    }
 }
 
 /// BPF map v2
@@ -559,18 +599,30 @@ pub struct BridgeBpfV2 {
 }
 
 impl BridgeBpfV2 {
-    pub fn new() -> Self { Self { programs: BTreeMap::new(), maps: Vec::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            programs: BTreeMap::new(),
+            maps: Vec::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn load_program(&mut self, pt: BpfV2ProgType, insns: u32) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.programs.insert(id, BpfV2Program::new(id, pt, insns));
         id
     }
 
     #[inline(always)]
     pub fn verify(&mut self, id: u64) -> bool {
-        if let Some(p) = self.programs.get_mut(&id) { p.verified = true; true } else { false }
+        if let Some(p) = self.programs.get_mut(&id) {
+            p.verified = true;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -578,6 +630,12 @@ impl BridgeBpfV2 {
         let verified = self.programs.values().filter(|p| p.verified).count() as u32;
         let jitted = self.programs.values().filter(|p| p.jitted).count() as u32;
         let runs: u64 = self.programs.values().map(|p| p.run_count).sum();
-        BpfV2BridgeStats { total_programs: self.programs.len() as u32, total_maps: self.maps.len() as u32, verified, jitted, total_runs: runs }
+        BpfV2BridgeStats {
+            total_programs: self.programs.len() as u32,
+            total_maps: self.maps.len() as u32,
+            verified,
+            jitted,
+            total_runs: runs,
+        }
     }
 }

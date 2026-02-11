@@ -12,8 +12,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -193,26 +192,29 @@ impl HolisticSynthesisEngine {
 
     fn seed_population(&mut self, count: usize) {
         let labels = [
-            "sort_opt", "alloc_pool", "sched_policy", "cache_evict",
-            "prefetch_stride", "irq_coalesce", "page_reclaim", "lock_elide",
+            "sort_opt",
+            "alloc_pool",
+            "sched_policy",
+            "cache_evict",
+            "prefetch_stride",
+            "irq_coalesce",
+            "page_reclaim",
+            "lock_elide",
         ];
         for i in 0..count.min(MAX_POPULATION) {
             let lbl = labels[i % labels.len()];
             let fitness = 3_000_u64.wrapping_add(self.rng.next() % 4_000);
             let gh = self.gen_hash(lbl);
-            self.population.insert(
-                gh,
-                CandidateAlgorithm {
-                    genome_hash: gh,
-                    generation: 0,
-                    parent_a: 0,
-                    parent_b: 0,
-                    fitness,
-                    ema_fitness: fitness,
-                    novelty_score: self.rng.next() % 10_000,
-                    description: String::from(lbl),
-                },
-            );
+            self.population.insert(gh, CandidateAlgorithm {
+                genome_hash: gh,
+                generation: 0,
+                parent_a: 0,
+                parent_b: 0,
+                fitness,
+                ema_fitness: fitness,
+                novelty_score: self.rng.next() % 10_000,
+                description: String::from(lbl),
+            });
         }
         self.refresh_stats();
     }
@@ -270,12 +272,10 @@ impl HolisticSynthesisEngine {
         }
     }
 
-    fn crossover(
-        &mut self,
-        a: &CandidateAlgorithm,
-        b: &CandidateAlgorithm,
-    ) -> CandidateAlgorithm {
-        let fit = (a.fitness / 2).wrapping_add(b.fitness / 2).wrapping_add(self.rng.next() % 500);
+    fn crossover(&mut self, a: &CandidateAlgorithm, b: &CandidateAlgorithm) -> CandidateAlgorithm {
+        let fit = (a.fitness / 2)
+            .wrapping_add(b.fitness / 2)
+            .wrapping_add(self.rng.next() % 500);
         let gh = self.gen_hash("cross");
         CandidateAlgorithm {
             genome_hash: gh,
@@ -306,8 +306,7 @@ impl HolisticSynthesisEngine {
         self.stats.generation = self.stats.generation.wrapping_add(1);
 
         // collect sorted by fitness descending
-        let mut ranked: Vec<CandidateAlgorithm> =
-            self.population.values().cloned().collect();
+        let mut ranked: Vec<CandidateAlgorithm> = self.population.values().cloned().collect();
         ranked.sort_by(|a, b| b.fitness.cmp(&a.fitness));
 
         let elite_count = ((ranked.len() as u64 * ELITE_FRACTION_BPS) / 10_000).max(1) as usize;
@@ -344,7 +343,12 @@ impl HolisticSynthesisEngine {
     /// Evolve the architecture — produce a new variant from component mixing.
     pub fn evolve_architecture(&mut self) -> ArchitectureVariant {
         self.advance_tick();
-        let comps: Vec<u64> = self.population.values().take(8).map(|c| c.genome_hash).collect();
+        let comps: Vec<u64> = self
+            .population
+            .values()
+            .take(8)
+            .map(|c| c.genome_hash)
+            .collect();
         let fitness = self.stats.best_fitness.wrapping_add(self.rng.next() % 500);
         let vh = self.gen_hash("arch");
         self.stats.architecture_evolutions = self.stats.architecture_evolutions.wrapping_add(1);

@@ -189,13 +189,7 @@ impl ShmAppManager {
         }
     }
 
-    pub fn create_region(
-        &mut self,
-        owner: u64,
-        size: u64,
-        mode: ShmAccessMode,
-        now: u64,
-    ) -> u64 {
+    pub fn create_region(&mut self, owner: u64, size: u64, mode: ShmAccessMode, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
 
@@ -203,7 +197,10 @@ impl ShmAppManager {
         region.attach(owner);
 
         self.regions.insert(id, region);
-        self.app_regions.entry(owner).or_insert_with(Vec::new).push(id);
+        self.app_regions
+            .entry(owner)
+            .or_insert_with(Vec::new)
+            .push(id);
         self.stats.regions_created += 1;
         id
     }
@@ -212,7 +209,10 @@ impl ShmAppManager {
     pub fn attach(&mut self, region_id: u64, app_id: u64) -> bool {
         if let Some(region) = self.regions.get_mut(&region_id) {
             region.attach(app_id);
-            self.app_regions.entry(app_id).or_insert_with(Vec::new).push(region_id);
+            self.app_regions
+                .entry(app_id)
+                .or_insert_with(Vec::new)
+                .push(region_id);
             self.stats.total_attachments += 1;
             true
         } else {

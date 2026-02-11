@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Signal category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,7 +151,10 @@ impl ProcessSignalState {
 
         // Standard signals: coalesce if same signal already pending
         if !entry.is_realtime()
-            && self.pending.iter().any(|e| e.signum == signum && e.state == DeliveryState::Pending)
+            && self
+                .pending
+                .iter()
+                .any(|e| e.signum == signum && e.state == DeliveryState::Pending)
         {
             self.total_coalesced += 1;
             return DeliveryState::Coalesced;
@@ -167,7 +171,11 @@ impl ProcessSignalState {
     pub fn dequeue_next(&mut self) -> Option<SignalEntry> {
         // Real-time signals have priority by number (lower = higher)
         // Standard signals FIFO
-        if let Some(pos) = self.pending.iter().position(|e| e.state == DeliveryState::Pending) {
+        if let Some(pos) = self
+            .pending
+            .iter()
+            .position(|e| e.state == DeliveryState::Pending)
+        {
             self.pending[pos].state = DeliveryState::Delivering;
             Some(self.pending.remove(pos))
         } else {
@@ -185,13 +193,17 @@ impl ProcessSignalState {
     /// Pending count
     #[inline(always)]
     pub fn pending_count(&self) -> usize {
-        self.pending.iter().filter(|e| e.state == DeliveryState::Pending).count()
+        self.pending
+            .iter()
+            .filter(|e| e.state == DeliveryState::Pending)
+            .count()
     }
 
     /// Most frequent signal
     #[inline]
     pub fn most_frequent(&self) -> Option<(u32, u64)> {
-        self.signal_counts.iter()
+        self.signal_counts
+            .iter()
             .max_by_key(|(_, count)| *count)
             .map(|(sig, count)| (sig as u32, count))
     }
@@ -233,9 +245,16 @@ impl BridgeSignalProxy {
 
     /// Send signal
     #[inline]
-    pub fn send_signal(&mut self, signum: u32, src_pid: u64, dst_pid: u64, now_ns: u64) -> DeliveryState {
+    pub fn send_signal(
+        &mut self,
+        signum: u32,
+        src_pid: u64,
+        dst_pid: u64,
+        now_ns: u64,
+    ) -> DeliveryState {
         let entry = SignalEntry::new(signum, src_pid, dst_pid, now_ns);
-        let state = self.processes
+        let state = self
+            .processes
             .entry(dst_pid)
             .or_insert_with(|| ProcessSignalState::new(dst_pid))
             .queue_signal(entry);
@@ -259,15 +278,9 @@ impl BridgeSignalProxy {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.total_pending = self.processes.values()
-            .map(|p| p.pending_count())
-            .sum();
-        self.stats.total_received = self.processes.values()
-            .map(|p| p.total_received)
-            .sum();
-        self.stats.total_coalesced = self.processes.values()
-            .map(|p| p.total_coalesced)
-            .sum();
+        self.stats.total_pending = self.processes.values().map(|p| p.pending_count()).sum();
+        self.stats.total_received = self.processes.values().map(|p| p.total_received).sum();
+        self.stats.total_coalesced = self.processes.values().map(|p| p.total_coalesced).sum();
         let total = self.stats.total_received + self.stats.total_coalesced;
         self.stats.coalesce_ratio = if total > 0 {
             self.stats.total_coalesced as f64 / total as f64

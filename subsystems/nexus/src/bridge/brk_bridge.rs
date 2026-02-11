@@ -83,7 +83,11 @@ impl BridgeBrkManager {
     }
 
     #[inline(always)]
-    pub fn heap_size(&self) -> u64 { self.state.current - self.state.start }
+    pub fn heap_size(&self) -> u64 {
+        self.state.current - self.state.start
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeBrkStats { &self.stats }
+    pub fn stats(&self) -> &BridgeBrkStats {
+        &self.stats
+    }
 }

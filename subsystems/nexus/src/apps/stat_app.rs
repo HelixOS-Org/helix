@@ -2,8 +2,9 @@
 //! NEXUS Apps — Stat App (file status and metadata tracking)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+
+use crate::fast::linear_map::LinearMap;
 
 /// File type from stat
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,20 +41,35 @@ pub struct StatResult {
 impl StatResult {
     pub fn new(ino: u64, mode: u32, size: u64, file_type: StatFileType) -> Self {
         Self {
-            dev: 0, ino, mode, nlink: 1,
-            uid: 0, gid: 0, rdev: 0,
-            size, blksize: 4096, blocks: (size + 511) / 512,
-            atime_ns: 0, mtime_ns: 0, ctime_ns: 0,
+            dev: 0,
+            ino,
+            mode,
+            nlink: 1,
+            uid: 0,
+            gid: 0,
+            rdev: 0,
+            size,
+            blksize: 4096,
+            blocks: (size + 511) / 512,
+            atime_ns: 0,
+            mtime_ns: 0,
+            ctime_ns: 0,
             file_type,
         }
     }
 
     #[inline(always)]
-    pub fn is_regular(&self) -> bool { self.file_type == StatFileType::Regular }
+    pub fn is_regular(&self) -> bool {
+        self.file_type == StatFileType::Regular
+    }
     #[inline(always)]
-    pub fn is_directory(&self) -> bool { self.file_type == StatFileType::Directory }
+    pub fn is_directory(&self) -> bool {
+        self.file_type == StatFileType::Directory
+    }
     #[inline(always)]
-    pub fn is_symlink(&self) -> bool { self.file_type == StatFileType::Symlink }
+    pub fn is_symlink(&self) -> bool {
+        self.file_type == StatFileType::Symlink
+    }
 }
 
 /// Stat cache entry
@@ -93,9 +109,13 @@ impl AppStat {
             cache: BTreeMap::new(),
             cache_capacity,
             stats: StatAppStats {
-                stat_calls: 0, lstat_calls: 0, fstat_calls: 0,
-                cache_hits: 0, cache_misses: 0,
-                not_found: 0, permission_denied: 0,
+                stat_calls: 0,
+                lstat_calls: 0,
+                fstat_calls: 0,
+                cache_hits: 0,
+                cache_misses: 0,
+                not_found: 0,
+                permission_denied: 0,
             },
         }
     }
@@ -193,13 +213,29 @@ pub struct StatV2Record {
 impl StatV2Record {
     pub fn new(call: StatV2Call, path: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { call, result: StatV2Result::Success, path_hash: h, inode: 0, size: 0, blocks: 0, nlink: 1, mode: 0, latency_ns: 0 }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            call,
+            result: StatV2Result::Success,
+            path_hash: h,
+            inode: 0,
+            size: 0,
+            blocks: 0,
+            nlink: 1,
+            mode: 0,
+            latency_ns: 0,
+        }
     }
 
     #[inline(always)]
     pub fn is_symlink_aware(&self) -> bool {
-        matches!(self.call, StatV2Call::Lstat | StatV2Call::Fstatat | StatV2Call::Statx)
+        matches!(
+            self.call,
+            StatV2Call::Lstat | StatV2Call::Fstatat | StatV2Call::Statx
+        )
     }
 }
 
@@ -222,7 +258,15 @@ pub struct AppStatV2 {
 
 impl AppStatV2 {
     pub fn new() -> Self {
-        Self { stats: StatV2AppStats { total_calls: 0, stat_calls: 0, statx_calls: 0, errors: 0, total_latency_ns: 0 } }
+        Self {
+            stats: StatV2AppStats {
+                total_calls: 0,
+                stat_calls: 0,
+                statx_calls: 0,
+                errors: 0,
+                total_latency_ns: 0,
+            },
+        }
     }
 
     #[inline]
@@ -230,15 +274,25 @@ impl AppStatV2 {
         self.stats.total_calls += 1;
         self.stats.total_latency_ns += rec.latency_ns;
         match rec.call {
-            StatV2Call::Stat | StatV2Call::Fstat | StatV2Call::Lstat | StatV2Call::Fstatat | StatV2Call::NewStat => self.stats.stat_calls += 1,
+            StatV2Call::Stat
+            | StatV2Call::Fstat
+            | StatV2Call::Lstat
+            | StatV2Call::Fstatat
+            | StatV2Call::NewStat => self.stats.stat_calls += 1,
             StatV2Call::Statx => self.stats.statx_calls += 1,
         }
-        if rec.result != StatV2Result::Success { self.stats.errors += 1; }
+        if rec.result != StatV2Result::Success {
+            self.stats.errors += 1;
+        }
     }
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.stats.total_calls == 0 { 0 } else { self.stats.total_latency_ns / self.stats.total_calls }
+        if self.stats.total_calls == 0 {
+            0
+        } else {
+            self.stats.total_latency_ns / self.stats.total_calls
+        }
     }
 }
 

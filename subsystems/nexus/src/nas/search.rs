@@ -123,8 +123,8 @@ impl ArchitectureEncoding {
             let num_nodes = search_space.min_nodes
                 + (config as usize % (search_space.max_nodes - search_space.min_nodes + 1));
 
-            let width = search_space.min_width
-                + (*self.widths.get(cell_idx).unwrap_or(&0) as usize * 16);
+            let width =
+                search_space.min_width + (*self.widths.get(cell_idx).unwrap_or(&0) as usize * 16);
 
             let mut cell = Cell::new(cell_idx, num_nodes, width, width);
             cell.is_reduction = config > 2;
@@ -750,7 +750,7 @@ impl KernelNas {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     #[test]
     fn test_architecture_encoding() {

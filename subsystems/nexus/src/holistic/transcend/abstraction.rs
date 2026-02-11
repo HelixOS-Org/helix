@@ -14,8 +14,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -341,7 +340,9 @@ impl HolisticAbstraction {
         self.stats.ema_utility_bps = ema_update(self.stats.ema_utility_bps, avg_u);
         self.stats.avg_compression_bps = if a_count > 0 { sum_comp / a_count } else { 0 };
 
-        let emergent = self.concepts.values()
+        let emergent = self
+            .concepts
+            .values()
             .filter(|c| c.novelty_bps >= EMERGENT_THRESHOLD_BPS)
             .count() as u64;
         self.stats.emergent_concepts = emergent;
@@ -431,7 +432,11 @@ impl HolisticAbstraction {
     pub fn abstraction_tower(&mut self) -> AbstractionTowerSummary {
         self.advance_tick();
         let max_l = self.stats.max_tower_level as usize;
-        let levels = if max_l < MAX_TOWER_LEVELS { max_l + 1 } else { MAX_TOWER_LEVELS };
+        let levels = if max_l < MAX_TOWER_LEVELS {
+            max_l + 1
+        } else {
+            MAX_TOWER_LEVELS
+        };
         let mut per_level: Vec<u64> = alloc::vec![0u64; levels];
         for abs in self.abstractions.values() {
             let idx = abs.level as usize;

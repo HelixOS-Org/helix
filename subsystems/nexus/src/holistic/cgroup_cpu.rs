@@ -32,7 +32,19 @@ pub struct CpuCgroup {
 
 impl CpuCgroup {
     pub fn new(id: u64, parent: u64) -> Self {
-        Self { id, parent_id: parent, shares: 1024, quota_us: -1, period_us: 100000, runtime_us: 0, nr_throttled: 0, throttled_us: 0, nr_tasks: 0, policy: CgroupCpuPolicy::Normal, weight: 100 }
+        Self {
+            id,
+            parent_id: parent,
+            shares: 1024,
+            quota_us: -1,
+            period_us: 100000,
+            runtime_us: 0,
+            nr_throttled: 0,
+            throttled_us: 0,
+            nr_tasks: 0,
+            policy: CgroupCpuPolicy::Normal,
+            weight: 100,
+        }
     }
 
     #[inline(always)]
@@ -52,11 +64,15 @@ impl CpuCgroup {
     }
 
     #[inline(always)]
-    pub fn reset_period(&mut self) { self.runtime_us = 0; }
+    pub fn reset_period(&mut self) {
+        self.runtime_us = 0;
+    }
 
     #[inline(always)]
     pub fn throttle_ratio(&self) -> f64 {
-        if self.quota_us <= 0 { return 0.0; }
+        if self.quota_us <= 0 {
+            return 0.0;
+        }
         self.runtime_us as f64 / self.quota_us as f64
     }
 }
@@ -79,40 +95,64 @@ pub struct HolisticCgroupCpu {
 }
 
 impl HolisticCgroupCpu {
-    pub fn new() -> Self { Self { cgroups: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            cgroups: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, parent: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.cgroups.insert(id, CpuCgroup::new(id, parent));
         id
     }
 
     #[inline(always)]
     pub fn set_shares(&mut self, id: u64, shares: u32) {
-        if let Some(cg) = self.cgroups.get_mut(&id) { cg.shares = shares; }
+        if let Some(cg) = self.cgroups.get_mut(&id) {
+            cg.shares = shares;
+        }
     }
 
     #[inline(always)]
     pub fn set_bandwidth(&mut self, id: u64, quota: i64, period: u64) {
-        if let Some(cg) = self.cgroups.get_mut(&id) { cg.set_bandwidth(quota, period); }
+        if let Some(cg) = self.cgroups.get_mut(&id) {
+            cg.set_bandwidth(quota, period);
+        }
     }
 
     #[inline(always)]
     pub fn account(&mut self, id: u64, us: u64) {
-        if let Some(cg) = self.cgroups.get_mut(&id) { cg.account_runtime(us); }
+        if let Some(cg) = self.cgroups.get_mut(&id) {
+            cg.account_runtime(us);
+        }
     }
 
     #[inline(always)]
-    pub fn destroy(&mut self, id: u64) { self.cgroups.remove(&id); }
+    pub fn destroy(&mut self, id: u64) {
+        self.cgroups.remove(&id);
+    }
 
     #[inline]
     pub fn stats(&self) -> CgroupCpuStats {
         let tasks: u32 = self.cgroups.values().map(|c| c.nr_tasks).sum();
         let throttled: u64 = self.cgroups.values().map(|c| c.nr_throttled).sum();
         let throttled_us: u64 = self.cgroups.values().map(|c| c.throttled_us).sum();
-        let avg_shares = if self.cgroups.is_empty() { 0 }
-            else { (self.cgroups.values().map(|c| c.shares as u64).sum::<u64>() / self.cgroups.len() as u64) as u32 };
-        CgroupCpuStats { total_cgroups: self.cgroups.len() as u32, total_tasks: tasks, total_throttled: throttled, total_throttled_us: throttled_us, avg_shares }
+        let avg_shares = if self.cgroups.is_empty() {
+            0
+        } else {
+            (self.cgroups.values().map(|c| c.shares as u64).sum::<u64>()
+                / self.cgroups.len() as u64) as u32
+        };
+        CgroupCpuStats {
+            total_cgroups: self.cgroups.len() as u32,
+            total_tasks: tasks,
+            total_throttled: throttled,
+            total_throttled_us: throttled_us,
+            avg_shares,
+        }
     }
 }

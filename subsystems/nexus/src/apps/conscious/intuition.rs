@@ -206,7 +206,11 @@ impl AppsIntuitionEngine {
             cache_hits: 0,
             cache_misses: 0,
             tick: 0,
-            rng_state: if seed == 0 { 0x1470_CAFE_1234_ABCD } else { seed },
+            rng_state: if seed == 0 {
+                0x1470_CAFE_1234_ABCD
+            } else {
+                seed
+            },
             hit_rate_ema: 0.5,
         }
     }
@@ -230,46 +234,24 @@ impl AppsIntuitionEngine {
         if let Some(rule) = self.rules.get(&fp) {
             if rule.confidence > EVICTION_CONFIDENCE {
                 self.cache_hits += 1;
-                self.hit_rate_ema =
-                    EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * self.hit_rate_ema;
+                self.hit_rate_ema = EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * self.hit_rate_ema;
                 return Some((rule.classification_hash, rule.confidence));
             }
         }
 
         // Try fuzzy match — check neighboring fingerprints
         let neighbors = [
-            hash_fingerprint(
-                (cpu + 0.01).min(1.0),
-                mem,
-                io,
-                net,
-            ),
-            hash_fingerprint(
-                (cpu - 0.01).max(0.0),
-                mem,
-                io,
-                net,
-            ),
-            hash_fingerprint(
-                cpu,
-                (mem + 0.01).min(1.0),
-                io,
-                net,
-            ),
-            hash_fingerprint(
-                cpu,
-                (mem - 0.01).max(0.0),
-                io,
-                net,
-            ),
+            hash_fingerprint((cpu + 0.01).min(1.0), mem, io, net),
+            hash_fingerprint((cpu - 0.01).max(0.0), mem, io, net),
+            hash_fingerprint(cpu, (mem + 0.01).min(1.0), io, net),
+            hash_fingerprint(cpu, (mem - 0.01).max(0.0), io, net),
         ];
 
         for nfp in &neighbors {
             if let Some(rule) = self.rules.get(nfp) {
                 if rule.confidence > 0.5 {
                     self.cache_hits += 1;
-                    self.hit_rate_ema =
-                        EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * self.hit_rate_ema;
+                    self.hit_rate_ema = EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * self.hit_rate_ema;
                     return Some((rule.classification_hash, rule.confidence * 0.9));
                 }
             }
@@ -281,14 +263,7 @@ impl AppsIntuitionEngine {
     }
 
     /// Build a new intuition rule from a confirmed classification
-    pub fn build_intuition(
-        &mut self,
-        cpu: f32,
-        mem: f32,
-        io: f32,
-        net: f32,
-        classification: &str,
-    ) {
+    pub fn build_intuition(&mut self, cpu: f32, mem: f32, io: f32, net: f32, classification: &str) {
         let fp = hash_fingerprint(cpu, mem, io, net);
 
         if let Some(existing) = self.rules.get_mut(&fp) {
@@ -380,9 +355,7 @@ impl AppsIntuitionEngine {
         let to_remove: Vec<u64> = self
             .rules
             .iter()
-            .filter(|(_, rule)| {
-                rule.is_stale(tick) || rule.confidence < EVICTION_CONFIDENCE
-            })
+            .filter(|(_, rule)| rule.is_stale(tick) || rule.confidence < EVICTION_CONFIDENCE)
             .map(|(fp, _)| *fp)
             .collect();
 

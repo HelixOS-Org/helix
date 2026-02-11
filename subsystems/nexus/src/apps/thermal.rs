@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // THERMAL ZONES
@@ -455,7 +456,6 @@ impl AppThermalAnalyzer {
             .budget
             .process_budgets
             .get(pid)
-            
             .unwrap_or(0)
             .saturating_sub(avg_heat);
 

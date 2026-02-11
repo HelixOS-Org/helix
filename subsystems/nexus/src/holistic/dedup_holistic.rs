@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // DEDUP TYPES
@@ -277,7 +278,10 @@ impl HolisticDedupEngine {
     pub fn scan(&mut self, now: u64) -> u64 {
         let mut merged = 0u64;
 
-        let pfns: Vec<u64> = self.pages.keys().copied()
+        let pfns: Vec<u64> = self
+            .pages
+            .keys()
+            .copied()
             .take(self.scanner.batch_size)
             .collect();
 
@@ -310,7 +314,9 @@ impl HolisticDedupEngine {
         }
 
         // Find new duplicate pairs among unmerged
-        let unmerged: Vec<(u64, u64, u64)> = self.pages.values()
+        let unmerged: Vec<(u64, u64, u64)> = self
+            .pages
+            .values()
             .filter(|fp| fp.state == DedupState::Unique)
             .take(self.scanner.batch_size)
             .map(|fp| (fp.pfn, fp.owner, fp.full_hash))
@@ -318,7 +324,10 @@ impl HolisticDedupEngine {
 
         let mut hash_groups: BTreeMap<u64, Vec<(u64, u64)>> = BTreeMap::new();
         for &(pfn, owner, hash) in &unmerged {
-            hash_groups.entry(hash).or_insert_with(Vec::new).push((pfn, owner));
+            hash_groups
+                .entry(hash)
+                .or_insert_with(Vec::new)
+                .push((pfn, owner));
         }
 
         for (hash, group) in &hash_groups {
@@ -347,7 +356,8 @@ impl HolisticDedupEngine {
         }
 
         self.scanner.last_scan = now;
-        self.scanner.record_scan(pfns.len() as u64 + unmerged.len() as u64, merged, merged, 0);
+        self.scanner
+            .record_scan(pfns.len() as u64 + unmerged.len() as u64, merged, merged, 0);
         self.update_stats();
         merged
     }
@@ -386,7 +396,8 @@ impl HolisticDedupEngine {
         self.stats.memory_saved_bytes = self.stats.pages_saved * 4096;
         self.stats.total_cow_breaks = self.groups.values().map(|g| g.cow_breaks).sum();
         if self.stats.tracked_pages > 0 {
-            self.stats.dedup_ratio = self.stats.pages_saved as f64 / self.stats.tracked_pages as f64;
+            self.stats.dedup_ratio =
+                self.stats.pages_saved as f64 / self.stats.tracked_pages as f64;
         }
     }
 

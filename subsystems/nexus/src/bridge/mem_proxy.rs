@@ -209,8 +209,12 @@ impl ProcessMemProxy {
 
     fn record_op(&mut self, op: MemOp, addr: u64, size: u64, now_ns: u64, lat: u64) {
         let record = MemOpRecord {
-            op, address: addr, size, pid: self.pid,
-            timestamp_ns: now_ns, latency_ns: lat,
+            op,
+            address: addr,
+            size,
+            pid: self.pid,
+            timestamp_ns: now_ns,
+            latency_ns: lat,
         };
         if self.recent_ops.len() < 64 {
             self.recent_ops.push(record);
@@ -235,7 +239,8 @@ impl ProcessMemProxy {
 
     /// THP recommendations
     pub fn thp_recommendations(&self) -> Vec<ThpRecommendation> {
-        self.vmas.values()
+        self.vmas
+            .values()
             .filter(|v| v.thp_eligible && v.faults > 10)
             .map(|v| {
                 let benefit = (v.fault_rate() * 0.95).min(0.99);
@@ -287,7 +292,9 @@ impl BridgeMemoryProxy {
     /// Get or create process proxy
     #[inline(always)]
     pub fn get_process(&mut self, pid: u64) -> &mut ProcessMemProxy {
-        self.processes.entry(pid).or_insert_with(|| ProcessMemProxy::new(pid))
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessMemProxy::new(pid))
     }
 
     /// Record mmap
@@ -310,10 +317,14 @@ impl BridgeMemoryProxy {
         self.stats.tracked_processes = self.processes.len();
         self.stats.total_vmas = self.processes.values().map(|p| p.vma_count()).sum();
         self.stats.total_mapped_bytes = self.processes.values().map(|p| p.total_mapped).sum();
-        self.stats.merge_opportunities = self.processes.values()
+        self.stats.merge_opportunities = self
+            .processes
+            .values()
             .map(|p| p.merge_opportunities().len())
             .sum();
-        self.stats.thp_candidates = self.processes.values()
+        self.stats.thp_candidates = self
+            .processes
+            .values()
             .map(|p| p.thp_recommendations().len())
             .sum();
     }

@@ -221,20 +221,17 @@ impl BridgeMethodology {
             stored_assignments.push(a);
         }
 
-        self.experiments.insert(
+        self.experiments.insert(id, ExperimentDesign {
             id,
-            ExperimentDesign {
-                id,
-                name: String::from(name),
-                treatment_size,
-                control_size,
-                total_samples: total,
-                randomization_seed,
-                has_control_group: control_size > 0,
-                treatment_assignments: stored_assignments,
-                submit_tick: self.tick,
-            },
-        );
+            name: String::from(name),
+            treatment_size,
+            control_size,
+            total_samples: total,
+            randomization_seed,
+            has_control_group: control_size > 0,
+            treatment_assignments: stored_assignments,
+            submit_tick: self.tick,
+        });
         id
     }
 
@@ -256,7 +253,7 @@ impl BridgeMethodology {
                     control_adequate: false,
                     randomization_adequate: false,
                 };
-            }
+            },
         };
 
         let mut passed_checks = Vec::new();
@@ -439,10 +436,8 @@ impl BridgeMethodology {
         }
 
         // Randomization suggestion
-        let (rand_ok, _) = self.evaluate_randomization(
-            &design.treatment_assignments,
-            design.total_samples,
-        );
+        let (rand_ok, _) =
+            self.evaluate_randomization(&design.treatment_assignments, design.total_samples);
         if !rand_ok {
             suggestions.push(ImprovementSuggestion {
                 experiment_id,
@@ -547,7 +542,9 @@ impl BridgeMethodology {
         // Contamination risk is higher with small sample sizes and poor randomization
         let size_factor = (design.total_samples as f32 / 50.0).min(1.0);
         let separation_score = if design.has_control_group { 0.7 } else { 0.3 };
-        let score = (size_factor * 0.5 + separation_score * 0.5).max(0.0).min(1.0);
+        let score = (size_factor * 0.5 + separation_score * 0.5)
+            .max(0.0)
+            .min(1.0);
         (score >= 0.5, score)
     }
 

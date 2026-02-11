@@ -30,7 +30,13 @@ impl MessageQueue {
     /// Create new queue
     pub fn new(max_size: usize) -> Self {
         Self {
-            queues: [VecDeque::new(), VecDeque::new(), VecDeque::new(), VecDeque::new(), VecDeque::new()],
+            queues: [
+                VecDeque::new(),
+                VecDeque::new(),
+                VecDeque::new(),
+                VecDeque::new(),
+                VecDeque::new(),
+            ],
             count: 0,
             max_size,
         }

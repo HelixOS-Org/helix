@@ -26,8 +26,17 @@ pub struct SelinuxCoopRecord {
 impl SelinuxCoopRecord {
     pub fn new(event: SelinuxCoopEvent, ctx: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in ctx { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { event, source_ctx_hash: h, target_ctx_hash: 0, source_pid: 0, target_pid: 0 }
+        for b in ctx {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            event,
+            source_ctx_hash: h,
+            target_ctx_hash: 0,
+            source_pid: 0,
+            target_pid: 0,
+        }
     }
 }
 
@@ -49,7 +58,14 @@ pub struct CoopSelinux {
 
 impl CoopSelinux {
     pub fn new() -> Self {
-        Self { stats: SelinuxCoopStats { total_events: 0, context_inherits: 0, transitions: 0, avc_flushes: 0 } }
+        Self {
+            stats: SelinuxCoopStats {
+                total_events: 0,
+                context_inherits: 0,
+                transitions: 0,
+                avc_flushes: 0,
+            },
+        }
     }
 
     #[inline]
@@ -57,9 +73,11 @@ impl CoopSelinux {
         self.stats.total_events += 1;
         match rec.event {
             SelinuxCoopEvent::ContextInherit => self.stats.context_inherits += 1,
-            SelinuxCoopEvent::ContextTransition | SelinuxCoopEvent::TypeEnforce => self.stats.transitions += 1,
+            SelinuxCoopEvent::ContextTransition | SelinuxCoopEvent::TypeEnforce => {
+                self.stats.transitions += 1
+            },
             SelinuxCoopEvent::AvcFlush => self.stats.avc_flushes += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

@@ -87,9 +87,9 @@ impl ZoneStats {
             page_tables: 0,
             dirty_pages: 0,
             writeback_pages: 0,
-            watermark_low: total_pages / 20,     // 5%
-            watermark_high: total_pages / 10,    // 10%
-            watermark_min: total_pages / 40,     // 2.5%
+            watermark_low: total_pages / 20,  // 5%
+            watermark_high: total_pages / 10, // 10%
+            watermark_min: total_pages / 40,  // 2.5%
         }
     }
 
@@ -229,7 +229,7 @@ impl ReclaimPolicy {
         let mut actions = Vec::new();
 
         match pressure {
-            MemoryPressure::None => {}
+            MemoryPressure::None => {},
             MemoryPressure::Low => {
                 // Gentle reclaim of file pages
                 if zone.inactive_file > zone.watermark_high {
@@ -240,7 +240,7 @@ impl ReclaimPolicy {
                         zone: zone.zone,
                     });
                 }
-            }
+            },
             MemoryPressure::Medium => {
                 // More aggressive
                 actions.push(ReclaimAction {
@@ -258,8 +258,7 @@ impl ReclaimPolicy {
                     });
                 }
                 if self.swappiness > 0 && zone.inactive_anon > 0 {
-                    let swap_pages =
-                        zone.inactive_anon * self.swappiness as u64 / 100;
+                    let swap_pages = zone.inactive_anon * self.swappiness as u64 / 100;
                     actions.push(ReclaimAction {
                         target: ReclaimTarget::AnonPages,
                         pages: swap_pages,
@@ -267,7 +266,7 @@ impl ReclaimPolicy {
                         zone: zone.zone,
                     });
                 }
-            }
+            },
             MemoryPressure::High | MemoryPressure::Critical => {
                 // Aggressive reclaim everything
                 actions.push(ReclaimAction {
@@ -296,7 +295,7 @@ impl ReclaimPolicy {
                         zone: zone.zone,
                     });
                 }
-            }
+            },
         }
 
         actions

@@ -9,22 +9,47 @@ use alloc::vec::Vec;
 /// ACPI table type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AcpiTableType {
-    Rsdp, Rsdt, Xsdt, Fadt, Madt, Dsdt, Ssdt,
-    Hpet, Mcfg, Srat, Slit, Bgrt, Dmar, Bert,
+    Rsdp,
+    Rsdt,
+    Xsdt,
+    Fadt,
+    Madt,
+    Dsdt,
+    Ssdt,
+    Hpet,
+    Mcfg,
+    Srat,
+    Slit,
+    Bgrt,
+    Dmar,
+    Bert,
 }
 
 /// Power state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AcpiPowerState {
-    S0Working, S1Sleep, S2Sleep, S3Suspend, S4Hibernate, S5SoftOff,
+    S0Working,
+    S1Sleep,
+    S2Sleep,
+    S3Suspend,
+    S4Hibernate,
+    S5SoftOff,
 }
 
 /// MADT entry type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MadtEntryType {
-    LocalApic, IoApic, InterruptOverride, NmiSource,
-    LocalApicNmi, LocalApicOverride, IoSapic, LocalSapic,
-    PlatformInterrupt, LocalX2Apic, LocalX2ApicNmi,
+    LocalApic,
+    IoApic,
+    InterruptOverride,
+    NmiSource,
+    LocalApicNmi,
+    LocalApicOverride,
+    IoSapic,
+    LocalSapic,
+    PlatformInterrupt,
+    LocalX2Apic,
+    LocalX2ApicNmi,
 }
 
 /// ACPI table header
@@ -79,29 +104,65 @@ pub struct HolisticAcpiMgr {
 
 impl HolisticAcpiMgr {
     pub fn new() -> Self {
-        Self { tables: BTreeMap::new(), madt_entries: Vec::new(), srat_mem: Vec::new(), power_state: AcpiPowerState::S0Working, next_table_id: 1 }
+        Self {
+            tables: BTreeMap::new(),
+            madt_entries: Vec::new(),
+            srat_mem: Vec::new(),
+            power_state: AcpiPowerState::S0Working,
+            next_table_id: 1,
+        }
     }
 
     #[inline]
     pub fn add_table(&mut self, header: AcpiTableHeader) -> u32 {
-        let id = self.next_table_id; self.next_table_id += 1;
+        let id = self.next_table_id;
+        self.next_table_id += 1;
         self.tables.insert(id, header);
         id
     }
 
     #[inline(always)]
-    pub fn add_madt_entry(&mut self, entry: MadtEntry) { self.madt_entries.push(entry); }
+    pub fn add_madt_entry(&mut self, entry: MadtEntry) {
+        self.madt_entries.push(entry);
+    }
     #[inline(always)]
-    pub fn add_srat_mem(&mut self, entry: SratMemAffinity) { self.srat_mem.push(entry); }
+    pub fn add_srat_mem(&mut self, entry: SratMemAffinity) {
+        self.srat_mem.push(entry);
+    }
     #[inline(always)]
-    pub fn set_power_state(&mut self, state: AcpiPowerState) { self.power_state = state; }
+    pub fn set_power_state(&mut self, state: AcpiPowerState) {
+        self.power_state = state;
+    }
 
     #[inline]
     pub fn stats(&self) -> AcpiMgrStats {
-        let procs = self.madt_entries.iter().filter(|e| matches!(e.entry_type, MadtEntryType::LocalApic | MadtEntryType::LocalX2Apic) && e.enabled).count() as u32;
-        let ioapics = self.madt_entries.iter().filter(|e| e.entry_type == MadtEntryType::IoApic).count() as u32;
+        let procs = self
+            .madt_entries
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.entry_type,
+                    MadtEntryType::LocalApic | MadtEntryType::LocalX2Apic
+                ) && e.enabled
+            })
+            .count() as u32;
+        let ioapics = self
+            .madt_entries
+            .iter()
+            .filter(|e| e.entry_type == MadtEntryType::IoApic)
+            .count() as u32;
         let mut domains = Vec::new();
-        for s in &self.srat_mem { if !domains.contains(&s.domain) { domains.push(s.domain); } }
-        AcpiMgrStats { tables_parsed: self.tables.len() as u32, processors_found: procs, ioapics_found: ioapics, numa_domains: domains.len() as u32, current_power_state: self.power_state as u8 }
+        for s in &self.srat_mem {
+            if !domains.contains(&s.domain) {
+                domains.push(s.domain);
+            }
+        }
+        AcpiMgrStats {
+            tables_parsed: self.tables.len() as u32,
+            processors_found: procs,
+            ioapics_found: ioapics,
+            numa_domains: domains.len() as u32,
+            current_power_state: self.power_state as u8,
+        }
     }
 }

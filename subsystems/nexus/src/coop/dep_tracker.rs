@@ -87,7 +87,13 @@ pub struct CoopDepEdge {
 }
 
 impl CoopDepEdge {
-    pub fn new(from: u64, to: u64, dep_type: CoopDepType, strength: CoopDepStrength, now: u64) -> Self {
+    pub fn new(
+        from: u64,
+        to: u64,
+        dep_type: CoopDepType,
+        strength: CoopDepStrength,
+        now: u64,
+    ) -> Self {
         Self {
             from_pid: from,
             to_pid: to,
@@ -242,7 +248,7 @@ impl CoopDepGraph {
                 match visited.get(&next) {
                     None => {
                         self.dfs_cycle(next, visited, stack, cycles);
-                    }
+                    },
                     Some(&0) => {
                         // Found cycle
                         if let Some(pos) = stack.iter().position(|&x| x == next) {
@@ -251,8 +257,8 @@ impl CoopDepGraph {
                                 cycles.push(cycle);
                             }
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -267,15 +273,21 @@ impl CoopDepGraph {
         let nodes: Vec<u64> = self.outgoing.keys().cloned().collect();
 
         // Find roots (no incoming required edges)
-        let roots: Vec<u64> = nodes.iter()
+        let roots: Vec<u64> = nodes
+            .iter()
             .filter(|&&n| {
-                !self.incoming.get(&n).map(|inc| {
-                    inc.iter().any(|&from| {
-                        self.edges.get(&(from, n))
-                            .map(|e| e.strength >= CoopDepStrength::Required)
-                            .unwrap_or(false)
+                !self
+                    .incoming
+                    .get(&n)
+                    .map(|inc| {
+                        inc.iter().any(|&from| {
+                            self.edges
+                                .get(&(from, n))
+                                .map(|e| e.strength >= CoopDepStrength::Required)
+                                .unwrap_or(false)
+                        })
                     })
-                }).unwrap_or(false)
+                    .unwrap_or(false)
             })
             .cloned()
             .collect();
@@ -391,7 +403,14 @@ impl CoopDepTracker {
 
     /// Add dependency
     #[inline]
-    pub fn add_dependency(&mut self, from: u64, to: u64, dep_type: CoopDepType, strength: CoopDepStrength, now: u64) {
+    pub fn add_dependency(
+        &mut self,
+        from: u64,
+        to: u64,
+        dep_type: CoopDepType,
+        strength: CoopDepStrength,
+        now: u64,
+    ) {
         let edge = CoopDepEdge::new(from, to, dep_type, strength, now);
         self.graph.add_edge(edge);
         self.update_stats();
@@ -399,7 +418,14 @@ impl CoopDepTracker {
 
     /// Record invocation
     #[inline]
-    pub fn record_invocation(&mut self, from: u64, to: u64, latency_ns: u64, success: bool, now: u64) {
+    pub fn record_invocation(
+        &mut self,
+        from: u64,
+        to: u64,
+        latency_ns: u64,
+        success: bool,
+        now: u64,
+    ) {
         if let Some(edge) = self.graph.get_edge_mut(from, to) {
             edge.record_invocation(latency_ns, success, now);
         }
@@ -429,7 +455,10 @@ impl CoopDepTracker {
     fn update_stats(&mut self) {
         self.stats.total_nodes = self.graph.outgoing.len();
         self.stats.total_edges = self.graph.edges.len();
-        self.stats.critical_edges = self.graph.edges.values()
+        self.stats.critical_edges = self
+            .graph
+            .edges
+            .values()
             .filter(|e| e.strength >= CoopDepStrength::Critical)
             .count();
     }

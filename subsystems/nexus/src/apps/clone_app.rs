@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-
 /// Clone flag type
 use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,7 +60,15 @@ pub struct ProcessTreeNode {
 
 impl ProcessTreeNode {
     pub fn new(pid: u64, ppid: u64) -> Self {
-        Self { pid, parent_pid: ppid, flags: 0, children_count: 0, total_clones: 0, total_forks: 0, vfork_count: 0 }
+        Self {
+            pid,
+            parent_pid: ppid,
+            flags: 0,
+            children_count: 0,
+            total_clones: 0,
+            total_forks: 0,
+            vfork_count: 0,
+        }
     }
 }
 
@@ -81,20 +88,32 @@ pub struct AppClone {
 }
 
 impl AppClone {
-    pub fn new() -> Self { Self { procs: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            procs: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn register(&mut self, pid: u64, ppid: u64) { self.procs.insert(pid, ProcessTreeNode::new(pid, ppid)); }
+    pub fn register(&mut self, pid: u64, ppid: u64) {
+        self.procs.insert(pid, ProcessTreeNode::new(pid, ppid));
+    }
 
     #[inline(always)]
     pub fn do_fork(&mut self, ppid: u64, child: u64) {
-        if let Some(p) = self.procs.get_mut(&ppid) { p.total_forks += 1; p.children_count += 1; }
+        if let Some(p) = self.procs.get_mut(&ppid) {
+            p.total_forks += 1;
+            p.children_count += 1;
+        }
         self.procs.insert(child, ProcessTreeNode::new(child, ppid));
     }
 
     #[inline]
     pub fn do_clone(&mut self, ppid: u64, child: u64, flags: u32) {
-        if let Some(p) = self.procs.get_mut(&ppid) { p.total_clones += 1; p.children_count += 1; }
+        if let Some(p) = self.procs.get_mut(&ppid) {
+            p.total_clones += 1;
+            p.children_count += 1;
+        }
         let mut node = ProcessTreeNode::new(child, ppid);
         node.flags = flags;
         self.procs.insert(child, node);
@@ -102,19 +121,29 @@ impl AppClone {
 
     #[inline(always)]
     pub fn do_vfork(&mut self, ppid: u64, child: u64) {
-        if let Some(p) = self.procs.get_mut(&ppid) { p.vfork_count += 1; p.children_count += 1; }
+        if let Some(p) = self.procs.get_mut(&ppid) {
+            p.vfork_count += 1;
+            p.children_count += 1;
+        }
         self.procs.insert(child, ProcessTreeNode::new(child, ppid));
     }
 
     #[inline(always)]
-    pub fn exit(&mut self, pid: u64) { self.procs.remove(&pid); }
+    pub fn exit(&mut self, pid: u64) {
+        self.procs.remove(&pid);
+    }
 
     #[inline]
     pub fn stats(&self) -> CloneAppStats {
         let clones: u64 = self.procs.values().map(|p| p.total_clones).sum();
         let forks: u64 = self.procs.values().map(|p| p.total_forks).sum();
         let vforks: u64 = self.procs.values().map(|p| p.vfork_count).sum();
-        CloneAppStats { total_processes: self.procs.len() as u32, total_clones: clones, total_forks: forks, total_vforks: vforks }
+        CloneAppStats {
+            total_processes: self.procs.len() as u32,
+            total_clones: clones,
+            total_forks: forks,
+            total_vforks: vforks,
+        }
     }
 }
 
@@ -184,21 +213,38 @@ impl AppCloneV2Manager {
         let child = self.next_id;
         self.next_id += 1;
         let is_thread = flags.contains(&AppCloneV2Flag::NewThread);
-        let ns_count = flags.iter().filter(|f| matches!(f,
-            AppCloneV2Flag::NewPidNs | AppCloneV2Flag::NewNetNs |
-            AppCloneV2Flag::NewMntNs | AppCloneV2Flag::NewUserNs
-        )).count() as u32;
+        let ns_count = flags
+            .iter()
+            .filter(|f| {
+                matches!(
+                    f,
+                    AppCloneV2Flag::NewPidNs
+                        | AppCloneV2Flag::NewNetNs
+                        | AppCloneV2Flag::NewMntNs
+                        | AppCloneV2Flag::NewUserNs
+                )
+            })
+            .count() as u32;
         let result = AppCloneV2Result {
             child_id: child,
             is_thread,
             namespaces_created: ns_count,
             latency_us: if is_thread { 40 } else { 180 },
         };
-        self.parent_children.entry(parent).or_insert_with(Vec::new).push(child);
+        self.parent_children
+            .entry(parent)
+            .or_insert_with(Vec::new)
+            .push(child);
         self.results.push(result.clone());
         self.stats.total_clones += 1;
-        if is_thread { self.stats.thread_clones += 1; } else { self.stats.process_clones += 1; }
-        if ns_count > 0 { self.stats.ns_clones += 1; }
+        if is_thread {
+            self.stats.thread_clones += 1;
+        } else {
+            self.stats.process_clones += 1;
+        }
+        if ns_count > 0 {
+            self.stats.ns_clones += 1;
+        }
         result
     }
 

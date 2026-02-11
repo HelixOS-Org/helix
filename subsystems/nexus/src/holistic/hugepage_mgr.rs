@@ -69,28 +69,58 @@ pub struct NodeHugePool {
 
 impl NodeHugePool {
     pub fn new(node: u32, size: HugePageSize, total: u64) -> Self {
-        Self { node, size, total, free: total, reserved: 0, surplus: 0, allocated: 0 }
+        Self {
+            node,
+            size,
+            total,
+            free: total,
+            reserved: 0,
+            surplus: 0,
+            allocated: 0,
+        }
     }
 
     #[inline(always)]
     pub fn allocate(&mut self) -> bool {
-        if self.free > 0 { self.free -= 1; self.allocated += 1; true } else { false }
+        if self.free > 0 {
+            self.free -= 1;
+            self.allocated += 1;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn free_page(&mut self) {
-        if self.allocated > 0 { self.allocated -= 1; self.free += 1; }
+        if self.allocated > 0 {
+            self.allocated -= 1;
+            self.free += 1;
+        }
     }
 
     #[inline(always)]
     pub fn reserve(&mut self) -> bool {
-        if self.free > self.reserved { self.reserved += 1; true } else { false }
+        if self.free > self.reserved {
+            self.reserved += 1;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn unreserve(&mut self) { self.reserved = self.reserved.saturating_sub(1); }
+    pub fn unreserve(&mut self) {
+        self.reserved = self.reserved.saturating_sub(1);
+    }
     #[inline(always)]
-    pub fn usage(&self) -> f64 { if self.total == 0 { 0.0 } else { self.allocated as f64 / self.total as f64 } }
+    pub fn usage(&self) -> f64 {
+        if self.total == 0 {
+            0.0
+        } else {
+            self.allocated as f64 / self.total as f64
+        }
+    }
 }
 
 /// THP statistics
@@ -165,16 +195,22 @@ pub struct HolisticHugepageMgr {
 impl HolisticHugepageMgr {
     pub fn new(thp_mode: ThpMode, defrag: ThpDefrag) -> Self {
         Self {
-            pools: BTreeMap::new(), thp_mode, thp_defrag: defrag,
-            thp_stats: ThpStats::default(), compactions: Vec::new(),
-            alloc_history: Vec::new(), stats: HugePageStats::default(),
-            next_pool_id: 1, next_compact_id: 1,
+            pools: BTreeMap::new(),
+            thp_mode,
+            thp_defrag: defrag,
+            thp_stats: ThpStats::default(),
+            compactions: Vec::new(),
+            alloc_history: Vec::new(),
+            stats: HugePageStats::default(),
+            next_pool_id: 1,
+            next_compact_id: 1,
         }
     }
 
     #[inline]
     pub fn add_pool(&mut self, node: u32, size: HugePageSize, total: u64) -> u64 {
-        let id = self.next_pool_id; self.next_pool_id += 1;
+        let id = self.next_pool_id;
+        self.next_pool_id += 1;
         self.pools.insert(id, NodeHugePool::new(node, size, total));
         id
     }
@@ -183,7 +219,14 @@ impl HolisticHugepageMgr {
     pub fn allocate(&mut self, pool_id: u64, pid: u64, vaddr: u64, ts: u64) -> bool {
         if let Some(p) = self.pools.get_mut(&pool_id) {
             if p.allocate() {
-                self.alloc_history.push(HugeAllocRecord { pid, vaddr, size: p.size, node: p.node, ts, is_thp: false });
+                self.alloc_history.push(HugeAllocRecord {
+                    pid,
+                    vaddr,
+                    size: p.size,
+                    node: p.node,
+                    ts,
+                    is_thp: false,
+                });
                 return true;
             }
             self.stats.alloc_failures += 1;
@@ -193,23 +236,44 @@ impl HolisticHugepageMgr {
 
     #[inline(always)]
     pub fn free_page(&mut self, pool_id: u64) {
-        if let Some(p) = self.pools.get_mut(&pool_id) { p.free_page(); }
+        if let Some(p) = self.pools.get_mut(&pool_id) {
+            p.free_page();
+        }
     }
 
     #[inline(always)]
     pub fn thp_fault(&mut self, success: bool) {
-        if success { self.thp_stats.fault_alloc += 1; } else { self.thp_stats.fault_fallback += 1; }
+        if success {
+            self.thp_stats.fault_alloc += 1;
+        } else {
+            self.thp_stats.fault_fallback += 1;
+        }
     }
 
     #[inline(always)]
-    pub fn thp_collapse(&mut self) { self.thp_stats.collapse_count += 1; self.thp_stats.khugepaged_collapsed += 1; }
+    pub fn thp_collapse(&mut self) {
+        self.thp_stats.collapse_count += 1;
+        self.thp_stats.khugepaged_collapsed += 1;
+    }
     #[inline(always)]
-    pub fn thp_split(&mut self) { self.thp_stats.split_count += 1; }
+    pub fn thp_split(&mut self) {
+        self.thp_stats.split_count += 1;
+    }
 
     #[inline]
     pub fn request_compaction(&mut self, zone: u64, node: u32, order: u32, ts: u64) -> u64 {
-        let id = self.next_compact_id; self.next_compact_id += 1;
-        self.compactions.push(CompactionRequest { id, zone_id: zone, node, order, ts, success: false, pages_moved: 0, latency_ns: 0 });
+        let id = self.next_compact_id;
+        self.next_compact_id += 1;
+        self.compactions.push(CompactionRequest {
+            id,
+            zone_id: zone,
+            node,
+            order,
+            ts,
+            success: false,
+            pages_moved: 0,
+            latency_ns: 0,
+        });
         self.stats.compactions += 1;
         id
     }
@@ -221,31 +285,70 @@ impl HolisticHugepageMgr {
             c.pages_moved = pages;
             c.latency_ns = latency;
         }
-        if success { self.thp_stats.compaction_success += 1; } else { self.thp_stats.compaction_fail += 1; }
+        if success {
+            self.thp_stats.compaction_success += 1;
+        } else {
+            self.thp_stats.compaction_fail += 1;
+        }
     }
 
     #[inline(always)]
-    pub fn set_thp_mode(&mut self, mode: ThpMode) { self.thp_mode = mode; }
+    pub fn set_thp_mode(&mut self, mode: ThpMode) {
+        self.thp_mode = mode;
+    }
     #[inline(always)]
-    pub fn set_defrag(&mut self, defrag: ThpDefrag) { self.thp_defrag = defrag; }
+    pub fn set_defrag(&mut self, defrag: ThpDefrag) {
+        self.thp_defrag = defrag;
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
-        self.stats.total_2mb = self.pools.values().filter(|p| matches!(p.size, HugePageSize::Size2MB)).map(|p| p.total).sum();
-        self.stats.free_2mb = self.pools.values().filter(|p| matches!(p.size, HugePageSize::Size2MB)).map(|p| p.free).sum();
-        self.stats.total_1gb = self.pools.values().filter(|p| matches!(p.size, HugePageSize::Size1GB)).map(|p| p.total).sum();
-        self.stats.free_1gb = self.pools.values().filter(|p| matches!(p.size, HugePageSize::Size1GB)).map(|p| p.free).sum();
+        self.stats.total_2mb = self
+            .pools
+            .values()
+            .filter(|p| matches!(p.size, HugePageSize::Size2MB))
+            .map(|p| p.total)
+            .sum();
+        self.stats.free_2mb = self
+            .pools
+            .values()
+            .filter(|p| matches!(p.size, HugePageSize::Size2MB))
+            .map(|p| p.free)
+            .sum();
+        self.stats.total_1gb = self
+            .pools
+            .values()
+            .filter(|p| matches!(p.size, HugePageSize::Size1GB))
+            .map(|p| p.total)
+            .sum();
+        self.stats.free_1gb = self
+            .pools
+            .values()
+            .filter(|p| matches!(p.size, HugePageSize::Size1GB))
+            .map(|p| p.free)
+            .sum();
         self.stats.reservations = self.pools.values().map(|p| p.reserved).sum();
         self.stats.surplus_total = self.pools.values().map(|p| p.surplus).sum();
-        self.stats.thp_active = self.thp_stats.fault_alloc.saturating_sub(self.thp_stats.split_count);
+        self.stats.thp_active = self
+            .thp_stats
+            .fault_alloc
+            .saturating_sub(self.thp_stats.split_count);
     }
 
     #[inline(always)]
-    pub fn pool(&self, id: u64) -> Option<&NodeHugePool> { self.pools.get(&id) }
+    pub fn pool(&self, id: u64) -> Option<&NodeHugePool> {
+        self.pools.get(&id)
+    }
     #[inline(always)]
-    pub fn thp_stats(&self) -> &ThpStats { &self.thp_stats }
+    pub fn thp_stats(&self) -> &ThpStats {
+        &self.thp_stats
+    }
     #[inline(always)]
-    pub fn thp_mode(&self) -> ThpMode { self.thp_mode }
+    pub fn thp_mode(&self) -> ThpMode {
+        self.thp_mode
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &HugePageStats { &self.stats }
+    pub fn stats(&self) -> &HugePageStats {
+        &self.stats
+    }
 }

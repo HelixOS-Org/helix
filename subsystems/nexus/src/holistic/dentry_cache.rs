@@ -138,7 +138,10 @@ impl HolisticDentryCache {
         } else {
             self.stats.positive_entries += 1;
         }
-        self.hash_index.entry(hash).or_insert_with(Vec::new).push(id);
+        self.hash_index
+            .entry(hash)
+            .or_insert_with(Vec::new)
+            .push(id);
         self.entries.insert(id, entry);
         self.stats.total_entries += 1;
         self.stats.allocated += 1;

@@ -52,7 +52,12 @@ pub struct CovEntry {
 
 impl CovEntry {
     pub fn new(pc: u64, ts: u64) -> Self {
-        Self { pc, hit_count: 1, first_hit_ts: ts, last_hit_ts: ts }
+        Self {
+            pc,
+            hit_count: 1,
+            first_hit_ts: ts,
+            last_hit_ts: ts,
+        }
     }
 
     #[inline(always)]
@@ -79,9 +84,14 @@ pub struct TaskCovBuffer {
 impl TaskCovBuffer {
     pub fn new(task_id: u64, max: usize, ts: u64) -> Self {
         Self {
-            task_id, mode: KcovMode::Disabled, pc_entries: Vec::new(),
-            cmp_entries: Vec::new(), max_entries: max, overflow_count: 0,
-            enabled: false, created_ts: ts,
+            task_id,
+            mode: KcovMode::Disabled,
+            pc_entries: Vec::new(),
+            cmp_entries: Vec::new(),
+            max_entries: max,
+            overflow_count: 0,
+            enabled: false,
+            created_ts: ts,
         }
     }
 
@@ -101,7 +111,9 @@ impl TaskCovBuffer {
 
     #[inline]
     pub fn record_pc(&mut self, pc: u64) {
-        if !self.enabled || self.mode != KcovMode::TracePC { return; }
+        if !self.enabled || self.mode != KcovMode::TracePC {
+            return;
+        }
         if self.pc_entries.len() >= self.max_entries {
             self.overflow_count += 1;
             return;
@@ -111,12 +123,20 @@ impl TaskCovBuffer {
 
     #[inline]
     pub fn record_cmp(&mut self, pc: u64, cmp_type: CmpType, arg1: u64, arg2: u64, is_const: bool) {
-        if !self.enabled || self.mode != KcovMode::TraceCmp { return; }
+        if !self.enabled || self.mode != KcovMode::TraceCmp {
+            return;
+        }
         if self.cmp_entries.len() >= self.max_entries {
             self.overflow_count += 1;
             return;
         }
-        self.cmp_entries.push(CmpRecord { pc, cmp_type, arg1, arg2, is_const });
+        self.cmp_entries.push(CmpRecord {
+            pc,
+            cmp_type,
+            arg1,
+            arg2,
+            is_const,
+        });
     }
 
     #[inline]
@@ -130,7 +150,9 @@ impl TaskCovBuffer {
 
     #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
-        if self.max_entries == 0 { return 0.0; }
+        if self.max_entries == 0 {
+            return 0.0;
+        }
         self.entry_count() as f64 / self.max_entries as f64
     }
 }
@@ -146,7 +168,11 @@ pub struct CoverageDatabase {
 
 impl CoverageDatabase {
     pub fn new() -> Self {
-        Self { entries: BTreeMap::new(), total_pcs_seen: 0, last_new_pc_ts: 0 }
+        Self {
+            entries: BTreeMap::new(),
+            total_pcs_seen: 0,
+            last_new_pc_ts: 0,
+        }
     }
 
     pub fn merge_buffer(&mut self, pcs: &[u64], ts: u64) -> u64 {
@@ -165,11 +191,14 @@ impl CoverageDatabase {
     }
 
     #[inline(always)]
-    pub fn unique_pcs(&self) -> usize { self.entries.len() }
+    pub fn unique_pcs(&self) -> usize {
+        self.entries.len()
+    }
 
     #[inline]
     pub fn hot_pcs(&self, min_hits: u32) -> Vec<u64> {
-        self.entries.iter()
+        self.entries
+            .iter()
             .filter(|(_, e)| e.hit_count >= min_hits)
             .map(|(&pc, _)| pc)
             .collect()
@@ -221,34 +250,53 @@ pub struct BridgeKcovBridge {
 impl BridgeKcovBridge {
     pub fn new() -> Self {
         Self {
-            buffers: BTreeMap::new(), database: CoverageDatabase::new(),
-            prev_unique: 0, stats: KcovBridgeStats::default(),
+            buffers: BTreeMap::new(),
+            database: CoverageDatabase::new(),
+            prev_unique: 0,
+            stats: KcovBridgeStats::default(),
         }
     }
 
     #[inline(always)]
     pub fn create_buffer(&mut self, task_id: u64, max_entries: usize, ts: u64) {
-        self.buffers.insert(task_id, TaskCovBuffer::new(task_id, max_entries, ts));
+        self.buffers
+            .insert(task_id, TaskCovBuffer::new(task_id, max_entries, ts));
     }
 
     #[inline(always)]
     pub fn enable(&mut self, task_id: u64, mode: KcovMode) {
-        if let Some(buf) = self.buffers.get_mut(&task_id) { buf.enable(mode); }
+        if let Some(buf) = self.buffers.get_mut(&task_id) {
+            buf.enable(mode);
+        }
     }
 
     #[inline(always)]
     pub fn disable(&mut self, task_id: u64) {
-        if let Some(buf) = self.buffers.get_mut(&task_id) { buf.disable(); }
+        if let Some(buf) = self.buffers.get_mut(&task_id) {
+            buf.disable();
+        }
     }
 
     #[inline(always)]
     pub fn record_pc(&mut self, task_id: u64, pc: u64) {
-        if let Some(buf) = self.buffers.get_mut(&task_id) { buf.record_pc(pc); }
+        if let Some(buf) = self.buffers.get_mut(&task_id) {
+            buf.record_pc(pc);
+        }
     }
 
     #[inline(always)]
-    pub fn record_cmp(&mut self, task_id: u64, pc: u64, cmp_type: CmpType, arg1: u64, arg2: u64, is_const: bool) {
-        if let Some(buf) = self.buffers.get_mut(&task_id) { buf.record_cmp(pc, cmp_type, arg1, arg2, is_const); }
+    pub fn record_cmp(
+        &mut self,
+        task_id: u64,
+        pc: u64,
+        cmp_type: CmpType,
+        arg1: u64,
+        arg2: u64,
+        is_const: bool,
+    ) {
+        if let Some(buf) = self.buffers.get_mut(&task_id) {
+            buf.record_cmp(pc, cmp_type, arg1, arg2, is_const);
+        }
     }
 
     #[inline]
@@ -257,7 +305,9 @@ impl BridgeKcovBridge {
             let pcs = buf.pc_entries.clone();
             buf.pc_entries.clear();
             self.database.merge_buffer(&pcs, ts)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     #[inline]
@@ -274,19 +324,30 @@ impl BridgeKcovBridge {
         self.stats.total_buffers = self.buffers.len();
         self.stats.unique_pcs = self.database.unique_pcs();
         self.stats.total_pcs_recorded = self.database.total_pcs_seen;
-        self.stats.total_cmps_recorded = self.buffers.values().map(|b| b.cmp_entries.len() as u64).sum();
+        self.stats.total_cmps_recorded = self
+            .buffers
+            .values()
+            .map(|b| b.cmp_entries.len() as u64)
+            .sum();
         self.stats.total_overflows = self.buffers.values().map(|b| b.overflow_count).sum();
         let current = self.database.unique_pcs();
         if self.prev_unique > 0 && current > self.prev_unique {
-            self.stats.coverage_growth_rate = (current - self.prev_unique) as f64 / self.prev_unique as f64;
+            self.stats.coverage_growth_rate =
+                (current - self.prev_unique) as f64 / self.prev_unique as f64;
         }
         self.prev_unique = current;
     }
 
     #[inline(always)]
-    pub fn database(&self) -> &CoverageDatabase { &self.database }
+    pub fn database(&self) -> &CoverageDatabase {
+        &self.database
+    }
     #[inline(always)]
-    pub fn buffer(&self, task_id: u64) -> Option<&TaskCovBuffer> { self.buffers.get(&task_id) }
+    pub fn buffer(&self, task_id: u64) -> Option<&TaskCovBuffer> {
+        self.buffers.get(&task_id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &KcovBridgeStats { &self.stats }
+    pub fn stats(&self) -> &KcovBridgeStats {
+        &self.stats
+    }
 }

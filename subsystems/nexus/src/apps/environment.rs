@@ -305,7 +305,8 @@ impl AppEnvironmentTracker {
     /// Register process
     #[inline(always)]
     pub fn register(&mut self, pid: u64, now: u64) {
-        self.processes.insert(pid, ProcessEnvironment::new(pid, now));
+        self.processes
+            .insert(pid, ProcessEnvironment::new(pid, now));
         self.update_stats();
     }
 
@@ -333,10 +334,12 @@ impl AppEnvironmentTracker {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.containerized_count = self.processes.values()
-            .filter(|p| p.namespaces.is_containerized()).count();
-        self.stats.drifted_count = self.processes.values()
-            .filter(|p| p.has_drifted()).count();
+        self.stats.containerized_count = self
+            .processes
+            .values()
+            .filter(|p| p.namespaces.is_containerized())
+            .count();
+        self.stats.drifted_count = self.processes.values().filter(|p| p.has_drifted()).count();
     }
 
     /// Stats

@@ -69,7 +69,10 @@ impl GroupMember {
 
     #[inline(always)]
     pub fn is_schedulable(&self) -> bool {
-        matches!(self.state, GroupMemberState::Ready | GroupMemberState::Yielded)
+        matches!(
+            self.state,
+            GroupMemberState::Ready | GroupMemberState::Yielded
+        )
     }
 }
 
@@ -106,7 +109,9 @@ impl SchedGroupV2 {
 
     #[inline]
     pub fn add_member(&mut self, member: GroupMember) -> bool {
-        if self.members.len() as u32 >= self.max_members { return false; }
+        if self.members.len() as u32 >= self.max_members {
+            return false;
+        }
         self.members.push(member);
         true
     }
@@ -123,20 +128,26 @@ impl SchedGroupV2 {
 
     #[inline(always)]
     pub fn all_ready(&self) -> bool {
-        self.members.iter().all(|m| m.is_schedulable() || m.state == GroupMemberState::Running)
+        self.members
+            .iter()
+            .all(|m| m.is_schedulable() || m.state == GroupMemberState::Running)
     }
 
     /// For gang scheduling: check if all members can be co-scheduled
     #[inline]
     pub fn can_gang_schedule(&self, available_cpus: u32) -> bool {
-        if self.policy != GroupSchedPolicyV2::Gang { return true; }
+        if self.policy != GroupSchedPolicyV2::Gang {
+            return true;
+        }
         let ready = self.ready_count();
         ready as u32 <= available_cpus
     }
 
     #[inline(always)]
     pub fn budget_remaining(&self) -> u64 {
-        if self.cpu_budget_ns == 0 { return u64::MAX; }
+        if self.cpu_budget_ns == 0 {
+            return u64::MAX;
+        }
         self.cpu_budget_ns.saturating_sub(self.budget_consumed_ns)
     }
 
@@ -161,28 +172,34 @@ impl SchedGroupV2 {
         match self.policy {
             GroupSchedPolicyV2::StrictPriority => {
                 // Highest weight first
-                self.members.iter()
+                self.members
+                    .iter()
                     .filter(|m| m.is_schedulable())
                     .max_by_key(|m| m.weight)
                     .map(|m| m.thread_id)
-            }
+            },
             GroupSchedPolicyV2::Proportional => {
                 // Least runtime relative to weight
-                self.members.iter()
+                self.members
+                    .iter()
                     .filter(|m| m.is_schedulable())
                     .min_by_key(|m| {
-                        if m.weight == 0 { u64::MAX }
-                        else { m.runtime_ns / m.weight as u64 }
+                        if m.weight == 0 {
+                            u64::MAX
+                        } else {
+                            m.runtime_ns / m.weight as u64
+                        }
                     })
                     .map(|m| m.thread_id)
-            }
+            },
             _ => {
                 // FIFO for others
-                self.members.iter()
+                self.members
+                    .iter()
                     .filter(|m| m.is_schedulable())
                     .next()
                     .map(|m| m.thread_id)
-            }
+            },
         }
     }
 }
@@ -233,7 +250,9 @@ impl CoopGroupSched {
     pub fn add_member(&mut self, group_id: u64, member: GroupMember) -> bool {
         let ok = if let Some(group) = self.groups.get_mut(&group_id) {
             group.add_member(member)
-        } else { false };
+        } else {
+            false
+        };
         self.recompute();
         ok
     }
@@ -271,7 +290,8 @@ impl CoopGroupSched {
 
     #[inline]
     pub fn throttled_groups(&self) -> Vec<u64> {
-        self.groups.values()
+        self.groups
+            .values()
             .filter(|g| g.is_throttled())
             .map(|g| g.group_id)
             .collect()
@@ -282,8 +302,11 @@ impl CoopGroupSched {
         self.stats.total_members = self.groups.values().map(|g| g.members.len()).sum();
         self.stats.total_runtime_ns = self.groups.values().map(|g| g.total_runtime_ns).sum();
         self.stats.throttled_groups = self.groups.values().filter(|g| g.is_throttled()).count();
-        self.stats.gang_groups = self.groups.values()
-            .filter(|g| g.policy == GroupSchedPolicyV2::Gang).count();
+        self.stats.gang_groups = self
+            .groups
+            .values()
+            .filter(|g| g.policy == GroupSchedPolicyV2::Gang)
+            .count();
     }
 
     #[inline(always)]

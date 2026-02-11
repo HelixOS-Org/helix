@@ -185,7 +185,12 @@ impl CategoryValidator {
         self.trend_weight = self.trend_weight.clamp(0.3, 2.0);
         self.recalibration_count += 1;
 
-        (old_conf, self.confidence_scale, old_trend, self.trend_weight)
+        (
+            old_conf,
+            self.confidence_scale,
+            old_trend,
+            self.trend_weight,
+        )
     }
 }
 
@@ -278,11 +283,7 @@ impl AppsPredictionValidator {
             self.streak_correct = 0;
         }
 
-        let id_bytes = [
-            &process_id.to_le_bytes()[..],
-            &tick.to_le_bytes()[..],
-        ]
-        .concat();
+        let id_bytes = [&process_id.to_le_bytes()[..], &tick.to_le_bytes()[..]].concat();
         let record_id = fnv1a_hash(&id_bytes);
 
         let record = ValidationRecord {
@@ -307,16 +308,15 @@ impl AppsPredictionValidator {
         }
 
         let cat_key = category as u8;
-        let validator = self.category_validators
+        let validator = self
+            .category_validators
             .entry(cat_key)
             .or_insert_with(CategoryValidator::new);
         validator.record(pct_error, bias, direction_correct);
         let needs_recal = validator.needs_recalibration();
 
-        self.overall_mape_ema =
-            EMA_ALPHA * pct_error + (1.0 - EMA_ALPHA) * self.overall_mape_ema;
-        self.overall_bias_ema =
-            EMA_ALPHA * bias + (1.0 - EMA_ALPHA) * self.overall_bias_ema;
+        self.overall_mape_ema = EMA_ALPHA * pct_error + (1.0 - EMA_ALPHA) * self.overall_mape_ema;
+        self.overall_bias_ema = EMA_ALPHA * bias + (1.0 - EMA_ALPHA) * self.overall_bias_ema;
         let dir_val = if direction_correct { 1.0 } else { 0.0 };
         self.overall_directional_ema =
             EMA_ALPHA * dir_val + (1.0 - EMA_ALPHA) * self.overall_directional_ema;
@@ -452,8 +452,7 @@ impl AppsPredictionValidator {
 
         for key in keys {
             if let Some(v) = self.category_validators.get_mut(&key) {
-                if v.needs_recalibration()
-                    && (v.recalibration_count as usize) < MAX_RECALIBRATIONS
+                if v.needs_recalibration() && (v.recalibration_count as usize) < MAX_RECALIBRATIONS
                 {
                     let (old_conf, new_conf, old_trend, new_trend) = v.recalibrate();
                     self.recalibrations += 1;

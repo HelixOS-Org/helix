@@ -3,9 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// KSM page state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,7 +29,13 @@ pub struct KsmPage {
 
 impl KsmPage {
     pub fn new(pfn: u64, hash: u64) -> Self {
-        Self { pfn, hash, state: KsmPageState::Unscanned, merge_count: 0, scan_count: 0 }
+        Self {
+            pfn,
+            hash,
+            state: KsmPageState::Unscanned,
+            merge_count: 0,
+            scan_count: 0,
+        }
     }
 }
 
@@ -62,10 +69,19 @@ pub struct HolisticKsmMgr {
 }
 
 impl HolisticKsmMgr {
-    pub fn new(page_size: u64) -> Self { Self { pages: Vec::new(), stable_tree: BTreeMap::new(), full_scans: 0, page_size } }
+    pub fn new(page_size: u64) -> Self {
+        Self {
+            pages: Vec::new(),
+            stable_tree: BTreeMap::new(),
+            full_scans: 0,
+            page_size,
+        }
+    }
 
     #[inline(always)]
-    pub fn register_page(&mut self, pfn: u64, hash: u64) { self.pages.push(KsmPage::new(pfn, hash)); }
+    pub fn register_page(&mut self, pfn: u64, hash: u64) {
+        self.pages.push(KsmPage::new(pfn, hash));
+    }
 
     pub fn scan(&mut self) {
         self.full_scans += 1;
@@ -81,13 +97,21 @@ impl HolisticKsmMgr {
         }
         // promote unstable to stable
         let mut hash_counts: LinearMap<u32, 64> = LinearMap::new();
-        for p in self.pages.iter().filter(|p| p.state == KsmPageState::Unstable) {
+        for p in self
+            .pages
+            .iter()
+            .filter(|p| p.state == KsmPageState::Unstable)
+        {
             *hash_counts.entry(p.hash).or_insert(0) += 1;
         }
         for (hash, count) in &hash_counts {
             if count >= 2 && !self.stable_tree.contains_key(&hash) {
                 if let Some(base) = self.pages.iter().find(|p| p.hash == hash) {
-                    self.stable_tree.insert(hash, StableNode { hash, base_pfn: base.pfn, merged_count: count });
+                    self.stable_tree.insert(hash, StableNode {
+                        hash,
+                        base_pfn: base.pfn,
+                        merged_count: count,
+                    });
                 }
             }
         }
@@ -95,10 +119,26 @@ impl HolisticKsmMgr {
 
     #[inline]
     pub fn stats(&self) -> KsmMgrStats {
-        let sharing: u64 = self.stable_tree.values().map(|n| n.merged_count as u64).sum();
+        let sharing: u64 = self
+            .stable_tree
+            .values()
+            .map(|n| n.merged_count as u64)
+            .sum();
         let shared = self.stable_tree.len() as u64;
-        let unshared = self.pages.iter().filter(|p| p.state == KsmPageState::Unstable).count() as u32;
+        let unshared = self
+            .pages
+            .iter()
+            .filter(|p| p.state == KsmPageState::Unstable)
+            .count() as u32;
         let saved = sharing.saturating_sub(shared) * self.page_size;
-        KsmMgrStats { total_pages: self.pages.len() as u32, stable_nodes: self.stable_tree.len() as u32, pages_shared: shared, pages_sharing: sharing, pages_unshared: unshared, full_scans: self.full_scans, bytes_saved: saved }
+        KsmMgrStats {
+            total_pages: self.pages.len() as u32,
+            stable_nodes: self.stable_tree.len() as u32,
+            pages_shared: shared,
+            pages_sharing: sharing,
+            pages_unshared: unshared,
+            full_scans: self.full_scans,
+            bytes_saved: saved,
+        }
     }
 }

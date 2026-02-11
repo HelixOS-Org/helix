@@ -3,11 +3,11 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Core dump format
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,13 +45,21 @@ pub struct CoreMemRegion {
 
 impl CoreMemRegion {
     #[inline(always)]
-    pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
+    pub fn size(&self) -> u64 {
+        self.end.saturating_sub(self.start)
+    }
     #[inline(always)]
-    pub fn is_readable(&self) -> bool { self.permissions & 0x4 != 0 }
+    pub fn is_readable(&self) -> bool {
+        self.permissions & 0x4 != 0
+    }
     #[inline(always)]
-    pub fn is_writable(&self) -> bool { self.permissions & 0x2 != 0 }
+    pub fn is_writable(&self) -> bool {
+        self.permissions & 0x2 != 0
+    }
     #[inline(always)]
-    pub fn is_executable(&self) -> bool { self.permissions & 0x1 != 0 }
+    pub fn is_executable(&self) -> bool {
+        self.permissions & 0x1 != 0
+    }
 }
 
 /// Register state snapshot
@@ -81,9 +89,13 @@ impl CoreFilter {
     pub const DAX_PRIVATE: Self = Self(0x80);
 
     #[inline(always)]
-    pub fn default_filter() -> Self { Self(0x33) }
+    pub fn default_filter() -> Self {
+        Self(0x33)
+    }
     #[inline(always)]
-    pub fn contains(&self, other: Self) -> bool { self.0 & other.0 != 0 }
+    pub fn contains(&self, other: Self) -> bool {
+        self.0 & other.0 != 0
+    }
 }
 
 /// Core dump state
@@ -121,22 +133,39 @@ pub struct CoreDumpEntry {
 impl CoreDumpEntry {
     pub fn new(id: u64, pid: u32, tid: u32, signal: CoreSignal, now: u64) -> Self {
         Self {
-            id, pid, tid, signal, format: CoreFormat::Elf,
-            state: CoreDumpState::Pending, filter: CoreFilter::default_filter(),
+            id,
+            pid,
+            tid,
+            signal,
+            format: CoreFormat::Elf,
+            state: CoreDumpState::Pending,
+            filter: CoreFilter::default_filter(),
             regions: Vec::new(),
             registers: RegisterSnapshot {
-                gpr: [0u64; 16], rip: 0, rflags: 0,
-                cs: 0, ss: 0, fs_base: 0, gs_base: 0,
+                gpr: [0u64; 16],
+                rip: 0,
+                rflags: 0,
+                cs: 0,
+                ss: 0,
+                fs_base: 0,
+                gs_base: 0,
             },
-            dump_size: 0, max_size: 2 * 1024 * 1024 * 1024,
-            start_time: now, end_time: 0,
-            path: String::new(), thread_count: 1,
+            dump_size: 0,
+            max_size: 2 * 1024 * 1024 * 1024,
+            start_time: now,
+            end_time: 0,
+            path: String::new(),
+            thread_count: 1,
         }
     }
 
     #[inline(always)]
     pub fn total_region_size(&self) -> u64 {
-        self.regions.iter().filter(|r| r.included).map(|r| r.size()).sum()
+        self.regions
+            .iter()
+            .filter(|r| r.included)
+            .map(|r| r.size())
+            .sum()
     }
 
     #[inline(always)]
@@ -146,7 +175,11 @@ impl CoreDumpEntry {
 
     #[inline(always)]
     pub fn duration(&self) -> u64 {
-        if self.end_time > 0 { self.end_time - self.start_time } else { 0 }
+        if self.end_time > 0 {
+            self.end_time - self.start_time
+        } else {
+            0
+        }
     }
 }
 
@@ -190,13 +223,18 @@ impl AppCoredumpMgr {
             active_dumps: BTreeMap::new(),
             completed: VecDeque::new(),
             max_completed_history: max_history,
-            next_id: 1, default_filter: CoreFilter::default_filter(),
+            next_id: 1,
+            default_filter: CoreFilter::default_filter(),
             default_format: CoreFormat::Elf,
             core_size_limit: 2 * 1024 * 1024 * 1024,
             pipe_handler: None,
             stats: CoredumpMgrStats {
-                total_dumps: 0, completed: 0, failed: 0, truncated: 0,
-                total_bytes_written: 0, signal_counts: ArrayMap::new(0),
+                total_dumps: 0,
+                completed: 0,
+                failed: 0,
+                truncated: 0,
+                total_bytes_written: 0,
+                signal_counts: ArrayMap::new(0),
             },
         }
     }
@@ -269,11 +307,17 @@ impl AppCoredumpMgr {
     }
 
     #[inline(always)]
-    pub fn set_size_limit(&mut self, limit: u64) { self.core_size_limit = limit; }
+    pub fn set_size_limit(&mut self, limit: u64) {
+        self.core_size_limit = limit;
+    }
 
     #[inline(always)]
-    pub fn active_count(&self) -> usize { self.active_dumps.len() }
+    pub fn active_count(&self) -> usize {
+        self.active_dumps.len()
+    }
 
     #[inline(always)]
-    pub fn stats(&self) -> &CoredumpMgrStats { &self.stats }
+    pub fn stats(&self) -> &CoredumpMgrStats {
+        &self.stats
+    }
 }

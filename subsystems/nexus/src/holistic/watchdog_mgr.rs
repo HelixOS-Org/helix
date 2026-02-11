@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Lockup type
@@ -105,7 +104,9 @@ impl CpuWatchdog {
             self.hard_lockup_count += 1;
             self.state = WatchdogState::Triggered;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }
 
@@ -193,7 +194,8 @@ impl HolisticWatchdogMgr {
 
     #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32, threshold_ns: u64) {
-        self.cpu_watchdogs.entry(cpu_id)
+        self.cpu_watchdogs
+            .entry(cpu_id)
             .or_insert_with(|| CpuWatchdog::new(cpu_id, threshold_ns));
     }
 
@@ -212,7 +214,9 @@ impl HolisticWatchdogMgr {
         for cpu_id in cpu_ids {
             let soft = if let Some(wd) = self.cpu_watchdogs.get_mut(&cpu_id) {
                 wd.check_soft(now_ns)
-            } else { false };
+            } else {
+                false
+            };
 
             if soft {
                 let action = WatchdogRecoveryAction::LogWarning;
@@ -223,7 +227,10 @@ impl HolisticWatchdogMgr {
                     task_id: self.cpu_watchdogs.get(&cpu_id).map(|w| w.current_task_id),
                     action_taken: action,
                     duration_ns: now_ns.saturating_sub(
-                        self.cpu_watchdogs.get(&cpu_id).map(|w| w.last_touch_ns).unwrap_or(0)
+                        self.cpu_watchdogs
+                            .get(&cpu_id)
+                            .map(|w| w.last_touch_ns)
+                            .unwrap_or(0),
                     ),
                 });
             }
@@ -262,7 +269,8 @@ impl HolisticWatchdogMgr {
 
     #[inline]
     pub fn report_hung_task(&mut self, task_id: u64, in_kernel_ns: u64, now_ns: u64) {
-        self.hung_tasks.entry(task_id)
+        self.hung_tasks
+            .entry(task_id)
             .or_insert_with(|| HungTaskEntry::new(task_id, in_kernel_ns, now_ns))
             .in_kernel_ns = in_kernel_ns;
     }
@@ -282,25 +290,44 @@ impl HolisticWatchdogMgr {
 
     fn recompute(&mut self) {
         self.stats.total_cpus = self.cpu_watchdogs.len();
-        self.stats.cpus_normal = self.cpu_watchdogs.values()
-            .filter(|w| w.state == WatchdogState::Normal).count();
-        self.stats.cpus_warning = self.cpu_watchdogs.values()
-            .filter(|w| w.state == WatchdogState::Warning).count();
-        self.stats.cpus_triggered = self.cpu_watchdogs.values()
-            .filter(|w| w.state == WatchdogState::Triggered).count();
-        self.stats.total_soft_lockups = self.cpu_watchdogs.values()
-            .map(|w| w.soft_lockup_count).sum();
-        self.stats.total_hard_lockups = self.cpu_watchdogs.values()
-            .map(|w| w.hard_lockup_count).sum();
+        self.stats.cpus_normal = self
+            .cpu_watchdogs
+            .values()
+            .filter(|w| w.state == WatchdogState::Normal)
+            .count();
+        self.stats.cpus_warning = self
+            .cpu_watchdogs
+            .values()
+            .filter(|w| w.state == WatchdogState::Warning)
+            .count();
+        self.stats.cpus_triggered = self
+            .cpu_watchdogs
+            .values()
+            .filter(|w| w.state == WatchdogState::Triggered)
+            .count();
+        self.stats.total_soft_lockups = self
+            .cpu_watchdogs
+            .values()
+            .map(|w| w.soft_lockup_count)
+            .sum();
+        self.stats.total_hard_lockups = self
+            .cpu_watchdogs
+            .values()
+            .map(|w| w.hard_lockup_count)
+            .sum();
         self.stats.hung_tasks = self.hung_tasks.len();
         self.stats.rcu_stalls = self.rcu_stalls.len();
         self.stats.total_events = self.events.len();
     }
 
     #[inline(always)]
-    pub fn cpu_watchdog(&self, id: u32) -> Option<&CpuWatchdog> { self.cpu_watchdogs.get(&id) }
+    pub fn cpu_watchdog(&self, id: u32) -> Option<&CpuWatchdog> {
+        self.cpu_watchdogs.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &HolisticWatchdogMgrStats { &self.stats }
+    pub fn stats(&self) -> &HolisticWatchdogMgrStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -341,17 +368,37 @@ pub struct WatchdogV2 {
 
 impl WatchdogV2 {
     pub fn new(id: u64, wt: WatchdogV2Type, timeout_ms: u64) -> Self {
-        Self { id, wd_type: wt, state: WatchdogV2State::Active, timeout_ms, last_ping: 0, ping_count: 0, expire_count: 0, cpu_id: None, pretimeout_ms: timeout_ms / 2 }
+        Self {
+            id,
+            wd_type: wt,
+            state: WatchdogV2State::Active,
+            timeout_ms,
+            last_ping: 0,
+            ping_count: 0,
+            expire_count: 0,
+            cpu_id: None,
+            pretimeout_ms: timeout_ms / 2,
+        }
     }
 
     #[inline(always)]
-    pub fn ping(&mut self, now: u64) { self.last_ping = now; self.ping_count += 1; }
+    pub fn ping(&mut self, now: u64) {
+        self.last_ping = now;
+        self.ping_count += 1;
+    }
 
     #[inline]
     pub fn check(&mut self, now: u64) -> bool {
-        if self.state != WatchdogV2State::Active { return false; }
-        if now - self.last_ping > self.timeout_ms { self.state = WatchdogV2State::Expired; self.expire_count += 1; true }
-        else { false }
+        if self.state != WatchdogV2State::Active {
+            return false;
+        }
+        if now - self.last_ping > self.timeout_ms {
+            self.state = WatchdogV2State::Expired;
+            self.expire_count += 1;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -378,33 +425,60 @@ pub struct HolisticWatchdogMgrV2 {
 }
 
 impl HolisticWatchdogMgrV2 {
-    pub fn new() -> Self { Self { watchdogs: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            watchdogs: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, wt: WatchdogV2Type, timeout_ms: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.watchdogs.insert(id, WatchdogV2::new(id, wt, timeout_ms));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.watchdogs
+            .insert(id, WatchdogV2::new(id, wt, timeout_ms));
         id
     }
 
     #[inline(always)]
     pub fn ping(&mut self, id: u64, now: u64) {
-        if let Some(w) = self.watchdogs.get_mut(&id) { w.ping(now); }
+        if let Some(w) = self.watchdogs.get_mut(&id) {
+            w.ping(now);
+        }
     }
 
     #[inline]
     pub fn check_all(&mut self, now: u64) -> u32 {
         let mut expired = 0u32;
-        for w in self.watchdogs.values_mut() { if w.check(now) { expired += 1; } }
+        for w in self.watchdogs.values_mut() {
+            if w.check(now) {
+                expired += 1;
+            }
+        }
         expired
     }
 
     #[inline]
     pub fn stats(&self) -> WatchdogV2MgrStats {
-        let active = self.watchdogs.values().filter(|w| w.state == WatchdogV2State::Active).count() as u32;
-        let expired = self.watchdogs.values().filter(|w| w.state == WatchdogV2State::Expired).count() as u32;
+        let active = self
+            .watchdogs
+            .values()
+            .filter(|w| w.state == WatchdogV2State::Active)
+            .count() as u32;
+        let expired = self
+            .watchdogs
+            .values()
+            .filter(|w| w.state == WatchdogV2State::Expired)
+            .count() as u32;
         let pings: u64 = self.watchdogs.values().map(|w| w.ping_count).sum();
         let expires: u64 = self.watchdogs.values().map(|w| w.expire_count).sum();
-        WatchdogV2MgrStats { total_watchdogs: self.watchdogs.len() as u32, active, expired, total_pings: pings, total_expires: expires }
+        WatchdogV2MgrStats {
+            total_watchdogs: self.watchdogs.len() as u32,
+            active,
+            expired,
+            total_pings: pings,
+            total_expires: expires,
+        }
     }
 }

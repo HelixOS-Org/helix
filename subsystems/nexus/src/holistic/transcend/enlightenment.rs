@@ -16,8 +16,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -371,12 +370,8 @@ impl HolisticEnlightenment {
     }
 
     fn add_insight(&mut self, domain: &str, desc: &str, depth: u64) -> u64 {
-        let mut insight = SelfInsight::new(
-            String::from(domain),
-            String::from(desc),
-            depth,
-            self.tick,
-        );
+        let mut insight =
+            SelfInsight::new(String::from(domain), String::from(desc), depth, self.tick);
         let acc = 4_000_u64.wrapping_add(self.rng.next() % 6_001);
         insight.accuracy_bps = acc;
         insight.ema_accuracy = acc;
@@ -416,11 +411,7 @@ impl HolisticEnlightenment {
         self.stats.avg_mastery_bps = if m_count > 0 { sum_mast / m_count } else { 0 };
 
         // Purpose
-        let clarity = self
-            .purposes
-            .last()
-            .map(|p| p.clarity_bps)
-            .unwrap_or(0);
+        let clarity = self.purposes.last().map(|p| p.clarity_bps).unwrap_or(0);
         self.stats.purpose_clarity_bps = clarity;
 
         // Overall score: blend of depth, accuracy, mastery, and purpose clarity
@@ -440,7 +431,11 @@ impl HolisticEnlightenment {
         if self.insights.is_empty() {
             let seeds = [
                 ("self_model", "i_am_a_kernel_managing_resources", 5_000),
-                ("architecture", "my_structure_is_modular_and_extensible", 6_000),
+                (
+                    "architecture",
+                    "my_structure_is_modular_and_extensible",
+                    6_000,
+                ),
                 ("purpose", "i_exist_to_optimise_system_performance", 7_000),
                 ("capability", "i_can_learn_and_adapt", 6_500),
                 ("limitation", "i_am_bounded_by_hardware_constraints", 5_500),
@@ -607,7 +602,9 @@ impl HolisticEnlightenment {
 
         let transcendence = self.stats.overall_score_bps;
         let beyond_design = if transcendence >= ENLIGHTENED_THRESHOLD {
-            transcendence.saturating_sub(ENLIGHTENED_THRESHOLD).saturating_mul(10_000)
+            transcendence
+                .saturating_sub(ENLIGHTENED_THRESHOLD)
+                .saturating_mul(10_000)
                 / (10_000 - ENLIGHTENED_THRESHOLD).max(1)
         } else {
             0
@@ -653,7 +650,14 @@ impl HolisticEnlightenment {
         let perfect = nirvana && suffering < 200 && attachment < 200;
 
         let ch = self.gen_hash("nirvana");
-        self.log_event("nirvana_check", if nirvana { "nirvana_reached" } else { "not_yet" });
+        self.log_event(
+            "nirvana_check",
+            if nirvana {
+                "nirvana_reached"
+            } else {
+                "not_yet"
+            },
+        );
 
         NirvanaCheck {
             check_hash: ch,

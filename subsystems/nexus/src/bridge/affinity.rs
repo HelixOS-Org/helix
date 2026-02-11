@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// CPU affinity class
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -161,7 +162,8 @@ impl ProcessAffinityProfile {
     /// Home CPU (most time spent)
     #[inline]
     pub fn home_cpu(&self) -> Option<u32> {
-        self.residence.iter()
+        self.residence
+            .iter()
             .max_by_key(|(_, v)| *v)
             .map(|(k, _)| k as u32)
     }
@@ -216,14 +218,17 @@ impl BridgeAffinityTracker {
     /// Get preferred CPU for syscall
     #[inline(always)]
     pub fn preferred_cpu(&self, syscall_nr: u32) -> Option<u32> {
-        self.syscall_affinity.get(&syscall_nr)
+        self.syscall_affinity
+            .get(&syscall_nr)
             .and_then(|a| a.preferred_cpu)
     }
 
     /// Top concentrated syscalls
     #[inline]
     pub fn most_concentrated(&self, n: usize) -> Vec<(u32, f64)> {
-        let mut entries: Vec<(u32, f64)> = self.syscall_affinity.iter()
+        let mut entries: Vec<(u32, f64)> = self
+            .syscall_affinity
+            .iter()
             .map(|(&nr, a)| (nr, a.concentration()))
             .collect();
         entries.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
@@ -234,13 +239,14 @@ impl BridgeAffinityTracker {
     fn update_stats(&mut self) {
         self.stats.tracked_syscalls = self.syscall_affinity.len();
         self.stats.tracked_processes = self.process_profiles.len();
-        self.stats.total_migrations = self.process_profiles.values()
-            .map(|p| p.migrations)
-            .sum();
+        self.stats.total_migrations = self.process_profiles.values().map(|p| p.migrations).sum();
         if !self.syscall_affinity.is_empty() {
-            self.stats.avg_concentration = self.syscall_affinity.values()
+            self.stats.avg_concentration = self
+                .syscall_affinity
+                .values()
                 .map(|a| a.concentration())
-                .sum::<f64>() / self.syscall_affinity.len() as f64;
+                .sum::<f64>()
+                / self.syscall_affinity.len() as f64;
         }
     }
 

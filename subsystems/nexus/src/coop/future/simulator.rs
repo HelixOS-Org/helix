@@ -7,10 +7,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// FNV-1a hash for deterministic key derivation.
 fn fnv1a_hash(data: &[u8]) -> u64 {

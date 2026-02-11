@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Thread priority
@@ -32,11 +31,23 @@ pub struct PiMutex {
 }
 
 impl PiMutex {
-    pub fn new(id: u64) -> Self { Self { id, owner: None, waiters: VecDeque::new(), boost_count: 0, acquisitions: 0 } }
+    pub fn new(id: u64) -> Self {
+        Self {
+            id,
+            owner: None,
+            waiters: VecDeque::new(),
+            boost_count: 0,
+            acquisitions: 0,
+        }
+    }
 
     #[inline]
     pub fn lock(&mut self, tid: u64, prio: ThreadPriority) -> bool {
-        if self.owner.is_none() { self.owner = Some(tid); self.acquisitions += 1; return true; }
+        if self.owner.is_none() {
+            self.owner = Some(tid);
+            self.acquisitions += 1;
+            return true;
+        }
         self.waiters.push_back((tid, prio));
         self.waiters.make_contiguous().sort_by(|a, b| b.1.cmp(&a.1));
         false
@@ -50,7 +61,9 @@ impl PiMutex {
             self.owner = Some(tid);
             self.acquisitions += 1;
             Some(tid)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
@@ -78,24 +91,41 @@ pub struct CoopPriorityInherit {
 }
 
 impl CoopPriorityInherit {
-    pub fn new() -> Self { Self { mutexes: BTreeMap::new(), chains: Vec::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            mutexes: BTreeMap::new(),
+            chains: Vec::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create_mutex(&mut self) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.mutexes.insert(id, PiMutex::new(id));
         id
     }
 
     #[inline(always)]
     pub fn lock(&mut self, mutex_id: u64, tid: u64, prio: ThreadPriority) -> bool {
-        if let Some(m) = self.mutexes.get_mut(&mutex_id) { m.lock(tid, prio) } else { false }
+        if let Some(m) = self.mutexes.get_mut(&mutex_id) {
+            m.lock(tid, prio)
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> PriorityInheritStats {
         let boosts: u64 = self.mutexes.values().map(|m| m.boost_count).sum();
         let acqs: u64 = self.mutexes.values().map(|m| m.acquisitions).sum();
-        PriorityInheritStats { total_mutexes: self.mutexes.len() as u32, active_chains: self.chains.len() as u32, total_boosts: boosts, max_chain_depth: 0, total_acquisitions: acqs }
+        PriorityInheritStats {
+            total_mutexes: self.mutexes.len() as u32,
+            active_chains: self.chains.len() as u32,
+            total_boosts: boosts,
+            max_chain_depth: 0,
+            total_acquisitions: acqs,
+        }
     }
 }

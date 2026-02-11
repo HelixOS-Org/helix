@@ -6,8 +6,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -153,7 +152,10 @@ impl AppChdir {
     ) -> u64 {
         let id = self.next_record_id;
         self.next_record_id += 1;
-        let state = self.processes.entry(pid).or_insert_with(|| ProcessCwdState::new(pid));
+        let state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessCwdState::new(pid));
         let mut rec = ChdirRecord::new(id, pid, variant, target.clone());
         rec.old_cwd = state.current_cwd.clone();
         rec.result = result;

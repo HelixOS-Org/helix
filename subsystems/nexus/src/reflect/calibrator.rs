@@ -3,8 +3,8 @@
 //! The calibrator tracks prediction accuracy and decision outcomes
 //! to identify systematic biases and recommend adjustments.
 
-use alloc::string::String;
 use alloc::collections::VecDeque;
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 

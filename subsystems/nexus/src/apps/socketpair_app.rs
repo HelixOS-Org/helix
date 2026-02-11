@@ -2,8 +2,9 @@
 //! NEXUS Apps — Socketpair (bidirectional socket pairs)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+
+use crate::fast::linear_map::LinearMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SocketpairDomain {
@@ -43,13 +44,26 @@ pub struct SocketpairInstance {
 }
 
 impl SocketpairInstance {
-    pub fn new(id: u64, fd_a: u64, fd_b: u64, domain: SocketpairDomain, pair_type: SocketpairType) -> Self {
+    pub fn new(
+        id: u64,
+        fd_a: u64,
+        fd_b: u64,
+        domain: SocketpairDomain,
+        pair_type: SocketpairType,
+    ) -> Self {
         Self {
-            id, fd_a, fd_b, domain, pair_type,
+            id,
+            fd_a,
+            fd_b,
+            domain,
+            pair_type,
             state: SocketpairState::Active,
-            nonblocking: false, cloexec: false,
-            bytes_a_to_b: 0, bytes_b_to_a: 0,
-            msgs_a_to_b: 0, msgs_b_to_a: 0,
+            nonblocking: false,
+            cloexec: false,
+            bytes_a_to_b: 0,
+            bytes_b_to_a: 0,
+            msgs_a_to_b: 0,
+            msgs_b_to_a: 0,
             buf_size: 65536,
         }
     }
@@ -72,20 +86,28 @@ impl SocketpairInstance {
             match self.state {
                 SocketpairState::Active => self.state = SocketpairState::HalfClosed,
                 SocketpairState::HalfClosed => self.state = SocketpairState::FullyClosed,
-                _ => {}
+                _ => {},
             }
         }
     }
 
     #[inline(always)]
-    pub fn total_bytes(&self) -> u64 { self.bytes_a_to_b + self.bytes_b_to_a }
+    pub fn total_bytes(&self) -> u64 {
+        self.bytes_a_to_b + self.bytes_b_to_a
+    }
     #[inline(always)]
-    pub fn total_msgs(&self) -> u64 { self.msgs_a_to_b + self.msgs_b_to_a }
+    pub fn total_msgs(&self) -> u64 {
+        self.msgs_a_to_b + self.msgs_b_to_a
+    }
 
     #[inline(always)]
     pub fn direction_ratio(&self) -> u64 {
         let total = self.total_bytes();
-        if total == 0 { 50 } else { (self.bytes_a_to_b * 100) / total }
+        if total == 0 {
+            50
+        } else {
+            (self.bytes_a_to_b * 100) / total
+        }
     }
 }
 
@@ -112,14 +134,22 @@ impl AppSocketpair {
             fd_to_pair: LinearMap::new(),
             next_id: 1,
             stats: SocketpairAppStats {
-                total_pairs: 0, active_pairs: 0,
-                total_bytes: 0, total_msgs: 0,
+                total_pairs: 0,
+                active_pairs: 0,
+                total_bytes: 0,
+                total_msgs: 0,
             },
         }
     }
 
     #[inline]
-    pub fn create_pair(&mut self, fd_a: u64, fd_b: u64, domain: SocketpairDomain, pair_type: SocketpairType) -> u64 {
+    pub fn create_pair(
+        &mut self,
+        fd_a: u64,
+        fd_b: u64,
+        domain: SocketpairDomain,
+        pair_type: SocketpairType,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let inst = SocketpairInstance::new(id, fd_a, fd_b, domain, pair_type);
@@ -144,5 +174,7 @@ impl AppSocketpair {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &SocketpairAppStats { &self.stats }
+    pub fn stats(&self) -> &SocketpairAppStats {
+        &self.stats
+    }
 }

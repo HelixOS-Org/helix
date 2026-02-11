@@ -69,7 +69,11 @@ impl CoopForkManager {
     }
 
     pub fn cooperative_fork(&mut self, parent: u64, child: u64, pages: u64) {
-        let strategy = self.strategy_override.get(&parent).cloned().unwrap_or(CoopForkStrategy::Lazy);
+        let strategy = self
+            .strategy_override
+            .get(&parent)
+            .cloned()
+            .unwrap_or(CoopForkStrategy::Lazy);
         let record = CoopForkRecord {
             parent,
             child,
@@ -84,13 +88,16 @@ impl CoopForkManager {
             },
         };
         self.records.push(record);
-        self.parent_map.entry(parent).or_insert_with(Vec::new).push(child);
+        self.parent_map
+            .entry(parent)
+            .or_insert_with(Vec::new)
+            .push(child);
         self.stats.total_forks += 1;
         match strategy {
             CoopForkStrategy::Eager => self.stats.eager_forks += 1,
             CoopForkStrategy::Lazy => self.stats.lazy_forks += 1,
             CoopForkStrategy::Batched => self.stats.batched_forks += 1,
-            _ => {}
+            _ => {},
         }
     }
 

@@ -51,15 +51,22 @@ impl ZoneWatermarks {
         let high = low + min / 2;
         let prealloc = high + min / 4;
         Self {
-            min_pages: min, low_pages: low, high_pages: high,
-            preallocate_pages: prealloc, boost_pages: 0,
+            min_pages: min,
+            low_pages: low,
+            high_pages: high,
+            preallocate_pages: prealloc,
+            boost_pages: 0,
         }
     }
 
     #[inline(always)]
-    pub fn boosted_min(&self) -> u64 { self.min_pages + self.boost_pages }
+    pub fn boosted_min(&self) -> u64 {
+        self.min_pages + self.boost_pages
+    }
     #[inline(always)]
-    pub fn boosted_low(&self) -> u64 { self.low_pages + self.boost_pages }
+    pub fn boosted_low(&self) -> u64 {
+        self.low_pages + self.boost_pages
+    }
 }
 
 /// Memory zone state
@@ -85,21 +92,34 @@ impl MemZone {
         let managed = total_pages;
         let wm = ZoneWatermarks::calculate(total_pages, managed);
         Self {
-            zone_type, node_id, total_pages, managed_pages: managed,
-            free_pages: total_pages, reserved_pages: 0, watermarks: wm,
-            kswapd_active: false, direct_reclaim_count: 0,
-            kswapd_wake_count: 0, alloc_stall_count: 0,
-            fragmentation_index: 0.0, last_boost_ts: 0,
+            zone_type,
+            node_id,
+            total_pages,
+            managed_pages: managed,
+            free_pages: total_pages,
+            reserved_pages: 0,
+            watermarks: wm,
+            kswapd_active: false,
+            direct_reclaim_count: 0,
+            kswapd_wake_count: 0,
+            alloc_stall_count: 0,
+            fragmentation_index: 0.0,
+            last_boost_ts: 0,
         }
     }
 
     #[inline]
     pub fn current_level(&self) -> WatermarkLevel {
         let free = self.free_pages;
-        if free <= self.watermarks.boosted_min() { WatermarkLevel::Min }
-        else if free <= self.watermarks.boosted_low() { WatermarkLevel::Low }
-        else if free <= self.watermarks.high_pages { WatermarkLevel::High }
-        else { WatermarkLevel::Preallocate }
+        if free <= self.watermarks.boosted_min() {
+            WatermarkLevel::Min
+        } else if free <= self.watermarks.boosted_low() {
+            WatermarkLevel::Low
+        } else if free <= self.watermarks.high_pages {
+            WatermarkLevel::High
+        } else {
+            WatermarkLevel::Preallocate
+        }
     }
 
     #[inline(always)]
@@ -114,7 +134,11 @@ impl MemZone {
 
     #[inline(always)]
     pub fn free_ratio(&self) -> f64 {
-        if self.managed_pages == 0 { 0.0 } else { self.free_pages as f64 / self.managed_pages as f64 }
+        if self.managed_pages == 0 {
+            0.0
+        } else {
+            self.free_pages as f64 / self.managed_pages as f64
+        }
     }
 
     pub fn alloc_pages(&mut self, count: u64) -> bool {
@@ -169,7 +193,12 @@ pub struct OrderWatermark {
 impl OrderWatermark {
     pub fn new(order: u8, zone_managed: u64) -> Self {
         let base = zone_managed >> (order as u32 + 4);
-        Self { order, min_free_pages: base.max(1), current_free: 0, compaction_needed: false }
+        Self {
+            order,
+            min_free_pages: base.max(1),
+            current_free: 0,
+            compaction_needed: false,
+        }
     }
 
     #[inline(always)]
@@ -206,9 +235,11 @@ pub struct HolisticMemWatermark {
 impl HolisticMemWatermark {
     pub fn new(min_free_kb: u64) -> Self {
         Self {
-            zones: BTreeMap::new(), order_watermarks: BTreeMap::new(),
+            zones: BTreeMap::new(),
+            order_watermarks: BTreeMap::new(),
             stats: WatermarkStats::default(),
-            vm_min_free_kbytes: min_free_kb, watermark_scale_factor: 10,
+            vm_min_free_kbytes: min_free_kb,
+            watermark_scale_factor: 10,
         }
     }
 
@@ -217,7 +248,8 @@ impl HolisticMemWatermark {
         let key = (zone.node_id, zone.zone_type);
         for order in 0..11u8 {
             let owm = OrderWatermark::new(order, zone.managed_pages);
-            self.order_watermarks.insert((zone.node_id, zone.zone_type, order), owm);
+            self.order_watermarks
+                .insert((zone.node_id, zone.zone_type, order), owm);
         }
         self.zones.insert(key, zone);
     }
@@ -226,17 +258,23 @@ impl HolisticMemWatermark {
     pub fn alloc_pages(&mut self, node: u32, zone_type: ZoneType, count: u64) -> bool {
         if let Some(z) = self.zones.get_mut(&(node, zone_type)) {
             z.alloc_pages(count)
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn free_pages(&mut self, node: u32, zone_type: ZoneType, count: u64) {
-        if let Some(z) = self.zones.get_mut(&(node, zone_type)) { z.free_allocated(count); }
+        if let Some(z) = self.zones.get_mut(&(node, zone_type)) {
+            z.free_allocated(count);
+        }
     }
 
     #[inline(always)]
     pub fn apply_boost(&mut self, node: u32, zone_type: ZoneType, pages: u64, ts: u64) {
-        if let Some(z) = self.zones.get_mut(&(node, zone_type)) { z.apply_boost(pages, ts); }
+        if let Some(z) = self.zones.get_mut(&(node, zone_type)) {
+            z.apply_boost(pages, ts);
+        }
     }
 
     #[inline]
@@ -254,19 +292,40 @@ impl HolisticMemWatermark {
 
     pub fn recompute(&mut self) {
         self.stats.total_zones = self.zones.len();
-        self.stats.zones_below_low = self.zones.values().filter(|z| z.current_level() <= WatermarkLevel::Low).count();
-        self.stats.zones_below_min = self.zones.values().filter(|z| z.current_level() == WatermarkLevel::Min).count();
+        self.stats.zones_below_low = self
+            .zones
+            .values()
+            .filter(|z| z.current_level() <= WatermarkLevel::Low)
+            .count();
+        self.stats.zones_below_min = self
+            .zones
+            .values()
+            .filter(|z| z.current_level() == WatermarkLevel::Min)
+            .count();
         self.stats.total_kswapd_wakes = self.zones.values().map(|z| z.kswapd_wake_count).sum();
-        self.stats.total_direct_reclaims = self.zones.values().map(|z| z.direct_reclaim_count).sum();
+        self.stats.total_direct_reclaims =
+            self.zones.values().map(|z| z.direct_reclaim_count).sum();
         self.stats.total_alloc_stalls = self.zones.values().map(|z| z.alloc_stall_count).sum();
         let ratios: Vec<f64> = self.zones.values().map(|z| z.free_ratio()).collect();
-        self.stats.avg_free_ratio = if ratios.is_empty() { 0.0 } else { ratios.iter().sum::<f64>() / ratios.len() as f64 };
+        self.stats.avg_free_ratio = if ratios.is_empty() {
+            0.0
+        } else {
+            ratios.iter().sum::<f64>() / ratios.len() as f64
+        };
         self.stats.worst_free_ratio = ratios.iter().cloned().fold(1.0_f64, f64::min);
-        self.stats.total_boosted_zones = self.zones.values().filter(|z| z.watermarks.boost_pages > 0).count();
+        self.stats.total_boosted_zones = self
+            .zones
+            .values()
+            .filter(|z| z.watermarks.boost_pages > 0)
+            .count();
     }
 
     #[inline(always)]
-    pub fn zone(&self, node: u32, zt: ZoneType) -> Option<&MemZone> { self.zones.get(&(node, zt)) }
+    pub fn zone(&self, node: u32, zt: ZoneType) -> Option<&MemZone> {
+        self.zones.get(&(node, zt))
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &WatermarkStats { &self.stats }
+    pub fn stats(&self) -> &WatermarkStats {
+        &self.stats
+    }
 }

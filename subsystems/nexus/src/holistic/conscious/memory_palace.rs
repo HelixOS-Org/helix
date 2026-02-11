@@ -150,7 +150,13 @@ pub struct KnowledgeItem {
 }
 
 impl KnowledgeItem {
-    pub fn new(name: String, wing: KnowledgeWing, room: String, content: String, tick: u64) -> Self {
+    pub fn new(
+        name: String,
+        wing: KnowledgeWing,
+        room: String,
+        content: String,
+        tick: u64,
+    ) -> Self {
         let id = fnv1a_hash(name.as_bytes()) ^ fnv1a_hash(room.as_bytes());
         Self {
             id,
@@ -353,16 +359,26 @@ impl HolisticMemoryPalace {
                     importance_sum += room.importance;
                 }
             }
-            let avg_imp = if room_ids.is_empty() { 0.0 } else { importance_sum / room_ids.len() as f32 };
+            let avg_imp = if room_ids.is_empty() {
+                0.0
+            } else {
+                importance_sum / room_ids.len() as f32
+            };
             wing_summaries.push((*wing, item_count, avg_imp));
         }
         let mut oldest = u64::MAX;
         let mut newest = 0u64;
         for item in self.items.values() {
-            if item.stored_tick < oldest { oldest = item.stored_tick; }
-            if item.stored_tick > newest { newest = item.stored_tick; }
+            if item.stored_tick < oldest {
+                oldest = item.stored_tick;
+            }
+            if item.stored_tick > newest {
+                newest = item.stored_tick;
+            }
         }
-        if oldest == u64::MAX { oldest = 0; }
+        if oldest == u64::MAX {
+            oldest = 0;
+        }
         PalaceTour {
             total_items: self.items.len() as u32,
             total_rooms: self.rooms.len() as u32,
@@ -379,7 +395,10 @@ impl HolisticMemoryPalace {
             self.forget_and_compress();
         }
         let item_id = item.id;
-        let wing_idx = KnowledgeWing::all().iter().position(|w| *w == item.wing).unwrap_or(0) as u8;
+        let wing_idx = KnowledgeWing::all()
+            .iter()
+            .position(|w| *w == item.wing)
+            .unwrap_or(0) as u8;
         let room_id = fnv1a_hash(item.room.as_bytes());
         // Ensure room exists
         if !self.rooms.contains_key(&room_id) {
@@ -411,7 +430,11 @@ impl HolisticMemoryPalace {
             let name_match = item.name.contains(query_lower);
             let content_match = item.content.contains(query_lower);
             let hash_proximity = {
-                let diff = if item.id > query_hash { item.id - query_hash } else { query_hash - item.id };
+                let diff = if item.id > query_hash {
+                    item.id - query_hash
+                } else {
+                    query_hash - item.id
+                };
                 1.0 / (1.0 + (diff % 1000) as f32 / 100.0)
             };
             let relevance = if name_match {
@@ -434,7 +457,11 @@ impl HolisticMemoryPalace {
                 });
             }
         }
-        results.sort_by(|a, b| b.relevance.partial_cmp(&a.relevance).unwrap_or(core::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.relevance
+                .partial_cmp(&a.relevance)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         if !results.is_empty() {
             self.recall_hits += 1;
             self.stats.total_recalled += 1;
@@ -477,7 +504,9 @@ impl HolisticMemoryPalace {
 
     /// Forget low-value items and compress borderline ones
     pub fn forget_and_compress(&mut self) {
-        let ids_to_forget: Vec<u64> = self.items.values()
+        let ids_to_forget: Vec<u64> = self
+            .items
+            .values()
             .filter(|item| item.should_forget())
             .map(|item| item.id)
             .collect();

@@ -3,11 +3,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Event type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -90,8 +90,11 @@ impl PmuDesc {
 
     #[inline(always)]
     pub fn max_count(&self) -> u64 {
-        if self.counter_width >= 64 { u64::MAX }
-        else { (1u64 << self.counter_width) - 1 }
+        if self.counter_width >= 64 {
+            u64::MAX
+        } else {
+            (1u64 << self.counter_width) - 1
+        }
     }
 }
 
@@ -128,23 +131,32 @@ pub struct PerfEvent {
 impl PerfEvent {
     pub fn new(id: u64, config: PerfEventConfig, pmu_id: u32) -> Self {
         Self {
-            id, config, count: 0,
-            enabled_time_ns: 0, running_time_ns: 0,
-            pmu_id, state: PerfEventState::Inactive,
-            overflow_count: 0, last_sample_timestamp: 0,
+            id,
+            config,
+            count: 0,
+            enabled_time_ns: 0,
+            running_time_ns: 0,
+            pmu_id,
+            state: PerfEventState::Inactive,
+            overflow_count: 0,
+            last_sample_timestamp: 0,
         }
     }
 
     #[inline(always)]
     pub fn multiplexing_ratio(&self) -> f64 {
-        if self.enabled_time_ns == 0 { return 0.0; }
+        if self.enabled_time_ns == 0 {
+            return 0.0;
+        }
         self.running_time_ns as f64 / self.enabled_time_ns as f64
     }
 
     #[inline]
     pub fn scaled_count(&self) -> u64 {
         let ratio = self.multiplexing_ratio();
-        if ratio < 0.001 { return 0; }
+        if ratio < 0.001 {
+            return 0;
+        }
         (self.count as f64 / ratio) as u64
     }
 
@@ -178,16 +190,21 @@ pub struct CpuPerfState {
 impl CpuPerfState {
     pub fn new(cpu_id: u32, gp: u32, fixed: u32) -> Self {
         Self {
-            cpu_id, active_events: Vec::new(),
-            gp_counters_used: 0, fixed_counters_used: 0,
-            total_gp: gp, total_fixed: fixed,
+            cpu_id,
+            active_events: Vec::new(),
+            gp_counters_used: 0,
+            fixed_counters_used: 0,
+            total_gp: gp,
+            total_fixed: fixed,
         }
     }
 
     #[inline]
     pub fn utilization(&self) -> f64 {
         let total = self.total_gp + self.total_fixed;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         let used = self.gp_counters_used + self.fixed_counters_used;
         used as f64 / total as f64
     }
@@ -243,8 +260,12 @@ impl HolisticPerfEvents {
             max_samples: 8192,
             next_event_id: 1,
             stats: PerfEventsStats {
-                total_events: 0, active_events: 0, total_samples: 0,
-                lost_samples: 0, multiplexed_events: 0, pmu_count: 0,
+                total_events: 0,
+                active_events: 0,
+                total_samples: 0,
+                lost_samples: 0,
+                multiplexed_events: 0,
+                pmu_count: 0,
             },
         }
     }
@@ -283,11 +304,15 @@ impl HolisticPerfEvents {
     pub fn deactivate_event(&mut self, event_id: u64) -> bool {
         if let Some(event) = self.events.get_mut(&event_id) {
             event.state = PerfEventState::Inactive;
-            if self.stats.active_events > 0 { self.stats.active_events -= 1; }
+            if self.stats.active_events > 0 {
+                self.stats.active_events -= 1;
+            }
             if let Some(cpu) = event.config.cpu {
                 if let Some(cs) = self.cpu_states.get_mut(&cpu) {
                     cs.active_events.retain(|&e| e != event_id);
-                    if cs.gp_counters_used > 0 { cs.gp_counters_used -= 1; }
+                    if cs.gp_counters_used > 0 {
+                        cs.gp_counters_used -= 1;
+                    }
                 }
             }
             return true;
@@ -306,7 +331,8 @@ impl HolisticPerfEvents {
 
     #[inline]
     pub fn multiplexed_events(&self) -> Vec<u64> {
-        self.events.iter()
+        self.events
+            .iter()
             .filter(|(_, e)| e.is_multiplexed() && e.state == PerfEventState::Active)
             .map(|(&id, _)| id)
             .collect()
@@ -341,16 +367,31 @@ impl HolisticPerfEvents {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HwEventType {
-    CpuCycles, Instructions, CacheMisses, CacheReferences,
-    BranchMisses, BranchInstructions, BusCycles, StalledFrontend,
-    StalledBackend, RefCycles, LlcLoadMisses, LlcStoreMisses,
+    CpuCycles,
+    Instructions,
+    CacheMisses,
+    CacheReferences,
+    BranchMisses,
+    BranchInstructions,
+    BusCycles,
+    StalledFrontend,
+    StalledBackend,
+    RefCycles,
+    LlcLoadMisses,
+    LlcStoreMisses,
 }
 
 /// Software event type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SwEventType {
-    CpuClock, TaskClock, PageFaults, ContextSwitches,
-    CpuMigrations, MinorFaults, MajorFaults, AlignmentFaults,
+    CpuClock,
+    TaskClock,
+    PageFaults,
+    ContextSwitches,
+    CpuMigrations,
+    MinorFaults,
+    MajorFaults,
+    AlignmentFaults,
     EmulationFaults,
 }
 
@@ -374,20 +415,59 @@ pub struct PerfCounter {
 impl PerfCounter {
     #[inline(always)]
     pub fn hw(id: u64, event: HwEventType) -> Self {
-        Self { id, hw_event: Some(event), sw_event: None, value: 0, enabled_time: 0, running_time: 0, sample_period: 0, samples_collected: 0, overflow_count: 0, cpu: -1, pid: -1 }
+        Self {
+            id,
+            hw_event: Some(event),
+            sw_event: None,
+            value: 0,
+            enabled_time: 0,
+            running_time: 0,
+            sample_period: 0,
+            samples_collected: 0,
+            overflow_count: 0,
+            cpu: -1,
+            pid: -1,
+        }
     }
 
     #[inline(always)]
     pub fn sw(id: u64, event: SwEventType) -> Self {
-        Self { id, hw_event: None, sw_event: Some(event), value: 0, enabled_time: 0, running_time: 0, sample_period: 0, samples_collected: 0, overflow_count: 0, cpu: -1, pid: -1 }
+        Self {
+            id,
+            hw_event: None,
+            sw_event: Some(event),
+            value: 0,
+            enabled_time: 0,
+            running_time: 0,
+            sample_period: 0,
+            samples_collected: 0,
+            overflow_count: 0,
+            cpu: -1,
+            pid: -1,
+        }
     }
 
     #[inline(always)]
-    pub fn increment(&mut self, delta: u64) { self.value += delta; }
+    pub fn increment(&mut self, delta: u64) {
+        self.value += delta;
+    }
     #[inline(always)]
-    pub fn multiplexing_ratio(&self) -> f64 { if self.enabled_time == 0 { 1.0 } else { self.running_time as f64 / self.enabled_time as f64 } }
+    pub fn multiplexing_ratio(&self) -> f64 {
+        if self.enabled_time == 0 {
+            1.0
+        } else {
+            self.running_time as f64 / self.enabled_time as f64
+        }
+    }
     #[inline(always)]
-    pub fn scaled_value(&self) -> u64 { let ratio = self.multiplexing_ratio(); if ratio == 0.0 { 0 } else { (self.value as f64 / ratio) as u64 } }
+    pub fn scaled_value(&self) -> u64 {
+        let ratio = self.multiplexing_ratio();
+        if ratio == 0.0 {
+            0
+        } else {
+            (self.value as f64 / ratio) as u64
+        }
+    }
 }
 
 /// Event group
@@ -434,34 +514,69 @@ pub struct HolisticPerfEventsV2 {
 }
 
 impl HolisticPerfEventsV2 {
-    pub fn new() -> Self { Self { counters: BTreeMap::new(), groups: BTreeMap::new(), samples: VecDeque::new(), next_id: 1, max_samples: 8192 } }
+    pub fn new() -> Self {
+        Self {
+            counters: BTreeMap::new(),
+            groups: BTreeMap::new(),
+            samples: VecDeque::new(),
+            next_id: 1,
+            max_samples: 8192,
+        }
+    }
 
     #[inline]
     pub fn add_hw_counter(&mut self, event: HwEventType) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.counters.insert(id, PerfCounter::hw(id, event));
         id
     }
 
     #[inline]
     pub fn add_sw_counter(&mut self, event: SwEventType) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.counters.insert(id, PerfCounter::sw(id, event));
         id
     }
 
     #[inline(always)]
     pub fn record_sample(&mut self, sample: PerfSampleV2) {
-        if self.samples.len() >= self.max_samples { self.samples.drain(..self.max_samples / 2); }
+        if self.samples.len() >= self.max_samples {
+            self.samples.drain(..self.max_samples / 2);
+        }
         self.samples.push_back(sample);
     }
 
     #[inline]
     pub fn stats(&self) -> PerfEventsV2Stats {
-        let hw = self.counters.values().filter(|c| c.hw_event.is_some()).count() as u32;
-        let sw = self.counters.values().filter(|c| c.sw_event.is_some()).count() as u32;
-        let mux: Vec<f64> = self.counters.values().map(|c| c.multiplexing_ratio()).collect();
-        let avg = if mux.is_empty() { 1.0 } else { mux.iter().sum::<f64>() / mux.len() as f64 };
-        PerfEventsV2Stats { total_counters: self.counters.len() as u32, hw_counters: hw, sw_counters: sw, total_groups: self.groups.len() as u32, total_samples: self.samples.len() as u64, avg_mux_ratio: avg }
+        let hw = self
+            .counters
+            .values()
+            .filter(|c| c.hw_event.is_some())
+            .count() as u32;
+        let sw = self
+            .counters
+            .values()
+            .filter(|c| c.sw_event.is_some())
+            .count() as u32;
+        let mux: Vec<f64> = self
+            .counters
+            .values()
+            .map(|c| c.multiplexing_ratio())
+            .collect();
+        let avg = if mux.is_empty() {
+            1.0
+        } else {
+            mux.iter().sum::<f64>() / mux.len() as f64
+        };
+        PerfEventsV2Stats {
+            total_counters: self.counters.len() as u32,
+            hw_counters: hw,
+            sw_counters: sw,
+            total_groups: self.groups.len() as u32,
+            total_samples: self.samples.len() as u64,
+            avg_mux_ratio: avg,
+        }
     }
 }

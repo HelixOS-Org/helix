@@ -241,30 +241,42 @@ impl CoopKnowledgeBase {
                         id,
                         name: title,
                         fairness_score: performance_score,
-                        throughput_impact: if parameters.len() > 1 { parameters[1] } else { 0.0 },
+                        throughput_impact: if parameters.len() > 1 {
+                            parameters[1]
+                        } else {
+                            0.0
+                        },
                         parameters,
                         validated,
                     });
                 }
                 self.stats.fairness_entries += 1;
-            }
+            },
             KnowledgeCategory::TrustModel => {
                 if self.trust_archive.len() < MAX_TRUST_ARCHIVE {
                     self.trust_archive.push(TrustModelEntry {
                         id,
                         name: title,
-                        trust_convergence_rate: if !parameters.is_empty() { parameters[0] } else { 0.5 },
+                        trust_convergence_rate: if !parameters.is_empty() {
+                            parameters[0]
+                        } else {
+                            0.5
+                        },
                         stability_score: performance_score,
-                        decay_factor: if parameters.len() > 2 { parameters[2] } else { 0.01 },
+                        decay_factor: if parameters.len() > 2 {
+                            parameters[2]
+                        } else {
+                            0.01
+                        },
                         validated,
                     });
                 }
                 self.stats.trust_entries += 1;
-            }
+            },
             KnowledgeCategory::ContentionResolution => {
                 self.stats.contention_entries += 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // Evict old entries if at capacity
@@ -278,7 +290,11 @@ impl CoopKnowledgeBase {
     }
 
     /// Query the knowledge base for strategies matching a description
-    pub fn query_strategy(&mut self, query: &str, category: Option<KnowledgeCategory>) -> Vec<QueryResult> {
+    pub fn query_strategy(
+        &mut self,
+        query: &str,
+        category: Option<KnowledgeCategory>,
+    ) -> Vec<QueryResult> {
         self.tick += 1;
         self.stats.total_queries += 1;
         let query_hash = fnv1a_hash(query.as_bytes());
@@ -307,7 +323,11 @@ impl CoopKnowledgeBase {
                 });
             }
         }
-        results.sort_by(|a, b| b.relevance.partial_cmp(&a.relevance).unwrap_or(core::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.relevance
+                .partial_cmp(&a.relevance)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         if results.len() > MAX_QUERY_RESULTS {
             results.truncate(MAX_QUERY_RESULTS);
         }
@@ -353,8 +373,13 @@ impl CoopKnowledgeBase {
             }
         }
         self.stats.archived_entries += to_archive.len() as u64;
-        let avg = if count > 0 { total_currency / count as f32 } else { 0.0 };
-        self.stats.avg_currency_ema = EMA_ALPHA * avg + (1.0 - EMA_ALPHA) * self.stats.avg_currency_ema;
+        let avg = if count > 0 {
+            total_currency / count as f32
+        } else {
+            0.0
+        };
+        self.stats.avg_currency_ema =
+            EMA_ALPHA * avg + (1.0 - EMA_ALPHA) * self.stats.avg_currency_ema;
         avg
     }
 
@@ -390,10 +415,7 @@ impl CoopKnowledgeBase {
     pub fn category_entries(&self, category: KnowledgeCategory) -> Vec<&KnowledgeEntry> {
         let cat_key = category as u64;
         match self.category_index.get(&cat_key) {
-            Some(ids) => ids
-                .iter()
-                .filter_map(|id| self.entries.get(id))
-                .collect(),
+            Some(ids) => ids.iter().filter_map(|id| self.entries.get(id)).collect(),
             None => Vec::new(),
         }
     }
@@ -415,7 +437,12 @@ impl CoopKnowledgeBase {
     // INTERNAL HELPERS
     // ========================================================================
 
-    fn compute_relevance(&self, entry: &KnowledgeEntry, query_tokens: &[u64], query_hash: u64) -> f32 {
+    fn compute_relevance(
+        &self,
+        entry: &KnowledgeEntry,
+        query_tokens: &[u64],
+        query_hash: u64,
+    ) -> f32 {
         // Tag matching
         let tag_score = if query_tokens.is_empty() {
             0.0

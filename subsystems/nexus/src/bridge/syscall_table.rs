@@ -87,20 +87,30 @@ impl SyscallEntry {
     pub fn record_call(&mut self, duration_ns: u64, is_error: bool) {
         self.total_calls += 1;
         self.total_time_ns += duration_ns;
-        if is_error { self.total_errors += 1; }
-        if duration_ns < self.min_time_ns { self.min_time_ns = duration_ns; }
-        if duration_ns > self.max_time_ns { self.max_time_ns = duration_ns; }
+        if is_error {
+            self.total_errors += 1;
+        }
+        if duration_ns < self.min_time_ns {
+            self.min_time_ns = duration_ns;
+        }
+        if duration_ns > self.max_time_ns {
+            self.max_time_ns = duration_ns;
+        }
     }
 
     #[inline(always)]
     pub fn avg_time_ns(&self) -> f64 {
-        if self.total_calls == 0 { return 0.0; }
+        if self.total_calls == 0 {
+            return 0.0;
+        }
         self.total_time_ns as f64 / self.total_calls as f64
     }
 
     #[inline(always)]
     pub fn error_rate(&self) -> f64 {
-        if self.total_calls == 0 { return 0.0; }
+        if self.total_calls == 0 {
+            return 0.0;
+        }
         self.total_errors as f64 / self.total_calls as f64
     }
 
@@ -126,7 +136,12 @@ pub struct SyscallRange {
 
 impl SyscallRange {
     pub fn new(start: u32, end: u32, category: SyscallCategory) -> Self {
-        Self { start, end, category, allocated: Vec::new() }
+        Self {
+            start,
+            end,
+            category,
+            allocated: Vec::new(),
+        }
     }
 
     #[inline]
@@ -202,13 +217,17 @@ impl BridgeSyscallTable {
 
     #[inline(always)]
     pub fn enable(&mut self, nr: u32) {
-        if let Some(e) = self.entries.get_mut(&nr) { e.enabled = true; }
+        if let Some(e) = self.entries.get_mut(&nr) {
+            e.enabled = true;
+        }
         self.recompute();
     }
 
     #[inline(always)]
     pub fn disable(&mut self, nr: u32) {
-        if let Some(e) = self.entries.get_mut(&nr) { e.enabled = false; }
+        if let Some(e) = self.entries.get_mut(&nr) {
+            e.enabled = false;
+        }
         self.recompute();
     }
 
@@ -263,13 +282,17 @@ impl BridgeSyscallTable {
             self.patches.push(patch);
             self.recompute();
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     /// Get top N busiest syscalls
     #[inline]
     pub fn top_syscalls(&self, n: usize) -> Vec<(u32, u64)> {
-        let mut sorted: Vec<(u32, u64)> = self.entries.iter()
+        let mut sorted: Vec<(u32, u64)> = self
+            .entries
+            .iter()
             .map(|(&nr, e)| (nr, e.total_calls))
             .collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
@@ -281,14 +304,22 @@ impl BridgeSyscallTable {
         let total_calls: u64 = self.entries.values().map(|e| e.total_calls).sum();
         let total_errors: u64 = self.entries.values().map(|e| e.total_errors).sum();
 
-        let busiest = self.entries.values()
+        let busiest = self
+            .entries
+            .values()
             .max_by_key(|e| e.total_calls)
             .map(|e| e.nr)
             .unwrap_or(0);
 
-        let slowest = self.entries.values()
+        let slowest = self
+            .entries
+            .values()
             .filter(|e| e.total_calls > 0)
-            .max_by(|a, b| a.avg_time_ns().partial_cmp(&b.avg_time_ns()).unwrap_or(core::cmp::Ordering::Equal))
+            .max_by(|a, b| {
+                a.avg_time_ns()
+                    .partial_cmp(&b.avg_time_ns())
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            })
             .map(|e| e.nr)
             .unwrap_or(0);
 

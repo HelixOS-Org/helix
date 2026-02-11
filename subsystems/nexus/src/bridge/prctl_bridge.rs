@@ -45,7 +45,18 @@ pub struct ProcessPrctlState {
 
 impl ProcessPrctlState {
     pub fn new(pid: u64) -> Self {
-        Self { pid, dumpable: true, no_new_privs: false, keep_caps: false, child_subreaper: false, timer_slack_ns: 50000, seccomp_mode: 0, name_hash: 0, thp_mode: 0, total_calls: 0 }
+        Self {
+            pid,
+            dumpable: true,
+            no_new_privs: false,
+            keep_caps: false,
+            child_subreaper: false,
+            timer_slack_ns: 50000,
+            seccomp_mode: 0,
+            name_hash: 0,
+            thp_mode: 0,
+            total_calls: 0,
+        }
     }
 }
 
@@ -66,10 +77,16 @@ pub struct BridgePrctl {
 }
 
 impl BridgePrctl {
-    pub fn new() -> Self { Self { procs: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            procs: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn track(&mut self, pid: u64) { self.procs.insert(pid, ProcessPrctlState::new(pid)); }
+    pub fn track(&mut self, pid: u64) {
+        self.procs.insert(pid, ProcessPrctlState::new(pid));
+    }
 
     pub fn prctl(&mut self, pid: u64, opt: PrctlOption, arg: u64) {
         if let Some(p) = self.procs.get_mut(&pid) {
@@ -83,20 +100,27 @@ impl BridgePrctl {
                 PrctlOption::SetSeccomp => p.seccomp_mode = arg as u32,
                 PrctlOption::SetName => p.name_hash = arg,
                 PrctlOption::SetTHP => p.thp_mode = arg as u32,
-                _ => {}
+                _ => {},
             }
         }
     }
 
     #[inline(always)]
-    pub fn untrack(&mut self, pid: u64) { self.procs.remove(&pid); }
+    pub fn untrack(&mut self, pid: u64) {
+        self.procs.remove(&pid);
+    }
 
     #[inline]
     pub fn stats(&self) -> PrctlBridgeStats {
         let calls: u64 = self.procs.values().map(|p| p.total_calls).sum();
         let nnp = self.procs.values().filter(|p| p.no_new_privs).count() as u32;
         let seccomp = self.procs.values().filter(|p| p.seccomp_mode > 0).count() as u32;
-        PrctlBridgeStats { tracked_procs: self.procs.len() as u32, total_calls: calls, no_new_privs_count: nnp, seccomp_enabled: seccomp }
+        PrctlBridgeStats {
+            tracked_procs: self.procs.len() as u32,
+            total_calls: calls,
+            no_new_privs_count: nnp,
+            seccomp_enabled: seccomp,
+        }
     }
 }
 

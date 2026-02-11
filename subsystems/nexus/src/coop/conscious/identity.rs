@@ -219,16 +219,19 @@ impl CoopIdentity {
         let is_new = !self.protocols.contains_key(&id);
         let old_maturity = self.protocols.get(&id).map(|p| p.maturity);
 
-        let proto = self.protocols.entry(id).or_insert_with(|| SupportedProtocol {
-            name: String::from(name),
-            id,
-            maturity,
-            performance: 0.0,
-            reliability: 0.0,
-            introduced_version: self.version,
-            declared_tick: self.tick,
-            updates: 0,
-        });
+        let proto = self
+            .protocols
+            .entry(id)
+            .or_insert_with(|| SupportedProtocol {
+                name: String::from(name),
+                id,
+                maturity,
+                performance: 0.0,
+                reliability: 0.0,
+                introduced_version: self.version,
+                declared_tick: self.tick,
+                updates: 0,
+            });
 
         proto.performance = performance.max(0.0).min(1.0);
         proto.reliability = reliability.max(0.0).min(1.0);
@@ -265,24 +268,22 @@ impl CoopIdentity {
     }
 
     /// Declare or update a fairness guarantee
-    pub fn fairness_guarantee(
-        &mut self,
-        name: &str,
-        minimum_level: f32,
-        actual_level: f32,
-    ) {
+    pub fn fairness_guarantee(&mut self, name: &str, minimum_level: f32, actual_level: f32) {
         self.tick += 1;
         let id = fnv1a_hash(name.as_bytes());
 
-        let guarantee = self.guarantees.entry(id).or_insert_with(|| FairnessGuarantee {
-            name: String::from(name),
-            id,
-            minimum_level: minimum_level.max(0.0).min(1.0),
-            actual_level: 0.5,
-            test_count: 0,
-            violation_count: 0,
-            met: true,
-        });
+        let guarantee = self
+            .guarantees
+            .entry(id)
+            .or_insert_with(|| FairnessGuarantee {
+                name: String::from(name),
+                id,
+                minimum_level: minimum_level.max(0.0).min(1.0),
+                actual_level: 0.5,
+                test_count: 0,
+                violation_count: 0,
+                met: true,
+            });
 
         guarantee.test_count += 1;
         guarantee.actual_level = actual_level.max(0.0).min(1.0);
@@ -326,13 +327,16 @@ impl CoopIdentity {
         self.tick += 1;
         let id = fnv1a_hash(name.as_bytes());
 
-        let principle = self.philosophy.entry(id).or_insert_with(|| PhilosophyPrinciple {
-            name: String::from(name),
-            id,
-            adherence: 0.5,
-            weight: weight.max(0.0).min(1.0),
-            description: String::from(description),
-        });
+        let principle = self
+            .philosophy
+            .entry(id)
+            .or_insert_with(|| PhilosophyPrinciple {
+                name: String::from(name),
+                id,
+                adherence: 0.5,
+                weight: weight.max(0.0).min(1.0),
+                description: String::from(description),
+            });
 
         principle.adherence = adherence.max(0.0).min(1.0);
         principle.weight = weight.max(0.0).min(1.0);
@@ -378,10 +382,8 @@ impl CoopIdentity {
         }
 
         // Combine all three fingerprints
-        let combined = proto_fp
-            .wrapping_mul(FNV_PRIME)
-            ^ guarantee_fp.wrapping_mul(FNV_PRIME)
-            ^ philosophy_fp;
+        let combined =
+            proto_fp.wrapping_mul(FNV_PRIME) ^ guarantee_fp.wrapping_mul(FNV_PRIME) ^ philosophy_fp;
 
         // Mix in version and birth tick
         let version_bits = ((self.version.0 as u64) << 32)

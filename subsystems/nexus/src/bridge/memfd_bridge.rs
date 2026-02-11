@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -73,15 +72,24 @@ pub struct MemfdInstance {
 impl MemfdInstance {
     pub fn new(fd: i32, name: String, flags: MemfdFlags, pid: u32, now: u64) -> Self {
         Self {
-            fd, name, size: 0, flags,
+            fd,
+            name,
+            size: 0,
+            flags,
             seals: SealFlags(0),
             owner_pid: pid,
             map_count: 0,
             shared_with: Vec::new(),
-            created: now, last_access: now,
-            write_count: 0, read_count: 0,
+            created: now,
+            last_access: now,
+            write_count: 0,
+            read_count: 0,
             is_hugetlb: flags.contains(MemfdFlags::HUGETLB),
-            hugetlb_page_size: if flags.contains(MemfdFlags::HUGETLB) { 2 * 1024 * 1024 } else { 4096 },
+            hugetlb_page_size: if flags.contains(MemfdFlags::HUGETLB) {
+                2 * 1024 * 1024
+            } else {
+                4096
+            },
         }
     }
 
@@ -92,7 +100,9 @@ impl MemfdInstance {
 
     #[inline]
     pub fn add_seal(&mut self, seal: SealFlags) -> bool {
-        if !self.can_seal() { return false; }
+        if !self.can_seal() {
+            return false;
+        }
         self.seals = SealFlags(self.seals.0 | seal.0);
         true
     }
@@ -124,7 +134,11 @@ impl MemfdInstance {
 
     #[inline(always)]
     pub fn pages(&self) -> u64 {
-        let page_size = if self.is_hugetlb { self.hugetlb_page_size } else { 4096 };
+        let page_size = if self.is_hugetlb {
+            self.hugetlb_page_size
+        } else {
+            4096
+        };
         (self.size + page_size - 1) / page_size
     }
 }
@@ -179,9 +193,12 @@ impl BridgeMemfd {
             events: VecDeque::new(),
             max_events: 2048,
             stats: MemfdBridgeStats {
-                active_memfds: 0, total_created: 0,
-                total_memory_bytes: 0, sealed_count: 0,
-                shared_count: 0, hugetlb_count: 0,
+                active_memfds: 0,
+                total_created: 0,
+                total_memory_bytes: 0,
+                sealed_count: 0,
+                shared_count: 0,
+                hugetlb_count: 0,
             },
         }
     }
@@ -191,20 +208,31 @@ impl BridgeMemfd {
         let inst = MemfdInstance::new(fd, name, flags, pid, now);
         self.stats.total_created += 1;
         self.stats.active_memfds += 1;
-        if inst.is_hugetlb { self.stats.hugetlb_count += 1; }
+        if inst.is_hugetlb {
+            self.stats.hugetlb_count += 1;
+        }
         self.instances.insert(fd, inst);
     }
 
     #[inline]
     pub fn resize(&mut self, fd: i32, new_size: u64) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
-            if inst.seals.contains(SealFlags::SHRINK) && new_size < inst.size { return false; }
-            if inst.seals.contains(SealFlags::GROW) && new_size > inst.size { return false; }
-            self.stats.total_memory_bytes = self.stats.total_memory_bytes
-                .wrapping_sub(inst.size).wrapping_add(new_size);
+            if inst.seals.contains(SealFlags::SHRINK) && new_size < inst.size {
+                return false;
+            }
+            if inst.seals.contains(SealFlags::GROW) && new_size > inst.size {
+                return false;
+            }
+            self.stats.total_memory_bytes = self
+                .stats
+                .total_memory_bytes
+                .wrapping_sub(inst.size)
+                .wrapping_add(new_size);
             inst.size = new_size;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -216,7 +244,9 @@ impl BridgeMemfd {
                 self.stats.sealed_count += 1;
             }
             ok
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -225,33 +255,51 @@ impl BridgeMemfd {
             if !inst.shared_with.contains(&target_pid) {
                 let was_shared = inst.is_shared();
                 inst.shared_with.push(target_pid);
-                if !was_shared { self.stats.shared_count += 1; }
+                if !was_shared {
+                    self.stats.shared_count += 1;
+                }
             }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn close(&mut self, fd: i32) -> bool {
         if let Some(inst) = self.instances.remove(&fd) {
-            if self.stats.active_memfds > 0 { self.stats.active_memfds -= 1; }
+            if self.stats.active_memfds > 0 {
+                self.stats.active_memfds -= 1;
+            }
             self.stats.total_memory_bytes = self.stats.total_memory_bytes.saturating_sub(inst.size);
-            if inst.is_hugetlb && self.stats.hugetlb_count > 0 { self.stats.hugetlb_count -= 1; }
-            if inst.seals.is_immutable() && self.stats.sealed_count > 0 { self.stats.sealed_count -= 1; }
-            if inst.is_shared() && self.stats.shared_count > 0 { self.stats.shared_count -= 1; }
+            if inst.is_hugetlb && self.stats.hugetlb_count > 0 {
+                self.stats.hugetlb_count -= 1;
+            }
+            if inst.seals.is_immutable() && self.stats.sealed_count > 0 {
+                self.stats.sealed_count -= 1;
+            }
+            if inst.is_shared() && self.stats.shared_count > 0 {
+                self.stats.shared_count -= 1;
+            }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn record_event(&mut self, event: MemfdEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
+        if self.events.len() >= self.max_events {
+            self.events.remove(0);
+        }
         self.events.push_back(event);
     }
 
     #[inline]
     pub fn largest_memfds(&self, n: usize) -> Vec<(i32, u64)> {
-        let mut v: Vec<_> = self.instances.iter()
+        let mut v: Vec<_> = self
+            .instances
+            .iter()
             .map(|(&fd, inst)| (fd, inst.size))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
@@ -261,7 +309,8 @@ impl BridgeMemfd {
 
     #[inline]
     pub fn unsealed_memfds(&self) -> Vec<i32> {
-        self.instances.iter()
+        self.instances
+            .iter()
             .filter(|(_, inst)| inst.can_seal() && !inst.seals.is_immutable())
             .map(|(&fd, _)| fd)
             .collect()
@@ -287,11 +336,17 @@ impl MemfdV2Flags {
     pub const NOEXEC_SEAL: u32 = 1 << 3;
     pub const EXEC: u32 = 1 << 4;
 
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn set(&mut self, f: u32) { self.0 |= f; }
+    pub fn set(&mut self, f: u32) {
+        self.0 |= f;
+    }
     #[inline(always)]
-    pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u32) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Seal type
@@ -307,13 +362,21 @@ impl MemfdSeals {
     pub const EXEC: u32 = 1 << 5;
 
     #[inline(always)]
-    pub fn none() -> Self { Self(0) }
+    pub fn none() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn add(&mut self, s: u32) { self.0 |= s; }
+    pub fn add(&mut self, s: u32) {
+        self.0 |= s;
+    }
     #[inline(always)]
-    pub fn has(&self, s: u32) -> bool { self.0 & s != 0 }
+    pub fn has(&self, s: u32) -> bool {
+        self.0 & s != 0
+    }
     #[inline(always)]
-    pub fn is_sealed(&self) -> bool { self.has(Self::SEAL) }
+    pub fn is_sealed(&self) -> bool {
+        self.has(Self::SEAL)
+    }
 }
 
 /// Memfd instance
@@ -336,23 +399,38 @@ pub struct MemfdV2Instance {
 impl MemfdV2Instance {
     pub fn new(id: u64, fd: i32, name_hash: u64, flags: MemfdV2Flags, now: u64) -> Self {
         Self {
-            id, fd, name_hash, flags, seals: MemfdSeals::none(),
-            size: 0, resident_pages: 0, shared_count: 1,
-            created_at: now, last_write: 0, write_count: 0, mmap_count: 0,
+            id,
+            fd,
+            name_hash,
+            flags,
+            seals: MemfdSeals::none(),
+            size: 0,
+            resident_pages: 0,
+            shared_count: 1,
+            created_at: now,
+            last_write: 0,
+            write_count: 0,
+            mmap_count: 0,
         }
     }
 
     #[inline]
     pub fn resize(&mut self, new_size: u64) -> bool {
-        if self.seals.has(MemfdSeals::SHRINK) && new_size < self.size { return false; }
-        if self.seals.has(MemfdSeals::GROW) && new_size > self.size { return false; }
+        if self.seals.has(MemfdSeals::SHRINK) && new_size < self.size {
+            return false;
+        }
+        if self.seals.has(MemfdSeals::GROW) && new_size > self.size {
+            return false;
+        }
         self.size = new_size;
         true
     }
 
     #[inline]
     pub fn write(&mut self, now: u64) -> bool {
-        if self.seals.has(MemfdSeals::WRITE) { return false; }
+        if self.seals.has(MemfdSeals::WRITE) {
+            return false;
+        }
         self.write_count += 1;
         self.last_write = now;
         true
@@ -360,18 +438,28 @@ impl MemfdV2Instance {
 
     #[inline]
     pub fn add_seal(&mut self, seal: u32) -> bool {
-        if self.seals.is_sealed() { return false; }
-        if !self.flags.has(MemfdV2Flags::ALLOW_SEALING) { return false; }
+        if self.seals.is_sealed() {
+            return false;
+        }
+        if !self.flags.has(MemfdV2Flags::ALLOW_SEALING) {
+            return false;
+        }
         self.seals.add(seal);
         true
     }
 
     #[inline(always)]
-    pub fn share(&mut self) { self.shared_count += 1; }
+    pub fn share(&mut self) {
+        self.shared_count += 1;
+    }
     #[inline(always)]
-    pub fn unshare(&mut self) { self.shared_count = self.shared_count.saturating_sub(1); }
+    pub fn unshare(&mut self) {
+        self.shared_count = self.shared_count.saturating_sub(1);
+    }
     #[inline(always)]
-    pub fn mmap(&mut self) { self.mmap_count += 1; }
+    pub fn mmap(&mut self) {
+        self.mmap_count += 1;
+    }
 }
 
 /// Stats
@@ -395,36 +483,58 @@ pub struct BridgeMemfdV2 {
 }
 
 impl BridgeMemfdV2 {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1, next_fd: 100 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_id: 1,
+            next_fd: 100,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, name_hash: u64, flags: MemfdV2Flags, now: u64) -> (u64, i32) {
-        let id = self.next_id; self.next_id += 1;
-        let fd = self.next_fd; self.next_fd += 1;
-        self.instances.insert(id, MemfdV2Instance::new(id, fd, name_hash, flags, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        let fd = self.next_fd;
+        self.next_fd += 1;
+        self.instances
+            .insert(id, MemfdV2Instance::new(id, fd, name_hash, flags, now));
         (id, fd)
     }
 
     #[inline(always)]
     pub fn resize(&mut self, id: u64, size: u64) -> bool {
-        self.instances.get_mut(&id).map(|m| m.resize(size)).unwrap_or(false)
+        self.instances
+            .get_mut(&id)
+            .map(|m| m.resize(size))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
     pub fn add_seal(&mut self, id: u64, seal: u32) -> bool {
-        self.instances.get_mut(&id).map(|m| m.add_seal(seal)).unwrap_or(false)
+        self.instances
+            .get_mut(&id)
+            .map(|m| m.add_seal(seal))
+            .unwrap_or(false)
     }
 
     pub fn stats(&self) -> MemfdV2BridgeStats {
         let bytes: u64 = self.instances.values().map(|m| m.size).sum();
         let sealed = self.instances.values().filter(|m| m.seals.0 != 0).count() as u32;
-        let huge = self.instances.values().filter(|m| m.flags.has(MemfdV2Flags::HUGETLB)).count() as u32;
+        let huge = self
+            .instances
+            .values()
+            .filter(|m| m.flags.has(MemfdV2Flags::HUGETLB))
+            .count() as u32;
         let writes: u64 = self.instances.values().map(|m| m.write_count).sum();
         let shares: u32 = self.instances.values().map(|m| m.shared_count).sum();
         MemfdV2BridgeStats {
-            total_memfds: self.instances.len() as u32, total_bytes: bytes,
-            sealed_count: sealed, hugetlb_count: huge,
-            total_writes: writes, total_shares: shares,
+            total_memfds: self.instances.len() as u32,
+            total_bytes: bytes,
+            sealed_count: sealed,
+            hugetlb_count: huge,
+            total_writes: writes,
+            total_shares: shares,
         }
     }
 }
@@ -519,8 +629,7 @@ impl MemfdV3Instance {
 
     #[inline(always)]
     pub fn can_write(&self) -> bool {
-        !self.seals.contains(&MemfdV3Seal::Write)
-            && !self.seals.contains(&MemfdV3Seal::FutureWrite)
+        !self.seals.contains(&MemfdV3Seal::Write) && !self.seals.contains(&MemfdV3Seal::FutureWrite)
     }
 
     #[inline(always)]
@@ -593,12 +702,7 @@ impl BridgeMemfdV3 {
         }
     }
 
-    pub fn create(
-        &mut self,
-        fd: i32,
-        name: alloc::string::String,
-        backing: MemfdV3Backing,
-    ) -> u64 {
+    pub fn create(&mut self, fd: i32, name: alloc::string::String, backing: MemfdV3Backing) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let mut inst = MemfdV3Instance::new(id, fd, name);

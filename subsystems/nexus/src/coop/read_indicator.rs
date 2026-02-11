@@ -66,9 +66,11 @@ impl ReadIndicatorInstance {
             slots.push(ReadIndicatorSlot::new(i));
         }
         Self {
-            id, slots,
+            id,
+            slots,
             quiesce_count: 0,
-            total_enters: 0, total_exits: 0,
+            total_enters: 0,
+            total_exits: 0,
         }
     }
 
@@ -125,8 +127,10 @@ impl CoopReadIndicator {
             indicators: BTreeMap::new(),
             next_id: 1,
             stats: ReadIndicatorStats {
-                indicators_created: 0, total_enters: 0,
-                total_exits: 0, quiesce_operations: 0,
+                indicators_created: 0,
+                total_enters: 0,
+                total_exits: 0,
+                quiesce_operations: 0,
                 quiesce_successes: 0,
             },
         }
@@ -136,7 +140,8 @@ impl CoopReadIndicator {
     pub fn create(&mut self, num_cpus: u32) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.indicators.insert(id, ReadIndicatorInstance::new(id, num_cpus));
+        self.indicators
+            .insert(id, ReadIndicatorInstance::new(id, num_cpus));
         self.stats.indicators_created += 1;
         id
     }

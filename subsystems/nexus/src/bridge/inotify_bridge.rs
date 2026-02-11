@@ -134,7 +134,8 @@ impl InotifyInstance {
         }
         let wd = self.next_wd;
         self.next_wd += 1;
-        self.watches.insert(wd, WatchDescriptor::new(wd, path, mask));
+        self.watches
+            .insert(wd, WatchDescriptor::new(wd, path, mask));
         Some(wd)
     }
 
@@ -182,9 +183,7 @@ impl InotifyInstance {
     pub fn watches_for_path(&self, path: &str) -> Vec<i32> {
         self.watches
             .iter()
-            .filter(|(_, w)| {
-                w.path == path || (w.recursive && path.starts_with(w.path.as_str()))
-            })
+            .filter(|(_, w)| w.path == path || (w.recursive && path.starts_with(w.path.as_str())))
             .map(|(wd, _)| *wd)
             .collect()
     }
@@ -271,7 +270,10 @@ impl BridgeInotify {
                     *count = count.saturating_sub(1);
                 }
             }
-            self.stats.watches_active = self.stats.watches_active.saturating_sub(inst.watch_count() as u64);
+            self.stats.watches_active = self
+                .stats
+                .watches_active
+                .saturating_sub(inst.watch_count() as u64);
             true
         } else {
             false
@@ -352,7 +354,8 @@ impl BridgeInotify {
 
     #[inline]
     pub fn most_watched_paths(&self, top_n: usize) -> Vec<(String, u32)> {
-        let mut paths: Vec<(String, u32)> = self.path_watch_count
+        let mut paths: Vec<(String, u32)> = self
+            .path_watch_count
             .iter()
             .map(|(k, v)| (k.clone(), *v))
             .collect();
@@ -400,7 +403,13 @@ pub struct InotifyV2Watch {
 
 impl InotifyV2Watch {
     pub fn new(wd: i32, path_hash: u64, mask: u32) -> Self {
-        Self { wd, path_hash, mask, events_received: 0, recursive: false }
+        Self {
+            wd,
+            path_hash,
+            mask,
+            events_received: 0,
+            recursive: false,
+        }
     }
 }
 
@@ -426,7 +435,13 @@ pub struct InotifyV2Instance {
 
 impl InotifyV2Instance {
     pub fn new(fd: u64, max_queued: u32) -> Self {
-        Self { fd, watches: Vec::new(), event_queue: Vec::new(), max_queued, overflow_count: 0 }
+        Self {
+            fd,
+            watches: Vec::new(),
+            event_queue: Vec::new(),
+            max_queued,
+            overflow_count: 0,
+        }
     }
 
     #[inline]
@@ -438,9 +453,20 @@ impl InotifyV2Instance {
 
     #[inline]
     pub fn queue_event(&mut self, wd: i32, mask: u32, cookie: u32, name_hash: u64, now: u64) {
-        if self.event_queue.len() as u32 >= self.max_queued { self.overflow_count += 1; return; }
-        self.event_queue.push(InotifyV2Event { wd, mask, cookie, name_hash, timestamp: now });
-        if let Some(w) = self.watches.iter_mut().find(|w| w.wd == wd) { w.events_received += 1; }
+        if self.event_queue.len() as u32 >= self.max_queued {
+            self.overflow_count += 1;
+            return;
+        }
+        self.event_queue.push(InotifyV2Event {
+            wd,
+            mask,
+            cookie,
+            name_hash,
+            timestamp: now,
+        });
+        if let Some(w) = self.watches.iter_mut().find(|w| w.wd == wd) {
+            w.events_received += 1;
+        }
     }
 }
 
@@ -462,21 +488,42 @@ pub struct BridgeInotifyV2 {
 }
 
 impl BridgeInotifyV2 {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_fd: 1 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_fd: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, max_queued: u32) -> u64 {
-        let fd = self.next_fd; self.next_fd += 1;
-        self.instances.insert(fd, InotifyV2Instance::new(fd, max_queued));
+        let fd = self.next_fd;
+        self.next_fd += 1;
+        self.instances
+            .insert(fd, InotifyV2Instance::new(fd, max_queued));
         fd
     }
 
     #[inline]
     pub fn stats(&self) -> InotifyV2BridgeStats {
-        let watches: u32 = self.instances.values().map(|i| i.watches.len() as u32).sum();
-        let events: u64 = self.instances.values().flat_map(|i| i.watches.iter()).map(|w| w.events_received).sum();
+        let watches: u32 = self
+            .instances
+            .values()
+            .map(|i| i.watches.len() as u32)
+            .sum();
+        let events: u64 = self
+            .instances
+            .values()
+            .flat_map(|i| i.watches.iter())
+            .map(|w| w.events_received)
+            .sum();
         let overflow: u64 = self.instances.values().map(|i| i.overflow_count).sum();
-        InotifyV2BridgeStats { total_instances: self.instances.len() as u32, total_watches: watches, total_events: events, total_overflow: overflow }
+        InotifyV2BridgeStats {
+            total_instances: self.instances.len() as u32,
+            total_watches: watches,
+            total_events: events,
+            total_overflow: overflow,
+        }
     }
 }
 
@@ -577,7 +624,15 @@ impl InotifyV3Instance {
         self.watches.remove(&wd).is_some()
     }
 
-    pub fn push_event(&mut self, wd: i64, mask: u32, cookie: u32, name: String, tick: u64, is_dir: bool) -> bool {
+    pub fn push_event(
+        &mut self,
+        wd: i64,
+        mask: u32,
+        cookie: u32,
+        name: String,
+        tick: u64,
+        is_dir: bool,
+    ) -> bool {
         if self.event_queue.len() >= self.max_queue_size {
             self.overflow_count += 1;
             return false;
@@ -585,7 +640,14 @@ impl InotifyV3Instance {
         if let Some(watch) = self.watches.get_mut(&wd) {
             watch.event_count += 1;
         }
-        let event = InotifyV3Event { wd, mask, cookie, name, timestamp_ns: tick, is_dir };
+        let event = InotifyV3Event {
+            wd,
+            mask,
+            cookie,
+            name,
+            timestamp_ns: tick,
+            is_dir,
+        };
         self.event_queue.push(event);
         self.total_events += 1;
         true
@@ -646,7 +708,8 @@ impl BridgeInotifyV3 {
     pub fn create_instance(&mut self, max_queue: usize) -> u64 {
         let fd = self.next_fd;
         self.next_fd += 1;
-        self.instances.insert(fd, InotifyV3Instance::new(fd, max_queue));
+        self.instances
+            .insert(fd, InotifyV3Instance::new(fd, max_queue));
         self.stats.instances_created += 1;
         fd
     }

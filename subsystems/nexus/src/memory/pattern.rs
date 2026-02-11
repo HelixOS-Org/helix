@@ -1,11 +1,11 @@
 //! Memory access pattern detection.
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::types::{AccessPattern, AccessRecord};
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // PATTERN DETECTOR

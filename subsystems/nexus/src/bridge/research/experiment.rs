@@ -11,11 +11,12 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::array_map::ArrayMap;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS

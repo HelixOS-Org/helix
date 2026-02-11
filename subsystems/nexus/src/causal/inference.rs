@@ -24,12 +24,12 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
+use crate::fast::array_map::ArrayMap;
 use crate::math::F64Ext;
 
 // ============================================================================
@@ -441,7 +441,8 @@ impl StructuralCausalModel {
                 self.values.insert(node, intervention_value);
             } else if let Some(equation) = self.equations.get(&node) {
                 let noise = *exogenous_noise.get(&node).unwrap_or(&0.0);
-                let parent_vals: BTreeMap<u32, f64> = self.values.iter().map(|(k, v)| (k as u32, v)).collect();
+                let parent_vals: BTreeMap<u32, f64> =
+                    self.values.iter().map(|(k, v)| (k as u32, v)).collect();
                 let value = equation.evaluate(&parent_vals, noise);
                 self.values.insert(node, value);
             } else {
@@ -624,7 +625,8 @@ impl CounterfactualEngine {
     /// Step 2 & 3: Action and Prediction
     pub fn predict_counterfactual(&mut self, query: &CounterfactualQuery) -> BTreeMap<u32, f64> {
         // Step 1: Abduce noise from evidence
-        let evidence_map: BTreeMap<u32, f64> = query.evidence.iter().map(|(k, v)| (k as u32, v)).collect();
+        let evidence_map: BTreeMap<u32, f64> =
+            query.evidence.iter().map(|(k, v)| (k as u32, v)).collect();
         self.abduce(&evidence_map);
 
         // Step 2: Apply interventions
@@ -633,7 +635,11 @@ impl CounterfactualEngine {
         }
 
         // Step 3: Predict under interventions with abduced noise
-        let noise_map: BTreeMap<u32, f64> = self.abduced_noise.iter().map(|(k, v)| (k as u32, v)).collect();
+        let noise_map: BTreeMap<u32, f64> = self
+            .abduced_noise
+            .iter()
+            .map(|(k, v)| (k as u32, v))
+            .collect();
         let result = self.scm.sample(&noise_map);
 
         self.scm.clear_interventions();
@@ -1436,9 +1442,10 @@ impl KernelCausalManager {
         // Add causal links based on graph
         for edge in &self.graph.edges {
             if edge.edge_type == CausalEdgeType::Direct {
-                if let (Some(from_idx), Some(to_idx)) =
-                    (node_to_idx.try_get(edge.from as usize), node_to_idx.try_get(edge.to as usize))
-                {
+                if let (Some(from_idx), Some(to_idx)) = (
+                    node_to_idx.try_get(edge.from as usize),
+                    node_to_idx.try_get(edge.to as usize),
+                ) {
                     let strength = edge.effect.unwrap_or(1.0);
                     chain.add_link(from_idx, to_idx, strength);
                 }
@@ -1554,7 +1561,7 @@ fn combinations(set: &[u32], k: usize) -> Vec<Vec<u32>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     #[test]
     fn test_causal_node() {

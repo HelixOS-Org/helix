@@ -81,7 +81,9 @@ impl IpcChannelProfile {
 
     #[inline]
     pub fn throughput_bps(&self, duration_ns: u64) -> f64 {
-        if duration_ns == 0 { return 0.0; }
+        if duration_ns == 0 {
+            return 0.0;
+        }
         let total = self.bytes_sent + self.bytes_received;
         total as f64 / (duration_ns as f64 / 1_000_000_000.0)
     }
@@ -89,21 +91,27 @@ impl IpcChannelProfile {
     #[inline]
     pub fn avg_latency_ns(&self) -> u64 {
         let total_msgs = self.messages_sent + self.messages_received;
-        if total_msgs == 0 { return 0; }
+        if total_msgs == 0 {
+            return 0;
+        }
         self.total_latency_ns / total_msgs
     }
 
     #[inline]
     pub fn avg_message_size(&self) -> u64 {
         let total_msgs = self.messages_sent + self.messages_received;
-        if total_msgs == 0 { return 0; }
+        if total_msgs == 0 {
+            return 0;
+        }
         (self.bytes_sent + self.bytes_received) / total_msgs
     }
 
     #[inline]
     pub fn buffer_pressure(&self) -> f64 {
         let total = self.buffer_full_count + self.buffer_empty_count;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.buffer_full_count as f64 / total as f64
     }
 
@@ -112,8 +120,12 @@ impl IpcChannelProfile {
         self.messages_sent += 1;
         self.bytes_sent += bytes;
         self.total_latency_ns += latency_ns;
-        if latency_ns > self.max_latency_ns { self.max_latency_ns = latency_ns; }
-        if latency_ns < self.min_latency_ns { self.min_latency_ns = latency_ns; }
+        if latency_ns > self.max_latency_ns {
+            self.max_latency_ns = latency_ns;
+        }
+        if latency_ns < self.min_latency_ns {
+            self.min_latency_ns = latency_ns;
+        }
         self.last_activity = ts;
     }
 
@@ -122,8 +134,12 @@ impl IpcChannelProfile {
         self.messages_received += 1;
         self.bytes_received += bytes;
         self.total_latency_ns += latency_ns;
-        if latency_ns > self.max_latency_ns { self.max_latency_ns = latency_ns; }
-        if latency_ns < self.min_latency_ns { self.min_latency_ns = latency_ns; }
+        if latency_ns > self.max_latency_ns {
+            self.max_latency_ns = latency_ns;
+        }
+        if latency_ns < self.min_latency_ns {
+            self.min_latency_ns = latency_ns;
+        }
         self.last_activity = ts;
     }
 }
@@ -190,7 +206,8 @@ impl ProcessIpcProfile {
 
     #[inline]
     pub fn bottleneck_channels(&self) -> Vec<u64> {
-        self.channels.values()
+        self.channels
+            .values()
             .filter(|ch| ch.buffer_pressure() > 0.7)
             .map(|ch| ch.channel_id)
             .collect()
@@ -198,7 +215,8 @@ impl ProcessIpcProfile {
 
     #[inline]
     pub fn busiest_channel(&self) -> Option<u64> {
-        self.channels.values()
+        self.channels
+            .values()
             .max_by_key(|ch| ch.bytes_sent + ch.bytes_received)
             .map(|ch| ch.channel_id)
     }
@@ -234,7 +252,9 @@ impl AppIpcProfiler {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.profiles.entry(pid).or_insert_with(|| ProcessIpcProfile::new(pid));
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ProcessIpcProfile::new(pid));
     }
 
     #[inline]
@@ -252,7 +272,14 @@ impl AppIpcProfiler {
     }
 
     #[inline]
-    pub fn record_receive(&mut self, pid: u64, channel_id: u64, bytes: u64, latency_ns: u64, ts: u64) {
+    pub fn record_receive(
+        &mut self,
+        pid: u64,
+        channel_id: u64,
+        bytes: u64,
+        latency_ns: u64,
+        ts: u64,
+    ) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_receive(channel_id, bytes, latency_ns, ts);
         }
@@ -289,11 +316,17 @@ impl AppIpcProfiler {
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.profiles.len();
         self.stats.total_channels = self.profiles.values().map(|p| p.channels.len()).sum();
-        self.stats.total_bytes_transferred = self.profiles.values()
-            .map(|p| p.total_bytes_sent + p.total_bytes_received).sum();
+        self.stats.total_bytes_transferred = self
+            .profiles
+            .values()
+            .map(|p| p.total_bytes_sent + p.total_bytes_received)
+            .sum();
         self.stats.total_messages = self.profiles.values().map(|p| p.total_messages).sum();
-        self.stats.bottleneck_channels = self.profiles.values()
-            .map(|p| p.bottleneck_channels().len()).sum();
+        self.stats.bottleneck_channels = self
+            .profiles
+            .values()
+            .map(|p| p.bottleneck_channels().len())
+            .sum();
         self.stats.unique_edges = self.graph_edges.len();
     }
 

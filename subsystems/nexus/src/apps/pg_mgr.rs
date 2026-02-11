@@ -38,7 +38,9 @@ impl SessionDesc {
 
     #[inline(always)]
     pub fn add_group(&mut self, pgid: u64) {
-        if !self.groups.contains(&pgid) { self.groups.push(pgid); }
+        if !self.groups.contains(&pgid) {
+            self.groups.push(pgid);
+        }
     }
 
     #[inline(always)]
@@ -47,7 +49,9 @@ impl SessionDesc {
     }
 
     #[inline(always)]
-    pub fn has_controlling_tty(&self) -> bool { self.controlling_tty.is_some() }
+    pub fn has_controlling_tty(&self) -> bool {
+        self.controlling_tty.is_some()
+    }
 }
 
 /// Process group descriptor
@@ -66,16 +70,22 @@ pub struct ProcessGroup {
 impl ProcessGroup {
     pub fn new(pgid: u64, sid: u64, leader: u64, ts: u64) -> Self {
         Self {
-            pgid, session_id: sid, leader_pid: leader,
+            pgid,
+            session_id: sid,
+            leader_pid: leader,
             members: alloc::vec![leader],
-            is_foreground: false, is_orphaned: false,
-            stopped_count: 0, created_ns: ts,
+            is_foreground: false,
+            is_orphaned: false,
+            stopped_count: 0,
+            created_ns: ts,
         }
     }
 
     #[inline(always)]
     pub fn add_member(&mut self, pid: u64) {
-        if !self.members.contains(&pid) { self.members.push(pid); }
+        if !self.members.contains(&pid) {
+            self.members.push(pid);
+        }
     }
 
     #[inline(always)]
@@ -84,9 +94,13 @@ impl ProcessGroup {
     }
 
     #[inline(always)]
-    pub fn member_count(&self) -> usize { self.members.len() }
+    pub fn member_count(&self) -> usize {
+        self.members.len()
+    }
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.members.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.members.is_empty()
+    }
 }
 
 /// Per-process PG/session state
@@ -144,7 +158,9 @@ impl AppsPgMgr {
     pub fn setsid(&mut self, pid: u64, ts: u64) -> Option<u64> {
         // Process must not already be a group leader
         if let Some(proc_state) = self.processes.get(&pid) {
-            if proc_state.is_group_leader { return None; }
+            if proc_state.is_group_leader {
+                return None;
+            }
         }
 
         let sid = pid; // Session ID == PID of leader
@@ -154,15 +170,19 @@ impl AppsPgMgr {
         // Create a process group with pgid == pid
         let pg = ProcessGroup::new(pid, sid, pid, ts);
         self.groups.insert(pid, pg);
-        if let Some(s) = self.sessions.get_mut(&sid) { s.add_group(pid); }
+        if let Some(s) = self.sessions.get_mut(&sid) {
+            s.add_group(pid);
+        }
 
         // Update process state
-        let proc_state = self.processes.entry(pid).or_insert_with(|| {
-            ProcessPgState {
-                process_id: pid, parent_pid: 0, pgid: pid,
-                session_id: sid, is_session_leader: true,
-                is_group_leader: true, stopped: false,
-            }
+        let proc_state = self.processes.entry(pid).or_insert_with(|| ProcessPgState {
+            process_id: pid,
+            parent_pid: 0,
+            pgid: pid,
+            session_id: sid,
+            is_session_leader: true,
+            is_group_leader: true,
+            stopped: false,
         });
         proc_state.session_id = sid;
         proc_state.pgid = pid;
@@ -189,7 +209,9 @@ impl AppsPgMgr {
         // Add to new group (create if needed)
         let group = self.groups.entry(pgid).or_insert_with(|| {
             let g = ProcessGroup::new(pgid, sid, pid, ts);
-            if let Some(s) = self.sessions.get_mut(&sid) { s.add_group(pgid); }
+            if let Some(s) = self.sessions.get_mut(&sid) {
+                s.add_group(pgid);
+            }
             g
         });
         group.add_member(pid);
@@ -206,8 +228,13 @@ impl AppsPgMgr {
     #[inline]
     pub fn register_process(&mut self, pid: u64, parent_pid: u64, pgid: u64, sid: u64) {
         self.processes.insert(pid, ProcessPgState {
-            process_id: pid, parent_pid, pgid, session_id: sid,
-            is_session_leader: false, is_group_leader: false, stopped: false,
+            process_id: pid,
+            parent_pid,
+            pgid,
+            session_id: sid,
+            is_session_leader: false,
+            is_group_leader: false,
+            stopped: false,
         });
         if let Some(group) = self.groups.get_mut(&pgid) {
             group.add_member(pid);
@@ -221,7 +248,9 @@ impl AppsPgMgr {
             }
         }
         // Clean up empty groups
-        let empty: Vec<u64> = self.groups.iter()
+        let empty: Vec<u64> = self
+            .groups
+            .iter()
             .filter(|(_, g)| g.is_empty())
             .map(|(&pgid, _)| pgid)
             .collect();
@@ -247,7 +276,9 @@ impl AppsPgMgr {
                 group.is_foreground = true;
             }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn detect_orphaned_groups(&mut self) {
@@ -277,9 +308,15 @@ impl AppsPgMgr {
     }
 
     #[inline(always)]
-    pub fn session(&self, sid: u64) -> Option<&SessionDesc> { self.sessions.get(&sid) }
+    pub fn session(&self, sid: u64) -> Option<&SessionDesc> {
+        self.sessions.get(&sid)
+    }
     #[inline(always)]
-    pub fn group(&self, pgid: u64) -> Option<&ProcessGroup> { self.groups.get(&pgid) }
+    pub fn group(&self, pgid: u64) -> Option<&ProcessGroup> {
+        self.groups.get(&pgid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsPgMgrStats { &self.stats }
+    pub fn stats(&self) -> &AppsPgMgrStats {
+        &self.stats
+    }
 }

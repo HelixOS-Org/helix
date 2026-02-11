@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -58,7 +59,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(val: u64, lo: u64, hi: u64) -> u64 {
-    if val < lo { lo } else if val > hi { hi } else { val }
+    if val < lo {
+        lo
+    } else if val > hi {
+        hi
+    } else {
+        val
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -238,9 +245,9 @@ impl CoopAbstraction {
         pairwise_trust: &[(u64, u64, u64)],
     ) -> u64 {
         self.current_tick += 1;
-        let cluster_hash: u64 = member_ids.iter().fold(FNV_OFFSET, |acc, &m| {
-            acc ^ fnv1a(&m.to_le_bytes())
-        });
+        let cluster_hash: u64 = member_ids
+            .iter()
+            .fold(FNV_OFFSET, |acc, &m| acc ^ fnv1a(&m.to_le_bytes()));
         let cid = cluster_hash ^ self.current_tick;
 
         let mutual_trust = if pairwise_trust.is_empty() {
@@ -286,15 +293,11 @@ impl CoopAbstraction {
     // -----------------------------------------------------------------------
     // resource_pool_abstraction — create a pooled resource abstraction
     // -----------------------------------------------------------------------
-    pub fn resource_pool_abstraction(
-        &mut self,
-        contributors: &[u64],
-        capacities: &[u64],
-    ) -> u64 {
+    pub fn resource_pool_abstraction(&mut self, contributors: &[u64], capacities: &[u64]) -> u64 {
         self.current_tick += 1;
-        let pool_hash: u64 = contributors.iter().fold(FNV_OFFSET, |acc, &c| {
-            acc ^ fnv1a(&c.to_le_bytes())
-        });
+        let pool_hash: u64 = contributors
+            .iter()
+            .fold(FNV_OFFSET, |acc, &c| acc ^ fnv1a(&c.to_le_bytes()));
         let pid = pool_hash ^ self.current_tick;
 
         let total_capacity: u64 = capacities.iter().sum();
@@ -342,15 +345,11 @@ impl CoopAbstraction {
     // -----------------------------------------------------------------------
     // symbiotic_group — form a symbiotic cooperation group
     // -----------------------------------------------------------------------
-    pub fn symbiotic_group(
-        &mut self,
-        member_ids: &[u64],
-        benefit_scores: &[u64],
-    ) -> u64 {
+    pub fn symbiotic_group(&mut self, member_ids: &[u64], benefit_scores: &[u64]) -> u64 {
         self.current_tick += 1;
-        let group_hash: u64 = member_ids.iter().fold(FNV_OFFSET, |acc, &m| {
-            acc ^ fnv1a(&m.to_le_bytes())
-        });
+        let group_hash: u64 = member_ids
+            .iter()
+            .fold(FNV_OFFSET, |acc, &m| acc ^ fnv1a(&m.to_le_bytes()));
         let gid = group_hash ^ self.current_tick;
 
         let mutualism = if benefit_scores.is_empty() {
@@ -364,7 +363,11 @@ impl CoopAbstraction {
         } else {
             let max_b = benefit_scores.iter().copied().max().unwrap_or(1);
             let min_b = benefit_scores.iter().copied().min().unwrap_or(0);
-            if max_b == 0 { 100 } else { min_b.wrapping_mul(100) / max_b }
+            if max_b == 0 {
+                100
+            } else {
+                min_b.wrapping_mul(100) / max_b
+            }
         };
 
         let group = SymbioticGroup {
@@ -453,17 +456,29 @@ impl CoopAbstraction {
                         let drop_idx = xorshift64(&mut self.rng_state) as usize % merged.len();
                         merged.remove(drop_idx);
                     }
-                    let kind = if a.kind == b.kind { a.kind.clone() } else { AbstractionKind::Hybrid };
+                    let kind = if a.kind == b.kind {
+                        a.kind.clone()
+                    } else {
+                        AbstractionKind::Hybrid
+                    };
                     (merged, kind)
-                }
+                },
                 _ => return 0,
             }
         };
 
         let child_id = self.create_cooperation_abstraction("evolved", child_kind, &child_members);
 
-        let pa_gen = self.abstractions.get(&parent_a_id).map(|r| r.generation).unwrap_or(0);
-        let pb_gen = self.abstractions.get(&parent_b_id).map(|r| r.generation).unwrap_or(0);
+        let pa_gen = self
+            .abstractions
+            .get(&parent_a_id)
+            .map(|r| r.generation)
+            .unwrap_or(0);
+        let pb_gen = self
+            .abstractions
+            .get(&parent_b_id)
+            .map(|r| r.generation)
+            .unwrap_or(0);
         let max_gen = core::cmp::max(pa_gen, pb_gen);
         if let Some(child) = self.abstractions.get_mut(&child_id) {
             child.generation = max_gen + 1;

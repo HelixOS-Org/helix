@@ -30,9 +30,13 @@ impl FanEventMask {
     pub const ACCESS_PERM: u64 = 1 << 17;
     pub const OPEN_EXEC_PERM: u64 = 1 << 18;
 
-    pub fn new(bits: u64) -> Self { Self { bits } }
+    pub fn new(bits: u64) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u64) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u64) -> bool {
+        self.bits & flag != 0
+    }
     #[inline(always)]
     pub fn is_permission(&self) -> bool {
         self.has(Self::OPEN_PERM) || self.has(Self::ACCESS_PERM) || self.has(Self::OPEN_EXEC_PERM)
@@ -56,9 +60,13 @@ impl FanInitFlags {
     pub const REPORT_NAME: u32 = 1 << 11;
     pub const REPORT_PIDFD: u32 = 1 << 12;
 
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u32) -> bool {
+        self.bits & flag != 0
+    }
 }
 
 /// Fanotify mark type
@@ -91,8 +99,12 @@ pub struct FanMark {
 impl FanMark {
     pub fn new(id: u64, mtype: FanMarkType, mask: FanEventMask, target: u64) -> Self {
         Self {
-            id, mark_type: mtype, mask, target_id: target,
-            ignore_mask: FanEventMask::new(0), events_delivered: 0,
+            id,
+            mark_type: mtype,
+            mask,
+            target_id: target,
+            ignore_mask: FanEventMask::new(0),
+            events_delivered: 0,
         }
     }
 
@@ -118,14 +130,21 @@ pub struct FanotifyGroup {
 impl FanotifyGroup {
     pub fn new(id: u64, flags: FanInitFlags) -> Self {
         Self {
-            id, flags, marks: Vec::new(), queue: Vec::new(),
-            queue_max: 16384, total_events: 0, overflow_count: 0,
+            id,
+            flags,
+            marks: Vec::new(),
+            queue: Vec::new(),
+            queue_max: 16384,
+            total_events: 0,
+            overflow_count: 0,
             permission_pending: 0,
         }
     }
 
     #[inline(always)]
-    pub fn add_mark(&mut self, mark: FanMark) { self.marks.push(mark); }
+    pub fn add_mark(&mut self, mark: FanMark) {
+        self.marks.push(mark);
+    }
 
     #[inline]
     pub fn deliver(&mut self, event: FanotifyEvent) -> bool {
@@ -134,7 +153,9 @@ impl FanotifyGroup {
             return false;
         }
         self.total_events += 1;
-        if event.needs_response { self.permission_pending += 1; }
+        if event.needs_response {
+            self.permission_pending += 1;
+        }
         self.queue.push(event);
         true
     }
@@ -179,7 +200,11 @@ pub struct BridgeFanotify {
 
 impl BridgeFanotify {
     pub fn new() -> Self {
-        Self { groups: BTreeMap::new(), next_id: 1, next_mark_id: 1 }
+        Self {
+            groups: BTreeMap::new(),
+            next_id: 1,
+            next_mark_id: 1,
+        }
     }
 
     #[inline]
@@ -191,7 +216,13 @@ impl BridgeFanotify {
     }
 
     #[inline]
-    pub fn add_mark(&mut self, group_id: u64, mtype: FanMarkType, mask: u64, target: u64) -> Option<u64> {
+    pub fn add_mark(
+        &mut self,
+        group_id: u64,
+        mtype: FanMarkType,
+        mask: u64,
+        target: u64,
+    ) -> Option<u64> {
         let mid = self.next_mark_id;
         self.next_mark_id += 1;
         let mark = FanMark::new(mid, mtype, FanEventMask::new(mask), target);
@@ -206,8 +237,11 @@ impl BridgeFanotify {
         let overflow: u64 = self.groups.values().map(|g| g.overflow_count).sum();
         let perm: u32 = self.groups.values().map(|g| g.permission_pending).sum();
         FanotifyBridgeStats {
-            total_groups: self.groups.len() as u32, total_marks: marks,
-            total_events: events, overflow_events: overflow, permission_pending: perm,
+            total_groups: self.groups.len() as u32,
+            total_marks: marks,
+            total_events: events,
+            overflow_events: overflow,
+            permission_pending: perm,
         }
     }
 }
@@ -236,11 +270,17 @@ impl FanotifyV2Mask {
     pub const ACCESS_PERM: u64 = 1 << 13;
     pub const OPEN_EXEC_PERM: u64 = 1 << 14;
 
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn set(&mut self, f: u64) { self.0 |= f; }
+    pub fn set(&mut self, f: u64) {
+        self.0 |= f;
+    }
     #[inline(always)]
-    pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u64) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Fanotify v2 event
@@ -276,12 +316,22 @@ pub struct FanotifyV2Group {
 
 impl FanotifyV2Group {
     pub fn new(id: u64, max: usize) -> Self {
-        Self { id, flags: 0, marks: Vec::new(), events: Vec::new(), max_events: max, overflow_count: 0 }
+        Self {
+            id,
+            flags: 0,
+            marks: Vec::new(),
+            events: Vec::new(),
+            max_events: max,
+            overflow_count: 0,
+        }
     }
 
     #[inline(always)]
     pub fn push_event(&mut self, event: FanotifyV2Event) {
-        if self.events.len() >= self.max_events { self.overflow_count += 1; return; }
+        if self.events.len() >= self.max_events {
+            self.overflow_count += 1;
+            return;
+        }
         self.events.push(event);
     }
 }
@@ -306,20 +356,43 @@ pub struct BridgeFanotifyV2 {
 }
 
 impl BridgeFanotifyV2 {
-    pub fn new() -> Self { Self { groups: BTreeMap::new(), marks: BTreeMap::new(), next_group_id: 1, next_mark_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            groups: BTreeMap::new(),
+            marks: BTreeMap::new(),
+            next_group_id: 1,
+            next_mark_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create_group(&mut self, max_events: usize) -> u64 {
-        let id = self.next_group_id; self.next_group_id += 1;
+        let id = self.next_group_id;
+        self.next_group_id += 1;
         self.groups.insert(id, FanotifyV2Group::new(id, max_events));
         id
     }
 
     #[inline]
-    pub fn add_mark(&mut self, group: u64, mark_type: FanMarkType, mask: FanotifyV2Mask, inode: u64) -> u64 {
-        let id = self.next_mark_id; self.next_mark_id += 1;
-        self.marks.insert(id, FanotifyV2Mark { id, mark_type, mask, target_inode: inode, ignored_mask: FanotifyV2Mask::new() });
-        if let Some(g) = self.groups.get_mut(&group) { g.marks.push(id); }
+    pub fn add_mark(
+        &mut self,
+        group: u64,
+        mark_type: FanMarkType,
+        mask: FanotifyV2Mask,
+        inode: u64,
+    ) -> u64 {
+        let id = self.next_mark_id;
+        self.next_mark_id += 1;
+        self.marks.insert(id, FanotifyV2Mark {
+            id,
+            mark_type,
+            mask,
+            target_inode: inode,
+            ignored_mask: FanotifyV2Mask::new(),
+        });
+        if let Some(g) = self.groups.get_mut(&group) {
+            g.marks.push(id);
+        }
         id
     }
 
@@ -327,7 +400,12 @@ impl BridgeFanotifyV2 {
     pub fn stats(&self) -> FanotifyV2BridgeStats {
         let events: u64 = self.groups.values().map(|g| g.events.len() as u64).sum();
         let overflows: u64 = self.groups.values().map(|g| g.overflow_count).sum();
-        FanotifyV2BridgeStats { groups: self.groups.len() as u32, marks: self.marks.len() as u32, total_events: events, overflow_events: overflows }
+        FanotifyV2BridgeStats {
+            groups: self.groups.len() as u32,
+            marks: self.marks.len() as u32,
+            total_events: events,
+            overflow_events: overflows,
+        }
     }
 }
 
@@ -389,7 +467,16 @@ pub struct FanGroupV3 {
 
 impl FanGroupV3 {
     pub fn new(id: u64, flags: u32) -> Self {
-        Self { id, flags, event_mask: 0, events: Vec::new(), marks: 0, overflow_count: 0, total_events: 0, permission_events: 0 }
+        Self {
+            id,
+            flags,
+            event_mask: 0,
+            events: Vec::new(),
+            marks: 0,
+            overflow_count: 0,
+            total_events: 0,
+            permission_events: 0,
+        }
     }
 
     #[inline(always)]
@@ -417,33 +504,51 @@ pub struct BridgeFanotifyV3 {
 }
 
 impl BridgeFanotifyV3 {
-    pub fn new() -> Self { Self { groups: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            groups: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn init(&mut self, flags: u32) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.groups.insert(id, FanGroupV3::new(id, flags));
         id
     }
 
     #[inline(always)]
     pub fn mark(&mut self, group: u64, mask: u64) {
-        if let Some(g) = self.groups.get_mut(&group) { g.event_mask |= mask; g.marks += 1; }
+        if let Some(g) = self.groups.get_mut(&group) {
+            g.event_mask |= mask;
+            g.marks += 1;
+        }
     }
 
     #[inline(always)]
     pub fn queue(&mut self, group: u64, evt: FanEventV3) {
-        if let Some(g) = self.groups.get_mut(&group) { g.queue_event(evt); }
+        if let Some(g) = self.groups.get_mut(&group) {
+            g.queue_event(evt);
+        }
     }
 
     #[inline(always)]
-    pub fn destroy(&mut self, id: u64) { self.groups.remove(&id); }
+    pub fn destroy(&mut self, id: u64) {
+        self.groups.remove(&id);
+    }
 
     #[inline]
     pub fn stats(&self) -> FanotifyV3BridgeStats {
         let marks: u32 = self.groups.values().map(|g| g.marks).sum();
         let evts: u64 = self.groups.values().map(|g| g.total_events).sum();
         let overflows: u64 = self.groups.values().map(|g| g.overflow_count).sum();
-        FanotifyV3BridgeStats { total_groups: self.groups.len() as u32, total_marks: marks, total_events: evts, total_overflows: overflows }
+        FanotifyV3BridgeStats {
+            total_groups: self.groups.len() as u32,
+            total_marks: marks,
+            total_events: evts,
+            total_overflows: overflows,
+        }
     }
 }

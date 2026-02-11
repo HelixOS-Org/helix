@@ -27,7 +27,14 @@ pub struct ExtentRecord {
 
 impl ExtentRecord {
     pub fn new(inode: u64, logical: u64, physical: u64, length: u64) -> Self {
-        Self { inode, logical_block: logical, physical_block: physical, length, state: ExtentState::Allocated, depth: 0 }
+        Self {
+            inode,
+            logical_block: logical,
+            physical_block: physical,
+            length,
+            state: ExtentState::Allocated,
+            depth: 0,
+        }
     }
 
     #[inline(always)]
@@ -36,7 +43,9 @@ impl ExtentRecord {
     }
 
     #[inline(always)]
-    pub fn size_bytes(&self) -> u64 { self.length * 4096 }
+    pub fn size_bytes(&self) -> u64 {
+        self.length * 4096
+    }
 }
 
 /// File fragmentation analysis
@@ -51,20 +60,31 @@ pub struct FragmentationAnalysis {
 
 impl FragmentationAnalysis {
     pub fn new(inode: u64) -> Self {
-        Self { inode, extent_count: 0, total_blocks: 0, contiguous_runs: 0, holes: 0 }
+        Self {
+            inode,
+            extent_count: 0,
+            total_blocks: 0,
+            contiguous_runs: 0,
+            holes: 0,
+        }
     }
 
     #[inline]
     pub fn add_extent(&mut self, ext: &ExtentRecord) {
         self.extent_count += 1;
         self.total_blocks += ext.length;
-        if ext.state == ExtentState::Hole { self.holes += 1; }
+        if ext.state == ExtentState::Hole {
+            self.holes += 1;
+        }
     }
 
     #[inline(always)]
     pub fn fragmentation_ratio(&self) -> f64 {
-        if self.extent_count <= 1 { 0.0 }
-        else { 1.0 - (1.0 / self.extent_count as f64) }
+        if self.extent_count <= 1 {
+            0.0
+        } else {
+            1.0 - (1.0 / self.extent_count as f64)
+        }
     }
 }
 
@@ -87,17 +107,32 @@ pub struct HolisticExtent {
 
 impl HolisticExtent {
     pub fn new() -> Self {
-        Self { files: BTreeMap::new(), stats: HolisticExtentStats { total_extents: 0, total_blocks: 0, fragmented_files: 0, holes: 0 } }
+        Self {
+            files: BTreeMap::new(),
+            stats: HolisticExtentStats {
+                total_extents: 0,
+                total_blocks: 0,
+                fragmented_files: 0,
+                holes: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn record_extent(&mut self, ext: &ExtentRecord) {
         self.stats.total_extents += 1;
         self.stats.total_blocks += ext.length;
-        if ext.state == ExtentState::Hole { self.stats.holes += 1; }
-        let fa = self.files.entry(ext.inode).or_insert_with(|| FragmentationAnalysis::new(ext.inode));
+        if ext.state == ExtentState::Hole {
+            self.stats.holes += 1;
+        }
+        let fa = self
+            .files
+            .entry(ext.inode)
+            .or_insert_with(|| FragmentationAnalysis::new(ext.inode));
         fa.add_extent(ext);
-        if fa.extent_count > 1 { self.stats.fragmented_files += 1; }
+        if fa.extent_count > 1 {
+            self.stats.fragmented_files += 1;
+        }
     }
 }
 
@@ -180,14 +215,19 @@ impl HolisticExtentV2Manager {
             inode,
             timestamp: self.samples.len() as u64,
         };
-        self.per_inode.entry(inode).or_insert_with(Vec::new).push(sample.clone());
+        self.per_inode
+            .entry(inode)
+            .or_insert_with(Vec::new)
+            .push(sample.clone());
         self.samples.push(sample);
         self.stats.samples += 1;
     }
 
     pub fn analyze(&mut self) -> &HolisticExtentV2Health {
         self.stats.analyses += 1;
-        let frag: Vec<&HolisticExtentV2Sample> = self.samples.iter()
+        let frag: Vec<&HolisticExtentV2Sample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticExtentV2Metric::FragmentationRatio))
             .collect();
         if !frag.is_empty() {
@@ -198,14 +238,19 @@ impl HolisticExtentV2Manager {
                 self.stats.defrag_recommendations += 1;
             }
         }
-        self.health.overall = (self.health.allocation_efficiency + self.health.contiguity_score + (100 - self.health.fragmentation_score)) / 3;
+        self.health.overall = (self.health.allocation_efficiency
+            + self.health.contiguity_score
+            + (100 - self.health.fragmentation_score))
+            / 3;
         &self.health
     }
 
     #[inline]
     pub fn analyze_inode(&self, inode: u64) -> Option<u64> {
         self.per_inode.get(&inode).map(|samples| {
-            if samples.is_empty() { 0 } else {
+            if samples.is_empty() {
+                0
+            } else {
                 samples.iter().map(|s| s.value).sum::<u64>() / samples.len() as u64
             }
         })

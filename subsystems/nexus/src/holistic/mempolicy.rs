@@ -6,10 +6,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
+use crate::fast::linear_map::LinearMap;
 
 /// NUMA memory placement policy mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -195,7 +196,7 @@ impl MempolicyInstance {
             MempolicyMode::Default | MempolicyMode::Local => {
                 self.hit_count += 1;
                 Some(0) // Local node
-            }
+            },
             MempolicyMode::Preferred => {
                 if let Some(node) = self.preferred_node {
                     self.hit_count += 1;
@@ -204,7 +205,7 @@ impl MempolicyInstance {
                     self.fallback_count += 1;
                     Some(0)
                 }
-            }
+            },
             MempolicyMode::Bind => {
                 if let Some(node) = self.nodemask.first_set() {
                     self.hit_count += 1;
@@ -213,7 +214,7 @@ impl MempolicyInstance {
                     self.miss_count += 1;
                     None
                 }
-            }
+            },
             MempolicyMode::Interleave => {
                 let w = self.nodemask.weight();
                 if w == 0 {
@@ -232,7 +233,7 @@ impl MempolicyInstance {
                     }
                 }
                 None
-            }
+            },
             MempolicyMode::WeightedInterleave => {
                 if let Some(ref mut wi) = self.weighted {
                     if let Some(node) = wi.next_node() {
@@ -242,7 +243,7 @@ impl MempolicyInstance {
                 }
                 self.miss_count += 1;
                 None
-            }
+            },
         }
     }
 }
@@ -303,7 +304,7 @@ impl HolisticMempolicy {
             MempolicyMode::Interleave => self.stats.interleave_policies += 1,
             MempolicyMode::Preferred => self.stats.preferred_policies += 1,
             MempolicyMode::WeightedInterleave => self.stats.weighted_policies += 1,
-            _ => {}
+            _ => {},
         }
         id
     }

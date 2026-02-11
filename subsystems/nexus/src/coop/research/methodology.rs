@@ -13,11 +13,12 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::linear_map::LinearMap;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -307,9 +308,8 @@ impl CoopMethodology {
             EMA_ALPHA * design_score + (1.0 - EMA_ALPHA) * self.stats.avg_design_score_ema;
         self.stats.avg_sample_adequacy_ema =
             EMA_ALPHA * sample_adequacy + (1.0 - EMA_ALPHA) * self.stats.avg_sample_adequacy_ema;
-        self.stats.avg_randomization_quality_ema =
-            EMA_ALPHA * randomization_quality
-                + (1.0 - EMA_ALPHA) * self.stats.avg_randomization_quality_ema;
+        self.stats.avg_randomization_quality_ema = EMA_ALPHA * randomization_quality
+            + (1.0 - EMA_ALPHA) * self.stats.avg_randomization_quality_ema;
         result
     }
 
@@ -373,7 +373,8 @@ impl CoopMethodology {
         }
         let z_alpha = 1.96f32;
         let z_beta = 0.84f32;
-        let required = ((z_alpha + z_beta) / target_effect) * ((z_alpha + z_beta) / target_effect) * 2.0;
+        let required =
+            ((z_alpha + z_beta) / target_effect) * ((z_alpha + z_beta) / target_effect) * 2.0;
         let required_n = required.ceil() as usize;
         if sample_size >= required_n {
             1.0
@@ -407,21 +408,36 @@ impl CoopMethodology {
                     ValidityThreat::InsufficientSample => String::from("Sample size below minimum"),
                     ValidityThreat::NoControlGroup => String::from("No control group present"),
                     ValidityThreat::SelectionBias => String::from("Group selection may be biased"),
-                    ValidityThreat::PoorRandomization => String::from("Randomization quality is low"),
-                    ValidityThreat::ConfoundingVariable => String::from("Potential confounding variables"),
+                    ValidityThreat::PoorRandomization => {
+                        String::from("Randomization quality is low")
+                    },
+                    ValidityThreat::ConfoundingVariable => {
+                        String::from("Potential confounding variables")
+                    },
                     ValidityThreat::MeasurementBias => String::from("Measurement may be biased"),
-                    ValidityThreat::HistoryEffect => String::from("Historical effects not controlled"),
+                    ValidityThreat::HistoryEffect => {
+                        String::from("Historical effects not controlled")
+                    },
                 };
                 let remediation = match threat {
                     ValidityThreat::InsufficientSample => String::from("Collect more data points"),
                     ValidityThreat::NoControlGroup => String::from("Add a baseline control group"),
-                    ValidityThreat::SelectionBias => String::from("Use stratified random assignment"),
-                    ValidityThreat::PoorRandomization => String::from("Use better PRNG and verify balance"),
-                    ValidityThreat::ConfoundingVariable => String::from("Add covariates or blocking"),
-                    ValidityThreat::MeasurementBias => String::from("Calibrate measurement instruments"),
+                    ValidityThreat::SelectionBias => {
+                        String::from("Use stratified random assignment")
+                    },
+                    ValidityThreat::PoorRandomization => {
+                        String::from("Use better PRNG and verify balance")
+                    },
+                    ValidityThreat::ConfoundingVariable => {
+                        String::from("Add covariates or blocking")
+                    },
+                    ValidityThreat::MeasurementBias => {
+                        String::from("Calibrate measurement instruments")
+                    },
                     ValidityThreat::HistoryEffect => String::from("Add time-series control"),
                 };
-                let finding_id = fnv1a_hash(&exp.id.to_le_bytes()) ^ fnv1a_hash(&(*threat as u64).to_le_bytes());
+                let finding_id =
+                    fnv1a_hash(&exp.id.to_le_bytes()) ^ fnv1a_hash(&(*threat as u64).to_le_bytes());
                 findings.push(AuditFinding {
                     id: finding_id,
                     experiment_id: exp.id,
@@ -495,7 +511,11 @@ impl CoopMethodology {
             });
         }
         self.stats.improvements_suggested += improvements.len() as u64;
-        improvements.sort_by(|a, b| b.priority.partial_cmp(&a.priority).unwrap_or(core::cmp::Ordering::Equal));
+        improvements.sort_by(|a, b| {
+            b.priority
+                .partial_cmp(&a.priority)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         improvements
     }
 
@@ -553,7 +573,8 @@ impl CoopMethodology {
             return 0.0;
         }
         let has_control = groups.iter().any(|g| g.is_control) as u32 as f32;
-        let balanced_ratio = groups.iter().filter(|g| g.balanced).count() as f32 / groups.len() as f32;
+        let balanced_ratio =
+            groups.iter().filter(|g| g.balanced).count() as f32 / groups.len() as f32;
         has_control * 0.5 + balanced_ratio * 0.5
     }
 

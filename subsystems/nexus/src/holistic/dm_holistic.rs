@@ -46,13 +46,23 @@ pub struct DmTarget {
 
 impl DmTarget {
     pub fn new(target_type: DmTargetType, start: u64, length: u64) -> Self {
-        Self { target_type, start_sector: start, length_sectors: length, underlying_dev: 0, offset: 0 }
+        Self {
+            target_type,
+            start_sector: start,
+            length_sectors: length,
+            underlying_dev: 0,
+            offset: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn end_sector(&self) -> u64 { self.start_sector + self.length_sectors }
+    pub fn end_sector(&self) -> u64 {
+        self.start_sector + self.length_sectors
+    }
     #[inline(always)]
-    pub fn size_bytes(&self) -> u64 { self.length_sectors * 512 }
+    pub fn size_bytes(&self) -> u64 {
+        self.length_sectors * 512
+    }
 }
 
 /// DM device
@@ -71,10 +81,19 @@ pub struct DmDevice {
 impl DmDevice {
     pub fn new(dm_id: u64, name: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in name { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in name {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            dm_id, name_hash: h, state: DmDevState::Creating, targets: Vec::new(),
-            open_count: 0, event_nr: 0, read_bytes: 0, write_bytes: 0,
+            dm_id,
+            name_hash: h,
+            state: DmDevState::Creating,
+            targets: Vec::new(),
+            open_count: 0,
+            event_nr: 0,
+            read_bytes: 0,
+            write_bytes: 0,
         }
     }
 
@@ -84,11 +103,17 @@ impl DmDevice {
     }
 
     #[inline(always)]
-    pub fn activate(&mut self) { self.state = DmDevState::Active; }
+    pub fn activate(&mut self) {
+        self.state = DmDevState::Active;
+    }
     #[inline(always)]
-    pub fn suspend(&mut self) { self.state = DmDevState::Suspended; }
+    pub fn suspend(&mut self) {
+        self.state = DmDevState::Suspended;
+    }
     #[inline(always)]
-    pub fn resume(&mut self) { self.state = DmDevState::Active; }
+    pub fn resume(&mut self) {
+        self.state = DmDevState::Active;
+    }
 
     #[inline(always)]
     pub fn total_sectors(&self) -> u64 {
@@ -96,11 +121,17 @@ impl DmDevice {
     }
 
     #[inline(always)]
-    pub fn size_bytes(&self) -> u64 { self.total_sectors() * 512 }
+    pub fn size_bytes(&self) -> u64 {
+        self.total_sectors() * 512
+    }
 
     #[inline(always)]
     pub fn record_io(&mut self, read: bool, bytes: u64) {
-        if read { self.read_bytes += bytes; } else { self.write_bytes += bytes; }
+        if read {
+            self.read_bytes += bytes;
+        } else {
+            self.write_bytes += bytes;
+        }
     }
 }
 
@@ -120,21 +151,32 @@ pub struct DmThinPoolStatus {
 impl DmThinPoolStatus {
     pub fn new(pool_id: u64, data_blocks: u64, meta_blocks: u64) -> Self {
         Self {
-            pool_id, total_data_blocks: data_blocks, used_data_blocks: 0,
-            total_metadata_blocks: meta_blocks, used_metadata_blocks: 0,
-            thin_devices: 0, held_metadata_root: false,
+            pool_id,
+            total_data_blocks: data_blocks,
+            used_data_blocks: 0,
+            total_metadata_blocks: meta_blocks,
+            used_metadata_blocks: 0,
+            thin_devices: 0,
+            held_metadata_root: false,
         }
     }
 
     #[inline(always)]
     pub fn data_usage_pct(&self) -> f64 {
-        if self.total_data_blocks == 0 { 0.0 } else { self.used_data_blocks as f64 / self.total_data_blocks as f64 }
+        if self.total_data_blocks == 0 {
+            0.0
+        } else {
+            self.used_data_blocks as f64 / self.total_data_blocks as f64
+        }
     }
 
     #[inline(always)]
     pub fn metadata_usage_pct(&self) -> f64 {
-        if self.total_metadata_blocks == 0 { 0.0 }
-        else { self.used_metadata_blocks as f64 / self.total_metadata_blocks as f64 }
+        if self.total_metadata_blocks == 0 {
+            0.0
+        } else {
+            self.used_metadata_blocks as f64 / self.total_metadata_blocks as f64
+        }
     }
 }
 
@@ -161,7 +203,12 @@ impl HolisticDm {
         Self {
             devices: BTreeMap::new(),
             thin_pools: BTreeMap::new(),
-            stats: HolisticDmStats { total_devices: 0, total_targets: 0, thin_pools: 0, total_bytes: 0 },
+            stats: HolisticDmStats {
+                total_devices: 0,
+                total_targets: 0,
+                thin_pools: 0,
+                total_bytes: 0,
+            },
         }
     }
 
@@ -183,6 +230,8 @@ impl HolisticDm {
         if let Some(dev) = self.devices.get_mut(&dm_id) {
             dev.activate();
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }

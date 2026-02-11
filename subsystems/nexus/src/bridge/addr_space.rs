@@ -44,31 +44,59 @@ pub struct AddrProt {
 impl AddrProt {
     #[inline(always)]
     pub const fn none() -> Self {
-        Self { read: false, write: false, execute: false, user: false }
+        Self {
+            read: false,
+            write: false,
+            execute: false,
+            user: false,
+        }
     }
 
     #[inline(always)]
     pub const fn ro_user() -> Self {
-        Self { read: true, write: false, execute: false, user: true }
+        Self {
+            read: true,
+            write: false,
+            execute: false,
+            user: true,
+        }
     }
 
     #[inline(always)]
     pub const fn rw_user() -> Self {
-        Self { read: true, write: true, execute: false, user: true }
+        Self {
+            read: true,
+            write: true,
+            execute: false,
+            user: true,
+        }
     }
 
     #[inline(always)]
     pub const fn rx_user() -> Self {
-        Self { read: true, write: false, execute: true, user: true }
+        Self {
+            read: true,
+            write: false,
+            execute: true,
+            user: true,
+        }
     }
 
     #[inline]
     pub fn as_bits(&self) -> u32 {
         let mut bits = 0u32;
-        if self.read { bits |= 1; }
-        if self.write { bits |= 2; }
-        if self.execute { bits |= 4; }
-        if self.user { bits |= 8; }
+        if self.read {
+            bits |= 1;
+        }
+        if self.write {
+            bits |= 2;
+        }
+        if self.execute {
+            bits |= 4;
+        }
+        if self.user {
+            bits |= 8;
+        }
         bits
     }
 
@@ -94,7 +122,13 @@ pub struct VmaRegion {
 }
 
 impl VmaRegion {
-    pub fn new(start: u64, end: u64, prot: AddrProt, region_type: RegionType, name: String) -> Self {
+    pub fn new(
+        start: u64,
+        end: u64,
+        prot: AddrProt,
+        region_type: RegionType,
+        name: String,
+    ) -> Self {
         Self {
             start,
             end,
@@ -241,7 +275,9 @@ impl ProcessAddrSpace {
         let mut gaps = 0u64;
         for i in 1..self.regions.len() {
             gaps = gaps.saturating_add(
-                self.regions[i].start.saturating_sub(self.regions[i - 1].end),
+                self.regions[i]
+                    .start
+                    .saturating_sub(self.regions[i - 1].end),
             );
         }
         if self.total_mapped == 0 {
@@ -316,12 +352,17 @@ impl BridgeAddrSpace {
 
     pub fn destroy_space(&mut self, pid: u64) -> bool {
         if let Some(space) = self.spaces.remove(&pid) {
-            self.stats.total_regions = self.stats.total_regions.saturating_sub(space.regions.len() as u64);
-            self.stats.total_mapped_bytes = self.stats.total_mapped_bytes.saturating_sub(space.total_mapped);
+            self.stats.total_regions = self
+                .stats
+                .total_regions
+                .saturating_sub(space.regions.len() as u64);
+            self.stats.total_mapped_bytes = self
+                .stats
+                .total_mapped_bytes
+                .saturating_sub(space.total_mapped);
             self.stats.total_processes = self.stats.total_processes.saturating_sub(1);
-            self.translations.retain(|t| {
-                !space.regions.iter().any(|r| r.contains(t.user_addr))
-            });
+            self.translations
+                .retain(|t| !space.regions.iter().any(|r| r.contains(t.user_addr)));
             true
         } else {
             false
@@ -355,7 +396,13 @@ impl BridgeAddrSpace {
             }
             aligned
         };
-        let region = VmaRegion::new(actual_start, actual_start + aligned_size, prot, region_type, name);
+        let region = VmaRegion::new(
+            actual_start,
+            actual_start + aligned_size,
+            prot,
+            region_type,
+            name,
+        );
         space.total_mapped = space.total_mapped.saturating_add(aligned_size);
         space.regions.push(region);
         space.regions.sort_by_key(|r| r.start);
@@ -482,7 +529,11 @@ impl BridgeAddrSpace {
     #[inline(always)]
     pub fn process_stats(&self, pid: u64) -> Option<(u64, usize, f64)> {
         let space = self.spaces.get(&pid)?;
-        Some((space.total_mapped, space.regions.len(), space.fragmentation_ratio()))
+        Some((
+            space.total_mapped,
+            space.regions.len(),
+            space.fragmentation_ratio(),
+        ))
     }
 
     #[inline(always)]

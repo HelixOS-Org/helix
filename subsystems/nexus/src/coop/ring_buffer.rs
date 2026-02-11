@@ -55,34 +55,52 @@ pub struct RingChannel {
 impl RingChannel {
     pub fn new(id: u32, capacity: usize, policy: OverflowPolicy) -> Self {
         Self {
-            channel_id: id, capacity, head: 0, tail: 0, count: 0,
-            overflow_policy: policy, high_watermark: 0.8, low_watermark: 0.2,
-            total_written: 0, total_read: 0, total_dropped: 0, total_rejected: 0,
+            channel_id: id,
+            capacity,
+            head: 0,
+            tail: 0,
+            count: 0,
+            overflow_policy: policy,
+            high_watermark: 0.8,
+            low_watermark: 0.2,
+            total_written: 0,
+            total_read: 0,
+            total_dropped: 0,
+            total_rejected: 0,
             last_watermark: WatermarkEvent::Normal,
             slots: alloc::vec![0u64; capacity],
         }
     }
 
     #[inline(always)]
-    pub fn is_full(&self) -> bool { self.count >= self.capacity }
+    pub fn is_full(&self) -> bool {
+        self.count >= self.capacity
+    }
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.count == 0 }
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
     #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
-        if self.capacity == 0 { return 0.0; }
+        if self.capacity == 0 {
+            return 0.0;
+        }
         self.count as f64 / self.capacity as f64
     }
 
     pub fn write_one(&mut self, value: u64) -> bool {
         if self.is_full() {
             match self.overflow_policy {
-                OverflowPolicy::Reject => { self.total_rejected += 1; return false; }
+                OverflowPolicy::Reject => {
+                    self.total_rejected += 1;
+                    return false;
+                },
                 OverflowPolicy::DropOldest => {
                     // advance tail (drop oldest)
                     self.tail = (self.tail + 1) % self.capacity;
                     self.count -= 1;
                     self.total_dropped += 1;
-                }
+                },
                 OverflowPolicy::Overwrite => {
                     self.slots[self.head] = value;
                     self.head = (self.head + 1) % self.capacity;
@@ -90,7 +108,7 @@ impl RingChannel {
                     self.total_written += 1;
                     self.update_watermark();
                     return true;
-                }
+                },
             }
         }
         self.slots[self.head] = value;
@@ -103,7 +121,9 @@ impl RingChannel {
 
     #[inline]
     pub fn read_one(&mut self) -> Option<u64> {
-        if self.is_empty() { return None; }
+        if self.is_empty() {
+            return None;
+        }
         let val = self.slots[self.tail];
         self.tail = (self.tail + 1) % self.capacity;
         self.count -= 1;
@@ -116,7 +136,11 @@ impl RingChannel {
     pub fn write_batch(&mut self, values: &[u64]) -> usize {
         let mut written = 0;
         for &v in values {
-            if self.write_one(v) { written += 1; } else { break; }
+            if self.write_one(v) {
+                written += 1;
+            } else {
+                break;
+            }
         }
         written
     }
@@ -126,20 +150,30 @@ impl RingChannel {
         let n = max.min(self.count);
         let mut result = Vec::with_capacity(n);
         for _ in 0..n {
-            if let Some(v) = self.read_one() { result.push(v); } else { break; }
+            if let Some(v) = self.read_one() {
+                result.push(v);
+            } else {
+                break;
+            }
         }
         result
     }
 
     #[inline(always)]
     pub fn peek(&self) -> Option<u64> {
-        if self.is_empty() { None } else { Some(self.slots[self.tail]) }
+        if self.is_empty() {
+            None
+        } else {
+            Some(self.slots[self.tail])
+        }
     }
 
     #[inline]
     pub fn drain(&mut self) -> Vec<u64> {
         let mut result = Vec::with_capacity(self.count);
-        while let Some(v) = self.read_one() { result.push(v); }
+        while let Some(v) = self.read_one() {
+            result.push(v);
+        }
         result
     }
 
@@ -162,14 +196,18 @@ impl RingChannel {
 
     #[inline(always)]
     pub fn throughput_ratio(&self) -> f64 {
-        if self.total_written == 0 { return 0.0; }
+        if self.total_written == 0 {
+            return 0.0;
+        }
         self.total_read as f64 / self.total_written as f64
     }
 
     #[inline]
     pub fn drop_ratio(&self) -> f64 {
         let total_lost = self.total_dropped + self.total_rejected;
-        if self.total_written + total_lost == 0 { return 0.0; }
+        if self.total_written + total_lost == 0 {
+            return 0.0;
+        }
         total_lost as f64 / (self.total_written + total_lost) as f64
     }
 }
@@ -219,34 +257,55 @@ pub struct CoopRingBuffer {
 impl CoopRingBuffer {
     pub fn new() -> Self {
         Self {
-            channels: BTreeMap::new(), producers: BTreeMap::new(),
-            consumers: BTreeMap::new(), stats: RingBufferStats::default(),
+            channels: BTreeMap::new(),
+            producers: BTreeMap::new(),
+            consumers: BTreeMap::new(),
+            stats: RingBufferStats::default(),
         }
     }
 
     #[inline(always)]
     pub fn create_channel(&mut self, id: u32, capacity: usize, policy: OverflowPolicy) {
-        self.channels.insert(id, RingChannel::new(id, capacity, policy));
+        self.channels
+            .insert(id, RingChannel::new(id, capacity, policy));
     }
 
     #[inline(always)]
-    pub fn remove_channel(&mut self, id: u32) { self.channels.remove(&id); }
+    pub fn remove_channel(&mut self, id: u32) {
+        self.channels.remove(&id);
+    }
 
     #[inline(always)]
     pub fn register_producer(&mut self, prod_id: u64, channel_id: u32) {
-        self.producers.insert(prod_id, Producer { producer_id: prod_id, channel_id, items_produced: 0, last_produce_ts: 0 });
+        self.producers.insert(prod_id, Producer {
+            producer_id: prod_id,
+            channel_id,
+            items_produced: 0,
+            last_produce_ts: 0,
+        });
     }
 
     #[inline(always)]
     pub fn register_consumer(&mut self, cons_id: u64, channel_id: u32) {
-        self.consumers.insert(cons_id, Consumer { consumer_id: cons_id, channel_id, items_consumed: 0, last_consume_ts: 0 });
+        self.consumers.insert(cons_id, Consumer {
+            consumer_id: cons_id,
+            channel_id,
+            items_consumed: 0,
+            last_consume_ts: 0,
+        });
     }
 
     #[inline]
     pub fn produce(&mut self, prod_id: u64, value: u64, ts: u64) -> bool {
-        let producer = match self.producers.get_mut(&prod_id) { Some(p) => p, None => return false };
+        let producer = match self.producers.get_mut(&prod_id) {
+            Some(p) => p,
+            None => return false,
+        };
         let ch_id = producer.channel_id;
-        let channel = match self.channels.get_mut(&ch_id) { Some(c) => c, None => return false };
+        let channel = match self.channels.get_mut(&ch_id) {
+            Some(c) => c,
+            None => return false,
+        };
         let ok = channel.write_one(value);
         if ok {
             producer.items_produced += 1;
@@ -257,9 +316,15 @@ impl CoopRingBuffer {
 
     #[inline]
     pub fn consume(&mut self, cons_id: u64, ts: u64) -> Option<u64> {
-        let consumer = match self.consumers.get_mut(&cons_id) { Some(c) => c, None => return None };
+        let consumer = match self.consumers.get_mut(&cons_id) {
+            Some(c) => c,
+            None => return None,
+        };
         let ch_id = consumer.channel_id;
-        let channel = match self.channels.get_mut(&ch_id) { Some(c) => c, None => return None };
+        let channel = match self.channels.get_mut(&ch_id) {
+            Some(c) => c,
+            None => return None,
+        };
         let val = channel.read_one()?;
         consumer.items_consumed += 1;
         consumer.last_consume_ts = ts;
@@ -267,7 +332,9 @@ impl CoopRingBuffer {
     }
 
     #[inline(always)]
-    pub fn channel(&self, id: u32) -> Option<&RingChannel> { self.channels.get(&id) }
+    pub fn channel(&self, id: u32) -> Option<&RingChannel> {
+        self.channels.get(&id)
+    }
 
     pub fn recompute(&mut self) {
         self.stats.total_channels = self.channels.len();
@@ -278,13 +345,20 @@ impl CoopRingBuffer {
         self.stats.total_items_dropped = self.channels.values().map(|c| c.total_dropped).sum();
         self.stats.total_items_rejected = self.channels.values().map(|c| c.total_rejected).sum();
         if !self.channels.is_empty() {
-            self.stats.avg_fill_ratio = self.channels.values().map(|c| c.fill_ratio()).sum::<f64>() / self.channels.len() as f64;
-            self.stats.high_watermark_channels = self.channels.values().filter(|c| c.last_watermark == WatermarkEvent::HighReached).count();
+            self.stats.avg_fill_ratio = self.channels.values().map(|c| c.fill_ratio()).sum::<f64>()
+                / self.channels.len() as f64;
+            self.stats.high_watermark_channels = self
+                .channels
+                .values()
+                .filter(|c| c.last_watermark == WatermarkEvent::HighReached)
+                .count();
         }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &RingBufferStats { &self.stats }
+    pub fn stats(&self) -> &RingBufferStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -326,23 +400,48 @@ pub struct RingBufferV2Instance {
 
 impl RingBufferV2Instance {
     pub fn new(id: u64, capacity: u32) -> Self {
-        Self { id, capacity, entries: Vec::new(), head: 0, tail: 0, sequence: 0, total_produced: 0, total_consumed: 0, total_dropped: 0, total_bytes: 0 }
+        Self {
+            id,
+            capacity,
+            entries: Vec::new(),
+            head: 0,
+            tail: 0,
+            sequence: 0,
+            total_produced: 0,
+            total_consumed: 0,
+            total_dropped: 0,
+            total_bytes: 0,
+        }
     }
 
     #[inline]
     pub fn state(&self) -> RingStateV2 {
         let used = self.used();
-        if used == 0 { RingStateV2::Empty }
-        else if used >= self.capacity { RingStateV2::Full }
-        else { RingStateV2::Partial }
+        if used == 0 {
+            RingStateV2::Empty
+        } else if used >= self.capacity {
+            RingStateV2::Full
+        } else {
+            RingStateV2::Partial
+        }
     }
 
     #[inline(always)]
-    pub fn used(&self) -> u32 { (self.total_produced - self.total_consumed) as u32 }
+    pub fn used(&self) -> u32 {
+        (self.total_produced - self.total_consumed) as u32
+    }
     #[inline(always)]
-    pub fn available(&self) -> u32 { self.capacity.saturating_sub(self.used()) }
+    pub fn available(&self) -> u32 {
+        self.capacity.saturating_sub(self.used())
+    }
     #[inline(always)]
-    pub fn utilization(&self) -> f64 { if self.capacity == 0 { 0.0 } else { self.used() as f64 / self.capacity as f64 } }
+    pub fn utilization(&self) -> f64 {
+        if self.capacity == 0 {
+            0.0
+        } else {
+            self.used() as f64 / self.capacity as f64
+        }
+    }
 
     pub fn produce(&mut self, data_hash: u64, size: u32, now: u64) -> bool {
         if self.available() == 0 {
@@ -350,9 +449,17 @@ impl RingBufferV2Instance {
             return false;
         }
         self.sequence += 1;
-        let entry = RingEntry { sequence: self.sequence, timestamp: now, data_hash, size };
-        if self.entries.len() < self.capacity as usize { self.entries.push(entry); }
-        else { self.entries[self.head as usize % self.capacity as usize] = entry; }
+        let entry = RingEntry {
+            sequence: self.sequence,
+            timestamp: now,
+            data_hash,
+            size,
+        };
+        if self.entries.len() < self.capacity as usize {
+            self.entries.push(entry);
+        } else {
+            self.entries[self.head as usize % self.capacity as usize] = entry;
+        }
         self.head = (self.head + 1) % self.capacity;
         self.total_produced += 1;
         self.total_bytes += size as u64;
@@ -361,7 +468,9 @@ impl RingBufferV2Instance {
 
     #[inline]
     pub fn consume(&mut self) -> Option<RingEntry> {
-        if self.used() == 0 { return None; }
+        if self.used() == 0 {
+            return None;
+        }
         let idx = self.tail as usize % self.entries.len();
         let entry = self.entries[idx].clone();
         self.tail = (self.tail + 1) % self.capacity;
@@ -390,18 +499,28 @@ pub struct CoopRingBufferV2 {
 }
 
 impl CoopRingBufferV2 {
-    pub fn new() -> Self { Self { buffers: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            buffers: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, capacity: u32) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.buffers.insert(id, RingBufferV2Instance::new(id, capacity));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.buffers
+            .insert(id, RingBufferV2Instance::new(id, capacity));
         id
     }
 
     #[inline(always)]
     pub fn produce(&mut self, id: u64, hash: u64, size: u32, now: u64) -> bool {
-        self.buffers.get_mut(&id).map(|b| b.produce(hash, size, now)).unwrap_or(false)
+        self.buffers
+            .get_mut(&id)
+            .map(|b| b.produce(hash, size, now))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
@@ -416,8 +535,19 @@ impl CoopRingBufferV2 {
         let drop: u64 = self.buffers.values().map(|b| b.total_dropped).sum();
         let bytes: u64 = self.buffers.values().map(|b| b.total_bytes).sum();
         let utils: Vec<f64> = self.buffers.values().map(|b| b.utilization()).collect();
-        let avg = if utils.is_empty() { 0.0 } else { utils.iter().sum::<f64>() / utils.len() as f64 };
-        RingBufferV2Stats { total_buffers: self.buffers.len() as u32, total_produced: prod, total_consumed: cons, total_dropped: drop, total_bytes: bytes, avg_utilization: avg }
+        let avg = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
+        RingBufferV2Stats {
+            total_buffers: self.buffers.len() as u32,
+            total_produced: prod,
+            total_consumed: cons,
+            total_dropped: drop,
+            total_bytes: bytes,
+            avg_utilization: avg,
+        }
     }
 }
 
@@ -463,9 +593,25 @@ impl RingBufferV3 {
         let cap = capacity.next_power_of_two();
         let mut slots = Vec::with_capacity(cap as usize);
         for i in 0..cap {
-            slots.push(RingEntryV3 { sequence: i as u64, data_hash: 0, size: 0, state: RingSlotStateV3::Empty, timestamp: 0 });
+            slots.push(RingEntryV3 {
+                sequence: i as u64,
+                data_hash: 0,
+                size: 0,
+                state: RingSlotStateV3::Empty,
+                timestamp: 0,
+            });
         }
-        Self { capacity: cap, mask: cap - 1, slots, write_pos: 0, read_pos: 0, total_written: 0, total_read: 0, total_overflows: 0, total_underflows: 0 }
+        Self {
+            capacity: cap,
+            mask: cap - 1,
+            slots,
+            write_pos: 0,
+            read_pos: 0,
+            total_written: 0,
+            total_read: 0,
+            total_overflows: 0,
+            total_underflows: 0,
+        }
     }
 
     #[inline]
@@ -475,7 +621,13 @@ impl RingBufferV3 {
             return false;
         }
         let idx = (self.write_pos & self.mask as u64) as usize;
-        self.slots[idx] = RingEntryV3 { sequence: self.write_pos, data_hash, size, state: RingSlotStateV3::Ready, timestamp: now };
+        self.slots[idx] = RingEntryV3 {
+            sequence: self.write_pos,
+            data_hash,
+            size,
+            state: RingSlotStateV3::Ready,
+            timestamp: now,
+        };
         self.write_pos += 1;
         self.total_written += 1;
         true
@@ -494,15 +646,23 @@ impl RingBufferV3 {
     }
 
     #[inline(always)]
-    pub fn len(&self) -> u64 { self.write_pos - self.read_pos }
+    pub fn len(&self) -> u64 {
+        self.write_pos - self.read_pos
+    }
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.read_pos >= self.write_pos }
+    pub fn is_empty(&self) -> bool {
+        self.read_pos >= self.write_pos
+    }
     #[inline(always)]
-    pub fn is_full(&self) -> bool { self.write_pos - self.read_pos >= self.capacity as u64 }
+    pub fn is_full(&self) -> bool {
+        self.write_pos - self.read_pos >= self.capacity as u64
+    }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.capacity == 0 { return 0.0; }
+        if self.capacity == 0 {
+            return 0.0;
+        }
         self.len() as f64 / self.capacity as f64
     }
 }
@@ -529,7 +689,13 @@ pub struct CoopRingBufferV3 {
 }
 
 impl CoopRingBufferV3 {
-    pub fn new() -> Self { Self { total_created: 0, total_written: 0, total_read: 0 } }
+    pub fn new() -> Self {
+        Self {
+            total_created: 0,
+            total_written: 0,
+            total_read: 0,
+        }
+    }
 
     #[inline(always)]
     pub fn create_buffer(&mut self, cap: u32) -> RingBufferV3 {
@@ -538,7 +704,11 @@ impl CoopRingBufferV3 {
     }
 
     #[inline(always)]
-    pub fn record_write(&mut self) { self.total_written += 1; }
+    pub fn record_write(&mut self) {
+        self.total_written += 1;
+    }
     #[inline(always)]
-    pub fn record_read(&mut self) { self.total_read += 1; }
+    pub fn record_read(&mut self) {
+        self.total_read += 1;
+    }
 }

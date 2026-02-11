@@ -71,13 +71,18 @@ pub struct IrqDesc {
 impl IrqDesc {
     pub fn new(hwirq: u32, virq: u32, irq_type: IrqType) -> Self {
         Self {
-            hwirq, virq, irq_type,
+            hwirq,
+            virq,
+            irq_type,
             trigger: IrqTrigger::RisingEdge,
             delivery: IrqDelivery::Fixed,
             state: IrqState::Inactive,
-            target_cpu: 0, affinity_mask: 1,
-            fire_count: 0, last_fire: 0,
-            handler_time_ns: 0, spurious_count: 0,
+            target_cpu: 0,
+            affinity_mask: 1,
+            fire_count: 0,
+            last_fire: 0,
+            handler_time_ns: 0,
+            spurious_count: 0,
         }
     }
 
@@ -95,18 +100,28 @@ impl IrqDesc {
     }
 
     #[inline(always)]
-    pub fn mask(&mut self) { self.state = IrqState::Masked; }
+    pub fn mask(&mut self) {
+        self.state = IrqState::Masked;
+    }
     #[inline(always)]
-    pub fn unmask(&mut self) { self.state = IrqState::Inactive; }
+    pub fn unmask(&mut self) {
+        self.state = IrqState::Inactive;
+    }
 
     #[inline(always)]
     pub fn avg_handler_ns(&self) -> u64 {
-        if self.fire_count == 0 { 0 } else { self.handler_time_ns / self.fire_count }
+        if self.fire_count == 0 {
+            0
+        } else {
+            self.handler_time_ns / self.fire_count
+        }
     }
 
     #[inline(always)]
     pub fn rate_per_sec(&self, window_ns: u64) -> f64 {
-        if window_ns == 0 { return 0.0; }
+        if window_ns == 0 {
+            return 0.0;
+        }
         self.fire_count as f64 / (window_ns as f64 / 1_000_000_000.0)
     }
 }
@@ -127,9 +142,14 @@ pub struct IrqDomain {
 impl IrqDomain {
     pub fn new(id: u32, hwirq_base: u32, count: u32, virq_base: u32) -> Self {
         Self {
-            id, parent_id: None, name_hash: id as u64,
-            hwirq_base, hwirq_count: count, virq_base,
-            irqs: BTreeMap::new(), total_fires: 0,
+            id,
+            parent_id: None,
+            name_hash: id as u64,
+            hwirq_base,
+            hwirq_count: count,
+            virq_base,
+            irqs: BTreeMap::new(),
+            total_fires: 0,
         }
     }
 
@@ -141,7 +161,9 @@ impl IrqDomain {
     }
 
     #[inline(always)]
-    pub fn unmap_irq(&mut self, hwirq: u32) -> bool { self.irqs.remove(&hwirq).is_some() }
+    pub fn unmap_irq(&mut self, hwirq: u32) -> bool {
+        self.irqs.remove(&hwirq).is_some()
+    }
 
     #[inline]
     pub fn fire_irq(&mut self, hwirq: u32, now: u64) -> bool {
@@ -149,12 +171,18 @@ impl IrqDomain {
             desc.fire(now);
             self.total_fires += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn busiest_irqs(&self, n: usize) -> Vec<(u32, u64)> {
-        let mut v: Vec<_> = self.irqs.iter().map(|(&hw, d)| (hw, d.fire_count)).collect();
+        let mut v: Vec<_> = self
+            .irqs
+            .iter()
+            .map(|(&hw, d)| (hw, d.fire_count))
+            .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
         v.truncate(n);
         v
@@ -181,7 +209,11 @@ pub struct HolisticIrqDomain {
 
 impl HolisticIrqDomain {
     pub fn new() -> Self {
-        Self { domains: BTreeMap::new(), next_id: 1, next_virq: 32 }
+        Self {
+            domains: BTreeMap::new(),
+            next_id: 1,
+            next_virq: 32,
+        }
     }
 
     #[inline]
@@ -190,36 +222,53 @@ impl HolisticIrqDomain {
         self.next_id += 1;
         let virq_base = self.next_virq;
         self.next_virq += count;
-        self.domains.insert(id, IrqDomain::new(id, hwirq_base, count, virq_base));
+        self.domains
+            .insert(id, IrqDomain::new(id, hwirq_base, count, virq_base));
         id
     }
 
     #[inline(always)]
     pub fn set_parent(&mut self, domain_id: u32, parent_id: u32) {
-        if let Some(d) = self.domains.get_mut(&domain_id) { d.parent_id = Some(parent_id); }
+        if let Some(d) = self.domains.get_mut(&domain_id) {
+            d.parent_id = Some(parent_id);
+        }
     }
 
     #[inline(always)]
     pub fn map_irq(&mut self, domain_id: u32, hwirq: u32, irq_type: IrqType) -> Option<u32> {
-        self.domains.get_mut(&domain_id).map(|d| d.map_irq(hwirq, irq_type))
+        self.domains
+            .get_mut(&domain_id)
+            .map(|d| d.map_irq(hwirq, irq_type))
     }
 
     #[inline(always)]
     pub fn fire(&mut self, domain_id: u32, hwirq: u32, now: u64) -> bool {
-        self.domains.get_mut(&domain_id).map(|d| d.fire_irq(hwirq, now)).unwrap_or(false)
+        self.domains
+            .get_mut(&domain_id)
+            .map(|d| d.fire_irq(hwirq, now))
+            .unwrap_or(false)
     }
 
     pub fn stats(&self) -> IrqDomainStats {
         let total_irqs: u32 = self.domains.values().map(|d| d.irqs.len() as u32).sum();
         let total_fires: u64 = self.domains.values().map(|d| d.total_fires).sum();
-        let all_descs: Vec<&IrqDesc> = self.domains.values().flat_map(|d| d.irqs.values()).collect();
+        let all_descs: Vec<&IrqDesc> = self
+            .domains
+            .values()
+            .flat_map(|d| d.irqs.values())
+            .collect();
         let total_spurious: u64 = all_descs.iter().map(|d| d.spurious_count as u64).sum();
-        let avg_handler = if all_descs.is_empty() { 0 } else {
+        let avg_handler = if all_descs.is_empty() {
+            0
+        } else {
             all_descs.iter().map(|d| d.avg_handler_ns()).sum::<u64>() / all_descs.len() as u64
         };
         IrqDomainStats {
-            total_domains: self.domains.len() as u32, total_mapped_irqs: total_irqs,
-            total_fires, total_spurious, avg_handler_ns: avg_handler,
+            total_domains: self.domains.len() as u32,
+            total_mapped_irqs: total_irqs,
+            total_fires,
+            total_spurious,
+            avg_handler_ns: avg_handler,
         }
     }
 }

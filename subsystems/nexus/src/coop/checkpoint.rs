@@ -233,7 +233,8 @@ impl CoordinatedCheckpoint {
     /// Duration
     #[inline(always)]
     pub fn duration_ns(&self) -> Option<u64> {
-        self.completed_at.map(|c| c.saturating_sub(self.initiated_at))
+        self.completed_at
+            .map(|c| c.saturating_sub(self.initiated_at))
     }
 
     /// Participant count
@@ -339,14 +340,14 @@ impl CoopCheckpointManager {
         self.next_id += 1;
 
         // Decide full vs incremental
-        let ctype = if self.schedule.incremental && self.incremental_count < self.schedule.full_every
-        {
-            self.incremental_count += 1;
-            CheckpointType::Incremental
-        } else {
-            self.incremental_count = 0;
-            CheckpointType::Full
-        };
+        let ctype =
+            if self.schedule.incremental && self.incremental_count < self.schedule.full_every {
+                self.incremental_count += 1;
+                CheckpointType::Incremental
+            } else {
+                self.incremental_count = 0;
+                CheckpointType::Full
+            };
 
         let ctype = if participants.len() > 1 {
             CheckpointType::Coordinated
@@ -396,8 +397,7 @@ impl CoopCheckpointManager {
                 self.stats.total_bytes += cp.total_size();
                 if let Some(dur) = cp.duration_ns() {
                     self.duration_sum += dur;
-                    self.stats.avg_duration_ns =
-                        self.duration_sum / self.stats.successful;
+                    self.stats.avg_duration_ns = self.duration_sum / self.stats.successful;
                 }
             }
         }

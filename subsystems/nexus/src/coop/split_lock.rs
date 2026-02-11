@@ -3,9 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Split lock action
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,7 +41,15 @@ pub struct SplitLockEvent {
 
 impl SplitLockEvent {
     pub fn new(tid: u64, addr: u64, size: u32, issue: AlignmentIssue, ip: u64, now: u64) -> Self {
-        Self { tid, addr, size, issue, ip, timestamp: now, bus_lock_cycles: 0 }
+        Self {
+            tid,
+            addr,
+            size,
+            issue,
+            ip,
+            timestamp: now,
+            bus_lock_cycles: 0,
+        }
     }
 
     #[inline]
@@ -64,7 +73,13 @@ pub struct ThreadSplitLockState {
 
 impl ThreadSplitLockState {
     pub fn new(tid: u64) -> Self {
-        Self { tid, events: 0, throttle_count: 0, last_event: 0, hotspot_ips: LinearMap::new() }
+        Self {
+            tid,
+            events: 0,
+            throttle_count: 0,
+            last_event: 0,
+            hotspot_ips: LinearMap::new(),
+        }
     }
 
     #[inline]
@@ -76,12 +91,17 @@ impl ThreadSplitLockState {
 
     #[inline(always)]
     pub fn top_hotspot(&self) -> Option<(u64, u64)> {
-        self.hotspot_ips.iter().max_by_key(|(_, count)| *count).map(|(ip, count)| (ip, count))
+        self.hotspot_ips
+            .iter()
+            .max_by_key(|(_, count)| *count)
+            .map(|(ip, count)| (ip, count))
     }
 
     #[inline(always)]
     pub fn event_rate(&self, window_ns: u64, now: u64) -> f64 {
-        if now.saturating_sub(self.last_event) > window_ns { return 0.0; }
+        if now.saturating_sub(self.last_event) > window_ns {
+            return 0.0;
+        }
         self.events as f64
     }
 }
@@ -98,11 +118,18 @@ pub struct SplitLockPolicy {
 impl SplitLockPolicy {
     #[inline(always)]
     pub fn default_policy() -> Self {
-        Self { action: SplitLockAction::Throttle, threshold_per_sec: 100, throttle_ns: 1_000_000, exempt_tids: Vec::new() }
+        Self {
+            action: SplitLockAction::Throttle,
+            threshold_per_sec: 100,
+            throttle_ns: 1_000_000,
+            exempt_tids: Vec::new(),
+        }
     }
 
     #[inline(always)]
-    pub fn is_exempt(&self, tid: u64) -> bool { self.exempt_tids.contains(&tid) }
+    pub fn is_exempt(&self, tid: u64) -> bool {
+        self.exempt_tids.contains(&tid)
+    }
 }
 
 /// Stats
@@ -129,36 +156,48 @@ pub struct CoopSplitLock {
 impl CoopSplitLock {
     pub fn new() -> Self {
         Self {
-            threads: BTreeMap::new(), events: Vec::new(),
-            policy: SplitLockPolicy::default_policy(), max_events: 4096, kill_count: 0,
+            threads: BTreeMap::new(),
+            events: Vec::new(),
+            policy: SplitLockPolicy::default_policy(),
+            max_events: 4096,
+            kill_count: 0,
         }
     }
 
     #[inline(always)]
-    pub fn set_policy(&mut self, policy: SplitLockPolicy) { self.policy = policy; }
+    pub fn set_policy(&mut self, policy: SplitLockPolicy) {
+        self.policy = policy;
+    }
 
     pub fn report(&mut self, event: SplitLockEvent) -> SplitLockAction {
         let tid = event.tid;
         let ip = event.ip;
         let now = event.timestamp;
 
-        let state = self.threads.entry(tid).or_insert_with(|| ThreadSplitLockState::new(tid));
+        let state = self
+            .threads
+            .entry(tid)
+            .or_insert_with(|| ThreadSplitLockState::new(tid));
         state.record(ip, now);
 
-        if self.events.len() >= self.max_events { self.events.drain(..self.max_events / 4); }
+        if self.events.len() >= self.max_events {
+            self.events.drain(..self.max_events / 4);
+        }
         self.events.push(event);
 
-        if self.policy.is_exempt(tid) { return SplitLockAction::Ignore; }
+        if self.policy.is_exempt(tid) {
+            return SplitLockAction::Ignore;
+        }
 
         match self.policy.action {
             SplitLockAction::Kill if state.events > self.policy.threshold_per_sec * 10 => {
                 self.kill_count += 1;
                 SplitLockAction::Kill
-            }
+            },
             SplitLockAction::Throttle if state.events > self.policy.threshold_per_sec => {
                 state.throttle_count += 1;
                 SplitLockAction::Throttle
-            }
+            },
             _ => self.policy.action,
         }
     }
@@ -167,12 +206,23 @@ impl CoopSplitLock {
     pub fn stats(&self) -> SplitLockStats {
         let total: u64 = self.threads.values().map(|t| t.events).sum();
         let throttled: u64 = self.threads.values().map(|t| t.throttle_count).sum();
-        let cl = self.events.iter().filter(|e| e.issue == AlignmentIssue::CacheSplit).count() as u64;
-        let pg = self.events.iter().filter(|e| e.issue == AlignmentIssue::PageSplit).count() as u64;
+        let cl = self
+            .events
+            .iter()
+            .filter(|e| e.issue == AlignmentIssue::CacheSplit)
+            .count() as u64;
+        let pg = self
+            .events
+            .iter()
+            .filter(|e| e.issue == AlignmentIssue::PageSplit)
+            .count() as u64;
         SplitLockStats {
-            total_events: total, threads_affected: self.threads.len() as u32,
-            throttle_count: throttled, kill_count: self.kill_count,
-            cacheline_splits: cl, page_splits: pg,
+            total_events: total,
+            threads_affected: self.threads.len() as u32,
+            throttle_count: throttled,
+            kill_count: self.kill_count,
+            cacheline_splits: cl,
+            page_splits: pg,
         }
     }
 }

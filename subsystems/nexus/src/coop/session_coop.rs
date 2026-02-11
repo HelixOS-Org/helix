@@ -2,9 +2,10 @@
 //! NEXUS Coop — Session (cooperative session management)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Session cooperation state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

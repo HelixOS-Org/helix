@@ -212,8 +212,8 @@ impl Delegation {
                     if self.hop_count >= *max {
                         return false;
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
         true

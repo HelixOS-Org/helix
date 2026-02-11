@@ -2,11 +2,11 @@
 //! Coop mount — cooperative mount namespace sharing
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-
 /// Coop mount propagation
 use alloc::string::String;
+
+use crate::fast::linear_map::LinearMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoopMountProp {
     Private,
@@ -41,18 +41,38 @@ impl SharedMountPoint {
     pub fn new(mount_id: u64, source: &[u8], target: &[u8]) -> Self {
         let hash = |d: &[u8]| -> u64 {
             let mut h: u64 = 0xcbf29ce484222325;
-            for b in d { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+            for b in d {
+                h ^= *b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
             h
         };
-        Self { mount_id, source_hash: hash(source), target_hash: hash(target), propagation: CoopMountProp::Shared, state: CoopMountState::Active, subscribers: 0, events: 0 }
+        Self {
+            mount_id,
+            source_hash: hash(source),
+            target_hash: hash(target),
+            propagation: CoopMountProp::Shared,
+            state: CoopMountState::Active,
+            subscribers: 0,
+            events: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn subscribe(&mut self) { self.subscribers += 1; }
+    pub fn subscribe(&mut self) {
+        self.subscribers += 1;
+    }
     #[inline(always)]
-    pub fn unsubscribe(&mut self) { if self.subscribers > 0 { self.subscribers -= 1; } }
+    pub fn unsubscribe(&mut self) {
+        if self.subscribers > 0 {
+            self.subscribers -= 1;
+        }
+    }
     #[inline(always)]
-    pub fn propagate(&mut self) { self.events += 1; self.state = CoopMountState::Propagating; }
+    pub fn propagate(&mut self) {
+        self.events += 1;
+        self.state = CoopMountState::Propagating;
+    }
 }
 
 /// Coop mount stats
@@ -74,7 +94,15 @@ pub struct CoopMount {
 
 impl CoopMount {
     pub fn new() -> Self {
-        Self { mounts: BTreeMap::new(), stats: CoopMountStats { total_mounts: 0, shared_mounts: 0, propagation_events: 0, unmounts: 0 } }
+        Self {
+            mounts: BTreeMap::new(),
+            stats: CoopMountStats {
+                total_mounts: 0,
+                shared_mounts: 0,
+                propagation_events: 0,
+                unmounts: 0,
+            },
+        }
     }
 
     #[inline]
@@ -87,7 +115,9 @@ impl CoopMount {
 
     #[inline(always)]
     pub fn umount(&mut self, id: u64) {
-        if self.mounts.remove(&id).is_some() { self.stats.unmounts += 1; }
+        if self.mounts.remove(&id).is_some() {
+            self.stats.unmounts += 1;
+        }
     }
 }
 
@@ -214,7 +244,9 @@ impl CoopMountV2Manager {
     #[inline(always)]
     pub fn lookup_mount(&self, path: &str) -> Option<&CoopMountV2Entry> {
         let hash = Self::hash_path(path);
-        self.path_index.get(hash).and_then(|id| self.mounts.get(&id))
+        self.path_index
+            .get(hash)
+            .and_then(|id| self.mounts.get(&id))
     }
 
     #[inline(always)]

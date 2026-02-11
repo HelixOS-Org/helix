@@ -10,8 +10,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 // ============================================================================
 // NAMESPACE TYPES
@@ -276,7 +276,13 @@ impl BridgeNamespaceManager {
     }
 
     /// Create namespace
-    pub fn create_namespace(&mut self, ns_type: NamespaceType, creator_pid: u64, parent_id: Option<u64>, now: u64) -> u64 {
+    pub fn create_namespace(
+        &mut self,
+        ns_type: NamespaceType,
+        creator_pid: u64,
+        parent_id: Option<u64>,
+        now: u64,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let mut ns = Namespace::new(id, ns_type, creator_pid, now);
@@ -299,7 +305,10 @@ impl BridgeNamespaceManager {
                 return false;
             }
             ns.add_member();
-            let set = self.process_sets.entry(pid).or_insert_with(|| ProcessNamespaceSet::new(pid));
+            let set = self
+                .process_sets
+                .entry(pid)
+                .or_insert_with(|| ProcessNamespaceSet::new(pid));
             set.set(ns.ns_type, ns_id);
             self.update_stats();
             true
@@ -337,7 +346,12 @@ impl BridgeNamespaceManager {
     }
 
     /// Translate cross-namespace syscall
-    pub fn translate(&mut self, source_pid: u64, target_pid: u64, syscall_nr: u32) -> TranslationType {
+    pub fn translate(
+        &mut self,
+        source_pid: u64,
+        target_pid: u64,
+        syscall_nr: u32,
+    ) -> TranslationType {
         self.stats.translations += 1;
 
         let source_set = match self.process_sets.get(&source_pid) {
@@ -387,7 +401,9 @@ impl BridgeNamespaceManager {
     }
 
     fn cleanup_zombies(&mut self) {
-        let zombies: Vec<u64> = self.namespaces.iter()
+        let zombies: Vec<u64> = self
+            .namespaces
+            .iter()
             .filter(|(_, ns)| ns.state == NamespaceState::Zombie && ns.ref_count == 0)
             .map(|(&id, _)| id)
             .collect();

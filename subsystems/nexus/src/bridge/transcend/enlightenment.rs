@@ -233,12 +233,9 @@ impl BridgeEnlightenment {
 
         self.understanding_ema =
             EMA_ALPHA * understanding + (1.0 - EMA_ALPHA) * self.understanding_ema;
-        self.clarity_ema =
-            EMA_ALPHA * purpose_clarity + (1.0 - EMA_ALPHA) * self.clarity_ema;
-        self.balance_ema =
-            EMA_ALPHA * balance_mastery + (1.0 - EMA_ALPHA) * self.balance_ema;
-        self.peace_ema =
-            EMA_ALPHA * peace + (1.0 - EMA_ALPHA) * self.peace_ema;
+        self.clarity_ema = EMA_ALPHA * purpose_clarity + (1.0 - EMA_ALPHA) * self.clarity_ema;
+        self.balance_ema = EMA_ALPHA * balance_mastery + (1.0 - EMA_ALPHA) * self.balance_ema;
+        self.peace_ema = EMA_ALPHA * peace + (1.0 - EMA_ALPHA) * self.peace_ema;
 
         EnlightenmentState {
             understanding_level: self.understanding_ema,
@@ -276,19 +273,15 @@ impl BridgeEnlightenment {
         let sats: Vec<f32> = self.objectives.values().map(|o| o.satisfaction).collect();
         let avg = sats.iter().sum::<f32>() / sats.len() as f32;
 
-        let variance = sats.iter().map(|s| (*s - avg) * (*s - avg)).sum::<f32>()
-            / sats.len() as f32;
+        let variance =
+            sats.iter().map(|s| (*s - avg) * (*s - avg)).sum::<f32>() / sats.len() as f32;
 
         // Low variance = high balance
         (1.0 - sqrt_approx(variance) * 2.0).max(0.0)
     }
 
     /// Attempt to transcend a trade-off: find a solution that improves both.
-    pub fn transcend_tradeoff(
-        &mut self,
-        obj_a: u64,
-        obj_b: u64,
-    ) -> Option<TradeoffRecord> {
+    pub fn transcend_tradeoff(&mut self, obj_a: u64, obj_b: u64) -> Option<TradeoffRecord> {
         self.tick += 1;
 
         let a = self.objectives.get(&obj_a)?;
@@ -301,7 +294,11 @@ impl BridgeEnlightenment {
         let exploration = (xorshift64(&mut self.rng_state) % 100) as f32 / 100.0;
         let can_transcend = gap_a > 0.0 && gap_b > 0.0 && exploration > 0.4;
 
-        let sacrifice = if can_transcend { 0.0 } else { gap_a.min(gap_b) * 0.5 };
+        let sacrifice = if can_transcend {
+            0.0
+        } else {
+            gap_a.min(gap_b) * 0.5
+        };
         let gain = if can_transcend {
             gap_a.min(gap_b) * exploration
         } else {

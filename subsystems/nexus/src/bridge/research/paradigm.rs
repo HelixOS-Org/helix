@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -202,21 +201,18 @@ impl BridgeParadigm {
     pub fn new(seed: u64, initial_model_name: &str, initial_model_desc: &str) -> Self {
         let id = fnv1a_hash(initial_model_name.as_bytes());
         let mut models = BTreeMap::new();
-        models.insert(
+        models.insert(id, OptimizationModel {
             id,
-            OptimizationModel {
-                id,
-                name: String::from(initial_model_name),
-                description: String::from(initial_model_desc),
-                fitness: 0.5,
-                fitness_history: Vec::new(),
-                created_tick: 0,
-                anomaly_count: 0,
-                total_predictions: 0,
-                correct_predictions: 0,
-                is_active: true,
-            },
-        );
+            name: String::from(initial_model_name),
+            description: String::from(initial_model_desc),
+            fitness: 0.5,
+            fitness_history: Vec::new(),
+            created_tick: 0,
+            anomaly_count: 0,
+            total_predictions: 0,
+            correct_predictions: 0,
+            is_active: true,
+        });
 
         Self {
             models,
@@ -246,21 +242,18 @@ impl BridgeParadigm {
         if self.models.len() >= MAX_MODELS {
             self.evict_worst_model();
         }
-        self.models.insert(
+        self.models.insert(id, OptimizationModel {
             id,
-            OptimizationModel {
-                id,
-                name: String::from(name),
-                description: String::from(description),
-                fitness: 0.0,
-                fitness_history: Vec::new(),
-                created_tick: self.tick,
-                anomaly_count: 0,
-                total_predictions: 0,
-                correct_predictions: 0,
-                is_active: false,
-            },
-        );
+            name: String::from(name),
+            description: String::from(description),
+            fitness: 0.0,
+            fitness_history: Vec::new(),
+            created_tick: self.tick,
+            anomaly_count: 0,
+            total_predictions: 0,
+            correct_predictions: 0,
+            is_active: false,
+        });
         self.stats.total_models += 1;
         id
     }
@@ -292,9 +285,8 @@ impl BridgeParadigm {
         });
 
         self.stats.total_evidence += 1;
-        self.stats.avg_evidence_weight_ema = self.stats.avg_evidence_weight_ema
-            * (1.0 - EMA_ALPHA)
-            + clamped_weight * EMA_ALPHA;
+        self.stats.avg_evidence_weight_ema =
+            self.stats.avg_evidence_weight_ema * (1.0 - EMA_ALPHA) + clamped_weight * EMA_ALPHA;
 
         // Update model anomaly tracking
         if !supports {
@@ -313,8 +305,7 @@ impl BridgeParadigm {
                 model.correct_predictions += 1;
             }
             // Update fitness
-            let accuracy = model.correct_predictions as f32
-                / model.total_predictions.max(1) as f32;
+            let accuracy = model.correct_predictions as f32 / model.total_predictions.max(1) as f32;
             model.fitness = model.fitness * (1.0 - EMA_ALPHA) + accuracy * EMA_ALPHA;
             if model.fitness_history.len() < MODEL_FITNESS_SAMPLES * 4 {
                 model.fitness_history.push(model.fitness);
@@ -413,14 +404,12 @@ impl BridgeParadigm {
             }
 
             self.stats.total_shifts += 1;
-            self.stats.avg_paradigm_age_ema = self.stats.avg_paradigm_age_ema
-                * (1.0 - EMA_ALPHA)
+            self.stats.avg_paradigm_age_ema = self.stats.avg_paradigm_age_ema * (1.0 - EMA_ALPHA)
                 + self.stats.active_model_age as f32 * EMA_ALPHA;
             self.stats.active_model_age = 0;
             self.stats.shift_frequency_ema =
                 self.stats.shift_frequency_ema * (1.0 - EMA_ALPHA) + 1.0 * EMA_ALPHA;
-            self.stats.model_stability =
-                (self.stats.model_stability * (1.0 - EMA_ALPHA)).max(0.0);
+            self.stats.model_stability = (self.stats.model_stability * (1.0 - EMA_ALPHA)).max(0.0);
 
             Some(shift)
         } else {
@@ -445,8 +434,16 @@ impl BridgeParadigm {
         let fit_b = self.models.get(&id_b).map(|m| m.fitness).unwrap_or(0.0);
         let diff = fit_a - fit_b;
 
-        let ev_a = self.evidence.iter().filter(|e| e.model_id == id_a && e.supports).count();
-        let ev_b = self.evidence.iter().filter(|e| e.model_id == id_b && e.supports).count();
+        let ev_a = self
+            .evidence
+            .iter()
+            .filter(|e| e.model_id == id_a && e.supports)
+            .count();
+        let ev_b = self
+            .evidence
+            .iter()
+            .filter(|e| e.model_id == id_b && e.supports)
+            .count();
         let ev_ratio = ev_a as f32 / (ev_a + ev_b).max(1) as f32;
 
         let superior = if diff > 0.0 {
@@ -530,13 +527,22 @@ impl BridgeParadigm {
     // ========================================================================
 
     fn evidence_accumulation_for(&self, model_id: u64) -> EvidenceState {
-        let model_evidence: VecDeque<&Evidence> =
-            self.evidence.iter().filter(|e| e.model_id == model_id).collect();
+        let model_evidence: VecDeque<&Evidence> = self
+            .evidence
+            .iter()
+            .filter(|e| e.model_id == model_id)
+            .collect();
         let supporting = model_evidence.iter().filter(|e| e.supports).count() as u64;
         let contradicting = model_evidence.iter().filter(|e| !e.supports).count() as u64;
         let net_weight: f32 = model_evidence
             .iter()
-            .map(|e| if e.supports { e.weight } else { -e.weight * ANOMALY_WEIGHT })
+            .map(|e| {
+                if e.supports {
+                    e.weight
+                } else {
+                    -e.weight * ANOMALY_WEIGHT
+                }
+            })
             .sum();
 
         let total_preds = self
@@ -556,7 +562,8 @@ impl BridgeParadigm {
         };
 
         let fitness = self.models.get(&model_id).map(|m| m.fitness).unwrap_or(0.0);
-        let health = fitness * 0.5 + (1.0 - anomaly_rate) * 0.3
+        let health = fitness * 0.5
+            + (1.0 - anomaly_rate) * 0.3
             + (supporting as f32 / (supporting + contradicting).max(1) as f32) * 0.2;
 
         let name = self
@@ -582,7 +589,9 @@ impl BridgeParadigm {
         steps.push(String::from("2. Enable shadow-mode for new model"));
         steps.push(String::from("3. Run parallel predictions on 10% traffic"));
         steps.push(String::from("4. Compare prediction accuracy"));
-        steps.push(String::from("5. Gradually increase new model traffic to 50%"));
+        steps.push(String::from(
+            "5. Gradually increase new model traffic to 50%",
+        ));
         steps.push(String::from("6. Validate no regression in bridge latency"));
         steps.push(String::from("7. Complete cutover to new model"));
         steps.push(String::from("8. Retain old model for emergency rollback"));
@@ -592,10 +601,18 @@ impl BridgeParadigm {
     fn build_transition_plan_detailed(&self, _old: &str, _new: &str) -> Vec<TransitionStep> {
         let mut steps = Vec::new();
         let actions = [
-            ("Snapshot current state and create rollback point", 0.05, true),
+            (
+                "Snapshot current state and create rollback point",
+                0.05,
+                true,
+            ),
             ("Enable shadow-mode for new model", 0.10, true),
             ("Route 10% traffic to new model", 0.15, true),
-            ("Validate prediction accuracy matches expectations", 0.10, true),
+            (
+                "Validate prediction accuracy matches expectations",
+                0.10,
+                true,
+            ),
             ("Increase to 50% traffic split", 0.25, true),
             ("Monitor for performance regression", 0.05, true),
             ("Complete cutover to new model", 0.30, false),

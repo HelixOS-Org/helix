@@ -67,28 +67,38 @@ impl AffinityMask {
 
     #[inline(always)]
     pub fn all() -> Self {
-        Self { bits: [u64::MAX; 4] }
+        Self {
+            bits: [u64::MAX; 4],
+        }
     }
 
     #[inline]
     pub fn set(&mut self, cpu: u32) {
         let idx = (cpu / 64) as usize;
         let bit = cpu % 64;
-        if idx < 4 { self.bits[idx] |= 1u64 << bit; }
+        if idx < 4 {
+            self.bits[idx] |= 1u64 << bit;
+        }
     }
 
     #[inline]
     pub fn clear(&mut self, cpu: u32) {
         let idx = (cpu / 64) as usize;
         let bit = cpu % 64;
-        if idx < 4 { self.bits[idx] &= !(1u64 << bit); }
+        if idx < 4 {
+            self.bits[idx] &= !(1u64 << bit);
+        }
     }
 
     #[inline]
     pub fn is_set(&self, cpu: u32) -> bool {
         let idx = (cpu / 64) as usize;
         let bit = cpu % 64;
-        if idx < 4 { (self.bits[idx] >> bit) & 1 == 1 } else { false }
+        if idx < 4 {
+            (self.bits[idx] >> bit) & 1 == 1
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -99,14 +109,18 @@ impl AffinityMask {
     #[inline]
     pub fn intersect(&self, other: &AffinityMask) -> AffinityMask {
         let mut r = AffinityMask::new();
-        for i in 0..4 { r.bits[i] = self.bits[i] & other.bits[i]; }
+        for i in 0..4 {
+            r.bits[i] = self.bits[i] & other.bits[i];
+        }
         r
     }
 
     #[inline]
     pub fn union_with(&self, other: &AffinityMask) -> AffinityMask {
         let mut r = AffinityMask::new();
-        for i in 0..4 { r.bits[i] = self.bits[i] | other.bits[i]; }
+        for i in 0..4 {
+            r.bits[i] = self.bits[i] | other.bits[i];
+        }
         r
     }
 
@@ -151,7 +165,11 @@ impl ProcessAffinity {
     #[inline(always)]
     pub fn migration_rate(&self) -> u64 {
         let total = self.voluntary_switches + self.involuntary_switches;
-        if total == 0 { 0 } else { (self.migrations * 100) / total }
+        if total == 0 {
+            0
+        } else {
+            (self.migrations * 100) / total
+        }
     }
 }
 

@@ -466,7 +466,7 @@ mod tests {
     use core::sync::atomic::AtomicU64;
 
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     #[test]
     fn test_niche_creation() {

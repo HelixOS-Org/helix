@@ -78,7 +78,13 @@ impl AppReadManager {
         }
     }
 
-    pub fn submit_read(&mut self, fd: u64, offset: u64, length: usize, read_type: AppReadType) -> u64 {
+    pub fn submit_read(
+        &mut self,
+        fd: u64,
+        offset: u64,
+        length: usize,
+        read_type: AppReadType,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let req = AppReadRequest {

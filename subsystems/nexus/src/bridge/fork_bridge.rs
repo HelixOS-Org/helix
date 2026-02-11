@@ -73,7 +73,10 @@ impl BridgeForkManager {
             timestamp: child_pid.wrapping_mul(31),
         };
         self.children.insert(child_pid, entry);
-        self.parent_map.entry(parent_pid).or_insert_with(Vec::new).push(child_pid);
+        self.parent_map
+            .entry(parent_pid)
+            .or_insert_with(Vec::new)
+            .push(child_pid);
         self.stats.total_forks += 1;
         if matches!(fork_type, BridgeForkType::Vfork) {
             self.stats.vforks += 1;

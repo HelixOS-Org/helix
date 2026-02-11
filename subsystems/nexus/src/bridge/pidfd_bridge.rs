@@ -3,10 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Pidfd flags
 #[derive(Debug, Clone, Copy)]
@@ -54,16 +54,25 @@ pub struct PidfdInstance {
 impl PidfdInstance {
     pub fn new(fd: i32, target: u32, owner: u32, flags: PidfdFlags, now: u64) -> Self {
         Self {
-            fd, target_pid: target, owner_pid: owner,
-            flags, created: now, last_poll: 0,
-            poll_count: 0, signal_count: 0, wait_count: 0,
-            target_alive: true, target_exit_code: None,
+            fd,
+            target_pid: target,
+            owner_pid: owner,
+            flags,
+            created: now,
+            last_poll: 0,
+            poll_count: 0,
+            signal_count: 0,
+            wait_count: 0,
+            target_alive: true,
+            target_exit_code: None,
         }
     }
 
     #[inline]
     pub fn send_signal(&mut self, _signal: i32) -> bool {
-        if !self.target_alive { return false; }
+        if !self.target_alive {
+            return false;
+        }
         self.signal_count += 1;
         true
     }
@@ -133,7 +142,8 @@ pub struct ProcessPidfdState {
 impl ProcessPidfdState {
     pub fn new(pid: u32) -> Self {
         Self {
-            pid, owned_pidfds: Vec::new(),
+            pid,
+            owned_pidfds: Vec::new(),
             watched_by: Vec::new(),
             max_pidfds: 256,
         }
@@ -185,9 +195,12 @@ impl BridgePidfd {
             events: VecDeque::new(),
             max_events: 2048,
             stats: PidfdBridgeStats {
-                active_pidfds: 0, total_created: 0,
-                total_signals_sent: 0, total_polls: 0,
-                total_waits: 0, stale_pidfds: 0,
+                active_pidfds: 0,
+                total_created: 0,
+                total_signals_sent: 0,
+                total_polls: 0,
+                total_waits: 0,
+                stale_pidfds: 0,
             },
         }
     }
@@ -197,11 +210,15 @@ impl BridgePidfd {
         self.stats.total_created += 1;
         self.stats.active_pidfds += 1;
 
-        let owner_state = self.process_states.entry(owner)
+        let owner_state = self
+            .process_states
+            .entry(owner)
             .or_insert_with(|| ProcessPidfdState::new(owner));
         owner_state.owned_pidfds.push(fd);
 
-        let target_state = self.process_states.entry(target)
+        let target_state = self
+            .process_states
+            .entry(target)
             .or_insert_with(|| ProcessPidfdState::new(target));
         target_state.watched_by.push(fd);
 
@@ -212,9 +229,13 @@ impl BridgePidfd {
     pub fn send_signal(&mut self, fd: i32, signal: i32) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             let ok = inst.send_signal(signal);
-            if ok { self.stats.total_signals_sent += 1; }
+            if ok {
+                self.stats.total_signals_sent += 1;
+            }
             ok
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -240,7 +261,9 @@ impl BridgePidfd {
 
     pub fn close(&mut self, fd: i32) -> bool {
         if let Some(inst) = self.instances.remove(&fd) {
-            if self.stats.active_pidfds > 0 { self.stats.active_pidfds -= 1; }
+            if self.stats.active_pidfds > 0 {
+                self.stats.active_pidfds -= 1;
+            }
             if let Some(state) = self.process_states.get_mut(&inst.owner_pid) {
                 state.owned_pidfds.retain(|&f| f != fd);
             }
@@ -248,18 +271,23 @@ impl BridgePidfd {
                 state.watched_by.retain(|&f| f != fd);
             }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn record_event(&mut self, event: PidfdEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
+        if self.events.len() >= self.max_events {
+            self.events.remove(0);
+        }
         self.events.push_back(event);
     }
 
     #[inline]
     pub fn stale_pidfds(&self, now: u64, threshold: u64) -> Vec<i32> {
-        self.instances.iter()
+        self.instances
+            .iter()
             .filter(|(_, inst)| inst.is_stale(now, threshold))
             .map(|(&fd, _)| fd)
             .collect()
@@ -267,7 +295,9 @@ impl BridgePidfd {
 
     #[inline]
     pub fn most_watched_processes(&self, n: usize) -> Vec<(u32, usize)> {
-        let mut v: Vec<_> = self.process_states.iter()
+        let mut v: Vec<_> = self
+            .process_states
+            .iter()
             .filter(|(_, s)| s.is_watched())
             .map(|(&pid, s)| (pid, s.watcher_count()))
             .collect();
@@ -315,7 +345,15 @@ pub struct PidfdV2Entry {
 
 impl PidfdV2Entry {
     pub fn new(fd: u64, target: u64, owner: u64, flags: u32, now: u64) -> Self {
-        Self { fd, target_pid: target, owner_pid: owner, state: PidfdV2State::Open, flags, signals_sent: 0, created_at: now }
+        Self {
+            fd,
+            target_pid: target,
+            owner_pid: owner,
+            state: PidfdV2State::Open,
+            flags,
+            signals_sent: 0,
+            created_at: now,
+        }
     }
 }
 
@@ -343,31 +381,50 @@ pub struct BridgePidfdV2 {
 }
 
 impl BridgePidfdV2 {
-    pub fn new() -> Self { Self { entries: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            entries: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn open(&mut self, fd: u64, target: u64, owner: u64, flags: u32, now: u64) {
-        self.entries.insert(fd, PidfdV2Entry::new(fd, target, owner, flags, now));
+        self.entries
+            .insert(fd, PidfdV2Entry::new(fd, target, owner, flags, now));
     }
 
     #[inline]
     pub fn send_signal(&mut self, fd: u64, _signal: u32) -> bool {
         if let Some(e) = self.entries.get_mut(&fd) {
-            if e.state == PidfdV2State::Open { e.signals_sent += 1; e.state = PidfdV2State::Signaled; return true; }
+            if e.state == PidfdV2State::Open {
+                e.signals_sent += 1;
+                e.state = PidfdV2State::Signaled;
+                return true;
+            }
         }
         false
     }
 
     #[inline(always)]
     pub fn close(&mut self, fd: u64) {
-        if let Some(e) = self.entries.get_mut(&fd) { e.state = PidfdV2State::Closed; }
+        if let Some(e) = self.entries.get_mut(&fd) {
+            e.state = PidfdV2State::Closed;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> PidfdV2BridgeStats {
-        let open = self.entries.values().filter(|e| e.state == PidfdV2State::Open || e.state == PidfdV2State::Signaled).count() as u32;
+        let open = self
+            .entries
+            .values()
+            .filter(|e| e.state == PidfdV2State::Open || e.state == PidfdV2State::Signaled)
+            .count() as u32;
         let sigs: u64 = self.entries.values().map(|e| e.signals_sent).sum();
-        PidfdV2BridgeStats { total_pidfds: self.entries.len() as u32, open_pidfds: open, total_signals_sent: sigs }
+        PidfdV2BridgeStats {
+            total_pidfds: self.entries.len() as u32,
+            open_pidfds: open,
+            total_signals_sent: sigs,
+        }
     }
 }
 

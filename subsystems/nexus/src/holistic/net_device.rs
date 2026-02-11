@@ -3,8 +3,8 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Network device state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,13 +111,21 @@ impl NetDevQueue {
 
     #[inline(always)]
     pub fn avg_pkt_size(&self) -> u64 {
-        if self.packets == 0 { 0 } else { self.bytes / self.packets }
+        if self.packets == 0 {
+            0
+        } else {
+            self.bytes / self.packets
+        }
     }
 
     #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         let total = self.packets + self.drops;
-        if total == 0 { 0.0 } else { self.drops as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.drops as f64 / total as f64
+        }
     }
 }
 
@@ -277,7 +285,8 @@ impl HolisticNetDevice {
 
     #[inline]
     pub fn aggregate_throughput_bytes(&self) -> u64 {
-        self.devices.values()
+        self.devices
+            .values()
             .filter(|d| d.state == NetDevState::Up || d.state == NetDevState::Running)
             .map(|d| d.total_tx_bytes() + d.total_rx_bytes())
             .sum()

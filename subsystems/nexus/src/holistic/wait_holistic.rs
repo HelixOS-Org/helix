@@ -2,8 +2,9 @@
 //! NEXUS Holistic — Wait (holistic wait/reap analysis)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Wait pattern classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,7 +86,11 @@ impl HolisticWaitManager {
             pattern,
             pending_zombies: zombies,
             avg_wait_us: wait_us,
-            reap_rate: if wait_us > 0 { 1_000_000.0 / wait_us as f64 } else { 0.0 },
+            reap_rate: if wait_us > 0 {
+                1_000_000.0 / wait_us as f64
+            } else {
+                0.0
+            },
         };
         self.entries.push(entry);
         self.stats.total_analyzed += 1;

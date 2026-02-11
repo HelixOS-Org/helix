@@ -57,8 +57,16 @@ impl HolisticPrctlManager {
         }
     }
 
-    pub fn analyze_process(&mut self, pid: u64, seccomp: bool, nnp: bool, dumpable: bool) -> HolisticPrctlPosture {
-        let score = if seccomp { 40 } else { 0 } + if nnp { 30 } else { 0 } + if !dumpable { 20 } else { 0 };
+    pub fn analyze_process(
+        &mut self,
+        pid: u64,
+        seccomp: bool,
+        nnp: bool,
+        dumpable: bool,
+    ) -> HolisticPrctlPosture {
+        let score = if seccomp { 40 } else { 0 }
+            + if nnp { 30 } else { 0 }
+            + if !dumpable { 20 } else { 0 };
         let posture = if score >= 90 {
             self.stats.locked += 1;
             HolisticPrctlPosture::Locked
@@ -82,7 +90,8 @@ impl HolisticPrctlManager {
         self.entries.insert(pid, entry);
         self.stats.total_analyzed += 1;
         let n = self.stats.total_analyzed as f64;
-        self.stats.avg_security_score = (self.stats.avg_security_score * (n - 1.0) + score as f64) / n;
+        self.stats.avg_security_score =
+            (self.stats.avg_security_score * (n - 1.0) + score as f64) / n;
         posture
     }
 

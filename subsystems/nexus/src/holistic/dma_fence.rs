@@ -42,8 +42,15 @@ pub struct DmaFence {
 impl DmaFence {
     pub fn new(id: u64, context: u64, seqno: u64, ftype: FenceType, now: u64) -> Self {
         Self {
-            id, context, seqno, fence_type: ftype, state: FenceState::Unsignaled,
-            created_at: now, signaled_at: 0, deadline_ns: 0, waiters: Vec::new(),
+            id,
+            context,
+            seqno,
+            fence_type: ftype,
+            state: FenceState::Unsignaled,
+            created_at: now,
+            signaled_at: 0,
+            deadline_ns: 0,
+            waiters: Vec::new(),
             error_code: 0,
         }
     }
@@ -62,14 +69,22 @@ impl DmaFence {
     }
 
     #[inline(always)]
-    pub fn add_waiter(&mut self, tid: u64) { self.waiters.push(tid); }
+    pub fn add_waiter(&mut self, tid: u64) {
+        self.waiters.push(tid);
+    }
 
     #[inline(always)]
-    pub fn is_signaled(&self) -> bool { self.state == FenceState::Signaled }
+    pub fn is_signaled(&self) -> bool {
+        self.state == FenceState::Signaled
+    }
 
     #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
-        if self.signaled_at > 0 { self.signaled_at - self.created_at } else { 0 }
+        if self.signaled_at > 0 {
+            self.signaled_at - self.created_at
+        } else {
+            0
+        }
     }
 
     #[inline]
@@ -78,7 +93,9 @@ impl DmaFence {
             self.state = FenceState::TimedOut;
             self.signaled_at = now;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }
 
@@ -93,7 +110,12 @@ pub struct TimelineFence {
 
 impl TimelineFence {
     pub fn new(id: u64, context: u64) -> Self {
-        Self { id, context, current_value: 0, fences: Vec::new() }
+        Self {
+            id,
+            context,
+            current_value: 0,
+            fences: Vec::new(),
+        }
     }
 
     #[inline]
@@ -109,7 +131,13 @@ impl TimelineFence {
     #[inline]
     pub fn add_point(&mut self, seqno: u64, now: u64) -> u64 {
         let fence_id = self.fences.len() as u64;
-        self.fences.push(DmaFence::new(fence_id, self.context, seqno, FenceType::Timeline, now));
+        self.fences.push(DmaFence::new(
+            fence_id,
+            self.context,
+            seqno,
+            FenceType::Timeline,
+            now,
+        ));
         fence_id
     }
 }
@@ -145,20 +173,28 @@ pub struct HolisticDmaFence {
 
 impl HolisticDmaFence {
     pub fn new() -> Self {
-        Self { fences: BTreeMap::new(), timelines: BTreeMap::new(), sync_files: BTreeMap::new(), next_id: 1 }
+        Self {
+            fences: BTreeMap::new(),
+            timelines: BTreeMap::new(),
+            sync_files: BTreeMap::new(),
+            next_id: 1,
+        }
     }
 
     #[inline]
     pub fn create_fence(&mut self, context: u64, seqno: u64, ftype: FenceType, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.fences.insert(id, DmaFence::new(id, context, seqno, ftype, now));
+        self.fences
+            .insert(id, DmaFence::new(id, context, seqno, ftype, now));
         id
     }
 
     #[inline(always)]
     pub fn signal_fence(&mut self, id: u64, now: u64) {
-        if let Some(f) = self.fences.get_mut(&id) { f.signal(now); }
+        if let Some(f) = self.fences.get_mut(&id) {
+            f.signal(now);
+        }
     }
 
     #[inline]
@@ -171,19 +207,47 @@ impl HolisticDmaFence {
 
     #[inline(always)]
     pub fn advance_timeline(&mut self, id: u64, value: u64, now: u64) {
-        if let Some(t) = self.timelines.get_mut(&id) { t.advance(value, now); }
+        if let Some(t) = self.timelines.get_mut(&id) {
+            t.advance(value, now);
+        }
     }
 
     pub fn stats(&self) -> DmaFenceStats {
-        let signaled = self.fences.values().filter(|f| f.state == FenceState::Signaled).count() as u32;
-        let unsignaled = self.fences.values().filter(|f| f.state == FenceState::Unsignaled).count() as u32;
-        let errors = self.fences.values().filter(|f| f.state == FenceState::Error).count() as u32;
-        let lats: Vec<u64> = self.fences.values().filter(|f| f.is_signaled()).map(|f| f.latency_ns()).collect();
-        let avg = if lats.is_empty() { 0 } else { lats.iter().sum::<u64>() / lats.len() as u64 };
+        let signaled = self
+            .fences
+            .values()
+            .filter(|f| f.state == FenceState::Signaled)
+            .count() as u32;
+        let unsignaled = self
+            .fences
+            .values()
+            .filter(|f| f.state == FenceState::Unsignaled)
+            .count() as u32;
+        let errors = self
+            .fences
+            .values()
+            .filter(|f| f.state == FenceState::Error)
+            .count() as u32;
+        let lats: Vec<u64> = self
+            .fences
+            .values()
+            .filter(|f| f.is_signaled())
+            .map(|f| f.latency_ns())
+            .collect();
+        let avg = if lats.is_empty() {
+            0
+        } else {
+            lats.iter().sum::<u64>() / lats.len() as u64
+        };
         let waiters: u32 = self.fences.values().map(|f| f.waiters.len() as u32).sum();
         DmaFenceStats {
-            total_fences: self.fences.len() as u32, signaled, unsignaled, errors,
-            total_timelines: self.timelines.len() as u32, avg_latency_ns: avg, total_waiters: waiters,
+            total_fences: self.fences.len() as u32,
+            signaled,
+            unsignaled,
+            errors,
+            total_timelines: self.timelines.len() as u32,
+            avg_latency_ns: avg,
+            total_waiters: waiters,
         }
     }
 }

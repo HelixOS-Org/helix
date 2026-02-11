@@ -134,7 +134,7 @@ impl CpuFreqState {
                 } else {
                     FreqAction::Hold
                 }
-            }
+            },
             PowerPolicy::Balanced => {
                 if self.util_ema > 0.8 {
                     FreqAction::StepUp
@@ -143,7 +143,7 @@ impl CpuFreqState {
                 } else {
                     FreqAction::Hold
                 }
-            }
+            },
             PowerPolicy::PowerSave => {
                 if self.util_ema > 0.9 {
                     FreqAction::StepUp
@@ -152,14 +152,14 @@ impl CpuFreqState {
                 } else {
                     FreqAction::Hold
                 }
-            }
+            },
             PowerPolicy::Emergency => {
                 if self.current_mhz > self.min_mhz {
                     FreqAction::JumpMin
                 } else {
                     FreqAction::Hold
                 }
-            }
+            },
         }
     }
 
@@ -167,22 +167,30 @@ impl CpuFreqState {
     pub fn apply_action(&mut self, action: FreqAction) {
         match action {
             FreqAction::StepUp => {
-                if let Some(pos) = self.available_freqs.iter().position(|&f| f == self.current_mhz) {
+                if let Some(pos) = self
+                    .available_freqs
+                    .iter()
+                    .position(|&f| f == self.current_mhz)
+                {
                     if pos + 1 < self.available_freqs.len() {
                         self.current_mhz = self.available_freqs[pos + 1];
                     }
                 }
-            }
+            },
             FreqAction::StepDown => {
-                if let Some(pos) = self.available_freqs.iter().position(|&f| f == self.current_mhz) {
+                if let Some(pos) = self
+                    .available_freqs
+                    .iter()
+                    .position(|&f| f == self.current_mhz)
+                {
                     if pos > 0 {
                         self.current_mhz = self.available_freqs[pos - 1];
                     }
                 }
-            }
+            },
             FreqAction::JumpMax => self.current_mhz = self.max_mhz,
             FreqAction::JumpMin => self.current_mhz = self.min_mhz,
-            FreqAction::Hold => {}
+            FreqAction::Hold => {},
         }
     }
 
@@ -318,8 +326,12 @@ impl HolisticPowerGovernor {
     /// Register CPU
     #[inline]
     pub fn register_cpu(&mut self, cpu_id: u32, min_mhz: u32, max_mhz: u32, domain_id: u32) {
-        self.cpus.insert(cpu_id, CpuFreqState::new(cpu_id, min_mhz, max_mhz));
-        let domain = self.domains.entry(domain_id).or_insert_with(|| PowerDomain::new(domain_id));
+        self.cpus
+            .insert(cpu_id, CpuFreqState::new(cpu_id, min_mhz, max_mhz));
+        let domain = self
+            .domains
+            .entry(domain_id)
+            .or_insert_with(|| PowerDomain::new(domain_id));
         domain.cpus.push(cpu_id);
         self.update_stats();
     }
@@ -394,7 +406,8 @@ impl HolisticPowerGovernor {
         } else {
             0.0
         };
-        self.stats.over_budget_domains = self.domains.values().filter(|d| d.is_over_budget()).count();
+        self.stats.over_budget_domains =
+            self.domains.values().filter(|d| d.is_over_budget()).count();
         self.stats.thermal_throttled = self.domains.values().filter(|d| d.thermal_throttle).count();
     }
 

@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // EVENT TYPES
@@ -274,7 +275,10 @@ impl AggregationWindow {
             self.window_start = event.timestamp;
         }
         *self.source_counts.entry(event.source as u8).or_insert(0) += 1;
-        *self.severity_counts.entry(event.severity as u8).or_insert(0) += 1;
+        *self
+            .severity_counts
+            .entry(event.severity as u8)
+            .or_insert(0) += 1;
         self.events.push(event);
     }
 
@@ -298,7 +302,12 @@ impl AggregationWindow {
         if self.events.is_empty() {
             return 0.0;
         }
-        let elapsed = self.events.last().unwrap().timestamp.saturating_sub(self.window_start);
+        let elapsed = self
+            .events
+            .last()
+            .unwrap()
+            .timestamp
+            .saturating_sub(self.window_start);
         if elapsed == 0 {
             return 0.0;
         }

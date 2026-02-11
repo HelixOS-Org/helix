@@ -56,7 +56,13 @@ impl HolisticNiceManager {
         }
     }
 
-    pub fn analyze_process(&mut self, pid: u64, nice: i32, actual_share: f64, expected_share: f64) -> HolisticNiceFairness {
+    pub fn analyze_process(
+        &mut self,
+        pid: u64,
+        nice: i32,
+        actual_share: f64,
+        expected_share: f64,
+    ) -> HolisticNiceFairness {
         let deviation = if expected_share > 0.0 {
             libm::fabs(actual_share - expected_share) / expected_share
         } else {

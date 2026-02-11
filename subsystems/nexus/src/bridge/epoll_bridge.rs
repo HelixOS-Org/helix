@@ -36,7 +36,14 @@ pub struct EpollEvents {
 impl EpollEvents {
     #[inline(always)]
     pub fn empty() -> Self {
-        Self { readable: false, writable: false, error: false, hangup: false, priority: false, rdhup: false }
+        Self {
+            readable: false,
+            writable: false,
+            error: false,
+            hangup: false,
+            priority: false,
+            rdhup: false,
+        }
     }
     #[inline]
     pub fn read() -> Self {
@@ -131,7 +138,8 @@ impl EpollInstance {
 
     #[inline(always)]
     pub fn add(&mut self, fd: i32, interest: EpollEvents, trigger: EpollTrigger, data: u64) {
-        self.entries.insert(fd, EpollEntry::new(fd, interest, trigger, data));
+        self.entries
+            .insert(fd, EpollEntry::new(fd, interest, trigger, data));
     }
 
     #[inline]
@@ -141,7 +149,9 @@ impl EpollInstance {
             entry.trigger = trigger;
             entry.armed = true;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -175,9 +185,13 @@ impl EpollInstance {
     }
 
     #[inline(always)]
-    pub fn watched_count(&self) -> usize { self.entries.len() }
+    pub fn watched_count(&self) -> usize {
+        self.entries.len()
+    }
     #[inline(always)]
-    pub fn ready_count(&self) -> usize { self.ready_list.len() }
+    pub fn ready_count(&self) -> usize {
+        self.ready_list.len()
+    }
 }
 
 /// Per-process poll tracking
@@ -247,41 +261,62 @@ impl BridgeEpollBridge {
     pub fn epoll_create(&mut self, pid: u64, ts: u64) -> i32 {
         let epfd = self.next_epfd;
         self.next_epfd += 1;
-        self.instances.insert(epfd, EpollInstance::new(epfd, pid, ts));
+        self.instances
+            .insert(epfd, EpollInstance::new(epfd, pid, ts));
 
-        let poll_state = self.process_poll.entry(pid).or_insert_with(|| {
-            ProcessPollState {
+        let poll_state = self
+            .process_poll
+            .entry(pid)
+            .or_insert_with(|| ProcessPollState {
                 process_id: pid,
                 epoll_instances: Vec::new(),
                 total_polls: 0,
                 total_selects: 0,
                 avg_wait_us: 0.0,
-            }
-        });
+            });
         poll_state.epoll_instances.push(epfd);
         epfd
     }
 
     #[inline]
-    pub fn epoll_ctl_add(&mut self, epfd: i32, fd: i32, interest: EpollEvents, trigger: EpollTrigger, data: u64) -> bool {
+    pub fn epoll_ctl_add(
+        &mut self,
+        epfd: i32,
+        fd: i32,
+        interest: EpollEvents,
+        trigger: EpollTrigger,
+        data: u64,
+    ) -> bool {
         if let Some(inst) = self.instances.get_mut(&epfd) {
             inst.add(fd, interest, trigger, data);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
-    pub fn epoll_ctl_mod(&mut self, epfd: i32, fd: i32, interest: EpollEvents, trigger: EpollTrigger) -> bool {
+    pub fn epoll_ctl_mod(
+        &mut self,
+        epfd: i32,
+        fd: i32,
+        interest: EpollEvents,
+        trigger: EpollTrigger,
+    ) -> bool {
         if let Some(inst) = self.instances.get_mut(&epfd) {
             inst.modify(fd, interest, trigger)
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn epoll_ctl_del(&mut self, epfd: i32, fd: i32) -> bool {
         if let Some(inst) = self.instances.get_mut(&epfd) {
             inst.remove(fd)
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -295,7 +330,9 @@ impl BridgeEpollBridge {
     pub fn epoll_wait(&mut self, epfd: i32, max: usize) -> Vec<(i32, u64)> {
         if let Some(inst) = self.instances.get_mut(&epfd) {
             inst.drain_ready(max)
-        } else { Vec::new() }
+        } else {
+            Vec::new()
+        }
     }
 
     #[inline]
@@ -318,9 +355,13 @@ impl BridgeEpollBridge {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeEpollStats { &self.stats }
+    pub fn stats(&self) -> &BridgeEpollStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn instance(&self, epfd: i32) -> Option<&EpollInstance> { self.instances.get(&epfd) }
+    pub fn instance(&self, epfd: i32) -> Option<&EpollInstance> {
+        self.instances.get(&epfd)
+    }
 }
 
 // ============================================================================
@@ -340,11 +381,17 @@ impl EpollV2Flags {
     pub const EXCLUSIVE: u32 = 1 << 6;
     pub const RDHUP: u32 = 1 << 7;
 
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn set(&mut self, f: u32) { self.0 |= f; }
+    pub fn set(&mut self, f: u32) {
+        self.0 |= f;
+    }
     #[inline(always)]
-    pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u32) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Epoll v2 operation
@@ -371,7 +418,11 @@ pub struct EpollV2Item {
 impl EpollV2Item {
     pub fn new(fd: i32, events: EpollV2Flags, data: u64) -> Self {
         Self {
-            fd, events, data, ready: false, fired_count: 0,
+            fd,
+            events,
+            data,
+            ready: false,
+            fired_count: 0,
             edge_triggered: events.has(EpollV2Flags::ET),
             oneshot: events.has(EpollV2Flags::ONESHOT),
             disabled: false,
@@ -382,12 +433,16 @@ impl EpollV2Item {
     pub fn fire(&mut self) {
         self.ready = true;
         self.fired_count += 1;
-        if self.oneshot { self.disabled = true; }
+        if self.oneshot {
+            self.disabled = true;
+        }
     }
 
     #[inline(always)]
     pub fn consume(&mut self) {
-        if self.edge_triggered || self.oneshot { self.ready = false; }
+        if self.edge_triggered || self.oneshot {
+            self.ready = false;
+        }
     }
 }
 
@@ -405,7 +460,14 @@ pub struct EpollV2Instance {
 
 impl EpollV2Instance {
     pub fn new(id: u64) -> Self {
-        Self { id, items: BTreeMap::new(), total_waits: 0, total_events: 0, max_events: 128, busy_poll_ns: 0 }
+        Self {
+            id,
+            items: BTreeMap::new(),
+            total_waits: 0,
+            total_events: 0,
+            max_events: 128,
+            busy_poll_ns: 0,
+        }
     }
 
     #[inline(always)]
@@ -415,22 +477,38 @@ impl EpollV2Instance {
 
     #[inline(always)]
     pub fn modify(&mut self, fd: i32, events: EpollV2Flags) {
-        if let Some(item) = self.items.get_mut(&fd) { item.events = events; }
+        if let Some(item) = self.items.get_mut(&fd) {
+            item.events = events;
+        }
     }
 
     #[inline(always)]
-    pub fn remove(&mut self, fd: i32) { self.items.remove(&fd); }
+    pub fn remove(&mut self, fd: i32) {
+        self.items.remove(&fd);
+    }
 
     #[inline(always)]
-    pub fn ready_count(&self) -> u32 { self.items.values().filter(|i| i.ready && !i.disabled).count() as u32 }
+    pub fn ready_count(&self) -> u32 {
+        self.items
+            .values()
+            .filter(|i| i.ready && !i.disabled)
+            .count() as u32
+    }
 
     #[inline]
     pub fn wait(&mut self) -> Vec<(i32, u64)> {
         self.total_waits += 1;
-        let ready: Vec<(i32, u64)> = self.items.values().filter(|i| i.ready && !i.disabled).map(|i| (i.fd, i.data)).collect();
+        let ready: Vec<(i32, u64)> = self
+            .items
+            .values()
+            .filter(|i| i.ready && !i.disabled)
+            .map(|i| (i.fd, i.data))
+            .collect();
         self.total_events += ready.len() as u64;
         for (fd, _) in &ready {
-            if let Some(item) = self.items.get_mut(fd) { item.consume(); }
+            if let Some(item) = self.items.get_mut(fd) {
+                item.consume();
+            }
         }
         ready
     }
@@ -455,11 +533,17 @@ pub struct BridgeEpollV2 {
 }
 
 impl BridgeEpollV2 {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.instances.insert(id, EpollV2Instance::new(id));
         id
     }
@@ -480,8 +564,18 @@ impl BridgeEpollV2 {
         let fds: u32 = self.instances.values().map(|i| i.items.len() as u32).sum();
         let waits: u64 = self.instances.values().map(|i| i.total_waits).sum();
         let events: u64 = self.instances.values().map(|i| i.total_events).sum();
-        let avg = if waits == 0 { 0.0 } else { events as f64 / waits as f64 };
-        EpollV2BridgeStats { total_instances: self.instances.len() as u32, total_fds: fds, total_waits: waits, total_events: events, avg_events_per_wait: avg }
+        let avg = if waits == 0 {
+            0.0
+        } else {
+            events as f64 / waits as f64
+        };
+        EpollV2BridgeStats {
+            total_instances: self.instances.len() as u32,
+            total_fds: fds,
+            total_waits: waits,
+            total_events: events,
+            avg_events_per_wait: avg,
+        }
     }
 }
 
@@ -555,7 +649,14 @@ impl EpollV3Instance {
         }
     }
 
-    pub fn add_interest(&mut self, fd: u64, events: u32, trigger: EpollV3Trigger, data: u64, tick: u64) {
+    pub fn add_interest(
+        &mut self,
+        fd: u64,
+        events: u32,
+        trigger: EpollV3Trigger,
+        data: u64,
+        tick: u64,
+    ) {
         let interest = EpollV3Interest {
             fd,
             events,
@@ -651,7 +752,15 @@ impl BridgeEpollV3 {
     }
 
     #[inline]
-    pub fn add_interest(&mut self, inst_id: u64, fd: u64, events: u32, trigger: EpollV3Trigger, data: u64, tick: u64) -> bool {
+    pub fn add_interest(
+        &mut self,
+        inst_id: u64,
+        fd: u64,
+        events: u32,
+        trigger: EpollV3Trigger,
+        data: u64,
+        tick: u64,
+    ) -> bool {
         if let Some(inst) = self.instances.get_mut(&inst_id) {
             inst.add_interest(fd, events, trigger, data, tick);
             self.stats.interests_added += 1;
@@ -792,7 +901,8 @@ impl EpollV4Instance {
         if self.interests.contains_key(&fd) {
             return false;
         }
-        self.interests.insert(fd, EpollV4Interest::new(fd, events, mode));
+        self.interests
+            .insert(fd, EpollV4Interest::new(fd, events, mode));
         true
     }
 
@@ -814,7 +924,9 @@ impl EpollV4Instance {
 
     pub fn wait(&mut self, _ts_ns: u64) -> u32 {
         self.total_waits += 1;
-        let ready: Vec<i32> = self.interests.iter()
+        let ready: Vec<i32> = self
+            .interests
+            .iter()
             .filter(|(_, i)| i.active && i.ready)
             .map(|(&fd, _)| fd)
             .take(self.max_events as usize)
@@ -838,12 +950,20 @@ impl EpollV4Instance {
 
     #[inline(always)]
     pub fn avg_events_per_wait(&self) -> f64 {
-        if self.total_waits == 0 { 0.0 } else { self.total_events as f64 / self.total_waits as f64 }
+        if self.total_waits == 0 {
+            0.0
+        } else {
+            self.total_events as f64 / self.total_waits as f64
+        }
     }
 
     #[inline(always)]
     pub fn empty_rate(&self) -> f64 {
-        if self.total_waits == 0 { 0.0 } else { self.empty_waits as f64 / self.total_waits as f64 }
+        if self.total_waits == 0 {
+            0.0
+        } else {
+            self.empty_waits as f64 / self.total_waits as f64
+        }
     }
 }
 
@@ -884,7 +1004,8 @@ impl BridgeEpollV4 {
     pub fn create(&mut self, max_events: u32) -> u32 {
         let id = self.next_epfd;
         self.next_epfd += 1;
-        self.instances.insert(id, EpollV4Instance::new(id, max_events));
+        self.instances
+            .insert(id, EpollV4Instance::new(id, max_events));
         self.stats.total_instances += 1;
         id
     }
@@ -908,7 +1029,13 @@ impl BridgeEpollV4 {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EpollV5Op { Add, Mod, Del, Wait, WaitTimeout }
+pub enum EpollV5Op {
+    Add,
+    Mod,
+    Del,
+    Wait,
+    WaitTimeout,
+}
 
 /// Epoll v5 record
 #[derive(Debug, Clone)]
@@ -921,20 +1048,44 @@ pub struct EpollV5Record {
 }
 
 impl EpollV5Record {
-    pub fn new(op: EpollV5Op, epfd: i32) -> Self { Self { op, epfd, target_fd: -1, events_mask: 0, ready_count: 0 } }
+    pub fn new(op: EpollV5Op, epfd: i32) -> Self {
+        Self {
+            op,
+            epfd,
+            target_fd: -1,
+            events_mask: 0,
+            ready_count: 0,
+        }
+    }
 }
 
 /// Epoll v5 bridge stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct EpollV5BridgeStats { pub total_ops: u64, pub adds: u64, pub waits: u64, pub timeouts: u64 }
+pub struct EpollV5BridgeStats {
+    pub total_ops: u64,
+    pub adds: u64,
+    pub waits: u64,
+    pub timeouts: u64,
+}
 
 /// Main bridge epoll v5
 #[derive(Debug)]
-pub struct BridgeEpollV5 { pub stats: EpollV5BridgeStats }
+pub struct BridgeEpollV5 {
+    pub stats: EpollV5BridgeStats,
+}
 
 impl BridgeEpollV5 {
-    pub fn new() -> Self { Self { stats: EpollV5BridgeStats { total_ops: 0, adds: 0, waits: 0, timeouts: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: EpollV5BridgeStats {
+                total_ops: 0,
+                adds: 0,
+                waits: 0,
+                timeouts: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &EpollV5Record) {
         self.stats.total_ops += 1;
@@ -942,7 +1093,7 @@ impl BridgeEpollV5 {
             EpollV5Op::Add => self.stats.adds += 1,
             EpollV5Op::Wait => self.stats.waits += 1,
             EpollV5Op::WaitTimeout => self.stats.timeouts += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

@@ -54,7 +54,12 @@ impl HolisticPgidManager {
         }
     }
 
-    pub fn analyze_group(&mut self, pgid: u64, members: u32, orphan_risk: f64) -> HolisticPgidHealth {
+    pub fn analyze_group(
+        &mut self,
+        pgid: u64,
+        members: u32,
+        orphan_risk: f64,
+    ) -> HolisticPgidHealth {
         let health = if members > 500 {
             self.stats.oversized_groups += 1;
             HolisticPgidHealth::Oversized

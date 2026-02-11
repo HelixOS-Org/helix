@@ -39,7 +39,14 @@ pub struct NsHolisticFinding {
 
 impl NsHolisticFinding {
     pub fn new(metric: NsHolisticMetric, ns_type: NsHolisticType) -> Self {
-        Self { metric, ns_type, score: 0, nesting_depth: 0, cross_ns_accesses: 0, leaked_resources: 0 }
+        Self {
+            metric,
+            ns_type,
+            score: 0,
+            nesting_depth: 0,
+            cross_ns_accesses: 0,
+            leaked_resources: 0,
+        }
     }
 }
 
@@ -61,14 +68,27 @@ pub struct HolisticNamespace {
 
 impl HolisticNamespace {
     pub fn new() -> Self {
-        Self { stats: NsHolisticStats { total_analyses: 0, weak_isolation: 0, resource_leaks: 0, deep_nesting: 0 } }
+        Self {
+            stats: NsHolisticStats {
+                total_analyses: 0,
+                weak_isolation: 0,
+                resource_leaks: 0,
+                deep_nesting: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn analyze(&mut self, finding: &NsHolisticFinding) {
         self.stats.total_analyses += 1;
-        if finding.cross_ns_accesses > 3 { self.stats.weak_isolation += 1; }
-        if finding.leaked_resources > 0 { self.stats.resource_leaks += finding.leaked_resources as u64; }
-        if finding.nesting_depth > 4 { self.stats.deep_nesting += 1; }
+        if finding.cross_ns_accesses > 3 {
+            self.stats.weak_isolation += 1;
+        }
+        if finding.leaked_resources > 0 {
+            self.stats.resource_leaks += finding.leaked_resources as u64;
+        }
+        if finding.nesting_depth > 4 {
+            self.stats.deep_nesting += 1;
+        }
     }
 }

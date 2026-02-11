@@ -13,7 +13,13 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OomAdjust { Disabled, Low, Normal, High, Critical }
+pub enum OomAdjust {
+    Disabled,
+    Low,
+    Normal,
+    High,
+    Critical,
+}
 
 impl OomAdjust {
     #[inline]
@@ -49,8 +55,7 @@ impl AppOomProfile {
             self.badness_score = 0;
             return;
         }
-        let effective_rss = self.rss_pages + self.swap_pages
-            - self.shared_pages / 2; // Shared pages counted at half
+        let effective_rss = self.rss_pages + self.swap_pages - self.shared_pages / 2; // Shared pages counted at half
         let base = if total_ram_pages > 0 {
             (effective_rss * 1000) / total_ram_pages
         } else {
@@ -66,15 +71,25 @@ impl AppOomProfile {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum WatermarkLevel { High, Low, Min, Critical }
+pub enum WatermarkLevel {
+    High,
+    Low,
+    Min,
+    Critical,
+}
 
 impl WatermarkLevel {
     #[inline]
     pub fn from_free_ratio(ratio: f64) -> Self {
-        if ratio > 0.15 { Self::High }
-        else if ratio > 0.08 { Self::Low }
-        else if ratio > 0.03 { Self::Min }
-        else { Self::Critical }
+        if ratio > 0.15 {
+            Self::High
+        } else if ratio > 0.08 {
+            Self::Low
+        } else if ratio > 0.03 {
+            Self::Min
+        } else {
+            Self::Critical
+        }
     }
 }
 
@@ -83,8 +98,8 @@ impl WatermarkLevel {
 pub struct OomAppStats {
     pub total_kills: u64,
     pub total_reclaimed_pages: u64,
-    pub false_positives: u64,  // kills that didn't help,
-    pub cascade_kills: u64,    // second-round kills,
+    pub false_positives: u64, // kills that didn't help,
+    pub cascade_kills: u64,   // second-round kills,
     pub current_watermark: u64,
 }
 
@@ -124,7 +139,8 @@ impl OomAppManager {
     /// Select victim for OOM kill
     #[inline]
     pub fn select_victim(&self) -> Option<u64> {
-        self.profiles.iter()
+        self.profiles
+            .iter()
             .filter(|(_, p)| p.badness_score > 0)
             .max_by_key(|(_, p)| p.badness_score)
             .map(|(id, _)| *id)
@@ -132,7 +148,9 @@ impl OomAppManager {
 
     /// Select ordered list of victims if one kill isn't enough
     pub fn select_victims_cascade(&self, needed_pages: u64) -> Vec<u64> {
-        let mut candidates: Vec<_> = self.profiles.iter()
+        let mut candidates: Vec<_> = self
+            .profiles
+            .iter()
             .filter(|(_, p)| p.badness_score > 0)
             .map(|(id, p)| (*id, p.badness_score, p.reclaimable_pages()))
             .collect();
@@ -141,7 +159,9 @@ impl OomAppManager {
         let mut selected = Vec::new();
         let mut reclaimed = 0u64;
         for (id, _, pages) in candidates {
-            if reclaimed >= needed_pages { break; }
+            if reclaimed >= needed_pages {
+                break;
+            }
             selected.push(id);
             reclaimed += pages;
         }
@@ -158,7 +178,9 @@ impl OomAppManager {
         }
 
         self.kill_history.push((now, app_id, pages_reclaimed));
-        if self.kill_history.len() > 256 { self.kill_history.drain(..128); }
+        if self.kill_history.len() > 256 {
+            self.kill_history.drain(..128);
+        }
 
         // Track cascade: if 2 kills within 1 second
         if self.kill_history.len() >= 2 {
@@ -190,7 +212,11 @@ impl OomAppManager {
     }
 
     #[inline(always)]
-    pub fn profile(&self, app_id: u64) -> Option<&AppOomProfile> { self.profiles.get(&app_id) }
+    pub fn profile(&self, app_id: u64) -> Option<&AppOomProfile> {
+        self.profiles.get(&app_id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &OomAppStats { &self.stats }
+    pub fn stats(&self) -> &OomAppStats {
+        &self.stats
+    }
 }

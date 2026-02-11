@@ -12,8 +12,7 @@
 
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -1027,7 +1026,7 @@ impl Default for SearchEngine {
 mod tests {
     use super::super::PerformanceSpec;
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     fn test_spec() -> Specification {
         Specification {

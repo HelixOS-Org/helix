@@ -11,10 +11,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -235,11 +235,7 @@ impl BridgeCounterfactual {
         self.tick = tick;
         self.stats.total_decisions += 1;
 
-        let dp_data = [
-            context_hash.to_le_bytes(),
-            tick.to_le_bytes(),
-        ]
-        .concat();
+        let dp_data = [context_hash.to_le_bytes(), tick.to_le_bytes()].concat();
         let decision_point = fnv1a_hash(&dp_data);
 
         let alt_records: Vec<AlternativeRecord> = alternatives
@@ -340,22 +336,23 @@ impl BridgeCounterfactual {
             }
 
             // Update global stats
-            self.stats.avg_regret =
-                self.stats.avg_regret * (1.0 - EMA_ALPHA) + regret * EMA_ALPHA;
-            let quality = if regret < 0.01 { 1.0 } else { outcome / (outcome + regret).max(0.001) };
-            self.stats.avg_decision_quality = self.stats.avg_decision_quality * (1.0 - EMA_ALPHA)
-                + quality * EMA_ALPHA;
+            self.stats.avg_regret = self.stats.avg_regret * (1.0 - EMA_ALPHA) + regret * EMA_ALPHA;
+            let quality = if regret < 0.01 {
+                1.0
+            } else {
+                outcome / (outcome + regret).max(0.001)
+            };
+            self.stats.avg_decision_quality =
+                self.stats.avg_decision_quality * (1.0 - EMA_ALPHA) + quality * EMA_ALPHA;
             if regret < 0.01 {
-                self.stats.hindsight_optimal_rate = self.stats.hindsight_optimal_rate
-                    * (1.0 - EMA_ALPHA)
-                    + EMA_ALPHA;
+                self.stats.hindsight_optimal_rate =
+                    self.stats.hindsight_optimal_rate * (1.0 - EMA_ALPHA) + EMA_ALPHA;
             } else {
                 self.stats.hindsight_optimal_rate *= 1.0 - EMA_ALPHA;
             }
             if regret > 0.01 {
-                self.stats.positive_regret_fraction = self.stats.positive_regret_fraction
-                    * (1.0 - EMA_ALPHA)
-                    + EMA_ALPHA;
+                self.stats.positive_regret_fraction =
+                    self.stats.positive_regret_fraction * (1.0 - EMA_ALPHA) + EMA_ALPHA;
             } else {
                 self.stats.positive_regret_fraction *= 1.0 - EMA_ALPHA;
             }
@@ -375,7 +372,10 @@ impl BridgeCounterfactual {
     ) -> Option<CounterfactualScenario> {
         self.stats.total_what_ifs += 1;
 
-        let record = self.completed.iter().find(|r| r.decision_point == decision_point)?;
+        let record = self
+            .completed
+            .iter()
+            .find(|r| r.decision_point == decision_point)?;
         if !record.outcome_observed {
             return None;
         }

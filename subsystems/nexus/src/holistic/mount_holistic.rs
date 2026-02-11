@@ -61,22 +61,39 @@ impl MountPoint {
     pub fn new(mount_id: u64, source: &[u8], target: &[u8], mount_type: MountType) -> Self {
         let hash = |data: &[u8]| -> u64 {
             let mut h: u64 = 0xcbf29ce484222325;
-            for b in data { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+            for b in data {
+                h ^= *b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
             h
         };
         Self {
-            mount_id, parent_id: 0, mount_type, propagation: MountPropagation::Private,
-            source_hash: hash(source), target_hash: hash(target), flags: 0,
-            fs_type_hash: 0, namespace_id: 0, children: Vec::new(), ref_count: 1,
+            mount_id,
+            parent_id: 0,
+            mount_type,
+            propagation: MountPropagation::Private,
+            source_hash: hash(source),
+            target_hash: hash(target),
+            flags: 0,
+            fs_type_hash: 0,
+            namespace_id: 0,
+            children: Vec::new(),
+            ref_count: 1,
         }
     }
 
     #[inline(always)]
-    pub fn add_child(&mut self, child_id: u64) { self.children.push(child_id); }
+    pub fn add_child(&mut self, child_id: u64) {
+        self.children.push(child_id);
+    }
     #[inline(always)]
-    pub fn is_readonly(&self) -> bool { self.flags & 1 != 0 }
+    pub fn is_readonly(&self) -> bool {
+        self.flags & 1 != 0
+    }
     #[inline(always)]
-    pub fn is_shared(&self) -> bool { self.propagation == MountPropagation::Shared }
+    pub fn is_shared(&self) -> bool {
+        self.propagation == MountPropagation::Shared
+    }
 }
 
 /// Mount holistic stats
@@ -101,7 +118,13 @@ impl HolisticMount {
     pub fn new() -> Self {
         Self {
             mounts: BTreeMap::new(),
-            stats: HolisticMountStats { total_mounts: 0, bind_mounts: 0, overlay_mounts: 0, shared_mounts: 0, namespaces: 0 },
+            stats: HolisticMountStats {
+                total_mounts: 0,
+                bind_mounts: 0,
+                overlay_mounts: 0,
+                shared_mounts: 0,
+                namespaces: 0,
+            },
         }
     }
 
@@ -111,9 +134,11 @@ impl HolisticMount {
         match mp.mount_type {
             MountType::Bind | MountType::Rbind => self.stats.bind_mounts += 1,
             MountType::Overlay => self.stats.overlay_mounts += 1,
-            _ => {}
+            _ => {},
         }
-        if mp.is_shared() { self.stats.shared_mounts += 1; }
+        if mp.is_shared() {
+            self.stats.shared_mounts += 1;
+        }
         self.mounts.insert(mp.mount_id, mp);
     }
 
@@ -205,11 +230,15 @@ impl HolisticMountV2Manager {
 
     pub fn analyze(&mut self) -> &HolisticMountV2Health {
         self.stats.analyses += 1;
-        let depth_samples: u64 = self.samples.iter()
+        let depth_samples: u64 = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticMountV2Metric::NamespaceDepth))
             .map(|s| s.value)
             .sum();
-        let count = self.samples.iter()
+        let count = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticMountV2Metric::NamespaceDepth))
             .count() as u64;
         if count > 0 {

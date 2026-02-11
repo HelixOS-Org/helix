@@ -31,21 +31,49 @@ pub struct ProcessHeap {
 
 impl ProcessHeap {
     pub fn new(pid: u64, start: u64) -> Self {
-        Self { pid, start, current: start, max_ever: start, state: BrkState::Active, expand_count: 0, shrink_count: 0, total_expanded: 0, total_shrunk: 0, page_faults: 0 }
+        Self {
+            pid,
+            start,
+            current: start,
+            max_ever: start,
+            state: BrkState::Active,
+            expand_count: 0,
+            shrink_count: 0,
+            total_expanded: 0,
+            total_shrunk: 0,
+            page_faults: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn size(&self) -> u64 { self.current - self.start }
+    pub fn size(&self) -> u64 {
+        self.current - self.start
+    }
     #[inline(always)]
-    pub fn pages(&self) -> u64 { (self.size() + 4095) / 4096 }
+    pub fn pages(&self) -> u64 {
+        (self.size() + 4095) / 4096
+    }
 
     #[inline]
     pub fn brk(&mut self, new_brk: u64) -> bool {
-        if new_brk < self.start { return false; }
-        if new_brk > self.current { let delta = new_brk - self.current; self.total_expanded += delta; self.expand_count += 1; self.state = BrkState::Expanding; }
-        else if new_brk < self.current { let delta = self.current - new_brk; self.total_shrunk += delta; self.shrink_count += 1; self.state = BrkState::Shrinking; }
+        if new_brk < self.start {
+            return false;
+        }
+        if new_brk > self.current {
+            let delta = new_brk - self.current;
+            self.total_expanded += delta;
+            self.expand_count += 1;
+            self.state = BrkState::Expanding;
+        } else if new_brk < self.current {
+            let delta = self.current - new_brk;
+            self.total_shrunk += delta;
+            self.shrink_count += 1;
+            self.state = BrkState::Shrinking;
+        }
         self.current = new_brk;
-        if new_brk > self.max_ever { self.max_ever = new_brk; }
+        if new_brk > self.max_ever {
+            self.max_ever = new_brk;
+        }
         self.state = BrkState::Active;
         true
     }
@@ -68,15 +96,27 @@ pub struct AppBrk {
 }
 
 impl AppBrk {
-    pub fn new() -> Self { Self { heaps: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            heaps: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn init_heap(&mut self, pid: u64, start: u64) { self.heaps.insert(pid, ProcessHeap::new(pid, start)); }
+    pub fn init_heap(&mut self, pid: u64, start: u64) {
+        self.heaps.insert(pid, ProcessHeap::new(pid, start));
+    }
     #[inline(always)]
-    pub fn remove(&mut self, pid: u64) { self.heaps.remove(&pid); }
+    pub fn remove(&mut self, pid: u64) {
+        self.heaps.remove(&pid);
+    }
 
     #[inline(always)]
     pub fn brk(&mut self, pid: u64, new_brk: u64) -> bool {
-        if let Some(h) = self.heaps.get_mut(&pid) { h.brk(new_brk) } else { false }
+        if let Some(h) = self.heaps.get_mut(&pid) {
+            h.brk(new_brk)
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -85,6 +125,12 @@ impl AppBrk {
         let pages: u64 = self.heaps.values().map(|h| h.pages()).sum();
         let expands: u64 = self.heaps.values().map(|h| h.expand_count).sum();
         let shrinks: u64 = self.heaps.values().map(|h| h.shrink_count).sum();
-        BrkAppStats { tracked_processes: self.heaps.len() as u32, total_heap_bytes: bytes, total_heap_pages: pages, total_expands: expands, total_shrinks: shrinks }
+        BrkAppStats {
+            tracked_processes: self.heaps.len() as u32,
+            total_heap_bytes: bytes,
+            total_heap_pages: pages,
+            total_expands: expands,
+            total_shrinks: shrinks,
+        }
     }
 }

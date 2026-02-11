@@ -22,7 +22,11 @@ pub struct MsQueueNode {
 
 impl MsQueueNode {
     pub fn new(value: u64, ts: u64) -> Self {
-        Self { value, next: None, enqueue_ts: ts }
+        Self {
+            value,
+            next: None,
+            enqueue_ts: ts,
+        }
     }
 }
 
@@ -43,10 +47,15 @@ pub struct MsQueueState {
 impl MsQueueState {
     pub fn new() -> Self {
         Self {
-            head_tag: 0, tail_tag: 0, size: 0,
-            enqueue_count: 0, dequeue_count: 0,
-            help_advance_count: 0, cas_failures: 0,
-            max_size: 0, total_latency_ns: 0,
+            head_tag: 0,
+            tail_tag: 0,
+            size: 0,
+            enqueue_count: 0,
+            dequeue_count: 0,
+            help_advance_count: 0,
+            cas_failures: 0,
+            max_size: 0,
+            total_latency_ns: 0,
         }
     }
 
@@ -55,12 +64,16 @@ impl MsQueueState {
         self.size += 1;
         self.enqueue_count += 1;
         self.tail_tag += 1;
-        if self.size > self.max_size { self.max_size = self.size; }
+        if self.size > self.max_size {
+            self.max_size = self.size;
+        }
     }
 
     #[inline]
     pub fn dequeue(&mut self, latency_ns: u64) -> bool {
-        if self.size == 0 { return false; }
+        if self.size == 0 {
+            return false;
+        }
         self.size -= 1;
         self.dequeue_count += 1;
         self.head_tag += 1;
@@ -70,13 +83,21 @@ impl MsQueueState {
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.dequeue_count == 0 { 0 } else { self.total_latency_ns / self.dequeue_count }
+        if self.dequeue_count == 0 {
+            0
+        } else {
+            self.total_latency_ns / self.dequeue_count
+        }
     }
 
     #[inline(always)]
     pub fn contention_rate(&self) -> u64 {
         let total = self.enqueue_count + self.dequeue_count;
-        if total == 0 { 0 } else { (self.cas_failures * 100) / total }
+        if total == 0 {
+            0
+        } else {
+            (self.cas_failures * 100) / total
+        }
     }
 }
 
@@ -101,8 +122,10 @@ impl CoopMichaelScottQueue {
         Self {
             queues: Vec::new(),
             stats: MsQueueStats {
-                total_queues: 0, total_enqueues: 0,
-                total_dequeues: 0, total_cas_failures: 0,
+                total_queues: 0,
+                total_enqueues: 0,
+                total_dequeues: 0,
+                total_cas_failures: 0,
                 total_helps: 0,
             },
         }
@@ -130,10 +153,16 @@ impl CoopMichaelScottQueue {
             if q.dequeue(latency_ns) {
                 self.stats.total_dequeues += 1;
                 MsQueueOpResult::Success
-            } else { MsQueueOpResult::Empty }
-        } else { MsQueueOpResult::Empty }
+            } else {
+                MsQueueOpResult::Empty
+            }
+        } else {
+            MsQueueOpResult::Empty
+        }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &MsQueueStats { &self.stats }
+    pub fn stats(&self) -> &MsQueueStats {
+        &self.stats
+    }
 }

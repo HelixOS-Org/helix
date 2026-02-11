@@ -106,7 +106,10 @@ impl WaitQueue {
 
     #[inline(always)]
     pub fn waiting_count(&self) -> usize {
-        self.waiters.iter().filter(|w| w.state == WaitState::Waiting).count()
+        self.waiters
+            .iter()
+            .filter(|w| w.state == WaitState::Waiting)
+            .count()
     }
 
     /// Add a waiter
@@ -117,7 +120,9 @@ impl WaitQueue {
 
         // Insert sorted by priority for priority queues
         if self.queue_type == WaitQueueType::Priority {
-            let pos = self.waiters.iter()
+            let pos = self
+                .waiters
+                .iter()
                 .position(|w| w.priority < entry.priority)
                 .unwrap_or(self.waiters.len());
             self.waiters.insert(pos, entry);
@@ -137,8 +142,12 @@ impl WaitQueue {
         let mut count = 0;
 
         for waiter in &mut self.waiters {
-            if count >= max { break; }
-            if waiter.state != WaitState::Waiting { continue; }
+            if count >= max {
+                break;
+            }
+            if waiter.state != WaitState::Waiting {
+                continue;
+            }
 
             waiter.state = WaitState::WokenUp;
             woken.push(waiter.thread_id);
@@ -189,7 +198,9 @@ impl WaitQueue {
             self.waiters[pos].state = WaitState::Interrupted;
             self.waiters.remove(pos);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }
 
@@ -238,7 +249,9 @@ impl BridgeWaitQueueMgr {
             let woken = queue.wakeup_all(0);
             self.recompute();
             woken
-        } else { Vec::new() }
+        } else {
+            Vec::new()
+        }
     }
 
     #[inline]
@@ -253,7 +266,9 @@ impl BridgeWaitQueueMgr {
     pub fn wakeup(&mut self, queue_id: u64, max: usize, now: u64) -> Vec<u64> {
         let result = if let Some(queue) = self.queues.get_mut(&queue_id) {
             queue.wakeup(max, now)
-        } else { Vec::new() };
+        } else {
+            Vec::new()
+        };
         self.recompute();
         result
     }
@@ -275,7 +290,9 @@ impl BridgeWaitQueueMgr {
                 }
             }
         }
-        if !all_timeouts.is_empty() { self.recompute(); }
+        if !all_timeouts.is_empty() {
+            self.recompute();
+        }
         all_timeouts
     }
 
@@ -286,7 +303,9 @@ impl BridgeWaitQueueMgr {
         self.stats.total_wakeups = self.queues.values().map(|q| q.total_wakeups).sum();
         self.stats.total_timeouts = self.queues.values().map(|q| q.total_timeouts).sum();
 
-        let (busiest, max_depth) = self.queues.values()
+        let (busiest, max_depth) = self
+            .queues
+            .values()
             .map(|q| (q.queue_id, q.waiting_count() as u32))
             .max_by_key(|&(_, depth)| depth)
             .unwrap_or((0, 0));

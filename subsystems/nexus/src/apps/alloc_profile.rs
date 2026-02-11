@@ -11,7 +11,8 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use crate::fast::math::{F64Ext};
+
+use crate::fast::math::F64Ext;
 
 /// Allocation type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,7 +147,9 @@ impl CallsiteAllocStats {
     /// Leak ratio
     #[inline(always)]
     pub fn leak_ratio(&self) -> f64 {
-        if self.alloc_count == 0 { return 0.0; }
+        if self.alloc_count == 0 {
+            return 0.0;
+        }
         1.0 - (self.free_count as f64 / self.alloc_count as f64)
     }
 }
@@ -204,11 +207,16 @@ impl ProcessAllocProfile {
         }
 
         // Size histogram
-        let bucket = if size == 0 { 0 } else { (size as f64).log2() as u8 };
+        let bucket = if size == 0 {
+            0
+        } else {
+            (size as f64).log2() as u8
+        };
         *self.size_hist.entry(bucket).or_insert(0) += 1;
 
         // Callsite
-        self.callsites.entry(callsite)
+        self.callsites
+            .entry(callsite)
             .or_insert_with(|| CallsiteAllocStats::new(callsite))
             .record_alloc(size);
 
@@ -250,7 +258,9 @@ impl ProcessAllocProfile {
     /// Top leaking callsites
     #[inline]
     pub fn top_leakers(&self, n: usize) -> Vec<(u64, f64)> {
-        let mut leakers: Vec<(u64, f64)> = self.callsites.iter()
+        let mut leakers: Vec<(u64, f64)> = self
+            .callsites
+            .iter()
             .filter(|(_, cs)| cs.alloc_count > 10)
             .map(|(&hash, cs)| (hash, cs.leak_ratio()))
             .collect();
@@ -287,7 +297,8 @@ impl AppAllocProfiler {
 
     #[inline]
     pub fn record_alloc(&mut self, pid: u64, address: u64, size: u64, callsite: u64, now_ns: u64) {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessAllocProfile::new(pid))
             .record_alloc(address, size, callsite, now_ns);
         self.update_stats();
@@ -305,8 +316,15 @@ impl AppAllocProfiler {
         self.stats.tracked_processes = self.processes.len();
         self.stats.total_live_allocs = self.processes.values().map(|p| p.live.len()).sum();
         self.stats.total_live_bytes = self.processes.values().map(|p| p.current_live_bytes).sum();
-        self.stats.peak_bytes = self.processes.values().map(|p| p.peak_live_bytes).max().unwrap_or(0);
-        self.stats.growing_processes = self.processes.values()
+        self.stats.peak_bytes = self
+            .processes
+            .values()
+            .map(|p| p.peak_live_bytes)
+            .max()
+            .unwrap_or(0);
+        self.stats.growing_processes = self
+            .processes
+            .values()
             .filter(|p| matches!(p.behavior, AllocBehavior::Growing))
             .count();
     }

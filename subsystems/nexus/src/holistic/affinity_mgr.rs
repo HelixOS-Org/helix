@@ -36,28 +36,38 @@ pub struct CpuMask {
 
 impl CpuMask {
     #[inline(always)]
-    pub fn empty() -> Self { Self { bits: [0; 4] } }
+    pub fn empty() -> Self {
+        Self { bits: [0; 4] }
+    }
 
     #[inline]
     pub fn all(nr_cpus: u32) -> Self {
         let mut m = Self::empty();
-        for i in 0..nr_cpus.min(256) { m.set(i); }
+        for i in 0..nr_cpus.min(256) {
+            m.set(i);
+        }
         m
     }
 
     #[inline(always)]
     pub fn set(&mut self, cpu: u32) {
-        if cpu < 256 { self.bits[cpu as usize / 64] |= 1 << (cpu % 64); }
+        if cpu < 256 {
+            self.bits[cpu as usize / 64] |= 1 << (cpu % 64);
+        }
     }
 
     #[inline(always)]
     pub fn clear(&mut self, cpu: u32) {
-        if cpu < 256 { self.bits[cpu as usize / 64] &= !(1 << (cpu % 64)); }
+        if cpu < 256 {
+            self.bits[cpu as usize / 64] &= !(1 << (cpu % 64));
+        }
     }
 
     #[inline(always)]
     pub fn test(&self, cpu: u32) -> bool {
-        if cpu >= 256 { return false; }
+        if cpu >= 256 {
+            return false;
+        }
         (self.bits[cpu as usize / 64] >> (cpu % 64)) & 1 != 0
     }
 
@@ -69,24 +79,32 @@ impl CpuMask {
     #[inline]
     pub fn and(&self, other: &CpuMask) -> CpuMask {
         let mut r = CpuMask::empty();
-        for i in 0..4 { r.bits[i] = self.bits[i] & other.bits[i]; }
+        for i in 0..4 {
+            r.bits[i] = self.bits[i] & other.bits[i];
+        }
         r
     }
 
     #[inline]
     pub fn or(&self, other: &CpuMask) -> CpuMask {
         let mut r = CpuMask::empty();
-        for i in 0..4 { r.bits[i] = self.bits[i] | other.bits[i]; }
+        for i in 0..4 {
+            r.bits[i] = self.bits[i] | other.bits[i];
+        }
         r
     }
 
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.bits.iter().all(|&b| b == 0) }
+    pub fn is_empty(&self) -> bool {
+        self.bits.iter().all(|&b| b == 0)
+    }
 
     #[inline]
     pub fn first_set(&self) -> Option<u32> {
         for (i, &word) in self.bits.iter().enumerate() {
-            if word != 0 { return Some(i as u32 * 64 + word.trailing_zeros()); }
+            if word != 0 {
+                return Some(i as u32 * 64 + word.trailing_zeros());
+            }
         }
         None
     }
@@ -94,7 +112,11 @@ impl CpuMask {
     #[inline]
     pub fn iter_set(&self) -> Vec<u32> {
         let mut v = Vec::new();
-        for i in 0..256u32 { if self.test(i) { v.push(i); } }
+        for i in 0..256u32 {
+            if self.test(i) {
+                v.push(i);
+            }
+        }
         v
     }
 }
@@ -107,13 +129,27 @@ pub struct NodeMask {
 
 impl NodeMask {
     #[inline(always)]
-    pub fn empty() -> Self { Self { bits: 0 } }
+    pub fn empty() -> Self {
+        Self { bits: 0 }
+    }
     #[inline(always)]
-    pub fn set(&mut self, node: u32) { if node < 64 { self.bits |= 1 << node; } }
+    pub fn set(&mut self, node: u32) {
+        if node < 64 {
+            self.bits |= 1 << node;
+        }
+    }
     #[inline(always)]
-    pub fn test(&self, node: u32) -> bool { if node >= 64 { false } else { (self.bits >> node) & 1 != 0 } }
+    pub fn test(&self, node: u32) -> bool {
+        if node >= 64 {
+            false
+        } else {
+            (self.bits >> node) & 1 != 0
+        }
+    }
     #[inline(always)]
-    pub fn count(&self) -> u32 { self.bits.count_ones() }
+    pub fn count(&self) -> u32 {
+        self.bits.count_ones()
+    }
 }
 
 /// Affinity binding for a specific entity
@@ -131,11 +167,23 @@ pub struct AffinityBinding {
 }
 
 impl AffinityBinding {
-    pub fn new(id: u64, scope: AffinityScope, policy: AffinityPolicy, mask: CpuMask, now: u64) -> Self {
+    pub fn new(
+        id: u64,
+        scope: AffinityScope,
+        policy: AffinityPolicy,
+        mask: CpuMask,
+        now: u64,
+    ) -> Self {
         Self {
-            entity_id: id, scope, policy, cpu_mask: mask,
-            node_mask: NodeMask::empty(), effective_cpu: None,
-            migrations: 0, last_migration: 0, created_at: now,
+            entity_id: id,
+            scope,
+            policy,
+            cpu_mask: mask,
+            node_mask: NodeMask::empty(),
+            effective_cpu: None,
+            migrations: 0,
+            last_migration: 0,
+            created_at: now,
         }
     }
 
@@ -147,7 +195,9 @@ impl AffinityBinding {
     }
 
     #[inline(always)]
-    pub fn is_allowed(&self, cpu: u32) -> bool { self.cpu_mask.test(cpu) }
+    pub fn is_allowed(&self, cpu: u32) -> bool {
+        self.cpu_mask.test(cpu)
+    }
 }
 
 /// Migration event
@@ -193,20 +243,35 @@ pub struct HolisticAffinityMgr {
 
 impl HolisticAffinityMgr {
     pub fn new() -> Self {
-        Self { bindings: BTreeMap::new(), migrations: Vec::new(), max_migration_log: 8192 }
+        Self {
+            bindings: BTreeMap::new(),
+            migrations: Vec::new(),
+            max_migration_log: 8192,
+        }
     }
 
     #[inline(always)]
-    pub fn bind(&mut self, id: u64, scope: AffinityScope, policy: AffinityPolicy, mask: CpuMask, now: u64) {
-        self.bindings.insert(id, AffinityBinding::new(id, scope, policy, mask, now));
+    pub fn bind(
+        &mut self,
+        id: u64,
+        scope: AffinityScope,
+        policy: AffinityPolicy,
+        mask: CpuMask,
+        now: u64,
+    ) {
+        self.bindings
+            .insert(id, AffinityBinding::new(id, scope, policy, mask, now));
     }
 
     #[inline(always)]
-    pub fn unbind(&mut self, id: u64) -> bool { self.bindings.remove(&id).is_some() }
+    pub fn unbind(&mut self, id: u64) -> bool {
+        self.bindings.remove(&id).is_some()
+    }
 
     pub fn migrate(&mut self, id: u64, to_cpu: u32, reason: MigrationReason, now: u64) -> bool {
         let binding = match self.bindings.get_mut(&id) {
-            Some(b) => b, None => return false,
+            Some(b) => b,
+            None => return false,
         };
         if binding.policy == AffinityPolicy::Strict && !binding.is_allowed(to_cpu) {
             return false;
@@ -216,26 +281,47 @@ impl HolisticAffinityMgr {
         if self.migrations.len() >= self.max_migration_log {
             self.migrations.drain(..self.max_migration_log / 4);
         }
-        self.migrations.push(MigrationEvent { entity_id: id, from_cpu: from, to_cpu, reason, timestamp: now });
+        self.migrations.push(MigrationEvent {
+            entity_id: id,
+            from_cpu: from,
+            to_cpu,
+            reason,
+            timestamp: now,
+        });
         true
     }
 
     #[inline(always)]
-    pub fn get_binding(&self, id: u64) -> Option<&AffinityBinding> { self.bindings.get(&id) }
+    pub fn get_binding(&self, id: u64) -> Option<&AffinityBinding> {
+        self.bindings.get(&id)
+    }
 
     #[inline]
     pub fn bindings_on_cpu(&self, cpu: u32) -> Vec<u64> {
-        self.bindings.iter()
+        self.bindings
+            .iter()
             .filter(|(_, b)| b.effective_cpu == Some(cpu))
             .map(|(&id, _)| id)
             .collect()
     }
 
     pub fn stats(&self) -> AffinityMgrStats {
-        let strict = self.bindings.values().filter(|b| b.policy == AffinityPolicy::Strict).count() as u32;
-        let preferred = self.bindings.values().filter(|b| b.policy == AffinityPolicy::Preferred).count() as u32;
+        let strict = self
+            .bindings
+            .values()
+            .filter(|b| b.policy == AffinityPolicy::Strict)
+            .count() as u32;
+        let preferred = self
+            .bindings
+            .values()
+            .filter(|b| b.policy == AffinityPolicy::Preferred)
+            .count() as u32;
         let total_mig: u64 = self.bindings.values().map(|b| b.migrations).sum();
-        let avg = if self.bindings.is_empty() { 0.0 } else { total_mig as f64 / self.bindings.len() as f64 };
+        let avg = if self.bindings.is_empty() {
+            0.0
+        } else {
+            total_mig as f64 / self.bindings.len() as f64
+        };
         let mut by_scope = BTreeMap::new();
         for b in self.bindings.values() {
             *by_scope.entry(b.scope as u8).or_insert(0u32) += 1;
@@ -243,8 +329,10 @@ impl HolisticAffinityMgr {
         AffinityMgrStats {
             total_bindings: self.bindings.len() as u32,
             total_migrations: total_mig,
-            strict_bindings: strict, preferred_bindings: preferred,
-            avg_migrations: avg, bindings_by_scope: by_scope,
+            strict_bindings: strict,
+            preferred_bindings: preferred,
+            avg_migrations: avg,
+            bindings_by_scope: by_scope,
         }
     }
 }

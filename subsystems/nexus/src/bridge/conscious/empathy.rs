@@ -15,8 +15,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -166,12 +165,10 @@ impl EmpathyModel {
         if self.inferred_state == actual_state {
             self.predictions_correct += 1;
             self.consecutive_correct += 1;
-            self.confidence =
-                (self.confidence + CONFIDENCE_CORRECT_BOOST).clamp(0.0, 1.0);
+            self.confidence = (self.confidence + CONFIDENCE_CORRECT_BOOST).clamp(0.0, 1.0);
         } else {
             self.consecutive_correct = 0;
-            self.confidence =
-                (self.confidence - CONFIDENCE_WRONG_PENALTY).clamp(0.0, 1.0);
+            self.confidence = (self.confidence - CONFIDENCE_WRONG_PENALTY).clamp(0.0, 1.0);
         }
     }
 
@@ -192,11 +189,16 @@ impl EmpathyModel {
             return 0.0;
         }
         let half = len / 2;
-        let first_half_avg: f32 =
-            self.signal_history[..half].iter().map(|s| s.value).sum::<f32>() / half as f32;
-        let second_half_avg: f32 =
-            self.signal_history[half..].iter().map(|s| s.value).sum::<f32>()
-                / (len - half) as f32;
+        let first_half_avg: f32 = self.signal_history[..half]
+            .iter()
+            .map(|s| s.value)
+            .sum::<f32>()
+            / half as f32;
+        let second_half_avg: f32 = self.signal_history[half..]
+            .iter()
+            .map(|s| s.value)
+            .sum::<f32>()
+            / (len - half) as f32;
         second_half_avg - first_half_avg
     }
 }
@@ -378,8 +380,8 @@ impl BridgeEmpathyEngine {
                     } else {
                         -1.0
                     };
-                    let magnitude_sim =
-                        1.0 - (trend_a.abs() - trend_b.abs()).abs() / (trend_a.abs() + trend_b.abs());
+                    let magnitude_sim = 1.0
+                        - (trend_a.abs() - trend_b.abs()).abs() / (trend_a.abs() + trend_b.abs());
                     direction_match * magnitude_sim
                 } else {
                     0.0

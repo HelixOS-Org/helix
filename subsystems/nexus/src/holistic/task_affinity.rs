@@ -20,12 +20,16 @@ pub struct CpuSet {
 }
 
 impl CpuSet {
-    pub fn new() -> Self { Self { bits: [0; 4] } }
+    pub fn new() -> Self {
+        Self { bits: [0; 4] }
+    }
 
     #[inline]
     pub fn all(num_cpus: u32) -> Self {
         let mut s = Self::new();
-        for i in 0..num_cpus.min(256) { s.set(i); }
+        for i in 0..num_cpus.min(256) {
+            s.set(i);
+        }
         s
     }
 
@@ -45,7 +49,9 @@ impl CpuSet {
 
     #[inline(always)]
     pub fn is_set(&self, cpu: u32) -> bool {
-        if cpu >= 256 { return false; }
+        if cpu >= 256 {
+            return false;
+        }
         (self.bits[(cpu / 64) as usize] >> (cpu % 64)) & 1 == 1
     }
 
@@ -62,21 +68,27 @@ impl CpuSet {
     #[inline]
     pub fn intersect(&self, other: &Self) -> Self {
         let mut r = Self::new();
-        for i in 0..4 { r.bits[i] = self.bits[i] & other.bits[i]; }
+        for i in 0..4 {
+            r.bits[i] = self.bits[i] & other.bits[i];
+        }
         r
     }
 
     #[inline]
     pub fn union(&self, other: &Self) -> Self {
         let mut r = Self::new();
-        for i in 0..4 { r.bits[i] = self.bits[i] | other.bits[i]; }
+        for i in 0..4 {
+            r.bits[i] = self.bits[i] | other.bits[i];
+        }
         r
     }
 
     #[inline]
     pub fn first_set(&self) -> Option<u32> {
         for (i, &b) in self.bits.iter().enumerate() {
-            if b != 0 { return Some(i as u32 * 64 + b.trailing_zeros()); }
+            if b != 0 {
+                return Some(i as u32 * 64 + b.trailing_zeros());
+            }
         }
         None
     }
@@ -85,7 +97,9 @@ impl CpuSet {
     pub fn iter_set(&self) -> Vec<u32> {
         let mut result = Vec::new();
         for cpu in 0..256u32 {
-            if self.is_set(cpu) { result.push(cpu); }
+            if self.is_set(cpu) {
+                result.push(cpu);
+            }
         }
         result
     }
@@ -108,17 +122,41 @@ pub struct NodeSet {
 }
 
 impl NodeSet {
-    pub fn new() -> Self { Self { bits: 0 } }
+    pub fn new() -> Self {
+        Self { bits: 0 }
+    }
     #[inline(always)]
-    pub fn set(&mut self, node: u32) { if node < 64 { self.bits |= 1u64 << node; } }
+    pub fn set(&mut self, node: u32) {
+        if node < 64 {
+            self.bits |= 1u64 << node;
+        }
+    }
     #[inline(always)]
-    pub fn clear(&mut self, node: u32) { if node < 64 { self.bits &= !(1u64 << node); } }
+    pub fn clear(&mut self, node: u32) {
+        if node < 64 {
+            self.bits &= !(1u64 << node);
+        }
+    }
     #[inline(always)]
-    pub fn is_set(&self, node: u32) -> bool { if node >= 64 { false } else { (self.bits >> node) & 1 == 1 } }
+    pub fn is_set(&self, node: u32) -> bool {
+        if node >= 64 {
+            false
+        } else {
+            (self.bits >> node) & 1 == 1
+        }
+    }
     #[inline(always)]
-    pub fn count(&self) -> u32 { self.bits.count_ones() }
+    pub fn count(&self) -> u32 {
+        self.bits.count_ones()
+    }
     #[inline(always)]
-    pub fn first(&self) -> Option<u32> { if self.bits == 0 { None } else { Some(self.bits.trailing_zeros()) } }
+    pub fn first(&self) -> Option<u32> {
+        if self.bits == 0 {
+            None
+        } else {
+            Some(self.bits.trailing_zeros())
+        }
+    }
 }
 
 /// Task affinity record
@@ -142,16 +180,26 @@ pub struct TaskAffinity {
 impl TaskAffinity {
     pub fn new(task_id: u64) -> Self {
         Self {
-            task_id, cpu_affinity: CpuSet::all(256), mem_policy: MemBindPolicy::Default,
-            mem_nodes: NodeSet::new(), inherited: false, parent_task: None,
-            last_cpu: 0, migrations: 0, cache_misses_after_migration: 0,
-            time_on_current_cpu_ns: 0, total_runtime_ns: 0,
-            voluntary_migrations: 0, forced_migrations: 0,
+            task_id,
+            cpu_affinity: CpuSet::all(256),
+            mem_policy: MemBindPolicy::Default,
+            mem_nodes: NodeSet::new(),
+            inherited: false,
+            parent_task: None,
+            last_cpu: 0,
+            migrations: 0,
+            cache_misses_after_migration: 0,
+            time_on_current_cpu_ns: 0,
+            total_runtime_ns: 0,
+            voluntary_migrations: 0,
+            forced_migrations: 0,
         }
     }
 
     #[inline(always)]
-    pub fn set_affinity(&mut self, cpuset: CpuSet) { self.cpu_affinity = cpuset; }
+    pub fn set_affinity(&mut self, cpuset: CpuSet) {
+        self.cpu_affinity = cpuset;
+    }
     #[inline(always)]
     pub fn set_mem_policy(&mut self, policy: MemBindPolicy, nodes: NodeSet) {
         self.mem_policy = policy;
@@ -163,17 +211,26 @@ impl TaskAffinity {
         self.last_cpu = new_cpu;
         self.migrations += 1;
         self.time_on_current_cpu_ns = 0;
-        if forced { self.forced_migrations += 1; } else { self.voluntary_migrations += 1; }
+        if forced {
+            self.forced_migrations += 1;
+        } else {
+            self.voluntary_migrations += 1;
+        }
     }
 
     #[inline(always)]
     pub fn migration_rate(&self) -> f64 {
-        if self.total_runtime_ns == 0 { 0.0 }
-        else { self.migrations as f64 / (self.total_runtime_ns as f64 / 1_000_000_000.0) }
+        if self.total_runtime_ns == 0 {
+            0.0
+        } else {
+            self.migrations as f64 / (self.total_runtime_ns as f64 / 1_000_000_000.0)
+        }
     }
 
     #[inline(always)]
-    pub fn can_run_on(&self, cpu: u32) -> bool { self.cpu_affinity.is_set(cpu) }
+    pub fn can_run_on(&self, cpu: u32) -> bool {
+        self.cpu_affinity.is_set(cpu)
+    }
 }
 
 /// Cache domain for topology
@@ -189,11 +246,20 @@ pub struct CacheDomain {
 
 impl CacheDomain {
     pub fn new(id: u32, level: u8, size_kb: u32) -> Self {
-        Self { domain_id: id, level, cpus: CpuSet::new(), size_kb, shared_by: 0 }
+        Self {
+            domain_id: id,
+            level,
+            cpus: CpuSet::new(),
+            size_kb,
+            shared_by: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn add_cpu(&mut self, cpu: u32) { self.cpus.set(cpu); self.shared_by += 1; }
+    pub fn add_cpu(&mut self, cpu: u32) {
+        self.cpus.set(cpu);
+        self.shared_by += 1;
+    }
 }
 
 /// Migration cost estimation
@@ -210,14 +276,23 @@ pub struct MigrationCost {
 impl MigrationCost {
     #[inline]
     pub fn estimate(from: u32, to: u32, same_l2: bool, same_l3: bool, numa_dist: u32) -> Self {
-        let cache_cost = if same_l2 { 1000 } else if same_l3 { 10_000 } else { 100_000 };
+        let cache_cost = if same_l2 {
+            1000
+        } else if same_l3 {
+            10_000
+        } else {
+            100_000
+        };
         let tlb_cost = 5000u64;
         let numa_factor = numa_dist as f64 / 10.0;
         let total = (cache_cost + tlb_cost) as f64 * numa_factor;
         Self {
-            from_cpu: from, to_cpu: to,
-            cache_flush_cost_ns: cache_cost, tlb_flush_cost_ns: tlb_cost,
-            numa_distance_factor: numa_factor, total_cost_ns: total as u64,
+            from_cpu: from,
+            to_cpu: to,
+            cache_flush_cost_ns: cache_cost,
+            tlb_flush_cost_ns: tlb_cost,
+            numa_distance_factor: numa_factor,
+            total_cost_ns: total as u64,
         }
     }
 }
@@ -244,7 +319,11 @@ pub struct HolisticTaskAffinity {
 
 impl HolisticTaskAffinity {
     pub fn new() -> Self {
-        Self { tasks: BTreeMap::new(), cache_domains: BTreeMap::new(), stats: TaskAffinityStats::default() }
+        Self {
+            tasks: BTreeMap::new(),
+            cache_domains: BTreeMap::new(),
+            stats: TaskAffinityStats::default(),
+        }
     }
 
     pub fn register_task(&mut self, task_id: u64, parent: Option<u64>) {
@@ -263,12 +342,16 @@ impl HolisticTaskAffinity {
 
     #[inline(always)]
     pub fn set_affinity(&mut self, task_id: u64, cpuset: CpuSet) {
-        if let Some(t) = self.tasks.get_mut(&task_id) { t.set_affinity(cpuset); }
+        if let Some(t) = self.tasks.get_mut(&task_id) {
+            t.set_affinity(cpuset);
+        }
     }
 
     #[inline(always)]
     pub fn set_mem_policy(&mut self, task_id: u64, policy: MemBindPolicy, nodes: NodeSet) {
-        if let Some(t) = self.tasks.get_mut(&task_id) { t.set_mem_policy(policy, nodes); }
+        if let Some(t) = self.tasks.get_mut(&task_id) {
+            t.set_mem_policy(policy, nodes);
+        }
     }
 
     #[inline(always)]
@@ -280,30 +363,58 @@ impl HolisticTaskAffinity {
     pub fn estimate_migration_cost(&self, task_id: u64, to_cpu: u32) -> Option<MigrationCost> {
         let task = self.tasks.get(&task_id)?;
         let from = task.last_cpu;
-        let same_l2 = self.cache_domains.values().any(|d| d.level == 2 && d.cpus.is_set(from) && d.cpus.is_set(to_cpu));
-        let same_l3 = self.cache_domains.values().any(|d| d.level == 3 && d.cpus.is_set(from) && d.cpus.is_set(to_cpu));
+        let same_l2 = self
+            .cache_domains
+            .values()
+            .any(|d| d.level == 2 && d.cpus.is_set(from) && d.cpus.is_set(to_cpu));
+        let same_l3 = self
+            .cache_domains
+            .values()
+            .any(|d| d.level == 3 && d.cpus.is_set(from) && d.cpus.is_set(to_cpu));
         Some(MigrationCost::estimate(from, to_cpu, same_l2, same_l3, 10))
     }
 
     #[inline(always)]
     pub fn record_migration(&mut self, task_id: u64, new_cpu: u32, forced: bool) {
-        if let Some(t) = self.tasks.get_mut(&task_id) { t.record_migration(new_cpu, forced); }
+        if let Some(t) = self.tasks.get_mut(&task_id) {
+            t.record_migration(new_cpu, forced);
+        }
     }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.tasks_tracked = self.tasks.len();
-        self.stats.tasks_with_affinity = self.tasks.values().filter(|t| t.cpu_affinity.count() < 256).count();
+        self.stats.tasks_with_affinity = self
+            .tasks
+            .values()
+            .filter(|t| t.cpu_affinity.count() < 256)
+            .count();
         self.stats.tasks_inherited = self.tasks.values().filter(|t| t.inherited).count();
         self.stats.total_migrations = self.tasks.values().map(|t| t.migrations).sum();
         let rates: Vec<f64> = self.tasks.values().map(|t| t.migration_rate()).collect();
-        self.stats.avg_migration_rate = if rates.is_empty() { 0.0 } else { rates.iter().sum::<f64>() / rates.len() as f64 };
-        self.stats.bound_tasks = self.tasks.values().filter(|t| t.mem_policy == MemBindPolicy::Bind).count();
-        self.stats.interleave_tasks = self.tasks.values().filter(|t| t.mem_policy == MemBindPolicy::Interleave).count();
+        self.stats.avg_migration_rate = if rates.is_empty() {
+            0.0
+        } else {
+            rates.iter().sum::<f64>() / rates.len() as f64
+        };
+        self.stats.bound_tasks = self
+            .tasks
+            .values()
+            .filter(|t| t.mem_policy == MemBindPolicy::Bind)
+            .count();
+        self.stats.interleave_tasks = self
+            .tasks
+            .values()
+            .filter(|t| t.mem_policy == MemBindPolicy::Interleave)
+            .count();
     }
 
     #[inline(always)]
-    pub fn task(&self, id: u64) -> Option<&TaskAffinity> { self.tasks.get(&id) }
+    pub fn task(&self, id: u64) -> Option<&TaskAffinity> {
+        self.tasks.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &TaskAffinityStats { &self.stats }
+    pub fn stats(&self) -> &TaskAffinityStats {
+        &self.stats
+    }
 }

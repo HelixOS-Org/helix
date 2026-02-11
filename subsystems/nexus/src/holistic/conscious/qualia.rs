@@ -178,13 +178,23 @@ impl QualiaDimension {
     /// Observe a new raw value
     #[inline]
     pub fn observe(&mut self, raw: f32) {
-        let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
+        let clamped = if raw < 0.0 {
+            0.0
+        } else if raw > 1.0 {
+            1.0
+        } else {
+            raw
+        };
         self.raw_value = clamped;
         let delta = clamped - self.value;
         self.value += EMA_ALPHA * delta;
         self.variance += EMA_ALPHA * (delta * delta - self.variance);
-        if self.value > self.peak { self.peak = self.value; }
-        if self.value < self.trough { self.trough = self.value; }
+        if self.value > self.peak {
+            self.peak = self.value;
+        }
+        if self.value < self.trough {
+            self.trough = self.value;
+        }
         self.history[self.write_idx] = clamped;
         self.write_idx = (self.write_idx + 1) % MAX_HISTORY;
         self.observation_count += 1;
@@ -202,9 +212,15 @@ impl QualiaDimension {
             return 0.0;
         }
         let n = self.write_idx.min(16).max(2);
-        let start = if self.write_idx >= n { self.write_idx - n } else { 0 };
+        let start = if self.write_idx >= n {
+            self.write_idx - n
+        } else {
+            0
+        };
         let window = &self.history[start..self.write_idx.max(1)];
-        if window.len() < 2 { return 0.0; }
+        if window.len() < 2 {
+            return 0.0;
+        }
         let first = window[..window.len() / 2].iter().sum::<f32>() / (window.len() / 2) as f32;
         let second = window[window.len() / 2..].iter().sum::<f32>()
             / (window.len() - window.len() / 2) as f32;
@@ -393,7 +409,10 @@ impl HolisticQualiaEngine {
     /// Get qualia history as transcendence scores
     #[inline(always)]
     pub fn qualia_history(&self) -> Vec<f32> {
-        self.qualia_history.iter().map(|q| q.transcendent_score).collect()
+        self.qualia_history
+            .iter()
+            .map(|q| q.transcendent_score)
+            .collect()
     }
 
     /// Compute the transcendent experience — the highest form of system qualia
@@ -402,7 +421,11 @@ impl HolisticQualiaEngine {
         let base = self.current_qualia.transcendent_score;
         // Emergence bonus: when all dimensions are above threshold, add bonus
         let all_above = self.dimensions.values().all(|d| d.value > BEAUTY_THRESHOLD);
-        if all_above { base + EMERGENCE_BONUS } else { base }
+        if all_above {
+            base + EMERGENCE_BONUS
+        } else {
+            base
+        }
     }
 
     /// Ingest a subsystem's qualia contribution
@@ -489,7 +512,8 @@ impl HolisticQualiaEngine {
         for (idx, dim) in self.dimensions.iter() {
             let kind_idx = *idx as usize;
             if kind_idx < QualiaDimensionKind::all().len() {
-                transcendent += dim.value * QualiaDimensionKind::all()[kind_idx].transcendence_weight();
+                transcendent +=
+                    dim.value * QualiaDimensionKind::all()[kind_idx].transcendence_weight();
             }
         }
 

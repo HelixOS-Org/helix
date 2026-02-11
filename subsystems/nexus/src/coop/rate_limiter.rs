@@ -54,7 +54,9 @@ impl TokenBucket {
 
     #[inline]
     pub fn refill(&mut self, now_ns: u64) {
-        if now_ns <= self.last_refill_ns { return; }
+        if now_ns <= self.last_refill_ns {
+            return;
+        }
         let elapsed_ns = now_ns - self.last_refill_ns;
         let new_tokens = (elapsed_ns / 1_000_000_000) * self.refill_rate
             + (elapsed_ns % 1_000_000_000) * self.refill_rate / 1_000_000_000;
@@ -68,15 +70,21 @@ impl TokenBucket {
         if self.tokens >= count {
             self.tokens -= count;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn available(&self) -> u64 { self.tokens }
+    pub fn available(&self) -> u64 {
+        self.tokens
+    }
 
     #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
-        if self.capacity == 0 { return 0.0; }
+        if self.capacity == 0 {
+            return 0.0;
+        }
         self.tokens as f64 / self.capacity as f64
     }
 }
@@ -113,7 +121,8 @@ impl SlidingWindowCounter {
     #[inline]
     pub fn current_count(&self, now_ns: u64) -> u64 {
         let cutoff = now_ns.saturating_sub(self.window_ns);
-        self.slots.iter()
+        self.slots
+            .iter()
             .filter(|&&(ts, _)| ts >= cutoff)
             .map(|&(_, c)| c)
             .sum()
@@ -161,14 +170,18 @@ impl ConsumerRateState {
     #[inline]
     pub fn throttle_ratio(&self) -> f64 {
         let total = self.total_allowed + self.total_throttled + self.total_dropped;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.total_throttled as f64 / total as f64
     }
 
     #[inline]
     pub fn drop_ratio(&self) -> f64 {
         let total = self.total_allowed + self.total_throttled + self.total_dropped;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.total_dropped as f64 / total as f64
     }
 }
@@ -251,7 +264,7 @@ impl CoopRateLimiter {
                         self.total_throttled += 1;
                         RateDecision::Throttled
                     }
-                }
+                },
                 RateLimitAlgorithm::SlidingWindow => {
                     if consumer.window.is_exceeded(now_ns) {
                         consumer.total_throttled += 1;
@@ -263,7 +276,7 @@ impl CoopRateLimiter {
                         self.total_allowed += 1;
                         RateDecision::Allowed
                     }
-                }
+                },
                 _ => {
                     if consumer.bucket.try_consume(cost, now_ns) {
                         consumer.total_allowed += 1;
@@ -274,7 +287,7 @@ impl CoopRateLimiter {
                         self.total_throttled += 1;
                         RateDecision::Throttled
                     }
-                }
+                },
             }
         } else {
             // Unknown consumer: allow but don't track
@@ -286,7 +299,9 @@ impl CoopRateLimiter {
     /// Redistribute unused capacity among consumers based on weight
     pub fn redistribute(&mut self, now_ns: u64) {
         let total_weight: u32 = self.consumers.values().map(|c| c.weight).sum();
-        if total_weight == 0 { return; }
+        if total_weight == 0 {
+            return;
+        }
 
         let global_available = self.global_bucket.available();
         for consumer in self.consumers.values_mut() {
@@ -305,7 +320,9 @@ impl CoopRateLimiter {
 
     #[inline(always)]
     pub fn global_throttle_ratio(&self) -> f64 {
-        if self.total_requests == 0 { return 0.0; }
+        if self.total_requests == 0 {
+            return 0.0;
+        }
         self.total_throttled as f64 / self.total_requests as f64
     }
 

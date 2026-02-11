@@ -186,7 +186,10 @@ impl GovernancePolicy {
     /// Activate
     #[inline]
     pub fn activate(&mut self) {
-        if matches!(self.state, GovernancePolicyState::Draft | GovernancePolicyState::Suspended) {
+        if matches!(
+            self.state,
+            GovernancePolicyState::Draft | GovernancePolicyState::Suspended
+        ) {
             self.state = GovernancePolicyState::Active;
         }
     }
@@ -309,8 +312,7 @@ impl ComplianceRecord {
             self.last_violation = now;
         }
         if self.total_checks > 0 {
-            self.score =
-                1.0 - (self.violation_count as f64 / self.total_checks as f64);
+            self.score = 1.0 - (self.violation_count as f64 / self.total_checks as f64);
         }
     }
 
@@ -414,11 +416,10 @@ impl HolisticGovernanceEngine {
         let policies: Vec<(u64, EnforcementMode, f64, f64)> = self
             .policies
             .values()
-            .filter(|p| {
-                matches!(p.state, GovernancePolicyState::Active) && p.applies_to(target)
-            })
+            .filter(|p| matches!(p.state, GovernancePolicyState::Active) && p.applies_to(target))
             .filter_map(|p| {
-                p.limit_for(resource).map(|l| (p.id, p.mode, l.soft_limit, l.hard_limit))
+                p.limit_for(resource)
+                    .map(|l| (p.id, p.mode, l.soft_limit, l.hard_limit))
             })
             .collect();
 
@@ -493,7 +494,10 @@ impl HolisticGovernanceEngine {
     /// Get violations for target
     #[inline(always)]
     pub fn violations_for(&self, target: u64) -> Vec<&GovernanceViolation> {
-        self.violations.iter().filter(|v| v.target == target).collect()
+        self.violations
+            .iter()
+            .filter(|v| v.target == target)
+            .collect()
     }
 
     /// Compliance of target

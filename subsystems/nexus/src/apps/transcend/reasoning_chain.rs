@@ -355,7 +355,10 @@ impl AppsReasoningChain {
 
     /// Return classification explanation for an app.
     #[inline(always)]
-    pub fn get_classification_explanation(&self, app_id: u64) -> Option<&ClassificationExplanation> {
+    pub fn get_classification_explanation(
+        &self,
+        app_id: u64,
+    ) -> Option<&ClassificationExplanation> {
         self.classification_expl.get(&app_id)
     }
 
@@ -403,7 +406,10 @@ impl AppsReasoningChain {
     fn derive_conclusion(&mut self, premise: u64, rule: &str, confidence: u64) -> u64 {
         let rule_hash = fnv1a(rule.as_bytes());
         let noise = xorshift64(&mut self.rng) % 256;
-        premise.wrapping_add(rule_hash).wrapping_add(confidence).wrapping_add(noise)
+        premise
+            .wrapping_add(rule_hash)
+            .wrapping_add(confidence)
+            .wrapping_add(noise)
     }
 
     fn compute_chain_confidence(&self, steps: &[ReasoningStep]) -> u64 {
@@ -427,9 +433,17 @@ impl AppsReasoningChain {
         let avg_evidence = steps.iter().map(|s| s.evidence_count).sum::<u64>() / steps.len() as u64;
         let evidence_bonus = avg_evidence.min(10) * 2;
         let min_conf = steps.iter().map(|s| s.confidence).min().unwrap_or(0);
-        let weakness_penalty = if min_conf < 30 { 15 } else if min_conf < 50 { 5 } else { 0 };
+        let weakness_penalty = if min_conf < 30 {
+            15
+        } else if min_conf < 50 {
+            5
+        } else {
+            0
+        };
 
-        (avg_confidence + depth_bonus + evidence_bonus).saturating_sub(weakness_penalty).min(100)
+        (avg_confidence + depth_bonus + evidence_bonus)
+            .saturating_sub(weakness_penalty)
+            .min(100)
     }
 
     fn find_weakest_step(&self, steps: &[ReasoningStep]) -> usize {
@@ -448,7 +462,11 @@ impl AppsReasoningChain {
     }
 
     fn evict_oldest_chain(&mut self) {
-        let oldest_key = self.chains.iter().min_by_key(|(_, c)| c.timestamp).map(|(k, _)| *k);
+        let oldest_key = self
+            .chains
+            .iter()
+            .min_by_key(|(_, c)| c.timestamp)
+            .map(|(k, _)| *k);
         if let Some(key) = oldest_key {
             self.chains.remove(&key);
         }

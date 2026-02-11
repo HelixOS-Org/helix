@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Stack frame
 #[derive(Debug, Clone)]
@@ -97,7 +98,8 @@ impl FlameNode {
             return;
         }
         let frame = &frames[0];
-        let child = self.children
+        let child = self
+            .children
             .entry(frame.symbol_hash)
             .or_insert_with(|| FlameNode::new(frame.symbol_hash, frame.address));
         child.insert(&frames[1..], weight);
@@ -106,7 +108,9 @@ impl FlameNode {
     /// Self percentage
     #[inline(always)]
     pub fn self_pct(&self) -> f64 {
-        if self.total_count == 0 { return 0.0; }
+        if self.total_count == 0 {
+            return 0.0;
+        }
         self.self_count as f64 / self.total_count as f64 * 100.0
     }
 
@@ -197,13 +201,17 @@ impl AppFlameProfiler {
 
     /// Get hot paths
     pub fn hot_paths(&self, top_n: usize) -> Vec<HotPath> {
-        let mut paths: Vec<HotPath> = self.unique_stacks.iter()
+        let mut paths: Vec<HotPath> = self
+            .unique_stacks
+            .iter()
             .map(|(hash, count)| HotPath {
                 path: alloc::vec![hash],
                 count,
                 percentage: if self.total_samples > 0 {
                     count as f64 / self.total_samples as f64 * 100.0
-                } else { 0.0 },
+                } else {
+                    0.0
+                },
             })
             .collect();
         paths.sort_by(|a, b| b.count.cmp(&a.count));
@@ -229,7 +237,9 @@ impl AppFlameProfiler {
         self.stats.max_depth = self.root.depth();
         self.stats.kernel_pct = if self.total_samples > 0 {
             self.kernel_samples as f64 / self.total_samples as f64 * 100.0
-        } else { 0.0 };
+        } else {
+            0.0
+        };
     }
 
     #[inline(always)]

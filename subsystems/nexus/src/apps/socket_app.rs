@@ -57,14 +57,27 @@ pub struct AppSocketEntry {
 }
 
 impl AppSocketEntry {
-    pub fn new(fd: u64, pid: u64, domain: AppSocketDomain, sock_type: AppSocketType, tick: u64) -> Self {
+    pub fn new(
+        fd: u64,
+        pid: u64,
+        domain: AppSocketDomain,
+        sock_type: AppSocketType,
+        tick: u64,
+    ) -> Self {
         Self {
-            fd, pid, domain, sock_type,
+            fd,
+            pid,
+            domain,
+            sock_type,
             state: AppSocketState::Created,
-            local_port: 0, remote_port: 0,
-            bytes_sent: 0, bytes_recv: 0,
-            send_calls: 0, recv_calls: 0,
-            accept_count: 0, error_count: 0,
+            local_port: 0,
+            remote_port: 0,
+            bytes_sent: 0,
+            bytes_recv: 0,
+            send_calls: 0,
+            recv_calls: 0,
+            accept_count: 0,
+            error_count: 0,
             created_tick: tick,
         }
     }
@@ -122,17 +135,33 @@ impl AppSocket {
             sockets: BTreeMap::new(),
             pid_sockets: BTreeMap::new(),
             stats: SocketAppStats {
-                sockets_created: 0, sockets_closed: 0,
-                connections: 0, binds: 0, accepts: 0,
-                total_sent: 0, total_recv: 0, errors: 0,
+                sockets_created: 0,
+                sockets_closed: 0,
+                connections: 0,
+                binds: 0,
+                accepts: 0,
+                total_sent: 0,
+                total_recv: 0,
+                errors: 0,
             },
         }
     }
 
     #[inline]
-    pub fn create_socket(&mut self, fd: u64, pid: u64, domain: AppSocketDomain, sock_type: AppSocketType, tick: u64) {
-        self.sockets.insert(fd, AppSocketEntry::new(fd, pid, domain, sock_type, tick));
-        self.pid_sockets.entry(pid).or_insert_with(Vec::new).push(fd);
+    pub fn create_socket(
+        &mut self,
+        fd: u64,
+        pid: u64,
+        domain: AppSocketDomain,
+        sock_type: AppSocketType,
+        tick: u64,
+    ) {
+        self.sockets
+            .insert(fd, AppSocketEntry::new(fd, pid, domain, sock_type, tick));
+        self.pid_sockets
+            .entry(pid)
+            .or_insert_with(Vec::new)
+            .push(fd);
         self.stats.sockets_created += 1;
     }
 
@@ -142,7 +171,9 @@ impl AppSocket {
             sock.bind(port);
             self.stats.binds += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -151,7 +182,9 @@ impl AppSocket {
             sock.connect(port);
             self.stats.connections += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -160,7 +193,9 @@ impl AppSocket {
             sock.send(bytes);
             self.stats.total_sent += bytes;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -169,7 +204,9 @@ impl AppSocket {
             sock.recv(bytes);
             self.stats.total_recv += bytes;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -180,7 +217,9 @@ impl AppSocket {
             }
             self.stats.sockets_closed += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -250,20 +289,31 @@ pub struct SocketV2Instance {
 impl SocketV2Instance {
     pub fn new(fd: u64, domain: SocketV2Domain, sock_type: SocketV2Type, protocol: u32) -> Self {
         Self {
-            fd, domain, sock_type, protocol,
+            fd,
+            domain,
+            sock_type,
+            protocol,
             state: SocketV2State::Unbound,
-            nonblocking: false, cloexec: false,
-            local_addr_hash: 0, remote_addr_hash: 0,
-            send_buf_size: 65536, recv_buf_size: 65536,
-            bytes_sent: 0, bytes_recv: 0,
-            send_calls: 0, recv_calls: 0,
+            nonblocking: false,
+            cloexec: false,
+            local_addr_hash: 0,
+            remote_addr_hash: 0,
+            send_buf_size: 65536,
+            recv_buf_size: 65536,
+            bytes_sent: 0,
+            bytes_recv: 0,
+            send_calls: 0,
+            recv_calls: 0,
         }
     }
 
     #[inline]
     pub fn bind(&mut self, addr: &[u8]) {
         let mut h: u64 = 0xcbf29ce484222325;
-        for &b in addr { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for &b in addr {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         self.local_addr_hash = h;
         self.state = SocketV2State::Bound;
     }
@@ -271,7 +321,10 @@ impl SocketV2Instance {
     #[inline]
     pub fn connect(&mut self, addr: &[u8]) {
         let mut h: u64 = 0xcbf29ce484222325;
-        for &b in addr { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for &b in addr {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         self.remote_addr_hash = h;
         self.state = SocketV2State::Connected;
     }
@@ -290,12 +343,20 @@ impl SocketV2Instance {
 
     #[inline(always)]
     pub fn avg_send_size(&self) -> u64 {
-        if self.send_calls == 0 { 0 } else { self.bytes_sent / self.send_calls }
+        if self.send_calls == 0 {
+            0
+        } else {
+            self.bytes_sent / self.send_calls
+        }
     }
 
     #[inline(always)]
     pub fn avg_recv_size(&self) -> u64 {
-        if self.recv_calls == 0 { 0 } else { self.bytes_recv / self.recv_calls }
+        if self.recv_calls == 0 {
+            0
+        } else {
+            self.bytes_recv / self.recv_calls
+        }
     }
 }
 
@@ -319,16 +380,25 @@ impl AppSocketV2 {
         Self {
             sockets: BTreeMap::new(),
             stats: SocketV2AppStats {
-                total_sockets: 0, active_connections: 0,
-                total_bytes_sent: 0, total_bytes_recv: 0,
+                total_sockets: 0,
+                active_connections: 0,
+                total_bytes_sent: 0,
+                total_bytes_recv: 0,
                 total_errors: 0,
             },
         }
     }
 
     #[inline(always)]
-    pub fn create_socket(&mut self, fd: u64, domain: SocketV2Domain, sock_type: SocketV2Type, proto: u32) {
-        self.sockets.insert(fd, SocketV2Instance::new(fd, domain, sock_type, proto));
+    pub fn create_socket(
+        &mut self,
+        fd: u64,
+        domain: SocketV2Domain,
+        sock_type: SocketV2Type,
+        proto: u32,
+    ) {
+        self.sockets
+            .insert(fd, SocketV2Instance::new(fd, domain, sock_type, proto));
         self.stats.total_sockets += 1;
     }
 
@@ -340,7 +410,9 @@ impl AppSocketV2 {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &SocketV2AppStats { &self.stats }
+    pub fn stats(&self) -> &SocketV2AppStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -348,11 +420,23 @@ impl AppSocketV2 {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SocketV3Domain { Inet4, Inet6, Unix, Netlink, Packet, Vsock }
+pub enum SocketV3Domain {
+    Inet4,
+    Inet6,
+    Unix,
+    Netlink,
+    Packet,
+    Vsock,
+}
 
 /// Socket v3 type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SocketV3Type { Stream, Dgram, Raw, Seqpacket }
+pub enum SocketV3Type {
+    Stream,
+    Dgram,
+    Raw,
+    Seqpacket,
+}
 
 /// Socket v3 request
 #[derive(Debug, Clone)]
@@ -366,21 +450,43 @@ pub struct SocketV3Request {
 
 impl SocketV3Request {
     pub fn new(domain: SocketV3Domain, sock_type: SocketV3Type) -> Self {
-        Self { domain, sock_type, protocol: 0, nonblock: false, cloexec: false }
+        Self {
+            domain,
+            sock_type,
+            protocol: 0,
+            nonblock: false,
+            cloexec: false,
+        }
     }
 }
 
 /// Socket v3 app stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct SocketV3AppStats { pub total_creates: u64, pub streams: u64, pub dgrams: u64, pub failures: u64 }
+pub struct SocketV3AppStats {
+    pub total_creates: u64,
+    pub streams: u64,
+    pub dgrams: u64,
+    pub failures: u64,
+}
 
 /// Main app socket v3
 #[derive(Debug)]
-pub struct AppSocketV3 { pub stats: SocketV3AppStats }
+pub struct AppSocketV3 {
+    pub stats: SocketV3AppStats,
+}
 
 impl AppSocketV3 {
-    pub fn new() -> Self { Self { stats: SocketV3AppStats { total_creates: 0, streams: 0, dgrams: 0, failures: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: SocketV3AppStats {
+                total_creates: 0,
+                streams: 0,
+                dgrams: 0,
+                failures: 0,
+            },
+        }
+    }
     #[inline]
     pub fn request(&mut self, req: &SocketV3Request) -> i32 {
         self.stats.total_creates += 1;

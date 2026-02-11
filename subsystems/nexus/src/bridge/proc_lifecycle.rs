@@ -87,18 +87,28 @@ impl ProcEntry {
     }
 
     #[inline(always)]
-    pub fn is_zombie(&self) -> bool { self.state == ProcLifecycleState::Zombie }
-    #[inline(always)]
-    pub fn is_alive(&self) -> bool {
-        matches!(self.state, ProcLifecycleState::Creating | ProcLifecycleState::Running)
+    pub fn is_zombie(&self) -> bool {
+        self.state == ProcLifecycleState::Zombie
     }
     #[inline(always)]
-    pub fn is_thread_leader(&self) -> bool { self.pid == self.tgid }
+    pub fn is_alive(&self) -> bool {
+        matches!(
+            self.state,
+            ProcLifecycleState::Creating | ProcLifecycleState::Running
+        )
+    }
+    #[inline(always)]
+    pub fn is_thread_leader(&self) -> bool {
+        self.pid == self.tgid
+    }
 
     #[inline(always)]
     pub fn lifetime_ns(&self) -> u64 {
-        if self.exited_ns > 0 { self.exited_ns - self.created_ns }
-        else { 0 }
+        if self.exited_ns > 0 {
+            self.exited_ns - self.created_ns
+        } else {
+            0
+        }
     }
 }
 
@@ -149,17 +159,24 @@ impl BridgeProcLifecycle {
 
     /// Fork a new process
     pub fn fork(&mut self, parent_pid: u64, flags: Vec<CloneFlagBridge>, now: u64) -> Option<u64> {
-        if !self.processes.get(&parent_pid).map(|p| p.is_alive()).unwrap_or(false) {
+        if !self
+            .processes
+            .get(&parent_pid)
+            .map(|p| p.is_alive())
+            .unwrap_or(false)
+        {
             return None;
         }
 
         let child_pid = self.next_pid;
         self.next_pid += 1;
 
-        let parent_session = self.processes.get(&parent_pid)
-            .map(|p| p.session_id).unwrap_or(0);
-        let parent_pgrp = self.processes.get(&parent_pid)
-            .map(|p| p.pgrp).unwrap_or(0);
+        let parent_session = self
+            .processes
+            .get(&parent_pid)
+            .map(|p| p.session_id)
+            .unwrap_or(0);
+        let parent_pgrp = self.processes.get(&parent_pid).map(|p| p.pgrp).unwrap_or(0);
 
         let is_thread = flags.contains(&CloneFlagBridge::Thread);
 
@@ -170,8 +187,11 @@ impl BridgeProcLifecycle {
         child.clone_flags = flags;
 
         if is_thread {
-            child.tgid = self.processes.get(&parent_pid)
-                .map(|p| p.tgid).unwrap_or(parent_pid);
+            child.tgid = self
+                .processes
+                .get(&parent_pid)
+                .map(|p| p.tgid)
+                .unwrap_or(parent_pid);
             if let Some(leader) = self.processes.get_mut(&child.tgid) {
                 leader.threads.push(child_pid);
             }
@@ -191,7 +211,9 @@ impl BridgeProcLifecycle {
     /// Exit a process
     pub fn exit(&mut self, pid: u64, reason: ExitReason, now: u64) {
         // Reparent children to init
-        let children = self.processes.get(&pid)
+        let children = self
+            .processes
+            .get(&pid)
             .map(|p| p.children.clone())
             .unwrap_or_default();
 
@@ -219,22 +241,34 @@ impl BridgeProcLifecycle {
     /// Wait (reap) a zombie child
     pub fn wait(&mut self, parent_pid: u64, child_pid: Option<u64>) -> Option<(u64, ExitReason)> {
         let target = if let Some(cpid) = child_pid {
-            if self.processes.get(&cpid).map(|p| p.is_zombie()).unwrap_or(false) {
+            if self
+                .processes
+                .get(&cpid)
+                .map(|p| p.is_zombie())
+                .unwrap_or(false)
+            {
                 Some(cpid)
-            } else { None }
+            } else {
+                None
+            }
         } else {
             // Find any zombie child
-            self.processes.get(&parent_pid)
-                .and_then(|parent| {
-                    parent.children.iter()
-                        .find(|&&c| self.processes.get(&c).map(|p| p.is_zombie()).unwrap_or(false))
-                        .copied()
-                })
+            self.processes.get(&parent_pid).and_then(|parent| {
+                parent
+                    .children
+                    .iter()
+                    .find(|&&c| {
+                        self.processes
+                            .get(&c)
+                            .map(|p| p.is_zombie())
+                            .unwrap_or(false)
+                    })
+                    .copied()
+            })
         };
 
         if let Some(zpid) = target {
-            let reason = self.processes.get(&zpid)
-                .and_then(|p| p.exit_reason)?;
+            let reason = self.processes.get(&zpid).and_then(|p| p.exit_reason)?;
             // Remove zombie
             if let Some(proc) = self.processes.get_mut(&zpid) {
                 proc.state = ProcLifecycleState::Dead;
@@ -245,20 +279,28 @@ impl BridgeProcLifecycle {
                 parent.children.retain(|&c| c != zpid);
             }
             Some((zpid, reason))
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.processes.len();
-        self.stats.running = self.processes.values()
-            .filter(|p| p.state == ProcLifecycleState::Running).count();
-        self.stats.zombies = self.processes.values()
-            .filter(|p| p.is_zombie()).count();
+        self.stats.running = self
+            .processes
+            .values()
+            .filter(|p| p.state == ProcLifecycleState::Running)
+            .count();
+        self.stats.zombies = self.processes.values().filter(|p| p.is_zombie()).count();
     }
 
     #[inline(always)]
-    pub fn process(&self, pid: u64) -> Option<&ProcEntry> { self.processes.get(&pid) }
+    pub fn process(&self, pid: u64) -> Option<&ProcEntry> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeProcLifecycleStats { &self.stats }
+    pub fn stats(&self) -> &BridgeProcLifecycleStats {
+        &self.stats
+    }
 }

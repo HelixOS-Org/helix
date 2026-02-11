@@ -81,7 +81,13 @@ pub struct IpcChannel {
 }
 
 impl IpcChannel {
-    pub fn new(id: u64, chan_type: IpcChannelType, pid_a: u64, pid_b: u64, buffer_size: u32) -> Self {
+    pub fn new(
+        id: u64,
+        chan_type: IpcChannelType,
+        pid_a: u64,
+        pid_b: u64,
+        buffer_size: u32,
+    ) -> Self {
         Self {
             channel_id: id,
             channel_type: chan_type,
@@ -100,7 +106,9 @@ impl IpcChannel {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.buffer_size == 0 { return 0.0; }
+        if self.buffer_size == 0 {
+            return 0.0;
+        }
         self.buffered_bytes as f64 / self.buffer_size as f64
     }
 
@@ -118,7 +126,9 @@ impl IpcChannel {
 
     #[inline]
     pub fn receive(&mut self, size: u32) -> bool {
-        if self.buffered_bytes < size { return false; }
+        if self.buffered_bytes < size {
+            return false;
+        }
         self.buffered_bytes -= size;
         self.messages_received += 1;
         if self.utilization() < 0.5 {
@@ -208,7 +218,13 @@ impl BridgeIpcProxy {
     }
 
     #[inline]
-    pub fn create_channel(&mut self, chan_type: IpcChannelType, pid_a: u64, pid_b: u64, buffer_size: u32) -> u64 {
+    pub fn create_channel(
+        &mut self,
+        chan_type: IpcChannelType,
+        pid_a: u64,
+        pid_b: u64,
+        buffer_size: u32,
+    ) -> u64 {
         let id = self.next_channel_id;
         self.next_channel_id += 1;
         let mut chan = IpcChannel::new(id, chan_type, pid_a, pid_b, buffer_size);
@@ -227,12 +243,26 @@ impl BridgeIpcProxy {
     }
 
     /// Send a message through a channel
-    pub fn send_message(&mut self, channel_id: u64, sender: u64, size: u32, now: u64) -> Option<u64> {
+    pub fn send_message(
+        &mut self,
+        channel_id: u64,
+        sender: u64,
+        size: u32,
+        now: u64,
+    ) -> Option<u64> {
         let chan = self.channels.get_mut(&channel_id)?;
-        if chan.state != IpcChannelState::Connected { return None; }
-        if !chan.send(size) { return None; }
+        if chan.state != IpcChannelState::Connected {
+            return None;
+        }
+        if !chan.send(size) {
+            return None;
+        }
 
-        let receiver = if chan.endpoint_a == sender { chan.endpoint_b } else { chan.endpoint_a };
+        let receiver = if chan.endpoint_a == sender {
+            chan.endpoint_b
+        } else {
+            chan.endpoint_a
+        };
         let msg_id = self.next_msg_id;
         self.next_msg_id += 1;
 
@@ -248,7 +278,10 @@ impl BridgeIpcProxy {
         };
 
         // Add to batch
-        let batch = self.batches.entry(channel_id).or_insert_with(|| IpcBatch::new(channel_id));
+        let batch = self
+            .batches
+            .entry(channel_id)
+            .or_insert_with(|| IpcBatch::new(channel_id));
         batch.add(msg);
 
         self.recompute();
@@ -280,15 +313,22 @@ impl BridgeIpcProxy {
     /// Check if IPC between two pids is routable
     #[inline]
     pub fn is_routable(&self, src_ns: u32, dst_ns: u32, src_pid: u64, dst_pid: u64) -> bool {
-        if src_ns == dst_ns { return true; }
+        if src_ns == dst_ns {
+            return true;
+        }
         self.routes.iter().any(|r| {
-            r.allowed && r.src_namespace == src_ns && r.dst_namespace == dst_ns
-                && r.src_pid == src_pid && r.dst_pid == dst_pid
+            r.allowed
+                && r.src_namespace == src_ns
+                && r.dst_namespace == dst_ns
+                && r.src_pid == src_pid
+                && r.dst_pid == dst_pid
         })
     }
 
     fn recompute(&mut self) {
-        let active = self.channels.values()
+        let active = self
+            .channels
+            .values()
             .filter(|c| c.state == IpcChannelState::Connected)
             .count();
         let total_msgs: u64 = self.channels.values().map(|c| c.messages_sent).sum();

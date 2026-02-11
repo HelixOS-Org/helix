@@ -315,7 +315,8 @@ impl BridgeHealthMonitor {
     #[inline]
     pub fn register(&mut self, component: BridgeComponent, heartbeat_interval_ns: u64) {
         let key = component as u8;
-        self.components.insert(key, ComponentStatus::new(component, heartbeat_interval_ns));
+        self.components
+            .insert(key, ComponentStatus::new(component, heartbeat_interval_ns));
         self.update_stats();
     }
 
@@ -383,10 +384,16 @@ impl BridgeHealthMonitor {
 
     fn update_stats(&mut self) {
         self.stats.components_monitored = self.components.len();
-        self.stats.healthy_count = self.components.values()
-            .filter(|c| c.health == ComponentHealth::Healthy).count();
-        self.stats.degraded_count = self.components.values()
-            .filter(|c| c.health == ComponentHealth::Degraded).count();
+        self.stats.healthy_count = self
+            .components
+            .values()
+            .filter(|c| c.health == ComponentHealth::Healthy)
+            .count();
+        self.stats.degraded_count = self
+            .components
+            .values()
+            .filter(|c| c.health == ComponentHealth::Degraded)
+            .count();
         if self.components.is_empty() {
             self.stats.overall_score = 0;
         } else {

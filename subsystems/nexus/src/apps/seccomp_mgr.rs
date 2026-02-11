@@ -86,18 +86,31 @@ pub struct SeccompFilter {
 impl SeccompFilter {
     pub fn new(id: u64, mode: FilterMode, default: SeccompAction) -> Self {
         Self {
-            id, mode, default_action: default, rules: Vec::new(),
-            insn_count: 0, match_count: 0, miss_count: 0, created_at: 0, tsync: false,
+            id,
+            mode,
+            default_action: default,
+            rules: Vec::new(),
+            insn_count: 0,
+            match_count: 0,
+            miss_count: 0,
+            created_at: 0,
+            tsync: false,
         }
     }
 
     #[inline(always)]
-    pub fn add_rule(&mut self, rule: SyscallRule) { self.rules.push(rule); self.insn_count += 1; }
+    pub fn add_rule(&mut self, rule: SyscallRule) {
+        self.rules.push(rule);
+        self.insn_count += 1;
+    }
 
     #[inline]
     pub fn eval(&mut self, syscall_nr: u32) -> SeccompAction {
         for r in &self.rules {
-            if r.syscall_nr == syscall_nr { self.match_count += 1; return r.action; }
+            if r.syscall_nr == syscall_nr {
+                self.match_count += 1;
+                return r.action;
+            }
         }
         self.miss_count += 1;
         self.default_action
@@ -106,7 +119,11 @@ impl SeccompFilter {
     #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         let total = self.match_count + self.miss_count;
-        if total == 0 { 0.0 } else { self.match_count as f64 / total as f64 * 100.0 }
+        if total == 0 {
+            0.0
+        } else {
+            self.match_count as f64 / total as f64 * 100.0
+        }
     }
 }
 
@@ -124,7 +141,15 @@ pub struct ProcessSeccomp {
 
 impl ProcessSeccomp {
     pub fn new(pid: u64) -> Self {
-        Self { pid, filters: Vec::new(), strict_mode: false, violations: 0, last_violation_ts: 0, last_violation_nr: 0, audit_log: Vec::new() }
+        Self {
+            pid,
+            filters: Vec::new(),
+            strict_mode: false,
+            violations: 0,
+            last_violation_ts: 0,
+            last_violation_nr: 0,
+            audit_log: Vec::new(),
+        }
     }
 }
 
@@ -159,11 +184,19 @@ pub struct AppsSeccompMgr {
 }
 
 impl AppsSeccompMgr {
-    pub fn new() -> Self { Self { filters: BTreeMap::new(), processes: BTreeMap::new(), stats: SeccompStats::default(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            filters: BTreeMap::new(),
+            processes: BTreeMap::new(),
+            stats: SeccompStats::default(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create_filter(&mut self, mode: FilterMode, default: SeccompAction, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         let mut f = SeccompFilter::new(id, mode, default);
         f.created_at = ts;
         self.filters.insert(id, f);
@@ -172,17 +205,26 @@ impl AppsSeccompMgr {
 
     #[inline(always)]
     pub fn add_rule(&mut self, filter_id: u64, rule: SyscallRule) {
-        if let Some(f) = self.filters.get_mut(&filter_id) { f.add_rule(rule); }
+        if let Some(f) = self.filters.get_mut(&filter_id) {
+            f.add_rule(rule);
+        }
     }
 
     #[inline(always)]
     pub fn install_filter(&mut self, pid: u64, filter_id: u64) {
-        let proc_sec = self.processes.entry(pid).or_insert_with(|| ProcessSeccomp::new(pid));
+        let proc_sec = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessSeccomp::new(pid));
         proc_sec.filters.push(filter_id);
     }
 
     pub fn eval_syscall(&mut self, pid: u64, syscall_nr: u32, ts: u64) -> SeccompAction {
-        let filter_ids: Vec<u64> = self.processes.get(&pid).map(|p| p.filters.clone()).unwrap_or_default();
+        let filter_ids: Vec<u64> = self
+            .processes
+            .get(&pid)
+            .map(|p| p.filters.clone())
+            .unwrap_or_default();
         for fid in filter_ids.iter().rev() {
             if let Some(f) = self.filters.get_mut(fid) {
                 let action = f.eval(syscall_nr);
@@ -191,7 +233,13 @@ impl AppsSeccompMgr {
                         p.violations += 1;
                         p.last_violation_ts = ts;
                         p.last_violation_nr = syscall_nr;
-                        p.audit_log.push(SeccompViolation { pid, syscall_nr, action_taken: action, ts, ip: 0 });
+                        p.audit_log.push(SeccompViolation {
+                            pid,
+                            syscall_nr,
+                            action_taken: action,
+                            ts,
+                            ip: 0,
+                        });
                     }
                     return action;
                 }
@@ -205,15 +253,29 @@ impl AppsSeccompMgr {
         self.stats.tracked_processes = self.processes.len();
         self.stats.total_filters = self.filters.len();
         self.stats.total_rules = self.filters.values().map(|f| f.rules.len()).sum();
-        self.stats.total_evaluations = self.filters.values().map(|f| f.match_count + f.miss_count).sum();
+        self.stats.total_evaluations = self
+            .filters
+            .values()
+            .map(|f| f.match_count + f.miss_count)
+            .sum();
         self.stats.total_violations = self.processes.values().map(|p| p.violations).sum();
-        self.stats.processes_with_filters = self.processes.values().filter(|p| !p.filters.is_empty()).count();
+        self.stats.processes_with_filters = self
+            .processes
+            .values()
+            .filter(|p| !p.filters.is_empty())
+            .count();
     }
 
     #[inline(always)]
-    pub fn filter(&self, id: u64) -> Option<&SeccompFilter> { self.filters.get(&id) }
+    pub fn filter(&self, id: u64) -> Option<&SeccompFilter> {
+        self.filters.get(&id)
+    }
     #[inline(always)]
-    pub fn process(&self, pid: u64) -> Option<&ProcessSeccomp> { self.processes.get(&pid) }
+    pub fn process(&self, pid: u64) -> Option<&ProcessSeccomp> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &SeccompStats { &self.stats }
+    pub fn stats(&self) -> &SeccompStats {
+        &self.stats
+    }
 }

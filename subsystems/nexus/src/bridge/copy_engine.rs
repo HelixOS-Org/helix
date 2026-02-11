@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Copy direction
@@ -115,7 +114,9 @@ pub struct CopyCompletion {
 impl CopyCompletion {
     #[inline(always)]
     pub fn bandwidth_mbps(&self) -> f64 {
-        if self.duration_ns == 0 { return 0.0; }
+        if self.duration_ns == 0 {
+            return 0.0;
+        }
         (self.bytes_copied as f64 / (1024.0 * 1024.0)) / (self.duration_ns as f64 / 1_000_000_000.0)
     }
 }
@@ -187,7 +188,10 @@ impl BridgeCopyEngine {
         self.total_bandwidth_sum += bw;
         self.total_bandwidth_count += 1;
 
-        let is_zero_copy = matches!(completion.method_used, CopyMethod::PageRemap | CopyMethod::CopyOnWrite);
+        let is_zero_copy = matches!(
+            completion.method_used,
+            CopyMethod::PageRemap | CopyMethod::CopyOnWrite
+        );
         self.stats.total_copies += 1;
         self.stats.total_bytes += completion.bytes_copied;
         if is_zero_copy {
@@ -195,7 +199,8 @@ impl BridgeCopyEngine {
             self.stats.zero_copy_bytes += completion.bytes_copied;
         }
         self.stats.page_faults += completion.fault_count as u64;
-        self.stats.avg_bandwidth_mbps = self.total_bandwidth_sum / self.total_bandwidth_count as f64;
+        self.stats.avg_bandwidth_mbps =
+            self.total_bandwidth_sum / self.total_bandwidth_count as f64;
 
         if self.completions.len() >= self.max_completions {
             self.completions.remove(0);
@@ -232,7 +237,9 @@ impl BridgeCopyEngine {
     /// Zero-copy ratio
     #[inline(always)]
     pub fn zero_copy_ratio(&self) -> f64 {
-        if self.stats.total_bytes == 0 { return 0.0; }
+        if self.stats.total_bytes == 0 {
+            return 0.0;
+        }
         self.stats.zero_copy_bytes as f64 / self.stats.total_bytes as f64
     }
 

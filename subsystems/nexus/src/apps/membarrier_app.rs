@@ -36,7 +36,15 @@ pub struct MembarrierReg {
 
 impl MembarrierReg {
     pub fn new(pid: u64) -> Self {
-        Self { pid, global_expedited: false, private_expedited: false, sync_core: false, rseq: false, total_barriers: 0, total_ipi_sent: 0 }
+        Self {
+            pid,
+            global_expedited: false,
+            private_expedited: false,
+            sync_core: false,
+            rseq: false,
+            total_barriers: 0,
+            total_ipi_sent: 0,
+        }
     }
 
     #[inline]
@@ -46,17 +54,25 @@ impl MembarrierReg {
             MembarrierCmd::RegisterPrivateExpedited => self.private_expedited = true,
             MembarrierCmd::RegisterPrivateExpeditedSyncCore => self.sync_core = true,
             MembarrierCmd::RegisterPrivateExpeditedRseq => self.rseq = true,
-            _ => {}
+            _ => {},
         }
     }
 
     #[inline]
     pub fn supported(&self) -> u32 {
         let mut s = 0u32;
-        if self.global_expedited { s |= 1; }
-        if self.private_expedited { s |= 2; }
-        if self.sync_core { s |= 4; }
-        if self.rseq { s |= 8; }
+        if self.global_expedited {
+            s |= 1;
+        }
+        if self.private_expedited {
+            s |= 2;
+        }
+        if self.sync_core {
+            s |= 4;
+        }
+        if self.rseq {
+            s |= 8;
+        }
         s
     }
 }
@@ -91,11 +107,20 @@ pub struct AppMembarrier {
 }
 
 impl AppMembarrier {
-    pub fn new() -> Self { Self { registrations: BTreeMap::new(), events: Vec::new(), max_events: 4096 } }
+    pub fn new() -> Self {
+        Self {
+            registrations: BTreeMap::new(),
+            events: Vec::new(),
+            max_events: 4096,
+        }
+    }
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64, cmd: MembarrierCmd) {
-        let reg = self.registrations.entry(pid).or_insert_with(|| MembarrierReg::new(pid));
+        let reg = self
+            .registrations
+            .entry(pid)
+            .or_insert_with(|| MembarrierReg::new(pid));
         reg.register(cmd);
     }
 
@@ -105,18 +130,50 @@ impl AppMembarrier {
             reg.total_barriers += 1;
             reg.total_ipi_sent += cpus as u64;
         }
-        if self.events.len() >= self.max_events { self.events.drain(..self.max_events / 2); }
-        self.events.push(BarrierEvent { pid, cmd, cpus_targeted: cpus, duration_ns: duration, timestamp: now });
+        if self.events.len() >= self.max_events {
+            self.events.drain(..self.max_events / 2);
+        }
+        self.events.push(BarrierEvent {
+            pid,
+            cmd,
+            cpus_targeted: cpus,
+            duration_ns: duration,
+            timestamp: now,
+        });
     }
 
     #[inline]
     pub fn stats(&self) -> MembarrierAppStats {
         let barriers: u64 = self.registrations.values().map(|r| r.total_barriers).sum();
         let ipis: u64 = self.registrations.values().map(|r| r.total_ipi_sent).sum();
-        let exp = self.events.iter().filter(|e| matches!(e.cmd, MembarrierCmd::GlobalExpedited | MembarrierCmd::PrivateExpedited)).count() as u64;
-        let sc = self.events.iter().filter(|e| matches!(e.cmd, MembarrierCmd::PrivateExpeditedSyncCore)).count() as u64;
+        let exp = self
+            .events
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.cmd,
+                    MembarrierCmd::GlobalExpedited | MembarrierCmd::PrivateExpedited
+                )
+            })
+            .count() as u64;
+        let sc = self
+            .events
+            .iter()
+            .filter(|e| matches!(e.cmd, MembarrierCmd::PrivateExpeditedSyncCore))
+            .count() as u64;
         let durs: Vec<u64> = self.events.iter().map(|e| e.duration_ns).collect();
-        let avg = if durs.is_empty() { 0 } else { durs.iter().sum::<u64>() / durs.len() as u64 };
-        MembarrierAppStats { total_processes: self.registrations.len() as u32, total_barriers: barriers, total_ipis: ipis, expedited_count: exp, sync_core_count: sc, avg_duration_ns: avg }
+        let avg = if durs.is_empty() {
+            0
+        } else {
+            durs.iter().sum::<u64>() / durs.len() as u64
+        };
+        MembarrierAppStats {
+            total_processes: self.registrations.len() as u32,
+            total_barriers: barriers,
+            total_ipis: ipis,
+            expedited_count: exp,
+            sync_core_count: sc,
+            avg_duration_ns: avg,
+        }
     }
 }

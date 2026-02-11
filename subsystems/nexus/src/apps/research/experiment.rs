@@ -255,12 +255,12 @@ impl AppsExperiment {
                 if exp.control_samples.len() < MAX_SAMPLES_PER_GROUP {
                     exp.control_samples.push(value);
                 }
-            }
+            },
             GroupAssignment::Treatment => {
                 if exp.treatment_samples.len() < MAX_SAMPLES_PER_GROUP {
                     exp.treatment_samples.push(value);
                 }
-            }
+            },
         }
         self.stats.total_samples += 1;
 
@@ -489,7 +489,11 @@ fn mean_variance(samples: &[f32]) -> (f32, f32) {
     }
     let n = samples.len() as f32;
     let mean = samples.iter().sum::<f32>() / n;
-    let var = samples.iter().map(|&x| (x - mean) * (x - mean)).sum::<f32>() / n;
+    let var = samples
+        .iter()
+        .map(|&x| (x - mean) * (x - mean))
+        .sum::<f32>()
+        / n;
     (mean, var)
 }
 

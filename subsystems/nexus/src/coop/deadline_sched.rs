@@ -24,9 +24,21 @@ pub struct DlParams {
 }
 
 impl DlParams {
-    pub fn new(runtime: u64, deadline: u64, period: u64) -> Self { Self { runtime_ns: runtime, deadline_ns: deadline, period_ns: period } }
+    pub fn new(runtime: u64, deadline: u64, period: u64) -> Self {
+        Self {
+            runtime_ns: runtime,
+            deadline_ns: deadline,
+            period_ns: period,
+        }
+    }
     #[inline(always)]
-    pub fn utilization(&self) -> f64 { if self.period_ns == 0 { 0.0 } else { self.runtime_ns as f64 / self.period_ns as f64 } }
+    pub fn utilization(&self) -> f64 {
+        if self.period_ns == 0 {
+            0.0
+        } else {
+            self.runtime_ns as f64 / self.period_ns as f64
+        }
+    }
 }
 
 /// Deadline task
@@ -45,7 +57,17 @@ pub struct DlTask {
 
 impl DlTask {
     pub fn new(id: u64, params: DlParams) -> Self {
-        Self { id, state: DlTaskState::Ready, params, absolute_deadline: 0, runtime_remaining: params.runtime_ns, total_runtime: 0, deadline_misses: 0, periods_completed: 0, last_activation: 0 }
+        Self {
+            id,
+            state: DlTaskState::Ready,
+            params,
+            absolute_deadline: 0,
+            runtime_remaining: params.runtime_ns,
+            total_runtime: 0,
+            deadline_misses: 0,
+            periods_completed: 0,
+            last_activation: 0,
+        }
     }
 
     #[inline]
@@ -62,19 +84,34 @@ impl DlTask {
         let consumed = elapsed.min(self.runtime_remaining);
         self.runtime_remaining -= consumed;
         self.total_runtime += consumed;
-        if self.runtime_remaining == 0 { self.state = DlTaskState::Throttled; }
+        if self.runtime_remaining == 0 {
+            self.state = DlTaskState::Throttled;
+        }
     }
 
     #[inline(always)]
     pub fn check_deadline(&mut self, now: u64) -> bool {
-        if now > self.absolute_deadline && self.runtime_remaining > 0 { self.deadline_misses += 1; self.state = DlTaskState::DeadlineMiss; true }
-        else { false }
+        if now > self.absolute_deadline && self.runtime_remaining > 0 {
+            self.deadline_misses += 1;
+            self.state = DlTaskState::DeadlineMiss;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn complete_period(&mut self) { self.periods_completed += 1; }
+    pub fn complete_period(&mut self) {
+        self.periods_completed += 1;
+    }
     #[inline(always)]
-    pub fn miss_rate(&self) -> f64 { if self.periods_completed == 0 { 0.0 } else { self.deadline_misses as f64 / self.periods_completed as f64 } }
+    pub fn miss_rate(&self) -> f64 {
+        if self.periods_completed == 0 {
+            0.0
+        } else {
+            self.deadline_misses as f64 / self.periods_completed as f64
+        }
+    }
 }
 
 /// Stats
@@ -95,19 +132,28 @@ pub struct CoopDeadlineSched {
 }
 
 impl CoopDeadlineSched {
-    pub fn new() -> Self { Self { tasks: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            tasks: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn add_task(&mut self, params: DlParams) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.tasks.insert(id, DlTask::new(id, params));
         id
     }
 
     #[inline(always)]
     pub fn pick_next(&self) -> Option<u64> {
-        self.tasks.values().filter(|t| t.state == DlTaskState::Ready)
-            .min_by_key(|t| t.absolute_deadline).map(|t| t.id)
+        self.tasks
+            .values()
+            .filter(|t| t.state == DlTaskState::Ready)
+            .min_by_key(|t| t.absolute_deadline)
+            .map(|t| t.id)
     }
 
     #[inline]
@@ -115,7 +161,17 @@ impl CoopDeadlineSched {
         let util: f64 = self.tasks.values().map(|t| t.params.utilization()).sum();
         let misses: u64 = self.tasks.values().map(|t| t.deadline_misses).sum();
         let periods: u64 = self.tasks.values().map(|t| t.periods_completed).sum();
-        let rate = if periods == 0 { 0.0 } else { misses as f64 / periods as f64 };
-        DeadlineSchedStats { total_tasks: self.tasks.len() as u32, total_utilization: util, total_misses: misses, total_periods: periods, miss_rate: rate }
+        let rate = if periods == 0 {
+            0.0
+        } else {
+            misses as f64 / periods as f64
+        };
+        DeadlineSchedStats {
+            total_tasks: self.tasks.len() as u32,
+            total_utilization: util,
+            total_misses: misses,
+            total_periods: periods,
+            miss_rate: rate,
+        }
     }
 }

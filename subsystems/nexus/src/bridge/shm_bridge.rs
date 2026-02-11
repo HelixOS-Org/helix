@@ -25,20 +25,34 @@ pub struct ShmPerm {
 
 impl ShmPerm {
     pub fn new(uid: u32, gid: u32, mode: u16) -> Self {
-        Self { uid, gid, cuid: uid, cgid: gid, mode }
+        Self {
+            uid,
+            gid,
+            cuid: uid,
+            cgid: gid,
+            mode,
+        }
     }
 
     #[inline]
     pub fn check_read(&self, uid: u32, gid: u32) -> bool {
-        if uid == self.uid { return self.mode & 0o400 != 0; }
-        if gid == self.gid { return self.mode & 0o040 != 0; }
+        if uid == self.uid {
+            return self.mode & 0o400 != 0;
+        }
+        if gid == self.gid {
+            return self.mode & 0o040 != 0;
+        }
         self.mode & 0o004 != 0
     }
 
     #[inline]
     pub fn check_write(&self, uid: u32, gid: u32) -> bool {
-        if uid == self.uid { return self.mode & 0o200 != 0; }
-        if gid == self.gid { return self.mode & 0o020 != 0; }
+        if uid == self.uid {
+            return self.mode & 0o200 != 0;
+        }
+        if gid == self.gid {
+            return self.mode & 0o020 != 0;
+        }
         self.mode & 0o002 != 0
     }
 }
@@ -86,17 +100,34 @@ pub struct ShmSegment {
 impl ShmSegment {
     pub fn new(id: u32, key: i32, perm: ShmPerm, size: usize, pid: u64, ts: u64) -> Self {
         Self {
-            shm_id: id, key, perm, size, state: ShmState::Active,
-            hugepage: false, ns_id: 0, attachments: Vec::new(),
-            creator_pid: pid, last_attach_pid: 0, last_detach_pid: 0,
-            attach_time: 0, detach_time: 0, change_time: ts,
-            nattch: 0, resident_pages: 0, swapped_pages: 0,
+            shm_id: id,
+            key,
+            perm,
+            size,
+            state: ShmState::Active,
+            hugepage: false,
+            ns_id: 0,
+            attachments: Vec::new(),
+            creator_pid: pid,
+            last_attach_pid: 0,
+            last_detach_pid: 0,
+            attach_time: 0,
+            detach_time: 0,
+            change_time: ts,
+            nattch: 0,
+            resident_pages: 0,
+            swapped_pages: 0,
         }
     }
 
     #[inline]
     pub fn attach(&mut self, pid: u64, addr: u64, readonly: bool, ts: u64) {
-        self.attachments.push(ShmAttach { pid, attach_addr: addr, readonly, attach_ts: ts });
+        self.attachments.push(ShmAttach {
+            pid,
+            attach_addr: addr,
+            readonly,
+            attach_ts: ts,
+        });
         self.nattch += 1;
         self.last_attach_pid = pid;
         self.attach_time = ts;
@@ -105,13 +136,16 @@ impl ShmSegment {
     #[inline]
     pub fn detach(&mut self, pid: u64, addr: u64, ts: u64) -> bool {
         let before = self.attachments.len();
-        self.attachments.retain(|a| !(a.pid == pid && a.attach_addr == addr));
+        self.attachments
+            .retain(|a| !(a.pid == pid && a.attach_addr == addr));
         if self.attachments.len() < before {
             self.nattch = self.nattch.saturating_sub(1);
             self.last_detach_pid = pid;
             self.detach_time = ts;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -128,13 +162,19 @@ impl ShmSegment {
     }
 
     #[inline(always)]
-    pub fn is_private(&self) -> bool { self.key == 0 }
+    pub fn is_private(&self) -> bool {
+        self.key == 0
+    }
     #[inline(always)]
-    pub fn total_memory(&self) -> usize { self.size }
+    pub fn total_memory(&self) -> usize {
+        self.size
+    }
     #[inline]
     pub fn resident_ratio(&self) -> f64 {
         let total_pages = (self.size + 4095) / 4096;
-        if total_pages == 0 { return 0.0; }
+        if total_pages == 0 {
+            return 0.0;
+        }
         self.resident_pages as f64 / total_pages as f64
     }
 }
@@ -177,12 +217,23 @@ pub struct BridgeShmBridge {
 impl BridgeShmBridge {
     pub fn new() -> Self {
         Self {
-            segments: BTreeMap::new(), key_to_id: BTreeMap::new(),
-            next_id: 1, stats: ShmBridgeStats::default(),
+            segments: BTreeMap::new(),
+            key_to_id: BTreeMap::new(),
+            next_id: 1,
+            stats: ShmBridgeStats::default(),
         }
     }
 
-    pub fn shmget(&mut self, key: i32, size: usize, uid: u32, gid: u32, mode: u16, pid: u64, ts: u64) -> u32 {
+    pub fn shmget(
+        &mut self,
+        key: i32,
+        size: usize,
+        uid: u32,
+        gid: u32,
+        mode: u16,
+        pid: u64,
+        ts: u64,
+    ) -> u32 {
         if key != 0 {
             if let Some(&existing) = self.key_to_id.get(&key) {
                 return existing;
@@ -192,7 +243,9 @@ impl BridgeShmBridge {
         self.next_id += 1;
         let seg = ShmSegment::new(id, key, ShmPerm::new(uid, gid, mode), size, pid, ts);
         self.segments.insert(id, seg);
-        if key != 0 { self.key_to_id.insert(key, id); }
+        if key != 0 {
+            self.key_to_id.insert(key, id);
+        }
         self.stats.total_ops += 1;
         id
     }
@@ -200,25 +253,35 @@ impl BridgeShmBridge {
     #[inline]
     pub fn shmat(&mut self, shm_id: u32, pid: u64, addr: u64, readonly: bool, ts: u64) -> bool {
         if let Some(seg) = self.segments.get_mut(&shm_id) {
-            if seg.state == ShmState::MarkedForDestroy { return false; }
+            if seg.state == ShmState::MarkedForDestroy {
+                return false;
+            }
             seg.attach(pid, addr, readonly, ts);
             self.stats.total_ops += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn shmdt(&mut self, shm_id: u32, pid: u64, addr: u64, ts: u64) -> bool {
         if let Some(seg) = self.segments.get_mut(&shm_id) {
             let ok = seg.detach(pid, addr, ts);
-            if ok { self.stats.total_ops += 1; }
+            if ok {
+                self.stats.total_ops += 1;
+            }
             // auto-destroy if marked and no attachments
             if seg.state == ShmState::MarkedForDestroy && seg.nattch == 0 {
                 let key = seg.key;
                 self.segments.remove(&shm_id);
-                if key != 0 { self.key_to_id.remove(&key); }
+                if key != 0 {
+                    self.key_to_id.remove(&key);
+                }
             }
             ok
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn shmctl_rmid(&mut self, shm_id: u32, ts: u64) -> bool {
@@ -227,13 +290,17 @@ impl BridgeShmBridge {
             if seg.nattch == 0 {
                 let key = seg.key;
                 self.segments.remove(&shm_id);
-                if key != 0 { self.key_to_id.remove(&key); }
+                if key != 0 {
+                    self.key_to_id.remove(&key);
+                }
             } else {
                 seg.state = ShmState::MarkedForDestroy;
             }
             self.stats.total_ops += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn cleanup_pid(&mut self, pid: u64, ts: u64) {
@@ -244,7 +311,9 @@ impl BridgeShmBridge {
                 if seg.state == ShmState::MarkedForDestroy && seg.nattch == 0 {
                     let key = seg.key;
                     self.segments.remove(&id);
-                    if key != 0 { self.key_to_id.remove(&key); }
+                    if key != 0 {
+                        self.key_to_id.remove(&key);
+                    }
                 }
             }
         }
@@ -256,15 +325,27 @@ impl BridgeShmBridge {
         self.stats.total_memory = self.segments.values().map(|s| s.size).sum();
         self.stats.total_attachments = self.segments.values().map(|s| s.nattch).sum();
         self.stats.hugepage_segments = self.segments.values().filter(|s| s.hugepage).count();
-        self.stats.marked_destroy = self.segments.values().filter(|s| s.state == ShmState::MarkedForDestroy).count();
-        if self.stats.total_segments > self.stats.peak_segments { self.stats.peak_segments = self.stats.total_segments; }
-        if self.stats.total_memory > self.stats.peak_memory { self.stats.peak_memory = self.stats.total_memory; }
+        self.stats.marked_destroy = self
+            .segments
+            .values()
+            .filter(|s| s.state == ShmState::MarkedForDestroy)
+            .count();
+        if self.stats.total_segments > self.stats.peak_segments {
+            self.stats.peak_segments = self.stats.total_segments;
+        }
+        if self.stats.total_memory > self.stats.peak_memory {
+            self.stats.peak_memory = self.stats.total_memory;
+        }
     }
 
     #[inline(always)]
-    pub fn segment(&self, id: u32) -> Option<&ShmSegment> { self.segments.get(&id) }
+    pub fn segment(&self, id: u32) -> Option<&ShmSegment> {
+        self.segments.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &ShmBridgeStats { &self.stats }
+    pub fn stats(&self) -> &ShmBridgeStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -314,7 +395,14 @@ pub struct ShmV2Record {
 
 impl ShmV2Record {
     pub fn new(op: ShmV2Op, size: u64) -> Self {
-        Self { op, result: ShmV2Result::Success, shmid: -1, size, key: 0, flags: 0 }
+        Self {
+            op,
+            result: ShmV2Result::Success,
+            shmid: -1,
+            size,
+            key: 0,
+            flags: 0,
+        }
     }
 }
 
@@ -337,17 +425,30 @@ pub struct BridgeShmV2 {
 
 impl BridgeShmV2 {
     pub fn new() -> Self {
-        Self { stats: ShmV2BridgeStats { total_ops: 0, segments_created: 0, attaches: 0, total_bytes: 0, errors: 0 } }
+        Self {
+            stats: ShmV2BridgeStats {
+                total_ops: 0,
+                segments_created: 0,
+                attaches: 0,
+                total_bytes: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn record(&mut self, rec: &ShmV2Record) {
         self.stats.total_ops += 1;
         match rec.op {
-            ShmV2Op::Shmget => { self.stats.segments_created += 1; self.stats.total_bytes += rec.size; }
+            ShmV2Op::Shmget => {
+                self.stats.segments_created += 1;
+                self.stats.total_bytes += rec.size;
+            },
             ShmV2Op::Shmat => self.stats.attaches += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result != ShmV2Result::Success { self.stats.errors += 1; }
+        if rec.result != ShmV2Result::Success {
+            self.stats.errors += 1;
+        }
     }
 }

@@ -16,11 +16,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -399,7 +399,11 @@ impl HolisticAscension {
         for v in self.subsystem_scores.values() {
             sub_sum = sub_sum.wrapping_add(v);
         }
-        let sub_avg = if sub_count > 0 { sub_sum / sub_count } else { 0 };
+        let sub_avg = if sub_count > 0 {
+            sub_sum / sub_count
+        } else {
+            0
+        };
 
         let overall = (avg_opt + sub_avg) / 2;
         self.stats.overall_score_bps = overall;
@@ -416,8 +420,16 @@ impl HolisticAscension {
     fn seed_subsystems(&mut self) {
         if self.subsystem_scores.is_empty() {
             let subsystems = [
-                "scheduler", "memory", "io", "network", "security",
-                "power", "cache", "irq", "filesystem", "ipc",
+                "scheduler",
+                "memory",
+                "io",
+                "network",
+                "security",
+                "power",
+                "cache",
+                "irq",
+                "filesystem",
+                "ipc",
             ];
             for (i, &name) in subsystems.iter().enumerate() {
                 let sh = fnv1a(name.as_bytes());
@@ -495,7 +507,10 @@ impl HolisticAscension {
         let omega_reached = score >= OMEGA_THRESHOLD;
 
         // Check all subsystems
-        let all_optimal = self.subsystem_scores.values().all(|v| v >= DIVINE_THRESHOLD);
+        let all_optimal = self
+            .subsystem_scores
+            .values()
+            .all(|v| v >= DIVINE_THRESHOLD);
 
         let prediction_acc = 7_000_u64.wrapping_add(self.rng.next() % 3_001);
         let resource_util = 6_000_u64.wrapping_add(self.rng.next() % 4_001);
@@ -514,7 +529,14 @@ impl HolisticAscension {
         };
 
         let oh = self.gen_hash("omega_point");
-        self.log_event("omega_point", if omega_reached { "OMEGA_REACHED" } else { "approaching" });
+        self.log_event(
+            "omega_point",
+            if omega_reached {
+                "OMEGA_REACHED"
+            } else {
+                "approaching"
+            },
+        );
 
         OmegaPointReport {
             omega_hash: oh,
@@ -563,7 +585,10 @@ impl HolisticAscension {
             AscensionStage::Omega => OMEGA_PERFECT,
         };
         let range = next_threshold.saturating_sub(current_threshold).max(1);
-        let progress_in_range = self.stats.overall_score_bps.saturating_sub(current_threshold);
+        let progress_in_range = self
+            .stats
+            .overall_score_bps
+            .saturating_sub(current_threshold);
         let progress_bps = (progress_in_range.saturating_mul(10_000)) / range;
 
         let barriers = if current.ordinal() < 6 {
@@ -573,16 +598,12 @@ impl HolisticAscension {
         };
 
         let improvement_rate = if self.tick > 0 {
-            self.stats
-                .self_improvement_count
-                .saturating_mul(10_000)
-                / self.tick
+            self.stats.self_improvement_count.saturating_mul(10_000) / self.tick
         } else {
             0
         };
 
-        self.stats.self_improvement_count =
-            self.stats.self_improvement_count.wrapping_add(1);
+        self.stats.self_improvement_count = self.stats.self_improvement_count.wrapping_add(1);
 
         let rh = self.gen_hash("self_transcendence");
         self.log_event("self_transcendence", current.name());
@@ -670,13 +691,18 @@ impl HolisticAscension {
         let dh = fnv1a(domain.as_bytes());
 
         // Check for existing optimisation
-        let (current, theoretical, iterations) = if let Some(existing) = self.optimisations.get(&dh) {
+        let (current, theoretical, iterations) = if let Some(existing) = self.optimisations.get(&dh)
+        {
             let improvement = self.rng.next() % 200;
             let new_current = existing
                 .current_optimality_bps
                 .wrapping_add(improvement)
                 .min(existing.theoretical_maximum_bps);
-            (new_current, existing.theoretical_maximum_bps, existing.iterations + 1)
+            (
+                new_current,
+                existing.theoretical_maximum_bps,
+                existing.iterations + 1,
+            )
         } else {
             let current = 4_000_u64.wrapping_add(self.rng.next() % 4_001);
             let theoretical = 9_500_u64.wrapping_add(self.rng.next() % 501);
@@ -722,7 +748,10 @@ impl HolisticAscension {
         let self_sustaining = perfection >= ASCENDED_THRESHOLD;
         let self_improving = self.stats.self_improvement_count > 5;
         let self_aware = perfection >= COGNITIVE_THRESHOLD;
-        let fully_optimal = self.subsystem_scores.values().all(|v| v >= DIVINE_THRESHOLD);
+        let fully_optimal = self
+            .subsystem_scores
+            .values()
+            .all(|v| v >= DIVINE_THRESHOLD);
         let harmony = self_sustaining && self_improving && self_aware;
 
         let omega_conv = if stage == AscensionStage::Omega {

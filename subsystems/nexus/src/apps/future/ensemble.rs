@@ -13,8 +13,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -206,7 +205,11 @@ impl ModelTracker {
         };
         let slice = &self.error_history[start..];
         let sum: f64 = slice.iter().sum();
-        if slice.is_empty() { 0.0 } else { sum / slice.len() as f64 }
+        if slice.is_empty() {
+            0.0
+        } else {
+            sum / slice.len() as f64
+        }
     }
 }
 
@@ -336,7 +339,10 @@ impl AppsEnsemble {
         if self.app_states.len() >= MAX_APPS && !self.app_states.contains_key(&app_id) {
             return;
         }
-        let state = self.app_states.entry(app_id).or_insert_with(|| AppEnsembleState::new(app_id));
+        let state = self
+            .app_states
+            .entry(app_id)
+            .or_insert_with(|| AppEnsembleState::new(app_id));
         let prev = state.last_actual;
         state.last_actual = actual;
 
@@ -366,16 +372,23 @@ impl AppsEnsemble {
                 let combined = if predictions.is_empty() {
                     0.0
                 } else {
-                    predictions.iter().map(|p| p.predicted_value).sum::<f64>() / predictions.len() as f64
+                    predictions.iter().map(|p| p.predicted_value).sum::<f64>()
+                        / predictions.len() as f64
                 };
                 return EnsemblePrediction {
                     combined_value: combined,
-                    individual_predictions: predictions.iter().map(|p| (p.model, p.predicted_value, p.confidence)).collect(),
-                    weights_used: predictions.iter().map(|p| (p.model, 1.0 / predictions.len().max(1) as f64)).collect(),
+                    individual_predictions: predictions
+                        .iter()
+                        .map(|p| (p.model, p.predicted_value, p.confidence))
+                        .collect(),
+                    weights_used: predictions
+                        .iter()
+                        .map(|p| (p.model, 1.0 / predictions.len().max(1) as f64))
+                        .collect(),
                     diversity: 0.0,
                     ensemble_confidence: 0.5,
                 };
-            }
+            },
         };
 
         let mut combined = 0.0;
@@ -385,7 +398,11 @@ impl AppsEnsemble {
 
         for pred in predictions {
             let idx = pred.model.index();
-            let w = if idx < NUM_MODELS { state.models[idx].weight } else { MIN_WEIGHT };
+            let w = if idx < NUM_MODELS {
+                state.models[idx].weight
+            } else {
+                MIN_WEIGHT
+            };
             combined += pred.predicted_value * w;
             weight_sum += w;
             individual.push((pred.model, pred.predicted_value, pred.confidence));
@@ -404,7 +421,8 @@ impl AppsEnsemble {
         let confidence = if predictions.is_empty() {
             0.0
         } else {
-            let mean_conf: f64 = predictions.iter().map(|p| p.confidence).sum::<f64>() / predictions.len() as f64;
+            let mean_conf: f64 =
+                predictions.iter().map(|p| p.confidence).sum::<f64>() / predictions.len() as f64;
             mean_conf * (1.0 + diversity * 0.1).min(1.0)
         };
 
@@ -424,8 +442,10 @@ impl AppsEnsemble {
             Some(s) => s,
             None => {
                 let default_w = 1.0 / NUM_MODELS as f64;
-                return (0..NUM_MODELS).map(|i| (ModelId::from_index(i), default_w)).collect();
-            }
+                return (0..NUM_MODELS)
+                    .map(|i| (ModelId::from_index(i), default_w))
+                    .collect();
+            },
         };
 
         state.models.iter().map(|m| (m.model, m.weight)).collect()
@@ -437,7 +457,8 @@ impl AppsEnsemble {
             return 0.0;
         }
 
-        let mean: f64 = predictions.iter().map(|p| p.predicted_value).sum::<f64>() / predictions.len() as f64;
+        let mean: f64 =
+            predictions.iter().map(|p| p.predicted_value).sum::<f64>() / predictions.len() as f64;
         let variance: f64 = predictions
             .iter()
             .map(|p| {
@@ -517,7 +538,8 @@ impl AppsEnsemble {
         };
 
         self.ema_ensemble_err = ema_update(self.ema_ensemble_err, 1.0 - ens_acc, EMA_ALPHA);
-        self.ema_best_single_err = ema_update(self.ema_best_single_err, 1.0 - single_acc, EMA_ALPHA);
+        self.ema_best_single_err =
+            ema_update(self.ema_best_single_err, 1.0 - single_acc, EMA_ALPHA);
         self.stats.average_ensemble_error = self.ema_ensemble_err;
         self.stats.average_best_single_error = self.ema_best_single_err;
         self.stats.ensemble_advantage_ratio = advantage;

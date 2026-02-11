@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Access pattern classification
@@ -57,10 +56,20 @@ pub struct FileReadahead {
 impl FileReadahead {
     pub fn new(file_id: u64) -> Self {
         Self {
-            file_id, pattern: AccessPattern::Unknown, state: ReadaheadState::Initial,
-            window_pages: 4, max_window_pages: 256, min_window_pages: 2,
-            last_offset: 0, last_stride: 0, sequential_count: 0, random_count: 0,
-            ra_hits: 0, ra_misses: 0, pages_read: 0, pages_prefetched: 0,
+            file_id,
+            pattern: AccessPattern::Unknown,
+            state: ReadaheadState::Initial,
+            window_pages: 4,
+            max_window_pages: 256,
+            min_window_pages: 2,
+            last_offset: 0,
+            last_stride: 0,
+            sequential_count: 0,
+            random_count: 0,
+            ra_hits: 0,
+            ra_misses: 0,
+            pages_read: 0,
+            pages_prefetched: 0,
             last_access_ts: 0,
         }
     }
@@ -104,7 +113,11 @@ impl FileReadahead {
     #[inline(always)]
     pub fn hit_ratio(&self) -> f64 {
         let total = self.ra_hits + self.ra_misses;
-        if total == 0 { 0.0 } else { self.ra_hits as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.ra_hits as f64 / total as f64
+        }
     }
 
     pub fn adjust_window(&mut self) {
@@ -116,24 +129,29 @@ impl FileReadahead {
                 } else if ratio < 0.3 {
                     self.window_pages = (self.window_pages / 2).max(self.min_window_pages);
                 }
-            }
+            },
             AccessPattern::Random => {
                 self.window_pages = self.min_window_pages;
-            }
+            },
             AccessPattern::Strided => {
                 let ratio = self.hit_ratio();
                 if ratio > 0.6 {
                     self.window_pages = (self.window_pages + 4).min(self.max_window_pages / 2);
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
     #[inline(always)]
-    pub fn record_hit(&mut self) { self.ra_hits += 1; self.pages_prefetched += 1; }
+    pub fn record_hit(&mut self) {
+        self.ra_hits += 1;
+        self.pages_prefetched += 1;
+    }
     #[inline(always)]
-    pub fn record_miss(&mut self) { self.ra_misses += 1; }
+    pub fn record_miss(&mut self) {
+        self.ra_misses += 1;
+    }
 }
 
 /// Interleaved stream detection
@@ -148,7 +166,13 @@ pub struct InterleavedStream {
 
 impl InterleavedStream {
     pub fn new(stream_id: u64) -> Self {
-        Self { stream_id, file_ids: Vec::new(), access_sequence: VecDeque::new(), max_sequence: 64, detected_period: 0 }
+        Self {
+            stream_id,
+            file_ids: Vec::new(),
+            access_sequence: VecDeque::new(),
+            max_sequence: 64,
+            detected_period: 0,
+        }
     }
 
     #[inline]
@@ -165,13 +189,17 @@ impl InterleavedStream {
 
     fn detect_period(&mut self) {
         let len = self.access_sequence.len();
-        if len < 4 { return; }
+        if len < 4 {
+            return;
+        }
         for period in 2..=(len / 2).min(8) {
             let mut matches = 0u32;
             let mut total = 0u32;
             for i in period..len {
                 total += 1;
-                if self.access_sequence[i] == self.access_sequence[i - period] { matches += 1; }
+                if self.access_sequence[i] == self.access_sequence[i - period] {
+                    matches += 1;
+                }
             }
             if total > 0 && matches as f64 / total as f64 > 0.7 {
                 self.detected_period = period as u32;
@@ -182,7 +210,9 @@ impl InterleavedStream {
     }
 
     #[inline(always)]
-    pub fn is_periodic(&self) -> bool { self.detected_period > 0 }
+    pub fn is_periodic(&self) -> bool {
+        self.detected_period > 0
+    }
 }
 
 /// Readahead tuner stats
@@ -214,15 +244,20 @@ pub struct HolisticReadaheadTuner {
 impl HolisticReadaheadTuner {
     pub fn new() -> Self {
         Self {
-            files: BTreeMap::new(), streams: BTreeMap::new(),
-            stats: ReadaheadStats::default(), pressure_level: 0.0,
-            pressure_throttle_threshold: 0.8, next_stream_id: 1,
+            files: BTreeMap::new(),
+            streams: BTreeMap::new(),
+            stats: ReadaheadStats::default(),
+            pressure_level: 0.0,
+            pressure_throttle_threshold: 0.8,
+            next_stream_id: 1,
         }
     }
 
     #[inline(always)]
     pub fn track_file(&mut self, file_id: u64) {
-        self.files.entry(file_id).or_insert_with(|| FileReadahead::new(file_id));
+        self.files
+            .entry(file_id)
+            .or_insert_with(|| FileReadahead::new(file_id));
     }
 
     #[inline]
@@ -235,12 +270,16 @@ impl HolisticReadaheadTuner {
 
     #[inline(always)]
     pub fn record_hit(&mut self, file_id: u64) {
-        if let Some(f) = self.files.get_mut(&file_id) { f.record_hit(); }
+        if let Some(f) = self.files.get_mut(&file_id) {
+            f.record_hit();
+        }
     }
 
     #[inline(always)]
     pub fn record_miss(&mut self, file_id: u64) {
-        if let Some(f) = self.files.get_mut(&file_id) { f.record_miss(); }
+        if let Some(f) = self.files.get_mut(&file_id) {
+            f.record_miss();
+        }
     }
 
     #[inline(always)]
@@ -253,7 +292,10 @@ impl HolisticReadaheadTuner {
         if self.pressure_level > self.pressure_throttle_threshold {
             return 2;
         }
-        self.files.get(&file_id).map(|f| f.window_pages).unwrap_or(4)
+        self.files
+            .get(&file_id)
+            .map(|f| f.window_pages)
+            .unwrap_or(4)
     }
 
     pub fn tune_all(&mut self) {
@@ -288,20 +330,40 @@ impl HolisticReadaheadTuner {
 
     pub fn recompute(&mut self) {
         self.stats.files_tracked = self.files.len();
-        self.stats.sequential_files = self.files.values().filter(|f| f.pattern == AccessPattern::Sequential).count();
-        self.stats.random_files = self.files.values().filter(|f| f.pattern == AccessPattern::Random).count();
+        self.stats.sequential_files = self
+            .files
+            .values()
+            .filter(|f| f.pattern == AccessPattern::Sequential)
+            .count();
+        self.stats.random_files = self
+            .files
+            .values()
+            .filter(|f| f.pattern == AccessPattern::Random)
+            .count();
         let windows: Vec<f64> = self.files.values().map(|f| f.window_pages as f64).collect();
-        self.stats.avg_window_pages = if windows.is_empty() { 0.0 } else { windows.iter().sum::<f64>() / windows.len() as f64 };
+        self.stats.avg_window_pages = if windows.is_empty() {
+            0.0
+        } else {
+            windows.iter().sum::<f64>() / windows.len() as f64
+        };
         self.stats.total_ra_hits = self.files.values().map(|f| f.ra_hits).sum();
         self.stats.total_ra_misses = self.files.values().map(|f| f.ra_misses).sum();
         let total_ra = self.stats.total_ra_hits + self.stats.total_ra_misses;
-        self.stats.overall_hit_ratio = if total_ra == 0 { 0.0 } else { self.stats.total_ra_hits as f64 / total_ra as f64 };
+        self.stats.overall_hit_ratio = if total_ra == 0 {
+            0.0
+        } else {
+            self.stats.total_ra_hits as f64 / total_ra as f64
+        };
         self.stats.total_pages_prefetched = self.files.values().map(|f| f.pages_prefetched).sum();
         self.stats.interleaved_streams = self.streams.values().filter(|s| s.is_periodic()).count();
     }
 
     #[inline(always)]
-    pub fn file(&self, id: u64) -> Option<&FileReadahead> { self.files.get(&id) }
+    pub fn file(&self, id: u64) -> Option<&FileReadahead> {
+        self.files.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &ReadaheadStats { &self.stats }
+    pub fn stats(&self) -> &ReadaheadStats {
+        &self.stats
+    }
 }

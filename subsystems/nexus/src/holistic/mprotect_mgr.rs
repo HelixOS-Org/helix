@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Memory protection flags
@@ -23,14 +22,36 @@ pub struct ProtFlags {
 }
 
 impl ProtFlags {
-    pub const NONE: Self = Self { read: false, write: false, exec: false };
-    pub const READ: Self = Self { read: true, write: false, exec: false };
-    pub const RW: Self = Self { read: true, write: true, exec: false };
-    pub const RX: Self = Self { read: true, write: false, exec: true };
-    pub const RWX: Self = Self { read: true, write: true, exec: true };
+    pub const NONE: Self = Self {
+        read: false,
+        write: false,
+        exec: false,
+    };
+    pub const READ: Self = Self {
+        read: true,
+        write: false,
+        exec: false,
+    };
+    pub const RW: Self = Self {
+        read: true,
+        write: true,
+        exec: false,
+    };
+    pub const RX: Self = Self {
+        read: true,
+        write: false,
+        exec: true,
+    };
+    pub const RWX: Self = Self {
+        read: true,
+        write: true,
+        exec: true,
+    };
 
     #[inline(always)]
-    pub fn violates_wx(&self) -> bool { self.write && self.exec }
+    pub fn violates_wx(&self) -> bool {
+        self.write && self.exec
+    }
 
     #[inline]
     pub fn allows(&self, op: AccessType) -> bool {
@@ -44,9 +65,15 @@ impl ProtFlags {
     #[inline]
     pub fn as_bits(&self) -> u8 {
         let mut bits = 0u8;
-        if self.read { bits |= 1; }
-        if self.write { bits |= 2; }
-        if self.exec { bits |= 4; }
+        if self.read {
+            bits |= 1;
+        }
+        if self.write {
+            bits |= 2;
+        }
+        if self.exec {
+            bits |= 4;
+        }
         bits
     }
 }
@@ -87,15 +114,25 @@ pub struct ProtRegion {
 impl ProtRegion {
     pub fn new(start: u64, end: u64, flags: ProtFlags, pid: u32, ts: u64) -> Self {
         Self {
-            start, end, flags, pkey: None, owner_pid: pid,
-            is_guard: false, change_count: 0, last_change_ts: ts,
+            start,
+            end,
+            flags,
+            pkey: None,
+            owner_pid: pid,
+            is_guard: false,
+            change_count: 0,
+            last_change_ts: ts,
         }
     }
 
     #[inline(always)]
-    pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
+    pub fn size(&self) -> u64 {
+        self.end.saturating_sub(self.start)
+    }
     #[inline(always)]
-    pub fn contains(&self, addr: u64) -> bool { addr >= self.start && addr < self.end }
+    pub fn contains(&self, addr: u64) -> bool {
+        addr >= self.start && addr < self.end
+    }
 
     #[inline]
     pub fn change_protection(&mut self, new_flags: ProtFlags, ts: u64) {
@@ -117,7 +154,13 @@ pub struct ProtectionKey {
 
 impl ProtectionKey {
     pub fn new(pkey: u16, pid: u32) -> Self {
-        Self { pkey, access_disable: false, write_disable: false, allocated_to: pid, regions_using: 0 }
+        Self {
+            pkey,
+            access_disable: false,
+            write_disable: false,
+            allocated_to: pid,
+            regions_using: 0,
+        }
     }
 }
 
@@ -136,8 +179,13 @@ pub struct StackGuard {
 impl StackGuard {
     pub fn new(pid: u32, tid: u32, start: u64, end: u64, canary: u64) -> Self {
         Self {
-            pid, tid, guard_start: start, guard_end: end,
-            canary_value: canary, canary_valid: true, violations: 0,
+            pid,
+            tid,
+            guard_start: start,
+            guard_end: end,
+            canary_value: canary,
+            canary_valid: true,
+            violations: 0,
         }
     }
 }
@@ -195,10 +243,14 @@ pub struct HolisticMprotectMgr {
 impl HolisticMprotectMgr {
     pub fn new(policy: WxPolicy) -> Self {
         Self {
-            regions: BTreeMap::new(), processes: BTreeMap::new(),
-            pkeys: BTreeMap::new(), guards: Vec::new(),
-            violations: VecDeque::new(), wx_policy: policy,
-            next_violation_id: 1, max_violations: 10_000,
+            regions: BTreeMap::new(),
+            processes: BTreeMap::new(),
+            pkeys: BTreeMap::new(),
+            guards: Vec::new(),
+            violations: VecDeque::new(),
+            wx_policy: policy,
+            next_violation_id: 1,
+            max_violations: 10_000,
             stats: MprotectMgrStats::default(),
         }
     }
@@ -206,46 +258,86 @@ impl HolisticMprotectMgr {
     #[inline]
     pub fn register_process(&mut self, pid: u32) {
         self.processes.insert(pid, ProcessProtState {
-            pid, regions: Vec::new(), pkeys_allocated: Vec::new(),
-            violations: 0, wx_violations: 0, mprotect_calls: 0,
+            pid,
+            regions: Vec::new(),
+            pkeys_allocated: Vec::new(),
+            violations: 0,
+            wx_violations: 0,
+            mprotect_calls: 0,
         });
     }
 
     #[inline]
-    pub fn add_region(&mut self, start: u64, end: u64, flags: ProtFlags, pid: u32, ts: u64) -> bool {
-        if self.wx_policy == WxPolicy::Strict && flags.violates_wx() { return false; }
+    pub fn add_region(
+        &mut self,
+        start: u64,
+        end: u64,
+        flags: ProtFlags,
+        pid: u32,
+        ts: u64,
+    ) -> bool {
+        if self.wx_policy == WxPolicy::Strict && flags.violates_wx() {
+            return false;
+        }
         let region = ProtRegion::new(start, end, flags, pid, ts);
         self.regions.insert(start, region);
-        if let Some(proc) = self.processes.get_mut(&pid) { proc.regions.push(start); }
+        if let Some(proc) = self.processes.get_mut(&pid) {
+            proc.regions.push(start);
+        }
         true
     }
 
     pub fn mprotect(&mut self, start: u64, new_flags: ProtFlags, ts: u64) -> bool {
-        if self.wx_policy == WxPolicy::Strict && new_flags.violates_wx() { return false; }
+        if self.wx_policy == WxPolicy::Strict && new_flags.violates_wx() {
+            return false;
+        }
         if let Some(region) = self.regions.get_mut(&start) {
             let pid = region.owner_pid;
             if self.wx_policy == WxPolicy::Warn && new_flags.violates_wx() {
-                if let Some(proc) = self.processes.get_mut(&pid) { proc.wx_violations += 1; }
+                if let Some(proc) = self.processes.get_mut(&pid) {
+                    proc.wx_violations += 1;
+                }
             }
             region.change_protection(new_flags, ts);
-            if let Some(proc) = self.processes.get_mut(&pid) { proc.mprotect_calls += 1; }
+            if let Some(proc) = self.processes.get_mut(&pid) {
+                proc.mprotect_calls += 1;
+            }
             true
         } else {
             false
         }
     }
 
-    pub fn check_access(&mut self, addr: u64, access: AccessType, pid: u32, ip: u64, ts: u64) -> bool {
+    pub fn check_access(
+        &mut self,
+        addr: u64,
+        access: AccessType,
+        pid: u32,
+        ip: u64,
+        ts: u64,
+    ) -> bool {
         for region in self.regions.values() {
             if region.contains(addr) && region.owner_pid == pid {
-                if region.flags.allows(access) { return true; }
-                let vid = self.next_violation_id; self.next_violation_id += 1;
+                if region.flags.allows(access) {
+                    return true;
+                }
+                let vid = self.next_violation_id;
+                self.next_violation_id += 1;
                 self.violations.push_back(ProtViolation {
-                    violation_id: vid, pid, addr, attempted: access,
-                    region_flags: region.flags, timestamp_ns: ts, instruction_ptr: ip,
+                    violation_id: vid,
+                    pid,
+                    addr,
+                    attempted: access,
+                    region_flags: region.flags,
+                    timestamp_ns: ts,
+                    instruction_ptr: ip,
                 });
-                if self.violations.len() > self.max_violations { self.violations.remove(0); }
-                if let Some(proc) = self.processes.get_mut(&pid) { proc.violations += 1; }
+                if self.violations.len() > self.max_violations {
+                    self.violations.remove(0);
+                }
+                if let Some(proc) = self.processes.get_mut(&pid) {
+                    proc.violations += 1;
+                }
                 return false;
             }
         }
@@ -253,12 +345,16 @@ impl HolisticMprotectMgr {
     }
 
     #[inline(always)]
-    pub fn add_guard(&mut self, guard: StackGuard) { self.guards.push(guard); }
+    pub fn add_guard(&mut self, guard: StackGuard) {
+        self.guards.push(guard);
+    }
 
     #[inline(always)]
     pub fn allocate_pkey(&mut self, pkey: u16, pid: u32) {
         self.pkeys.insert(pkey, ProtectionKey::new(pkey, pid));
-        if let Some(proc) = self.processes.get_mut(&pid) { proc.pkeys_allocated.push(pkey); }
+        if let Some(proc) = self.processes.get_mut(&pid) {
+            proc.pkeys_allocated.push(pkey);
+        }
     }
 
     pub fn recompute(&mut self) {
@@ -270,10 +366,13 @@ impl HolisticMprotectMgr {
         self.stats.guard_pages = self.guards.len();
         self.stats.pkeys_allocated = self.pkeys.len();
         if !self.processes.is_empty() {
-            self.stats.avg_regions_per_process = self.regions.len() as f64 / self.processes.len() as f64;
+            self.stats.avg_regions_per_process =
+                self.regions.len() as f64 / self.processes.len() as f64;
         }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &MprotectMgrStats { &self.stats }
+    pub fn stats(&self) -> &MprotectMgrStats {
+        &self.stats
+    }
 }

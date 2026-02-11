@@ -223,7 +223,7 @@ impl AppCounterfactualState {
                 }
                 let frac = (amount - lk) as f64 / (uk - lk) as f64;
                 lv + frac * (uv - lv)
-            }
+            },
             (Some((_, lv)), None) => lv,
             (None, Some((_, uv))) => uv,
             (None, None) => amount as f64 * 0.5,
@@ -310,12 +310,13 @@ impl AppsCounterfactual {
         if self.app_states.len() >= MAX_APPS && !self.app_states.contains_key(&app_id) {
             return;
         }
-        let state = self.app_states.entry(app_id).or_insert_with(|| AppCounterfactualState::new(app_id));
+        let state = self
+            .app_states
+            .entry(app_id)
+            .or_insert_with(|| AppCounterfactualState::new(app_id));
 
-        let decision_id = fnv1a_hash(&[
-            &app_id.to_le_bytes()[..],
-            &self.tick.to_le_bytes()[..],
-        ].concat());
+        let decision_id =
+            fnv1a_hash(&[&app_id.to_le_bytes()[..], &self.tick.to_le_bytes()[..]].concat());
 
         let decision = AllocationDecision {
             decision_id,
@@ -330,7 +331,8 @@ impl AppsCounterfactual {
         };
 
         state.record_decision(decision);
-        self.ema_efficiency_global = ema_update(self.ema_efficiency_global, state.ema_efficiency, EMA_ALPHA);
+        self.ema_efficiency_global =
+            ema_update(self.ema_efficiency_global, state.ema_efficiency, EMA_ALPHA);
         self.stats.average_efficiency = self.ema_efficiency_global;
     }
 
@@ -391,9 +393,15 @@ impl AppsCounterfactual {
         let mut total_regret = 0.0;
         for decision in &state.decisions[start..] {
             // Compare against 2x and 0.5x alternatives
-            let alt_high = state.estimate_utility(decision.alloc_type, decision.amount_allocated * 2);
-            let alt_low = state.estimate_utility(decision.alloc_type, decision.amount_allocated / 2);
-            let best_alt = if alt_high > alt_low { alt_high } else { alt_low };
+            let alt_high =
+                state.estimate_utility(decision.alloc_type, decision.amount_allocated * 2);
+            let alt_low =
+                state.estimate_utility(decision.alloc_type, decision.amount_allocated / 2);
+            let best_alt = if alt_high > alt_low {
+                alt_high
+            } else {
+                alt_low
+            };
             total_regret += decision.regret_vs(best_alt);
         }
 
@@ -439,7 +447,8 @@ impl AppsCounterfactual {
                         estimated_utility: est_util,
                         estimated_waste: last.observed_waste * ratio,
                         estimated_sla_met: est_util >= last.observed_utility * 0.9,
-                        estimated_latency_us: (last.latency_impact_us as f64 / ratio.max(0.1)) as u64,
+                        estimated_latency_us: (last.latency_impact_us as f64 / ratio.max(0.1))
+                            as u64,
                         regret,
                     });
                 }
@@ -489,7 +498,8 @@ impl AppsCounterfactual {
         let mut type_regret: BTreeMap<u8, (f64, u64)> = BTreeMap::new();
         for decision in &state.decisions {
             let key = decision.alloc_type as u8;
-            let alt_util = state.estimate_utility(decision.alloc_type, decision.amount_allocated * 2);
+            let alt_util =
+                state.estimate_utility(decision.alloc_type, decision.amount_allocated * 2);
             let regret = decision.regret_vs(alt_util);
             let entry = type_regret.entry(key).or_insert((0.0, 0));
             entry.0 += regret;

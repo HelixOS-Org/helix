@@ -7,11 +7,11 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::string::String;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use super::types::CoolingDeviceId;
+use crate::fast::array_map::ArrayMap;
 
 /// Cooling device type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

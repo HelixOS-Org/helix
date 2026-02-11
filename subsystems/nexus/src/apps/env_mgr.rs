@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -32,7 +31,15 @@ pub struct EnvVar {
 
 impl EnvVar {
     pub fn new(key: String, value: String, source: EnvSource, now: u64) -> Self {
-        Self { key, value, source, read_only: false, sensitive: false, access_count: 0, modified_at: now }
+        Self {
+            key,
+            value,
+            source,
+            read_only: false,
+            sensitive: false,
+            access_count: 0,
+            modified_at: now,
+        }
     }
 
     #[inline(always)]
@@ -53,7 +60,13 @@ pub struct ProcessEnvBlock {
 
 impl ProcessEnvBlock {
     pub fn new(pid: u32, max_vars: usize, now: u64) -> Self {
-        Self { pid, vars: BTreeMap::new(), max_vars, max_total_size: 131072, created_at: now }
+        Self {
+            pid,
+            vars: BTreeMap::new(),
+            max_vars,
+            max_total_size: 131072,
+            created_at: now,
+        }
     }
 
     #[inline]
@@ -61,26 +74,35 @@ impl ProcessEnvBlock {
         if let Some(v) = self.vars.get_mut(key) {
             v.access_count += 1;
             Some(&v.value)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     pub fn set(&mut self, key: String, value: String, source: EnvSource, now: u64) -> bool {
         if let Some(existing) = self.vars.get(&key) {
-            if existing.read_only { return false; }
+            if existing.read_only {
+                return false;
+            }
         }
         if !self.vars.contains_key(&key) && self.vars.len() >= self.max_vars {
             return false;
         }
         let total = self.current_size() + key.len() + value.len() + 2;
-        if total > self.max_total_size { return false; }
-        self.vars.insert(key.clone(), EnvVar::new(key, value, source, now));
+        if total > self.max_total_size {
+            return false;
+        }
+        self.vars
+            .insert(key.clone(), EnvVar::new(key, value, source, now));
         true
     }
 
     #[inline]
     pub fn unset(&mut self, key: &str) -> bool {
         if let Some(v) = self.vars.get(key) {
-            if v.read_only { return false; }
+            if v.read_only {
+                return false;
+            }
         }
         self.vars.remove(key).is_some()
     }
@@ -91,7 +113,9 @@ impl ProcessEnvBlock {
     }
 
     #[inline(always)]
-    pub fn count(&self) -> usize { self.vars.len() }
+    pub fn count(&self) -> usize {
+        self.vars.len()
+    }
 
     #[inline(always)]
     pub fn keys(&self) -> Vec<&str> {
@@ -100,7 +124,8 @@ impl ProcessEnvBlock {
 
     #[inline]
     pub fn to_envp(&self) -> Vec<String> {
-        self.vars.values()
+        self.vars
+            .values()
             .map(|v| alloc::format!("{}={}", v.key, v.value))
             .collect()
     }
@@ -125,12 +150,16 @@ impl ProcessEnvBlock {
 
     #[inline(always)]
     pub fn mark_sensitive(&mut self, key: &str) {
-        if let Some(v) = self.vars.get_mut(key) { v.sensitive = true; }
+        if let Some(v) = self.vars.get_mut(key) {
+            v.sensitive = true;
+        }
     }
 
     #[inline(always)]
     pub fn mark_readonly(&mut self, key: &str) {
-        if let Some(v) = self.vars.get_mut(key) { v.read_only = true; }
+        if let Some(v) = self.vars.get_mut(key) {
+            v.read_only = true;
+        }
     }
 }
 
@@ -169,9 +198,12 @@ pub struct AppEnvMgr {
 impl AppEnvMgr {
     pub fn new() -> Self {
         Self {
-            blocks: BTreeMap::new(), events: VecDeque::new(),
-            max_events: 4096, default_max_vars: 1024,
-            total_accesses: 0, total_modifications: 0,
+            blocks: BTreeMap::new(),
+            events: VecDeque::new(),
+            max_events: 4096,
+            default_max_vars: 1024,
+            total_accesses: 0,
+            total_modifications: 0,
             blocked_vars: Vec::new(),
         }
     }
@@ -195,13 +227,19 @@ impl AppEnvMgr {
     }
 
     pub fn set_var(&mut self, pid: u32, key: String, value: String, now: u64) -> bool {
-        if self.blocked_vars.iter().any(|b| b == &key) { return false; }
+        if self.blocked_vars.iter().any(|b| b == &key) {
+            return false;
+        }
         if let Some(block) = self.blocks.get_mut(&pid) {
             let old = block.vars.get(&key).map(|v| v.value.clone());
             if block.set(key.clone(), value.clone(), EnvSource::Explicit, now) {
                 self.total_modifications += 1;
                 self.record_event(EnvChangeEvent {
-                    pid, key, old_value: old, new_value: Some(value), timestamp: now,
+                    pid,
+                    key,
+                    old_value: old,
+                    new_value: Some(value),
+                    timestamp: now,
                 });
                 return true;
             }
@@ -221,16 +259,22 @@ impl AppEnvMgr {
             }
             self.blocks.insert(child_pid, child);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn block_var(&mut self, key: String) {
-        if !self.blocked_vars.contains(&key) { self.blocked_vars.push(key); }
+        if !self.blocked_vars.contains(&key) {
+            self.blocked_vars.push(key);
+        }
     }
 
     fn record_event(&mut self, event: EnvChangeEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
+        if self.events.len() >= self.max_events {
+            self.events.remove(0);
+        }
         self.events.push_back(event);
     }
 
@@ -240,7 +284,8 @@ impl AppEnvMgr {
         let total_size: u64 = self.blocks.values().map(|b| b.current_size() as u64).sum();
         EnvMgrStats {
             tracked_processes: self.blocks.len() as u32,
-            total_vars, total_accesses: self.total_accesses,
+            total_vars,
+            total_accesses: self.total_accesses,
             total_modifications: self.total_modifications,
             total_size_bytes: total_size,
         }

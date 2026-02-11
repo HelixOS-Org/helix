@@ -42,11 +42,21 @@ pub struct BioBridgeRecord {
 
 impl BioBridgeRecord {
     pub fn new(op: BioBridgeOp, sector: u64, nr_sectors: u32, is_write: bool) -> Self {
-        Self { op, result: BioBridgeResult::Success, sector, nr_sectors, device_id: 0, is_write, latency_ns: 0 }
+        Self {
+            op,
+            result: BioBridgeResult::Success,
+            sector,
+            nr_sectors,
+            device_id: 0,
+            is_write,
+            latency_ns: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn bytes(&self) -> u64 { self.nr_sectors as u64 * 512 }
+    pub fn bytes(&self) -> u64 {
+        self.nr_sectors as u64 * 512
+    }
 }
 
 /// BIO bridge stats
@@ -71,7 +81,18 @@ pub struct BridgeBio {
 
 impl BridgeBio {
     pub fn new() -> Self {
-        Self { stats: BioBridgeStats { total_ops: 0, submits: 0, completions: 0, merges: 0, splits: 0, errors: 0, total_bytes: 0, total_latency_ns: 0 } }
+        Self {
+            stats: BioBridgeStats {
+                total_ops: 0,
+                submits: 0,
+                completions: 0,
+                merges: 0,
+                splits: 0,
+                errors: 0,
+                total_bytes: 0,
+                total_latency_ns: 0,
+            },
+        }
     }
 
     pub fn record(&mut self, rec: &BioBridgeRecord) {
@@ -83,13 +104,19 @@ impl BridgeBio {
             BioBridgeOp::CompleteBio | BioBridgeOp::EndIo => self.stats.completions += 1,
             BioBridgeOp::MergeBio => self.stats.merges += 1,
             BioBridgeOp::SplitBio => self.stats.splits += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result != BioBridgeResult::Success { self.stats.errors += 1; }
+        if rec.result != BioBridgeResult::Success {
+            self.stats.errors += 1;
+        }
     }
 
     #[inline(always)]
     pub fn merge_rate(&self) -> f64 {
-        if self.stats.submits == 0 { 0.0 } else { self.stats.merges as f64 / self.stats.submits as f64 }
+        if self.stats.submits == 0 {
+            0.0
+        } else {
+            self.stats.merges as f64 / self.stats.submits as f64
+        }
     }
 }

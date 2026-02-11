@@ -7,7 +7,6 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -17,6 +16,7 @@ use super::result::HealingResult;
 use super::types::HealingStrategy;
 use crate::core::{ComponentId, NexusTimestamp};
 use crate::error::{HealingError, NexusResult};
+use crate::fast::linear_map::LinearMap;
 use crate::predict::CrashPrediction;
 
 /// The main healing engine

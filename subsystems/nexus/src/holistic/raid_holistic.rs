@@ -52,15 +52,28 @@ pub struct RaidDisk {
 
 impl RaidDisk {
     pub fn new(disk_id: u64, sectors: u64) -> Self {
-        Self { disk_id, state: RaidDiskState::Active, sectors, read_errors: 0, write_errors: 0, corrected_errors: 0 }
+        Self {
+            disk_id,
+            state: RaidDiskState::Active,
+            sectors,
+            read_errors: 0,
+            write_errors: 0,
+            corrected_errors: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn fail(&mut self) { self.state = RaidDiskState::Faulty; }
+    pub fn fail(&mut self) {
+        self.state = RaidDiskState::Faulty;
+    }
     #[inline(always)]
-    pub fn start_rebuild(&mut self) { self.state = RaidDiskState::Rebuilding; }
+    pub fn start_rebuild(&mut self) {
+        self.state = RaidDiskState::Rebuilding;
+    }
     #[inline(always)]
-    pub fn total_errors(&self) -> u64 { self.read_errors + self.write_errors }
+    pub fn total_errors(&self) -> u64 {
+        self.read_errors + self.write_errors
+    }
 }
 
 /// RAID array
@@ -82,9 +95,17 @@ pub struct RaidArray {
 impl RaidArray {
     pub fn new(array_id: u64, level: RaidLevel, chunk_size_kb: u32) -> Self {
         Self {
-            array_id, level, state: RaidState::Active, disks: Vec::new(),
-            chunk_size_kb, stripe_size_kb: 0, total_sectors: 0, usable_sectors: 0,
-            rebuild_progress_pct: 0.0, scrub_progress_pct: 0.0, mismatch_count: 0,
+            array_id,
+            level,
+            state: RaidState::Active,
+            disks: Vec::new(),
+            chunk_size_kb,
+            stripe_size_kb: 0,
+            total_sectors: 0,
+            usable_sectors: 0,
+            rebuild_progress_pct: 0.0,
+            scrub_progress_pct: 0.0,
+            mismatch_count: 0,
         }
     }
 
@@ -96,9 +117,22 @@ impl RaidArray {
     }
 
     fn recalculate_usable(&mut self) {
-        let n = self.disks.iter().filter(|d| d.state == RaidDiskState::Active).count() as u64;
-        if n == 0 { self.usable_sectors = 0; return; }
-        let per_disk = self.disks.iter().filter(|d| d.state == RaidDiskState::Active).map(|d| d.sectors).min().unwrap_or(0);
+        let n = self
+            .disks
+            .iter()
+            .filter(|d| d.state == RaidDiskState::Active)
+            .count() as u64;
+        if n == 0 {
+            self.usable_sectors = 0;
+            return;
+        }
+        let per_disk = self
+            .disks
+            .iter()
+            .filter(|d| d.state == RaidDiskState::Active)
+            .map(|d| d.sectors)
+            .min()
+            .unwrap_or(0);
         self.usable_sectors = match self.level {
             RaidLevel::Raid0 | RaidLevel::Linear | RaidLevel::Jbod => self.total_sectors,
             RaidLevel::Raid1 => per_disk,
@@ -151,7 +185,13 @@ impl HolisticRaid {
     pub fn new() -> Self {
         Self {
             arrays: BTreeMap::new(),
-            stats: HolisticRaidStats { total_arrays: 0, degraded_arrays: 0, total_disks: 0, faulty_disks: 0, rebuilds: 0 },
+            stats: HolisticRaidStats {
+                total_arrays: 0,
+                degraded_arrays: 0,
+                total_disks: 0,
+                faulty_disks: 0,
+                rebuilds: 0,
+            },
         }
     }
 

@@ -11,8 +11,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Circuit state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -92,11 +92,21 @@ pub struct CircuitBreaker {
 impl CircuitBreaker {
     pub fn new(name: String, config: CircuitConfig) -> Self {
         Self {
-            name, state: CircuitState::Closed, config, window: Vec::new(),
-            total_requests: 0, total_successes: 0, total_failures: 0,
-            total_rejections: 0, consecutive_failures: 0, consecutive_successes: 0,
-            last_failure_ts: 0, last_state_change_ts: 0, half_open_probes: 0,
-            half_open_successes: 0, trip_count: 0,
+            name,
+            state: CircuitState::Closed,
+            config,
+            window: Vec::new(),
+            total_requests: 0,
+            total_successes: 0,
+            total_failures: 0,
+            total_rejections: 0,
+            consecutive_failures: 0,
+            consecutive_successes: 0,
+            last_failure_ts: 0,
+            last_state_change_ts: 0,
+            half_open_probes: 0,
+            half_open_successes: 0,
+            trip_count: 0,
             current_backoff_ns: config.open_timeout_ns,
         }
     }
@@ -105,7 +115,9 @@ impl CircuitBreaker {
     pub fn can_execute(&self, now: u64) -> bool {
         match self.state {
             CircuitState::Closed => true,
-            CircuitState::Open => now.saturating_sub(self.last_state_change_ts) >= self.current_backoff_ns,
+            CircuitState::Open => {
+                now.saturating_sub(self.last_state_change_ts) >= self.current_backoff_ns
+            },
             CircuitState::HalfOpen => self.half_open_probes < self.config.half_open_max_probes,
         }
     }
@@ -115,7 +127,12 @@ impl CircuitBreaker {
         self.total_successes += 1;
         self.consecutive_successes += 1;
         self.consecutive_failures = 0;
-        self.window.push(WindowEntry { timestamp: now, success: true, latency_ns, failure_type: None });
+        self.window.push(WindowEntry {
+            timestamp: now,
+            success: true,
+            latency_ns,
+            failure_type: None,
+        });
         self.trim_window(now);
 
         match self.state {
@@ -124,8 +141,8 @@ impl CircuitBreaker {
                 if self.half_open_successes >= self.config.success_threshold_to_close {
                     self.transition(CircuitState::Closed, now);
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -135,22 +152,31 @@ impl CircuitBreaker {
         self.consecutive_failures += 1;
         self.consecutive_successes = 0;
         self.last_failure_ts = now;
-        self.window.push(WindowEntry { timestamp: now, success: false, latency_ns, failure_type: Some(failure) });
+        self.window.push(WindowEntry {
+            timestamp: now,
+            success: false,
+            latency_ns,
+            failure_type: Some(failure),
+        });
         self.trim_window(now);
 
         match self.state {
             CircuitState::Closed => {
-                if self.should_trip() { self.trip(now); }
-            }
+                if self.should_trip() {
+                    self.trip(now);
+                }
+            },
             CircuitState::HalfOpen => {
                 self.trip(now);
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
     #[inline(always)]
-    pub fn record_rejection(&mut self) { self.total_rejections += 1; }
+    pub fn record_rejection(&mut self) {
+        self.total_rejections += 1;
+    }
 
     fn trim_window(&mut self, now: u64) {
         let cutoff = now.saturating_sub(self.config.window_size_ns);
@@ -159,7 +185,9 @@ impl CircuitBreaker {
 
     fn should_trip(&self) -> bool {
         let total = self.window.len() as u32;
-        if total < self.config.min_requests { return false; }
+        if total < self.config.min_requests {
+            return false;
+        }
         let failures = self.window.iter().filter(|e| !e.success).count() as f64;
         let rate = failures / total as f64;
         rate >= self.config.failure_threshold
@@ -194,21 +222,27 @@ impl CircuitBreaker {
 
     #[inline]
     pub fn failure_rate(&self) -> f64 {
-        if self.window.is_empty() { return 0.0; }
+        if self.window.is_empty() {
+            return 0.0;
+        }
         let failures = self.window.iter().filter(|e| !e.success).count() as f64;
         failures / self.window.len() as f64
     }
 
     #[inline]
     pub fn avg_latency_ns(&self) -> f64 {
-        if self.window.is_empty() { return 0.0; }
+        if self.window.is_empty() {
+            return 0.0;
+        }
         let sum: u64 = self.window.iter().map(|e| e.latency_ns).sum();
         sum as f64 / self.window.len() as f64
     }
 
     #[inline]
     pub fn p99_latency_ns(&self) -> u64 {
-        if self.window.is_empty() { return 0; }
+        if self.window.is_empty() {
+            return 0;
+        }
         let mut latencies: Vec<u64> = self.window.iter().map(|e| e.latency_ns).collect();
         latencies.sort_unstable();
         let idx = ((latencies.len() as f64) * 0.99) as usize;
@@ -230,19 +264,38 @@ pub struct Bulkhead {
 
 impl Bulkhead {
     pub fn new(name: String, max_concurrent: u32, max_queue: u32) -> Self {
-        Self { name, max_concurrent, current_concurrent: 0, queue_size: 0, max_queue, total_accepted: 0, total_rejected: 0 }
+        Self {
+            name,
+            max_concurrent,
+            current_concurrent: 0,
+            queue_size: 0,
+            max_queue,
+            total_accepted: 0,
+            total_rejected: 0,
+        }
     }
 
     #[inline]
     pub fn try_acquire(&mut self) -> bool {
-        if self.current_concurrent < self.max_concurrent { self.current_concurrent += 1; self.total_accepted += 1; true }
-        else if self.queue_size < self.max_queue { self.queue_size += 1; self.total_accepted += 1; true }
-        else { self.total_rejected += 1; false }
+        if self.current_concurrent < self.max_concurrent {
+            self.current_concurrent += 1;
+            self.total_accepted += 1;
+            true
+        } else if self.queue_size < self.max_queue {
+            self.queue_size += 1;
+            self.total_accepted += 1;
+            true
+        } else {
+            self.total_rejected += 1;
+            false
+        }
     }
 
     #[inline]
     pub fn release(&mut self) {
-        if self.current_concurrent > 0 { self.current_concurrent -= 1; }
+        if self.current_concurrent > 0 {
+            self.current_concurrent -= 1;
+        }
         if self.queue_size > 0 && self.current_concurrent < self.max_concurrent {
             self.queue_size -= 1;
             self.current_concurrent += 1;
@@ -251,7 +304,9 @@ impl Bulkhead {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.max_concurrent == 0 { return 0.0; }
+        if self.max_concurrent == 0 {
+            return 0.0;
+        }
         self.current_concurrent as f64 / self.max_concurrent as f64
     }
 }
@@ -279,65 +334,113 @@ pub struct CoopCircuitBreaker {
 
 impl CoopCircuitBreaker {
     pub fn new() -> Self {
-        Self { circuits: BTreeMap::new(), bulkheads: BTreeMap::new(), stats: CircuitBreakerStats::default(), next_id: 1 }
+        Self {
+            circuits: BTreeMap::new(),
+            bulkheads: BTreeMap::new(),
+            stats: CircuitBreakerStats::default(),
+            next_id: 1,
+        }
     }
 
     fn name_hash(name: &str) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
-        for b in name.bytes() { hash ^= b as u64; hash = hash.wrapping_mul(0x100000001b3); }
+        for b in name.bytes() {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
         hash
     }
 
     #[inline]
     pub fn create_circuit(&mut self, name: String, config: CircuitConfig) -> u64 {
         let id = Self::name_hash(&name);
-        self.circuits.entry(id).or_insert_with(|| CircuitBreaker::new(name, config));
+        self.circuits
+            .entry(id)
+            .or_insert_with(|| CircuitBreaker::new(name, config));
         id
     }
 
     #[inline]
     pub fn create_bulkhead(&mut self, name: String, max_concurrent: u32, max_queue: u32) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.bulkheads.insert(id, Bulkhead::new(name, max_concurrent, max_queue));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.bulkheads
+            .insert(id, Bulkhead::new(name, max_concurrent, max_queue));
         id
     }
 
     #[inline(always)]
     pub fn can_execute(&self, circuit_id: u64, now: u64) -> bool {
-        self.circuits.get(&circuit_id).map_or(false, |c| c.can_execute(now))
+        self.circuits
+            .get(&circuit_id)
+            .map_or(false, |c| c.can_execute(now))
     }
 
     #[inline(always)]
     pub fn record_success(&mut self, circuit_id: u64, now: u64, latency_ns: u64) {
-        if let Some(c) = self.circuits.get_mut(&circuit_id) { c.record_success(now, latency_ns); }
+        if let Some(c) = self.circuits.get_mut(&circuit_id) {
+            c.record_success(now, latency_ns);
+        }
     }
 
     #[inline(always)]
-    pub fn record_failure(&mut self, circuit_id: u64, now: u64, latency_ns: u64, failure: FailureType) {
-        if let Some(c) = self.circuits.get_mut(&circuit_id) { c.record_failure(now, latency_ns, failure); }
+    pub fn record_failure(
+        &mut self,
+        circuit_id: u64,
+        now: u64,
+        latency_ns: u64,
+        failure: FailureType,
+    ) {
+        if let Some(c) = self.circuits.get_mut(&circuit_id) {
+            c.record_failure(now, latency_ns, failure);
+        }
     }
 
     #[inline(always)]
     pub fn tick(&mut self, now: u64) {
-        for c in self.circuits.values_mut() { c.check_transition(now); }
+        for c in self.circuits.values_mut() {
+            c.check_transition(now);
+        }
     }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_circuits = self.circuits.len();
-        self.stats.closed_circuits = self.circuits.values().filter(|c| c.state == CircuitState::Closed).count();
-        self.stats.open_circuits = self.circuits.values().filter(|c| c.state == CircuitState::Open).count();
-        self.stats.half_open_circuits = self.circuits.values().filter(|c| c.state == CircuitState::HalfOpen).count();
+        self.stats.closed_circuits = self
+            .circuits
+            .values()
+            .filter(|c| c.state == CircuitState::Closed)
+            .count();
+        self.stats.open_circuits = self
+            .circuits
+            .values()
+            .filter(|c| c.state == CircuitState::Open)
+            .count();
+        self.stats.half_open_circuits = self
+            .circuits
+            .values()
+            .filter(|c| c.state == CircuitState::HalfOpen)
+            .count();
         self.stats.total_trips = self.circuits.values().map(|c| c.trip_count).sum();
         self.stats.total_bulkheads = self.bulkheads.len();
         let rates: Vec<f64> = self.circuits.values().map(|c| c.failure_rate()).collect();
-        self.stats.avg_failure_rate = if rates.is_empty() { 0.0 } else { rates.iter().sum::<f64>() / rates.len() as f64 };
+        self.stats.avg_failure_rate = if rates.is_empty() {
+            0.0
+        } else {
+            rates.iter().sum::<f64>() / rates.len() as f64
+        };
     }
 
     #[inline(always)]
-    pub fn circuit(&self, id: u64) -> Option<&CircuitBreaker> { self.circuits.get(&id) }
+    pub fn circuit(&self, id: u64) -> Option<&CircuitBreaker> {
+        self.circuits.get(&id)
+    }
     #[inline(always)]
-    pub fn bulkhead(&self, id: u64) -> Option<&Bulkhead> { self.bulkheads.get(&id) }
+    pub fn bulkhead(&self, id: u64) -> Option<&Bulkhead> {
+        self.bulkheads.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &CircuitBreakerStats { &self.stats }
+    pub fn stats(&self) -> &CircuitBreakerStats {
+        &self.stats
+    }
 }

@@ -2,12 +2,11 @@
 //!
 //! Predicts connection patterns.
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
+use crate::fast::array_map::ArrayMap;
 
 /// Connection pattern for a source
 #[derive(Debug, Clone)]

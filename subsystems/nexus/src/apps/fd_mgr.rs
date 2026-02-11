@@ -62,14 +62,25 @@ pub struct FileDescription {
 impl FileDescription {
     pub fn new(id: u64, ftype: FdType, inode: u64, mode: u32) -> Self {
         Self {
-            id, fd_type: ftype, inode, offset: 0, ref_count: 1,
-            mode, flags: FdFlags::default(), path_hash: 0,
-            read_bytes: 0, write_bytes: 0, read_ops: 0, write_ops: 0,
+            id,
+            fd_type: ftype,
+            inode,
+            offset: 0,
+            ref_count: 1,
+            mode,
+            flags: FdFlags::default(),
+            path_hash: 0,
+            read_bytes: 0,
+            write_bytes: 0,
+            read_ops: 0,
+            write_ops: 0,
         }
     }
 
     #[inline(always)]
-    pub fn add_ref(&mut self) { self.ref_count += 1; }
+    pub fn add_ref(&mut self) {
+        self.ref_count += 1;
+    }
     #[inline(always)]
     pub fn release(&mut self) -> bool {
         self.ref_count = self.ref_count.saturating_sub(1);
@@ -113,14 +124,22 @@ impl ProcessFdTable {
     }
 
     pub fn alloc_fd(&mut self, desc_id: u64, flags: FdFlags, ts: u64) -> Option<i32> {
-        if self.entries.len() >= self.fd_limit as usize { return None; }
+        if self.entries.len() >= self.fd_limit as usize {
+            return None;
+        }
 
         // Find lowest available FD
         let mut fd = 0i32;
-        while self.entries.contains_key(&fd) { fd += 1; }
+        while self.entries.contains_key(&fd) {
+            fd += 1;
+        }
 
         self.entries.insert(fd, FdEntry {
-            fd, description_id: desc_id, flags, opened_ns: ts, last_io_ns: 0,
+            fd,
+            description_id: desc_id,
+            flags,
+            opened_ns: ts,
+            last_io_ns: 0,
         });
         self.total_opens += 1;
         if self.entries.len() > self.peak_fd_count {
@@ -134,7 +153,9 @@ impl ProcessFdTable {
         if let Some(entry) = self.entries.remove(&fd) {
             self.total_closes += 1;
             Some(entry.description_id)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -145,22 +166,29 @@ impl ProcessFdTable {
     }
 
     pub fn dup2(&mut self, oldfd: i32, newfd: i32, ts: u64) -> Option<i32> {
-        if oldfd == newfd { return Some(newfd); }
+        if oldfd == newfd {
+            return Some(newfd);
+        }
         let desc_id = self.entries.get(&oldfd)?.description_id;
 
         // Close newfd if open
         self.entries.remove(&newfd);
 
         self.entries.insert(newfd, FdEntry {
-            fd: newfd, description_id: desc_id,
-            flags: FdFlags::default(), opened_ns: ts, last_io_ns: 0,
+            fd: newfd,
+            description_id: desc_id,
+            flags: FdFlags::default(),
+            opened_ns: ts,
+            last_io_ns: 0,
         });
         self.total_opens += 1;
         Some(newfd)
     }
 
     pub fn dup3(&mut self, oldfd: i32, newfd: i32, cloexec: bool, ts: u64) -> Option<i32> {
-        if oldfd == newfd { return None; } // dup3 fails if equal
+        if oldfd == newfd {
+            return None;
+        } // dup3 fails if equal
         let desc_id = self.entries.get(&oldfd)?.description_id;
 
         self.entries.remove(&newfd);
@@ -168,8 +196,11 @@ impl ProcessFdTable {
         let mut flags = FdFlags::default();
         flags.cloexec = cloexec;
         self.entries.insert(newfd, FdEntry {
-            fd: newfd, description_id: desc_id,
-            flags, opened_ns: ts, last_io_ns: 0,
+            fd: newfd,
+            description_id: desc_id,
+            flags,
+            opened_ns: ts,
+            last_io_ns: 0,
         });
         self.total_opens += 1;
         Some(newfd)
@@ -180,16 +211,22 @@ impl ProcessFdTable {
         if let Some(entry) = self.entries.get_mut(&fd) {
             entry.flags.cloexec = cloexec;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn close_cloexec(&mut self) -> Vec<i32> {
-        let to_close: Vec<i32> = self.entries.iter()
+        let to_close: Vec<i32> = self
+            .entries
+            .iter()
             .filter(|(_, e)| e.flags.cloexec)
             .map(|(&fd, _)| fd)
             .collect();
-        for fd in &to_close { self.entries.remove(fd); }
+        for fd in &to_close {
+            self.entries.remove(fd);
+        }
         to_close
     }
 
@@ -203,9 +240,13 @@ impl ProcessFdTable {
     }
 
     #[inline(always)]
-    pub fn fd_count(&self) -> usize { self.entries.len() }
+    pub fn fd_count(&self) -> usize {
+        self.entries.len()
+    }
     #[inline(always)]
-    pub fn get(&self, fd: i32) -> Option<&FdEntry> { self.entries.get(&fd) }
+    pub fn get(&self, fd: i32) -> Option<&FdEntry> {
+        self.entries.get(&fd)
+    }
 }
 
 /// Leak detection heuristic
@@ -252,14 +293,25 @@ impl AppsFdMgr {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64, fd_limit: u32) {
-        self.tables.entry(pid).or_insert_with(|| ProcessFdTable::new(pid, fd_limit));
+        self.tables
+            .entry(pid)
+            .or_insert_with(|| ProcessFdTable::new(pid, fd_limit));
     }
 
     #[inline]
-    pub fn open(&mut self, pid: u64, ftype: FdType, inode: u64, mode: u32, flags: FdFlags, ts: u64) -> Option<i32> {
+    pub fn open(
+        &mut self,
+        pid: u64,
+        ftype: FdType,
+        inode: u64,
+        mode: u32,
+        flags: FdFlags,
+        ts: u64,
+    ) -> Option<i32> {
         let desc_id = self.next_desc_id;
         self.next_desc_id += 1;
-        self.descriptions.insert(desc_id, FileDescription::new(desc_id, ftype, inode, mode));
+        self.descriptions
+            .insert(desc_id, FileDescription::new(desc_id, ftype, inode, mode));
 
         self.tables.get_mut(&pid)?.alloc_fd(desc_id, flags, ts)
     }
@@ -281,7 +333,9 @@ impl AppsFdMgr {
     #[inline]
     pub fn dup(&mut self, pid: u64, oldfd: i32, ts: u64) -> Option<i32> {
         let desc_id = self.tables.get(&pid)?.get(oldfd)?.description_id;
-        if let Some(desc) = self.descriptions.get_mut(&desc_id) { desc.add_ref(); }
+        if let Some(desc) = self.descriptions.get_mut(&desc_id) {
+            desc.add_ref();
+        }
         self.tables.get_mut(&pid)?.dup(oldfd, ts)
     }
 
@@ -303,7 +357,9 @@ impl AppsFdMgr {
         if let Some(table) = self.tables.remove(&pid) {
             for entry in table.entries.values() {
                 if let Some(desc) = self.descriptions.get_mut(&entry.description_id) {
-                    if desc.release() { self.descriptions.remove(&entry.description_id); }
+                    if desc.release() {
+                        self.descriptions.remove(&entry.description_id);
+                    }
                 }
             }
         }
@@ -315,12 +371,25 @@ impl AppsFdMgr {
         self.stats.total_fds = self.tables.values().map(|t| t.fd_count()).sum();
         self.stats.total_opens = self.tables.values().map(|t| t.total_opens).sum();
         self.stats.total_closes = self.tables.values().map(|t| t.total_closes).sum();
-        self.stats.peak_fds = self.tables.values().map(|t| t.peak_fd_count).max().unwrap_or(0);
-        self.stats.suspected_leaks = self.leak_checks.values().map(|l| l.suspected_leaks.len()).sum();
+        self.stats.peak_fds = self
+            .tables
+            .values()
+            .map(|t| t.peak_fd_count)
+            .max()
+            .unwrap_or(0);
+        self.stats.suspected_leaks = self
+            .leak_checks
+            .values()
+            .map(|l| l.suspected_leaks.len())
+            .sum();
     }
 
     #[inline(always)]
-    pub fn table(&self, pid: u64) -> Option<&ProcessFdTable> { self.tables.get(&pid) }
+    pub fn table(&self, pid: u64) -> Option<&ProcessFdTable> {
+        self.tables.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsFdMgrStats { &self.stats }
+    pub fn stats(&self) -> &AppsFdMgrStats {
+        &self.stats
+    }
 }

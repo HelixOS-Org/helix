@@ -68,7 +68,11 @@ impl VmaRssEntry {
     #[inline(always)]
     pub fn residency_ratio(&self) -> f64 {
         let total = self.size_pages();
-        if total == 0 { 0.0 } else { self.rss_pages as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.rss_pages as f64 / total as f64
+        }
     }
 
     #[inline(always)]
@@ -119,7 +123,11 @@ impl ProcessRssProfile {
     /// Record an RSS sample
     pub fn record_sample(&mut self, sample: RssSample) {
         let prev_rss = self.current_rss_pages;
-        let prev_ts = self.rss_history.last().map(|s| s.timestamp_ns).unwrap_or(sample.timestamp_ns);
+        let prev_ts = self
+            .rss_history
+            .last()
+            .map(|s| s.timestamp_ns)
+            .unwrap_or(sample.timestamp_ns);
 
         self.current_rss_pages = sample.rss_pages;
         self.current_swap_pages = sample.swap_pages;
@@ -133,8 +141,8 @@ impl ProcessRssProfile {
         // Growth rate
         let dt = sample.timestamp_ns.saturating_sub(prev_ts);
         if dt > 0 && self.sample_count > 0 {
-            let instant_rate = (sample.rss_pages as f64 - prev_rss as f64)
-                / (dt as f64 / 1_000_000_000.0);
+            let instant_rate =
+                (sample.rss_pages as f64 - prev_rss as f64) / (dt as f64 / 1_000_000_000.0);
             self.growth_rate = 0.8 * self.growth_rate + 0.2 * instant_rate;
         }
 
@@ -165,13 +173,21 @@ impl ProcessRssProfile {
     /// RSS by category
     pub fn rss_by_category(&self) -> Vec<(VmaCategory, u64)> {
         let cats = [
-            VmaCategory::Code, VmaCategory::Data, VmaCategory::Heap,
-            VmaCategory::AnonMmap, VmaCategory::FileMmap, VmaCategory::Stack,
-            VmaCategory::SharedMem, VmaCategory::Device, VmaCategory::Other,
+            VmaCategory::Code,
+            VmaCategory::Data,
+            VmaCategory::Heap,
+            VmaCategory::AnonMmap,
+            VmaCategory::FileMmap,
+            VmaCategory::Stack,
+            VmaCategory::SharedMem,
+            VmaCategory::Device,
+            VmaCategory::Other,
         ];
         cats.iter()
             .filter_map(|&cat| {
-                self.category_rss.get(&(cat as u8)).map(|&pages| (cat, pages))
+                self.category_rss
+                    .get(&(cat as u8))
+                    .map(|&pages| (cat, pages))
             })
             .collect()
     }
@@ -179,7 +195,9 @@ impl ProcessRssProfile {
     /// Shared memory ratio
     #[inline]
     pub fn shared_ratio(&self) -> f64 {
-        if self.current_rss_pages == 0 { 0.0 } else {
+        if self.current_rss_pages == 0 {
+            0.0
+        } else {
             self.total_shared_pages as f64 / self.current_rss_pages as f64
         }
     }
@@ -189,11 +207,13 @@ impl ProcessRssProfile {
         if self.rss_history.len() < 16 {
             return false;
         }
-        let sorted: Vec<u64> = self.rss_history.iter()
-            .map(|s| s.rss_pages)
-            .collect();
+        let sorted: Vec<u64> = self.rss_history.iter().map(|s| s.rss_pages).collect();
         // Check last 16 samples
-        let start = if sorted.len() > 16 { sorted.len() - 16 } else { 0 };
+        let start = if sorted.len() > 16 {
+            sorted.len() - 16
+        } else {
+            0
+        };
         let recent = &sorted[start..];
         let increases = recent.windows(2).filter(|w| w[1] >= w[0]).count();
         increases as f64 / (recent.len() - 1) as f64 > 0.85
@@ -202,7 +222,9 @@ impl ProcessRssProfile {
     /// Memory bloat ratio: current / peak
     #[inline]
     pub fn bloat_ratio(&self) -> f64 {
-        if self.peak_rss_pages == 0 { 0.0 } else {
+        if self.peak_rss_pages == 0 {
+            0.0
+        } else {
             self.current_rss_pages as f64 / self.peak_rss_pages as f64
         }
     }
@@ -210,22 +232,25 @@ impl ProcessRssProfile {
     /// Estimated PSS (proportional set size)
     #[inline]
     pub fn estimated_pss_pages(&self) -> f64 {
-        self.vma_breakdown.values()
-            .map(|v| v.pss_pages())
-            .sum()
+        self.vma_breakdown.values().map(|v| v.pss_pages()).sum()
     }
 
     /// Swap pressure (swap / (rss + swap))
     #[inline(always)]
     pub fn swap_pressure(&self) -> f64 {
         let total = self.current_rss_pages + self.current_swap_pages;
-        if total == 0 { 0.0 } else { self.current_swap_pages as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.current_swap_pages as f64 / total as f64
+        }
     }
 
     /// Reclaimable pages (file-backed with low residency)
     #[inline]
     pub fn reclaimable_estimate(&self) -> u64 {
-        self.vma_breakdown.values()
+        self.vma_breakdown
+            .values()
             .filter(|v| v.category == VmaCategory::FileMmap && !v.referenced)
             .map(|v| v.rss_pages)
             .sum()
@@ -261,7 +286,8 @@ impl AppRssTracker {
 
     #[inline]
     pub fn record_sample(&mut self, pid: u64, sample: RssSample) {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessRssProfile::new(pid))
             .record_sample(sample);
         self.update_stats();
@@ -269,27 +295,39 @@ impl AppRssTracker {
 
     #[inline]
     pub fn update_vma(&mut self, pid: u64, entry: VmaRssEntry) {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessRssProfile::new(pid))
             .update_vma(entry);
     }
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.total_rss_pages = self.processes.values()
-            .map(|p| p.current_rss_pages).sum();
-        self.stats.total_swap_pages = self.processes.values()
-            .map(|p| p.current_swap_pages).sum();
-        self.stats.peak_rss_pages = self.processes.values()
-            .map(|p| p.peak_rss_pages).max().unwrap_or(0);
-        self.stats.growing_processes = self.processes.values()
-            .filter(|p| p.is_monotonic_growth()).count();
-        self.stats.high_swap_count = self.processes.values()
-            .filter(|p| p.swap_pressure() > 0.3).count();
+        self.stats.total_rss_pages = self.processes.values().map(|p| p.current_rss_pages).sum();
+        self.stats.total_swap_pages = self.processes.values().map(|p| p.current_swap_pages).sum();
+        self.stats.peak_rss_pages = self
+            .processes
+            .values()
+            .map(|p| p.peak_rss_pages)
+            .max()
+            .unwrap_or(0);
+        self.stats.growing_processes = self
+            .processes
+            .values()
+            .filter(|p| p.is_monotonic_growth())
+            .count();
+        self.stats.high_swap_count = self
+            .processes
+            .values()
+            .filter(|p| p.swap_pressure() > 0.3)
+            .count();
         if !self.processes.is_empty() {
-            self.stats.avg_shared_ratio = self.processes.values()
+            self.stats.avg_shared_ratio = self
+                .processes
+                .values()
                 .map(|p| p.shared_ratio())
-                .sum::<f64>() / self.processes.len() as f64;
+                .sum::<f64>()
+                / self.processes.len() as f64;
         }
     }
 
@@ -301,7 +339,9 @@ impl AppRssTracker {
     /// Top RSS consumers
     #[inline]
     pub fn top_consumers(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut procs: Vec<(u64, u64)> = self.processes.iter()
+        let mut procs: Vec<(u64, u64)> = self
+            .processes
+            .iter()
             .map(|(&pid, p)| (pid, p.current_rss_pages))
             .collect();
         procs.sort_by(|a, b| b.1.cmp(&a.1));
@@ -312,7 +352,8 @@ impl AppRssTracker {
     /// Processes with monotonic RSS growth (potential leaks)
     #[inline]
     pub fn leaking_candidates(&self) -> Vec<u64> {
-        self.processes.iter()
+        self.processes
+            .iter()
             .filter(|(_, p)| p.is_monotonic_growth() && p.current_rss_pages > 1024)
             .map(|(&pid, _)| pid)
             .collect()

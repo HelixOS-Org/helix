@@ -63,10 +63,18 @@ impl MountFlags {
     #[inline]
     pub fn security_score(&self) -> u32 {
         let mut score = 0u32;
-        if self.contains(Self::NOSUID) { score += 2; }
-        if self.contains(Self::NODEV) { score += 2; }
-        if self.contains(Self::NOEXEC) { score += 3; }
-        if self.contains(Self::RDONLY) { score += 3; }
+        if self.contains(Self::NOSUID) {
+            score += 2;
+        }
+        if self.contains(Self::NODEV) {
+            score += 2;
+        }
+        if self.contains(Self::NOEXEC) {
+            score += 3;
+        }
+        if self.contains(Self::RDONLY) {
+            score += 3;
+        }
         score
     }
 }
@@ -125,13 +133,18 @@ impl MountEntry {
     #[inline]
     pub fn write_ratio(&self) -> f64 {
         let total = self.total_io();
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.io_writes as f64 / total as f64
     }
 
     #[inline(always)]
     pub fn is_pseudo_fs(&self) -> bool {
-        matches!(self.mount_type, MountType::Proc | MountType::Sysfs | MountType::Devpts | MountType::Cgroup)
+        matches!(
+            self.mount_type,
+            MountType::Proc | MountType::Sysfs | MountType::Devpts | MountType::Cgroup
+        )
     }
 
     #[inline(always)]
@@ -217,7 +230,9 @@ impl AppMountState {
 
     #[inline(always)]
     pub fn failure_rate(&self) -> f64 {
-        if self.mount_ops == 0 { return 0.0; }
+        if self.mount_ops == 0 {
+            return 0.0;
+        }
         self.mount_failures as f64 / self.mount_ops as f64
     }
 
@@ -272,7 +287,8 @@ impl AppMountMgr {
     pub fn create_namespace(&mut self, owner_pid: u64, timestamp_ns: u64) -> u64 {
         let id = self.next_ns_id;
         self.next_ns_id += 1;
-        self.namespaces.insert(id, MountNamespace::new(id, owner_pid, timestamp_ns));
+        self.namespaces
+            .insert(id, MountNamespace::new(id, owner_pid, timestamp_ns));
         self.stats.total_namespaces += 1;
         id
     }
@@ -282,7 +298,15 @@ impl AppMountMgr {
         self.app_states.insert(pid, AppMountState::new(pid, ns_id));
     }
 
-    pub fn mount(&mut self, ns_id: u64, pid: u64, mount_point: String, fs_type: String, mount_type: MountType, flags: MountFlags) -> Option<u64> {
+    pub fn mount(
+        &mut self,
+        ns_id: u64,
+        pid: u64,
+        mount_point: String,
+        fs_type: String,
+        mount_type: MountType,
+        flags: MountFlags,
+    ) -> Option<u64> {
         self.stats.total_mount_ops += 1;
         if let Some(app) = self.app_states.get_mut(&pid) {
             app.mount_ops += 1;
@@ -348,12 +372,17 @@ impl AppMountMgr {
 
     #[inline(always)]
     pub fn mounts_under(&self, path: &str) -> Vec<&MountEntry> {
-        self.mounts.values().filter(|m| m.is_child_of(path)).collect()
+        self.mounts
+            .values()
+            .filter(|m| m.is_child_of(path))
+            .collect()
     }
 
     #[inline]
     pub fn least_secure_mounts(&self, top: usize) -> Vec<(u64, u32)> {
-        let mut v: Vec<(u64, u32)> = self.mounts.iter()
+        let mut v: Vec<(u64, u32)> = self
+            .mounts
+            .iter()
             .map(|(&id, m)| (id, m.flags.security_score()))
             .collect();
         v.sort_by_key(|&(_, score)| score);
@@ -363,7 +392,9 @@ impl AppMountMgr {
 
     #[inline]
     pub fn busiest_mounts(&self, top: usize) -> Vec<(u64, u64)> {
-        let mut v: Vec<(u64, u64)> = self.mounts.iter()
+        let mut v: Vec<(u64, u64)> = self
+            .mounts
+            .iter()
             .map(|(&id, m)| (id, m.total_io()))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));

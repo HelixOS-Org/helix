@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // TRACE TYPES
@@ -166,7 +167,10 @@ impl AppCallGraph {
             }
         }
 
-        let node = self.nodes.entry(addr).or_insert_with(|| CallNode::new(addr));
+        let node = self
+            .nodes
+            .entry(addr)
+            .or_insert_with(|| CallNode::new(addr));
         node.enter(now);
         self.stack.push(addr);
     }
@@ -332,11 +336,11 @@ impl AppTraceProfiler {
         match event.event_type {
             AppTraceEventType::FunctionEntry => {
                 graph.on_entry(event.ip, event.timestamp);
-            }
+            },
             AppTraceEventType::FunctionExit => {
                 graph.on_exit(event.ip, event.timestamp);
-            }
-            _ => {}
+            },
+            _ => {},
         }
         self.stats.total_events += 1;
         self.update_stats();

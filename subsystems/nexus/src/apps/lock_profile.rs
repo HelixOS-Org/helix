@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Lock type classification
@@ -85,30 +84,42 @@ impl LockProfile {
 
     #[inline(always)]
     pub fn contention_rate(&self) -> f64 {
-        if self.acquisitions == 0 { return 0.0; }
+        if self.acquisitions == 0 {
+            return 0.0;
+        }
         self.contentions as f64 / self.acquisitions as f64
     }
 
     #[inline(always)]
     pub fn avg_hold_ns(&self) -> u64 {
-        if self.acquisitions == 0 { return 0; }
+        if self.acquisitions == 0 {
+            return 0;
+        }
         self.total_hold_ns / self.acquisitions
     }
 
     #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
-        if self.contentions == 0 { return 0; }
+        if self.contentions == 0 {
+            return 0;
+        }
         self.total_wait_ns / self.contentions
     }
 
     #[inline]
     pub fn severity(&self) -> ContentionSeverity {
         let rate = self.contention_rate();
-        if rate < 0.01 { ContentionSeverity::None }
-        else if rate < 0.1 { ContentionSeverity::Low }
-        else if rate < 0.3 { ContentionSeverity::Moderate }
-        else if rate < 0.6 { ContentionSeverity::High }
-        else { ContentionSeverity::Critical }
+        if rate < 0.01 {
+            ContentionSeverity::None
+        } else if rate < 0.1 {
+            ContentionSeverity::Low
+        } else if rate < 0.3 {
+            ContentionSeverity::Moderate
+        } else if rate < 0.6 {
+            ContentionSeverity::High
+        } else {
+            ContentionSeverity::Critical
+        }
     }
 
     #[inline]
@@ -117,7 +128,9 @@ impl LockProfile {
         if wait_ns > 0 {
             self.contentions += 1;
             self.total_wait_ns += wait_ns;
-            if wait_ns > self.max_wait_ns { self.max_wait_ns = wait_ns; }
+            if wait_ns > self.max_wait_ns {
+                self.max_wait_ns = wait_ns;
+            }
         }
         self.current_holder = Some(thread_id);
         self.waiters.retain(|&t| t != thread_id);
@@ -126,7 +139,9 @@ impl LockProfile {
     #[inline]
     pub fn release(&mut self, hold_ns: u64) {
         self.total_hold_ns += hold_ns;
-        if hold_ns > self.max_hold_ns { self.max_hold_ns = hold_ns; }
+        if hold_ns > self.max_hold_ns {
+            self.max_hold_ns = hold_ns;
+        }
         self.current_holder = None;
     }
 
@@ -196,20 +211,27 @@ impl ProcessLockProfile {
 
     #[inline(always)]
     pub fn register_lock(&mut self, lock_id: u64, lock_type: LockType, addr: u64) {
-        self.locks.entry(lock_id).or_insert_with(|| LockProfile::new(lock_id, lock_type, addr));
+        self.locks
+            .entry(lock_id)
+            .or_insert_with(|| LockProfile::new(lock_id, lock_type, addr));
     }
 
     #[inline]
     pub fn hottest_lock(&self) -> Option<u64> {
-        self.locks.values()
+        self.locks
+            .values()
             .max_by_key(|l| l.contentions)
             .map(|l| l.lock_id)
     }
 
     #[inline]
     pub fn critical_locks(&self) -> Vec<u64> {
-        self.locks.values()
-            .filter(|l| l.severity() == ContentionSeverity::High || l.severity() == ContentionSeverity::Critical)
+        self.locks
+            .values()
+            .filter(|l| {
+                l.severity() == ContentionSeverity::High
+                    || l.severity() == ContentionSeverity::Critical
+            })
             .map(|l| l.lock_id)
             .collect()
     }
@@ -219,7 +241,9 @@ impl ProcessLockProfile {
         // Build adjacency list
         let mut adj: BTreeMap<u64, Vec<u64>> = BTreeMap::new();
         for edge in &self.order_edges {
-            adj.entry(edge.from_lock).or_insert_with(Vec::new).push(edge.to_lock);
+            adj.entry(edge.from_lock)
+                .or_insert_with(Vec::new)
+                .push(edge.to_lock);
         }
 
         // DFS cycle detection
@@ -276,7 +300,9 @@ impl AppLockProfiler {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.profiles.entry(pid).or_insert_with(|| ProcessLockProfile::new(pid));
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ProcessLockProfile::new(pid));
     }
 
     #[inline]
@@ -308,12 +334,18 @@ impl AppLockProfiler {
 
     pub fn record_order(&mut self, pid: u64, from_lock: u64, to_lock: u64, thread_id: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
-            if let Some(edge) = profile.order_edges.iter_mut()
-                .find(|e| e.from_lock == from_lock && e.to_lock == to_lock) {
+            if let Some(edge) = profile
+                .order_edges
+                .iter_mut()
+                .find(|e| e.from_lock == from_lock && e.to_lock == to_lock)
+            {
                 edge.count += 1;
             } else {
                 profile.order_edges.push(LockOrderEdge {
-                    from_lock, to_lock, thread_id, count: 1,
+                    from_lock,
+                    to_lock,
+                    thread_id,
+                    count: 1,
                 });
             }
             profile.detect_deadlock_potential();
@@ -335,13 +367,18 @@ impl AppLockProfiler {
     fn recompute(&mut self) {
         self.stats.total_processes = self.profiles.len();
         self.stats.total_locks_tracked = self.profiles.values().map(|p| p.locks.len()).sum();
-        self.stats.total_contentions = self.profiles.values()
+        self.stats.total_contentions = self
+            .profiles
+            .values()
             .flat_map(|p| p.locks.values())
             .map(|l| l.contentions)
             .sum();
         self.stats.total_inversions = self.profiles.values().map(|p| p.inversions.len()).sum();
-        self.stats.deadlock_risk_processes = self.profiles.values().filter(|p| p.deadlock_risk).count();
-        self.stats.critical_contention_locks = self.profiles.values()
+        self.stats.deadlock_risk_processes =
+            self.profiles.values().filter(|p| p.deadlock_risk).count();
+        self.stats.critical_contention_locks = self
+            .profiles
+            .values()
             .flat_map(|p| p.locks.values())
             .filter(|l| l.severity() == ContentionSeverity::Critical)
             .count();

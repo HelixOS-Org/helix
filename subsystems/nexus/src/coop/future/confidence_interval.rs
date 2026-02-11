@@ -8,8 +8,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -213,13 +212,16 @@ impl CoopConfidenceInterval {
 
     /// Record a trust observation for a partner.
     pub fn record_trust_sample(&mut self, partner_id: u64, trust_value: u64) {
-        let domain = self.trust_samples.entry(partner_id).or_insert_with(|| DomainSamples {
-            domain_hash: partner_id,
-            samples: VecDeque::new(),
-            ema_mean: trust_value,
-            ema_variance: 100,
-            prediction_outcomes: VecDeque::new(),
-        });
+        let domain = self
+            .trust_samples
+            .entry(partner_id)
+            .or_insert_with(|| DomainSamples {
+                domain_hash: partner_id,
+                samples: VecDeque::new(),
+                ema_mean: trust_value,
+                ema_variance: 100,
+                prediction_outcomes: VecDeque::new(),
+            });
         domain.samples.push_back(trust_value);
         domain.ema_mean = ema_update(domain.ema_mean, trust_value, 200, 1000);
         let diff = if trust_value > domain.ema_mean {
@@ -235,13 +237,16 @@ impl CoopConfidenceInterval {
 
     /// Record a contention observation for a resource.
     pub fn record_contention_sample(&mut self, resource_id: u64, contention_value: u64) {
-        let domain = self.contention_samples.entry(resource_id).or_insert_with(|| DomainSamples {
-            domain_hash: resource_id,
-            samples: VecDeque::new(),
-            ema_mean: contention_value,
-            ema_variance: 100,
-            prediction_outcomes: VecDeque::new(),
-        });
+        let domain = self
+            .contention_samples
+            .entry(resource_id)
+            .or_insert_with(|| DomainSamples {
+                domain_hash: resource_id,
+                samples: VecDeque::new(),
+                ema_mean: contention_value,
+                ema_variance: 100,
+                prediction_outcomes: VecDeque::new(),
+            });
         domain.samples.push_back(contention_value);
         domain.ema_mean = ema_update(domain.ema_mean, contention_value, 200, 1000);
         let diff = if contention_value > domain.ema_mean {
@@ -257,13 +262,16 @@ impl CoopConfidenceInterval {
 
     /// Record a sharing observation for a pair of processes.
     pub fn record_sharing_sample(&mut self, pair_hash: u64, sharing_value: u64) {
-        let domain = self.sharing_samples.entry(pair_hash).or_insert_with(|| DomainSamples {
-            domain_hash: pair_hash,
-            samples: VecDeque::new(),
-            ema_mean: sharing_value,
-            ema_variance: 100,
-            prediction_outcomes: VecDeque::new(),
-        });
+        let domain = self
+            .sharing_samples
+            .entry(pair_hash)
+            .or_insert_with(|| DomainSamples {
+                domain_hash: pair_hash,
+                samples: VecDeque::new(),
+                ema_mean: sharing_value,
+                ema_variance: 100,
+                prediction_outcomes: VecDeque::new(),
+            });
         domain.samples.push_back(sharing_value);
         domain.ema_mean = ema_update(domain.ema_mean, sharing_value, 200, 1000);
         let diff = if sharing_value > domain.ema_mean {
@@ -282,10 +290,12 @@ impl CoopConfidenceInterval {
         let domain = self.trust_samples.get(&partner_id);
         let (interval, sample_count) = self.compute_interval(domain);
 
-        let volatility = domain.map(|d| {
-            let isqrt = integer_sqrt(d.ema_variance);
-            isqrt.min(1000)
-        }).unwrap_or(500);
+        let volatility = domain
+            .map(|d| {
+                let isqrt = integer_sqrt(d.ema_variance);
+                isqrt.min(1000)
+            })
+            .unwrap_or(500);
 
         let calibration_outcomes: Vec<PredictionOutcome> = domain
             .map(|d| d.prediction_outcomes.iter().cloned().collect())
@@ -311,21 +321,33 @@ impl CoopConfidenceInterval {
         let domain = self.contention_samples.get(&resource_id);
         let (interval, _sample_count) = self.compute_interval(domain);
 
-        let trend_uncertainty = domain.map(|d| {
-            if d.samples.len() >= 3 {
-                let n = d.samples.len();
-                let recent = d.samples[n - 1];
-                let mid = d.samples[n - 2];
-                let older = d.samples[n - 3];
-                let d1 = if recent > mid { recent - mid } else { mid - recent };
-                let d2 = if mid > older { mid - older } else { older - mid };
-                if d1 > d2 { d1 - d2 } else { d2 - d1 }
-            } else {
-                200
-            }
-        }).unwrap_or(300);
+        let trend_uncertainty = domain
+            .map(|d| {
+                if d.samples.len() >= 3 {
+                    let n = d.samples.len();
+                    let recent = d.samples[n - 1];
+                    let mid = d.samples[n - 2];
+                    let older = d.samples[n - 3];
+                    let d1 = if recent > mid {
+                        recent - mid
+                    } else {
+                        mid - recent
+                    };
+                    let d2 = if mid > older {
+                        mid - older
+                    } else {
+                        older - mid
+                    };
+                    if d1 > d2 { d1 - d2 } else { d2 - d1 }
+                } else {
+                    200
+                }
+            })
+            .unwrap_or(300);
 
-        let hist_var = domain.map(|d| integer_sqrt(d.ema_variance).min(1000)).unwrap_or(500);
+        let hist_var = domain
+            .map(|d| integer_sqrt(d.ema_variance).min(1000))
+            .unwrap_or(500);
         let reliability = 1000u64.saturating_sub(trend_uncertainty.min(1000));
 
         self.track_width(resource_id, interval.width);
@@ -343,37 +365,41 @@ impl CoopConfidenceInterval {
 
     /// Quantify sharing uncertainty for a process pair.
     pub fn sharing_uncertainty(&mut self, sharer: u64, receiver: u64) -> SharingUncertainty {
-        let pair_hash = fnv1a_hash(&[
-            sharer.to_le_bytes().as_slice(),
-            receiver.to_le_bytes().as_slice(),
-        ].concat());
+        let pair_hash = fnv1a_hash(
+            &[
+                sharer.to_le_bytes().as_slice(),
+                receiver.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
 
         let domain = self.sharing_samples.get(&pair_hash);
         let (amount_interval, _) = self.compute_interval(domain);
 
-        let fairness_domain = self.sharing_samples.get(&fnv1a_hash(&[
-            b"fair_",
-            pair_hash.to_le_bytes().as_slice(),
-        ].concat()));
+        let fairness_domain = self.sharing_samples.get(&fnv1a_hash(
+            &[b"fair_", pair_hash.to_le_bytes().as_slice()].concat(),
+        ));
         let (fairness_interval, _) = self.compute_interval(fairness_domain);
 
-        let stability = domain.map(|d| {
-            if d.samples.len() < 3 {
-                return 300;
-            }
-            let n = d.samples.len();
-            let mut changes: u64 = 0;
-            for i in 1..n {
-                let delta = if d.samples[i] > d.samples[i - 1] {
-                    d.samples[i] - d.samples[i - 1]
-                } else {
-                    d.samples[i - 1] - d.samples[i]
-                };
-                changes = changes.saturating_add(delta);
-            }
-            let avg_change = changes / (n as u64 - 1).max(1);
-            1000u64.saturating_sub(avg_change.min(1000))
-        }).unwrap_or(500);
+        let stability = domain
+            .map(|d| {
+                if d.samples.len() < 3 {
+                    return 300;
+                }
+                let n = d.samples.len();
+                let mut changes: u64 = 0;
+                for i in 1..n {
+                    let delta = if d.samples[i] > d.samples[i - 1] {
+                        d.samples[i] - d.samples[i - 1]
+                    } else {
+                        d.samples[i - 1] - d.samples[i]
+                    };
+                    changes = changes.saturating_add(delta);
+                }
+                let avg_change = changes / (n as u64 - 1).max(1);
+                1000u64.saturating_sub(avg_change.min(1000))
+            })
+            .unwrap_or(500);
 
         self.stats.sharing_intervals = self.stats.sharing_intervals.saturating_add(1);
         self.stats.intervals_computed = self.stats.intervals_computed.saturating_add(1);
@@ -406,7 +432,9 @@ impl CoopConfidenceInterval {
             expected_coverage - actual_coverage
         };
 
-        let sharpness = self.width_history.get(&domain_hash)
+        let sharpness = self
+            .width_history
+            .get(&domain_hash)
             .map(|wh| 1000u64.saturating_sub(wh.ema_width.min(1000)))
             .unwrap_or(0);
 
@@ -439,7 +467,7 @@ impl CoopConfidenceInterval {
             Some(h) if h.widths.len() >= 2 => {
                 let n = h.widths.len();
                 (h.widths[n - 2], h.widths[n - 1])
-            }
+            },
             Some(h) if !h.widths.is_empty() => (h.widths[0], h.widths[0]),
             _ => (500, 500),
         };
@@ -452,9 +480,15 @@ impl CoopConfidenceInterval {
 
         let info_gain = narrowing_rate.saturating_mul(100) / 1000;
 
-        let samples_count = self.trust_samples.get(&domain_hash)
+        let samples_count = self
+            .trust_samples
+            .get(&domain_hash)
             .map(|d| d.samples.len() as u64)
-            .or_else(|| self.contention_samples.get(&domain_hash).map(|d| d.samples.len() as u64))
+            .or_else(|| {
+                self.contention_samples
+                    .get(&domain_hash)
+                    .map(|d| d.samples.len() as u64)
+            })
             .unwrap_or(0);
 
         let target_width: u64 = 100;
@@ -484,7 +518,9 @@ impl CoopConfidenceInterval {
         let contention_unc = self.aggregate_uncertainty(&self.contention_samples);
         let sharing_unc = self.aggregate_uncertainty(&self.sharing_samples);
 
-        let total = trust_unc.saturating_add(contention_unc).saturating_add(sharing_unc);
+        let total = trust_unc
+            .saturating_add(contention_unc)
+            .saturating_add(sharing_unc);
 
         let (dominant, priority) = if trust_unc >= contention_unc && trust_unc >= sharing_unc {
             (String::from("trust"), String::from("trust"))
@@ -505,7 +541,13 @@ impl CoopConfidenceInterval {
     }
 
     /// Record a prediction outcome for calibration tracking.
-    pub fn record_outcome(&mut self, domain_hash: u64, predicted_lower: u64, predicted_upper: u64, actual: u64) {
+    pub fn record_outcome(
+        &mut self,
+        domain_hash: u64,
+        predicted_lower: u64,
+        predicted_upper: u64,
+        actual: u64,
+    ) {
         let was_covered = actual >= predicted_lower && actual <= predicted_upper;
 
         let outcome = PredictionOutcome {
@@ -559,11 +601,12 @@ impl CoopConfidenceInterval {
                 let lower = mean.saturating_sub(adjusted_margin);
                 let upper = mean.saturating_add(adjusted_margin).min(1000);
 
-                (ConfidenceInterval::new(lower, mean, upper, self.default_confidence), n)
-            }
-            _ => {
-                (ConfidenceInterval::new(100, 500, 900, 500), 0)
-            }
+                (
+                    ConfidenceInterval::new(lower, mean, upper, self.default_confidence),
+                    n,
+                )
+            },
+            _ => (ConfidenceInterval::new(100, 500, 900, 500), 0),
         }
     }
 
@@ -572,11 +615,14 @@ impl CoopConfidenceInterval {
     }
 
     fn track_width(&mut self, domain_hash: u64, width: u64) {
-        let wh = self.width_history.entry(domain_hash).or_insert_with(|| WidthHistory {
-            domain_hash,
-            widths: VecDeque::new(),
-            ema_width: width,
-        });
+        let wh = self
+            .width_history
+            .entry(domain_hash)
+            .or_insert_with(|| WidthHistory {
+                domain_hash,
+                widths: VecDeque::new(),
+                ema_width: width,
+            });
         wh.widths.push_back(width);
         wh.ema_width = ema_update(wh.ema_width, width, 200, 1000);
         if wh.widths.len() > 128 {
@@ -594,10 +640,19 @@ impl CoopConfidenceInterval {
     }
 
     fn get_all_outcomes(&self, domain_hash: u64) -> Vec<PredictionOutcome> {
-        self.trust_samples.get(&domain_hash)
+        self.trust_samples
+            .get(&domain_hash)
             .map(|d| d.prediction_outcomes.iter().cloned().collect())
-            .or_else(|| self.contention_samples.get(&domain_hash).map(|d| d.prediction_outcomes.iter().cloned().collect()))
-            .or_else(|| self.sharing_samples.get(&domain_hash).map(|d| d.prediction_outcomes.iter().cloned().collect()))
+            .or_else(|| {
+                self.contention_samples
+                    .get(&domain_hash)
+                    .map(|d| d.prediction_outcomes.iter().cloned().collect())
+            })
+            .or_else(|| {
+                self.sharing_samples
+                    .get(&domain_hash)
+                    .map(|d| d.prediction_outcomes.iter().cloned().collect())
+            })
             .unwrap_or_default()
     }
 

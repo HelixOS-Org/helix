@@ -35,7 +35,16 @@ pub struct SoftirqEntry {
 
 impl SoftirqEntry {
     pub fn new(vec: SoftirqVec, cpu: u32) -> Self {
-        Self { vec, cpu, pending: false, total_raised: 0, total_handled: 0, total_ns: 0, max_ns: 0, ksoftirqd_wakeups: 0 }
+        Self {
+            vec,
+            cpu,
+            pending: false,
+            total_raised: 0,
+            total_handled: 0,
+            total_ns: 0,
+            max_ns: 0,
+            ksoftirqd_wakeups: 0,
+        }
     }
 
     #[inline(always)]
@@ -49,12 +58,18 @@ impl SoftirqEntry {
         self.pending = false;
         self.total_handled += 1;
         self.total_ns += ns;
-        if ns > self.max_ns { self.max_ns = ns; }
+        if ns > self.max_ns {
+            self.max_ns = ns;
+        }
     }
 
     #[inline(always)]
     pub fn avg_ns(&self) -> u64 {
-        if self.total_handled == 0 { 0 } else { self.total_ns / self.total_handled }
+        if self.total_handled == 0 {
+            0
+        } else {
+            self.total_ns / self.total_handled
+        }
     }
 }
 
@@ -80,7 +95,11 @@ pub struct HolisticSoftirq {
 }
 
 impl HolisticSoftirq {
-    pub fn new() -> Self { Self { entries: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            entries: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn register(&mut self, vec: SoftirqVec, cpu: u32) {
@@ -91,19 +110,25 @@ impl HolisticSoftirq {
     #[inline(always)]
     pub fn raise(&mut self, vec: SoftirqVec, cpu: u32) {
         let key = softirq_key(vec, cpu);
-        if let Some(e) = self.entries.get_mut(&key) { e.raise(); }
+        if let Some(e) = self.entries.get_mut(&key) {
+            e.raise();
+        }
     }
 
     #[inline(always)]
     pub fn handle(&mut self, vec: SoftirqVec, cpu: u32, ns: u64) {
         let key = softirq_key(vec, cpu);
-        if let Some(e) = self.entries.get_mut(&key) { e.handle(ns); }
+        if let Some(e) = self.entries.get_mut(&key) {
+            e.handle(ns);
+        }
     }
 
     #[inline(always)]
     pub fn record_ksoftirqd(&mut self, vec: SoftirqVec, cpu: u32) {
         let key = softirq_key(vec, cpu);
-        if let Some(e) = self.entries.get_mut(&key) { e.ksoftirqd_wakeups += 1; }
+        if let Some(e) = self.entries.get_mut(&key) {
+            e.ksoftirqd_wakeups += 1;
+        }
     }
 
     #[inline]
@@ -114,6 +139,13 @@ impl HolisticSoftirq {
         let ns: u64 = self.entries.values().map(|e| e.total_ns).sum();
         let wakeups: u64 = self.entries.values().map(|e| e.ksoftirqd_wakeups).sum();
         let avg = if handled == 0 { 0 } else { ns / handled };
-        SoftirqStats { total_entries: self.entries.len() as u32, total_raised: raised, total_handled: handled, pending_count: pending, avg_handler_ns: avg, ksoftirqd_wakeups: wakeups }
+        SoftirqStats {
+            total_entries: self.entries.len() as u32,
+            total_raised: raised,
+            total_handled: handled,
+            pending_count: pending,
+            avg_handler_ns: avg,
+            ksoftirqd_wakeups: wakeups,
+        }
     }
 }

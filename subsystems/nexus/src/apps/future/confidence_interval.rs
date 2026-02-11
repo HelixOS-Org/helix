@@ -14,8 +14,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -77,7 +76,11 @@ fn percentile_sorted(sorted: &[f64], p: f64) -> f64 {
         return 0.0;
     }
     let idx = (p * (sorted.len() - 1) as f64) as usize;
-    let clamped = if idx >= sorted.len() { sorted.len() - 1 } else { idx };
+    let clamped = if idx >= sorted.len() {
+        sorted.len() - 1
+    } else {
+        idx
+    };
     sorted[clamped]
 }
 
@@ -372,7 +375,10 @@ impl AppsConfidenceInterval {
         if self.app_states.len() >= MAX_APPS && !self.app_states.contains_key(&app_id) {
             return;
         }
-        let state = self.app_states.entry(app_id).or_insert_with(|| AppCIState::new(app_id));
+        let state = self
+            .app_states
+            .entry(app_id)
+            .or_insert_with(|| AppCIState::new(app_id));
         state.total_predictions += 1;
         let tracker = state.get_tracker(ptype);
         tracker.record_error(predicted, actual);
@@ -390,7 +396,11 @@ impl AppsConfidenceInterval {
         level: f64,
     ) -> ConfidenceIntervalResult {
         self.stats.total_ci_computed += 1;
-        let ci_level = if level > 0.0 && level < 1.0 { level } else { DEFAULT_CI_LEVEL };
+        let ci_level = if level > 0.0 && level < 1.0 {
+            level
+        } else {
+            DEFAULT_CI_LEVEL
+        };
 
         let state = match self.app_states.get(&app_id) {
             Some(s) => s,
@@ -405,7 +415,7 @@ impl AppsConfidenceInterval {
                     ptype,
                     0,
                 );
-            }
+            },
         };
 
         let tracker = match state.get_tracker_ref(ptype) {
@@ -420,7 +430,7 @@ impl AppsConfidenceInterval {
                     ptype,
                     0,
                 );
-            }
+            },
         };
 
         let n = tracker.errors.len();
@@ -454,7 +464,8 @@ impl AppsConfidenceInterval {
         let lower = point_estimate + bias - z * std;
         let upper = point_estimate + bias + z * std;
 
-        let result = ConfidenceIntervalResult::new(point_estimate, lower, upper, ci_level, ptype, n);
+        let result =
+            ConfidenceIntervalResult::new(point_estimate, lower, upper, ci_level, ptype, n);
         self.ema_width = ema_update(self.ema_width, result.interval_width, EMA_ALPHA);
         self.stats.average_interval_width = self.ema_width;
 
@@ -485,7 +496,7 @@ impl AppsConfidenceInterval {
                     ptype,
                     0,
                 );
-            }
+            },
         };
 
         let tracker = match state.get_tracker_ref(ptype) {
@@ -500,7 +511,7 @@ impl AppsConfidenceInterval {
                     ptype,
                     0,
                 );
-            }
+            },
         };
 
         let n = tracker.errors.len();
@@ -582,7 +593,10 @@ impl AppsConfidenceInterval {
         if self.app_states.len() >= MAX_APPS && !self.app_states.contains_key(&app_id) {
             return;
         }
-        let state = self.app_states.entry(app_id).or_insert_with(|| AppCIState::new(app_id));
+        let state = self
+            .app_states
+            .entry(app_id)
+            .or_insert_with(|| AppCIState::new(app_id));
         state.total_calibrations += 1;
         let within = ci.contains(actual);
         let tracker = state.get_tracker(ptype);
@@ -590,7 +604,11 @@ impl AppsConfidenceInterval {
     }
 
     /// Identify the dominant sources of uncertainty for a prediction type.
-    pub fn uncertainty_source(&mut self, app_id: u64, ptype: PredictionType) -> Vec<UncertaintySource> {
+    pub fn uncertainty_source(
+        &mut self,
+        app_id: u64,
+        ptype: PredictionType,
+    ) -> Vec<UncertaintySource> {
         self.stats.uncertainty_analyses += 1;
         let state = match self.app_states.get(&app_id) {
             Some(s) => s,
@@ -624,7 +642,9 @@ impl AppsConfidenceInterval {
         let sample_uncertainty = if n > 0 { 1.0 / n as f64 } else { 1.0 };
         sources.push(UncertaintySource {
             source_name: String::from("sample_size"),
-            contribution: sample_uncertainty.min(1.0 - var / total - bias_sq / total).max(0.0),
+            contribution: sample_uncertainty
+                .min(1.0 - var / total - bias_sq / total)
+                .max(0.0),
             reducible: true,
         });
 

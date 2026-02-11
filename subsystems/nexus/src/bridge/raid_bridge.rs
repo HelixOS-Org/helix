@@ -43,7 +43,15 @@ pub struct RaidBridgeRecord {
 
 impl RaidBridgeRecord {
     pub fn new(op: RaidBridgeOp, array_id: u64) -> Self {
-        Self { op, result: RaidBridgeResult::Success, array_id, disk_id: 0, raid_level: 0, nr_disks: 0, duration_ns: 0 }
+        Self {
+            op,
+            result: RaidBridgeResult::Success,
+            array_id,
+            disk_id: 0,
+            raid_level: 0,
+            nr_disks: 0,
+            duration_ns: 0,
+        }
     }
 }
 
@@ -67,7 +75,16 @@ pub struct BridgeRaid {
 
 impl BridgeRaid {
     pub fn new() -> Self {
-        Self { stats: RaidBridgeStats { total_ops: 0, creates: 0, disk_failures: 0, rebuilds: 0, scrubs: 0, errors: 0 } }
+        Self {
+            stats: RaidBridgeStats {
+                total_ops: 0,
+                creates: 0,
+                disk_failures: 0,
+                rebuilds: 0,
+                scrubs: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
@@ -78,8 +95,10 @@ impl BridgeRaid {
             RaidBridgeOp::FailDisk => self.stats.disk_failures += 1,
             RaidBridgeOp::Rebuild => self.stats.rebuilds += 1,
             RaidBridgeOp::Scrub | RaidBridgeOp::CheckArray => self.stats.scrubs += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result != RaidBridgeResult::Success { self.stats.errors += 1; }
+        if rec.result != RaidBridgeResult::Success {
+            self.stats.errors += 1;
+        }
     }
 }

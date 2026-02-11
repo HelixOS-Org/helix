@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // QUOTA TYPES
@@ -562,7 +563,15 @@ impl CoopQuotaV2Manager {
         (type_bits << 32) | owner_id as u64
     }
 
-    pub fn set_quota(&mut self, quota_type: CoopQuotaV2Type, owner_id: u32, block_soft: u64, block_hard: u64, inode_soft: u64, inode_hard: u64) -> u64 {
+    pub fn set_quota(
+        &mut self,
+        quota_type: CoopQuotaV2Type,
+        owner_id: u32,
+        block_soft: u64,
+        block_hard: u64,
+        inode_soft: u64,
+        inode_hard: u64,
+    ) -> u64 {
         let key = Self::owner_key(quota_type, owner_id);
         let id = self.next_id;
         self.next_id += 1;
@@ -585,7 +594,12 @@ impl CoopQuotaV2Manager {
         id
     }
 
-    pub fn charge_blocks(&mut self, quota_type: CoopQuotaV2Type, owner_id: u32, blocks: u64) -> bool {
+    pub fn charge_blocks(
+        &mut self,
+        quota_type: CoopQuotaV2Type,
+        owner_id: u32,
+        blocks: u64,
+    ) -> bool {
         let key = Self::owner_key(quota_type, owner_id);
         if let Some(qid) = self.owner_index.get(key) {
             if let Some(q) = self.quotas.get_mut(&qid) {

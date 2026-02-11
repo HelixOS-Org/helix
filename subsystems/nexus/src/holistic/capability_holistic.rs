@@ -26,12 +26,23 @@ pub struct CapHolisticFinding {
 
 impl CapHolisticFinding {
     pub fn new(metric: CapHolisticMetric) -> Self {
-        Self { metric, score: 0, pid: 0, caps_held: 0, caps_used: 0, risk_level: 0 }
+        Self {
+            metric,
+            score: 0,
+            pid: 0,
+            caps_held: 0,
+            caps_used: 0,
+            risk_level: 0,
+        }
     }
 
     #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
-        if self.caps_held == 0 { 0.0 } else { self.caps_used as f64 / self.caps_held as f64 }
+        if self.caps_held == 0 {
+            0.0
+        } else {
+            self.caps_used as f64 / self.caps_held as f64
+        }
     }
 }
 
@@ -53,15 +64,27 @@ pub struct HolisticCapability {
 
 impl HolisticCapability {
     pub fn new() -> Self {
-        Self { stats: CapHolisticStats { total_analyses: 0, excessive_privileges: 0, avg_usage_ratio: 0.0, high_risk: 0 } }
+        Self {
+            stats: CapHolisticStats {
+                total_analyses: 0,
+                excessive_privileges: 0,
+                avg_usage_ratio: 0.0,
+                high_risk: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn analyze(&mut self, finding: &CapHolisticFinding) {
         self.stats.total_analyses += 1;
-        if finding.usage_ratio() < 0.3 { self.stats.excessive_privileges += 1; }
-        if finding.risk_level > 7 { self.stats.high_risk += 1; }
+        if finding.usage_ratio() < 0.3 {
+            self.stats.excessive_privileges += 1;
+        }
+        if finding.risk_level > 7 {
+            self.stats.high_risk += 1;
+        }
         let n = self.stats.total_analyses as f64;
-        self.stats.avg_usage_ratio = self.stats.avg_usage_ratio * ((n - 1.0) / n) + finding.usage_ratio() / n;
+        self.stats.avg_usage_ratio =
+            self.stats.avg_usage_ratio * ((n - 1.0) / n) + finding.usage_ratio() / n;
     }
 }

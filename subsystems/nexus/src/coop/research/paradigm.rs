@@ -269,7 +269,9 @@ impl CoopParadigm {
         let violated_count = self
             .assumptions
             .values()
-            .filter(|a| a.paradigm == self.current_paradigm && a.status == AssumptionStatus::Violated)
+            .filter(|a| {
+                a.paradigm == self.current_paradigm && a.status == AssumptionStatus::Violated
+            })
             .count();
         let total_current = self
             .assumptions
@@ -297,7 +299,8 @@ impl CoopParadigm {
             0.0
         };
         let severity = violation_ratio * 0.6 + instability_ratio * 0.4;
-        if severity < ASSUMPTION_VIOLATION_THRESHOLD || violated_count < PARADIGM_SHIFT_EVIDENCE_MIN {
+        if severity < ASSUMPTION_VIOLATION_THRESHOLD || violated_count < PARADIGM_SHIFT_EVIDENCE_MIN
+        {
             return None;
         }
         // Determine which paradigm to shift to
@@ -371,19 +374,14 @@ impl CoopParadigm {
             AssumptionStatus::Violated
         };
         // Update global EMA
-        self.stats.avg_assumption_validity_ema =
-            EMA_ALPHA * assumption.validity_score
-                + (1.0 - EMA_ALPHA) * self.stats.avg_assumption_validity_ema;
+        self.stats.avg_assumption_validity_ema = EMA_ALPHA * assumption.validity_score
+            + (1.0 - EMA_ALPHA) * self.stats.avg_assumption_validity_ema;
         holds
     }
 
     /// Monitor an equilibrium for stability changes
     #[inline]
-    pub fn equilibrium_change(
-        &mut self,
-        equilibrium_id: u64,
-        current_stability: f32,
-    ) -> bool {
+    pub fn equilibrium_change(&mut self, equilibrium_id: u64, current_stability: f32) -> bool {
         self.tick += 1;
         let eq = match self.equilibria.get_mut(&equilibrium_id) {
             Some(e) => e,
@@ -401,9 +399,8 @@ impl CoopParadigm {
         } else if !prev_stable && eq.stable && self.stats.unstable_equilibria > 0 {
             self.stats.unstable_equilibria -= 1;
         }
-        self.stats.avg_equilibrium_stability_ema =
-            EMA_ALPHA * current_stability
-                + (1.0 - EMA_ALPHA) * self.stats.avg_equilibrium_stability_ema;
+        self.stats.avg_equilibrium_stability_ema = EMA_ALPHA * current_stability
+            + (1.0 - EMA_ALPHA) * self.stats.avg_equilibrium_stability_ema;
         eq.stable
     }
 
@@ -470,25 +467,25 @@ impl CoopParadigm {
                 } else {
                     ShiftPhase::Anomalies
                 }
-            }
+            },
             ShiftPhase::Crisis => {
                 if elapsed > TRANSITION_GRACE_PERIOD / 2 {
                     ShiftPhase::Transition
                 } else {
                     ShiftPhase::Crisis
                 }
-            }
+            },
             ShiftPhase::Transition => {
                 if elapsed > TRANSITION_GRACE_PERIOD {
                     ShiftPhase::NewNormal
                 } else {
                     ShiftPhase::Transition
                 }
-            }
+            },
             ShiftPhase::NewNormal => {
                 shift.transition_complete_tick = self.tick;
                 ShiftPhase::Consolidated
-            }
+            },
             ShiftPhase::Consolidated => ShiftPhase::Consolidated,
         };
         shift.phase = new_phase;
@@ -543,29 +540,21 @@ impl CoopParadigm {
                 } else {
                     ParadigmType::EvolutionaryCooperation
                 }
-            }
+            },
             ParadigmType::EvolutionaryCooperation => {
                 if severity > 0.7 {
                     ParadigmType::EmergentCooperation
                 } else {
                     ParadigmType::MechanismDesign
                 }
-            }
-            ParadigmType::MechanismDesign => {
-                ParadigmType::BayesianNegotiation
-            }
-            ParadigmType::BayesianNegotiation => {
-                ParadigmType::MultiAgentLearning
-            }
-            ParadigmType::MultiAgentLearning => {
-                ParadigmType::EmergentCooperation
-            }
-            ParadigmType::EmergentCooperation => {
-                ParadigmType::HybridParadigm
-            }
+            },
+            ParadigmType::MechanismDesign => ParadigmType::BayesianNegotiation,
+            ParadigmType::BayesianNegotiation => ParadigmType::MultiAgentLearning,
+            ParadigmType::MultiAgentLearning => ParadigmType::EmergentCooperation,
+            ParadigmType::EmergentCooperation => ParadigmType::HybridParadigm,
             ParadigmType::HybridParadigm => {
                 ParadigmType::ClassicalGameTheory // full cycle
-            }
+            },
         }
     }
 

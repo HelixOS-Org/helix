@@ -2,9 +2,10 @@
 //! Holistic IP routing — routing table management with policy-based and ECMP routing
 
 extern crate alloc;
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Route type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -239,8 +240,7 @@ impl HolisticIpRouting {
         if let Some(table) = self.tables.get_mut(&254) {
             let mut best: Option<(u8, usize)> = None;
             for (i, entry) in table.iter().enumerate() {
-                if entry.matches(dest_ip)
-                    && (best.is_none() || entry.prefix_len > best.unwrap().0)
+                if entry.matches(dest_ip) && (best.is_none() || entry.prefix_len > best.unwrap().0)
                 {
                     best = Some((entry.prefix_len, i));
                 }

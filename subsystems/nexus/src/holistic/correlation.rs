@@ -360,9 +360,9 @@ impl HolisticCorrelationEngine {
         a: CorrelationMetricSource,
         b: CorrelationMetricSource,
     ) -> Option<&CorrelationResult> {
-        self.correlations.iter().find(|c| {
-            (c.source_a == a && c.source_b == b) || (c.source_a == b && c.source_b == a)
-        })
+        self.correlations
+            .iter()
+            .find(|c| (c.source_a == a && c.source_b == b) || (c.source_a == b && c.source_b == a))
     }
 
     /// Stats

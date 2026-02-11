@@ -623,12 +623,16 @@ impl IntentAnalyzer {
 
     fn default_patterns() -> Vec<IntentPattern> {
         alloc::vec![
-            IntentPattern::new("sequential_read", IntentType::SequentialFileRead, alloc::vec![
-                SyscallType::Open,
-                SyscallType::Read,
-                SyscallType::Read,
-                SyscallType::Read,
-            ]),
+            IntentPattern::new(
+                "sequential_read",
+                IntentType::SequentialFileRead,
+                alloc::vec![
+                    SyscallType::Open,
+                    SyscallType::Read,
+                    SyscallType::Read,
+                    SyscallType::Read,
+                ]
+            ),
             IntentPattern::new("file_copy", IntentType::FileCopy, alloc::vec![
                 SyscallType::Open,
                 SyscallType::Read,
@@ -636,12 +640,16 @@ impl IntentAnalyzer {
                 SyscallType::Read,
                 SyscallType::Write,
             ]),
-            IntentPattern::new("dir_traversal", IntentType::DirectoryTraversal, alloc::vec![
-                SyscallType::Open,
-                SyscallType::Stat,
-                SyscallType::Stat,
-                SyscallType::Stat,
-            ]),
+            IntentPattern::new(
+                "dir_traversal",
+                IntentType::DirectoryTraversal,
+                alloc::vec![
+                    SyscallType::Open,
+                    SyscallType::Stat,
+                    SyscallType::Stat,
+                    SyscallType::Stat,
+                ]
+            ),
             IntentPattern::new("network_server", IntentType::NetworkServer, alloc::vec![
                 SyscallType::Accept,
                 SyscallType::Read,

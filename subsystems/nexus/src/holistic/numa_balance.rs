@@ -29,7 +29,16 @@ pub struct NumaBalanceTask {
 
 impl NumaBalanceTask {
     pub fn new(pid: u64, node: u32) -> Self {
-        Self { pid, preferred_node: node, current_node: node, local_faults: 0, remote_faults: 0, migrations: 0, scan_period_ms: 1000, total_scanned: 0 }
+        Self {
+            pid,
+            preferred_node: node,
+            current_node: node,
+            local_faults: 0,
+            remote_faults: 0,
+            migrations: 0,
+            scan_period_ms: 1000,
+            total_scanned: 0,
+        }
     }
 
     #[inline]
@@ -37,14 +46,16 @@ impl NumaBalanceTask {
         match fault_type {
             NumaFaultType::Local => self.local_faults += 1,
             NumaFaultType::Remote => self.remote_faults += 1,
-            _ => {}
+            _ => {},
         }
     }
 
     #[inline]
     pub fn locality_score(&self) -> f64 {
         let total = self.local_faults + self.remote_faults;
-        if total == 0 { return 1.0; }
+        if total == 0 {
+            return 1.0;
+        }
         self.local_faults as f64 / total as f64
     }
 }
@@ -63,7 +74,15 @@ pub struct NumaNodeInfo {
 
 impl NumaNodeInfo {
     pub fn new(id: u32, total: u64) -> Self {
-        Self { node_id: id, total_pages: total, free_pages: total, local_allocs: 0, remote_allocs: 0, migrations_in: 0, migrations_out: 0 }
+        Self {
+            node_id: id,
+            total_pages: total,
+            free_pages: total,
+            local_allocs: 0,
+            remote_allocs: 0,
+            migrations_in: 0,
+            migrations_out: 0,
+        }
     }
 }
 
@@ -85,16 +104,27 @@ pub struct HolisticNumaBalance {
 }
 
 impl HolisticNumaBalance {
-    pub fn new() -> Self { Self { tasks: BTreeMap::new(), nodes: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            tasks: BTreeMap::new(),
+            nodes: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn add_node(&mut self, id: u32, pages: u64) { self.nodes.insert(id, NumaNodeInfo::new(id, pages)); }
+    pub fn add_node(&mut self, id: u32, pages: u64) {
+        self.nodes.insert(id, NumaNodeInfo::new(id, pages));
+    }
     #[inline(always)]
-    pub fn track_task(&mut self, pid: u64, node: u32) { self.tasks.insert(pid, NumaBalanceTask::new(pid, node)); }
+    pub fn track_task(&mut self, pid: u64, node: u32) {
+        self.tasks.insert(pid, NumaBalanceTask::new(pid, node));
+    }
 
     #[inline(always)]
     pub fn record_fault(&mut self, pid: u64, ftype: NumaFaultType) {
-        if let Some(t) = self.tasks.get_mut(&pid) { t.record_fault(ftype); }
+        if let Some(t) = self.tasks.get_mut(&pid) {
+            t.record_fault(ftype);
+        }
     }
 
     #[inline]
@@ -103,8 +133,12 @@ impl HolisticNumaBalance {
             let from = t.current_node;
             t.current_node = to_node;
             t.migrations += 1;
-            if let Some(n) = self.nodes.get_mut(&from) { n.migrations_out += 1; }
-            if let Some(n) = self.nodes.get_mut(&to_node) { n.migrations_in += 1; }
+            if let Some(n) = self.nodes.get_mut(&from) {
+                n.migrations_out += 1;
+            }
+            if let Some(n) = self.nodes.get_mut(&to_node) {
+                n.migrations_in += 1;
+            }
         }
     }
 
@@ -113,6 +147,12 @@ impl HolisticNumaBalance {
         let local: u64 = self.tasks.values().map(|t| t.local_faults).sum();
         let remote: u64 = self.tasks.values().map(|t| t.remote_faults).sum();
         let mig: u64 = self.tasks.values().map(|t| t.migrations).sum();
-        NumaBalanceStats { total_tasks: self.tasks.len() as u32, total_nodes: self.nodes.len() as u32, total_local_faults: local, total_remote_faults: remote, total_migrations: mig }
+        NumaBalanceStats {
+            total_tasks: self.tasks.len() as u32,
+            total_nodes: self.nodes.len() as u32,
+            total_local_faults: local,
+            total_remote_faults: remote,
+            total_migrations: mig,
+        }
     }
 }

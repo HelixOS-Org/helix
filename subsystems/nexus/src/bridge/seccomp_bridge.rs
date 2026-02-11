@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-
 /// Seccomp action
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
@@ -44,7 +43,15 @@ pub struct SeccompBridgeFilter {
 
 impl SeccompBridgeFilter {
     pub fn new(id: u64, pid: u64, default: SeccompBridgeAction) -> Self {
-        Self { id, pid, instructions: Vec::new(), default_action: default, syscall_checks: 0, denied: 0, allowed: 0 }
+        Self {
+            id,
+            pid,
+            instructions: Vec::new(),
+            default_action: default,
+            syscall_checks: 0,
+            denied: 0,
+            allowed: 0,
+        }
     }
 }
 
@@ -77,13 +84,26 @@ pub struct BridgeSeccomp {
 }
 
 impl BridgeSeccomp {
-    pub fn new() -> Self { Self { filters: BTreeMap::new(), processes: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            filters: BTreeMap::new(),
+            processes: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn install_filter(&mut self, pid: u64, default: SeccompBridgeAction) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.filters.insert(id, SeccompBridgeFilter::new(id, pid, default));
-        let proc = self.processes.entry(pid).or_insert(ProcessSeccomp { pid, mode: 2, filter_count: 0, tsync: false });
+        let id = self.next_id;
+        self.next_id += 1;
+        self.filters
+            .insert(id, SeccompBridgeFilter::new(id, pid, default));
+        let proc = self.processes.entry(pid).or_insert(ProcessSeccomp {
+            pid,
+            mode: 2,
+            filter_count: 0,
+            tsync: false,
+        });
         proc.filter_count += 1;
         id
     }
@@ -92,7 +112,11 @@ impl BridgeSeccomp {
     pub fn check_syscall(&mut self, filter_id: u64, allowed: bool) {
         if let Some(f) = self.filters.get_mut(&filter_id) {
             f.syscall_checks += 1;
-            if allowed { f.allowed += 1; } else { f.denied += 1; }
+            if allowed {
+                f.allowed += 1;
+            } else {
+                f.denied += 1;
+            }
         }
     }
 
@@ -101,7 +125,13 @@ impl BridgeSeccomp {
         let checks: u64 = self.filters.values().map(|f| f.syscall_checks).sum();
         let denied: u64 = self.filters.values().map(|f| f.denied).sum();
         let allowed: u64 = self.filters.values().map(|f| f.allowed).sum();
-        SeccompBridgeStats { total_filters: self.filters.len() as u32, total_processes: self.processes.len() as u32, total_checks: checks, total_denied: denied, total_allowed: allowed }
+        SeccompBridgeStats {
+            total_filters: self.filters.len() as u32,
+            total_processes: self.processes.len() as u32,
+            total_checks: checks,
+            total_denied: denied,
+            total_allowed: allowed,
+        }
     }
 }
 
@@ -180,7 +210,14 @@ impl SeccompV2Filter {
     }
 
     #[inline]
-    pub fn add_arg_rule(&mut self, syscall_nr: u32, arg_idx: u8, cmp: SeccompV2Cmp, value: u64, action: SeccompV2Action) {
+    pub fn add_arg_rule(
+        &mut self,
+        syscall_nr: u32,
+        arg_idx: u8,
+        cmp: SeccompV2Cmp,
+        value: u64,
+        action: SeccompV2Action,
+    ) {
         self.rules.push(SeccompV2Rule {
             syscall_nr,
             arg_index: Some(arg_idx),
@@ -197,7 +234,7 @@ impl SeccompV2Filter {
             if rule.syscall_nr == syscall_nr && rule.arg_index.is_none() {
                 rule.match_count += 1;
                 match rule.action {
-                    SeccompV2Action::Allow => {}
+                    SeccompV2Action::Allow => {},
                     _ => self.total_denials += 1,
                 }
                 return rule.action;
@@ -237,7 +274,7 @@ impl ProcessSeccompV2 {
             let action = filter.check_syscall(syscall_nr);
             match action {
                 SeccompV2Action::Kill | SeccompV2Action::KillProcess => return action,
-                SeccompV2Action::Allow => {}
+                SeccompV2Action::Allow => {},
                 _ => result = action,
             }
         }
@@ -309,7 +346,9 @@ impl BridgeSeccompV2 {
             let result = proc.check(syscall_nr);
             match result {
                 SeccompV2Action::Allow => self.stats.syscalls_allowed += 1,
-                SeccompV2Action::Kill | SeccompV2Action::KillProcess => self.stats.kills_triggered += 1,
+                SeccompV2Action::Kill | SeccompV2Action::KillProcess => {
+                    self.stats.kills_triggered += 1
+                },
                 _ => self.stats.syscalls_denied += 1,
             }
             result
@@ -434,7 +473,12 @@ impl SeccompV3Filter {
         self.rules.sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
-    pub fn evaluate(&mut self, syscall: u32, arch: SeccompV3Arch, args: &[u64; 6]) -> SeccompV3Action {
+    pub fn evaluate(
+        &mut self,
+        syscall: u32,
+        arch: SeccompV3Arch,
+        args: &[u64; 6],
+    ) -> SeccompV3Action {
         self.total_evaluations += 1;
         for rule in &self.rules {
             if rule.syscall_nr == syscall && rule.arch == arch {
@@ -452,7 +496,11 @@ impl SeccompV3Filter {
 
     #[inline(always)]
     pub fn cache_hit_rate(&self) -> u64 {
-        if self.total_evaluations == 0 { 0 } else { (self.cache_hits * 100) / self.total_evaluations }
+        if self.total_evaluations == 0 {
+            0
+        } else {
+            (self.cache_hits * 100) / self.total_evaluations
+        }
     }
 }
 
@@ -501,7 +549,10 @@ impl BridgeSeccompV3 {
 
     #[inline(always)]
     pub fn attach_to_process(&mut self, filter_id: u64, pid: u64) {
-        self.process_filters.entry(pid).or_insert_with(Vec::new).push(filter_id);
+        self.process_filters
+            .entry(pid)
+            .or_insert_with(Vec::new)
+            .push(filter_id);
     }
 
     #[inline(always)]
@@ -551,7 +602,14 @@ pub struct SeccompV4Record {
 
 impl SeccompV4Record {
     pub fn new(op: SeccompV4Op, syscall_nr: u32) -> Self {
-        Self { op, action: SeccompV4Action::Allow, syscall_nr, pid: 0, filter_count: 0, latency_ns: 0 }
+        Self {
+            op,
+            action: SeccompV4Action::Allow,
+            syscall_nr,
+            pid: 0,
+            filter_count: 0,
+            latency_ns: 0,
+        }
     }
 }
 
@@ -574,7 +632,15 @@ pub struct BridgeSeccompV4 {
 
 impl BridgeSeccompV4 {
     pub fn new() -> Self {
-        Self { stats: SeccompV4BridgeStats { total_ops: 0, filters_installed: 0, user_notifs: 0, kills: 0, errors: 0 } }
+        Self {
+            stats: SeccompV4BridgeStats {
+                total_ops: 0,
+                filters_installed: 0,
+                user_notifs: 0,
+                kills: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
@@ -583,8 +649,13 @@ impl BridgeSeccompV4 {
         match rec.op {
             SeccompV4Op::SetFilter => self.stats.filters_installed += 1,
             SeccompV4Op::UserNotifRecv | SeccompV4Op::UserNotifSend => self.stats.user_notifs += 1,
-            _ => {}
+            _ => {},
         }
-        if matches!(rec.action, SeccompV4Action::Kill | SeccompV4Action::KillProcess) { self.stats.kills += 1; }
+        if matches!(
+            rec.action,
+            SeccompV4Action::Kill | SeccompV4Action::KillProcess
+        ) {
+            self.stats.kills += 1;
+        }
     }
 }

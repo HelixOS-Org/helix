@@ -315,7 +315,13 @@ impl CoopTimelineManager {
         let slot = TimeSlot::new(start, end);
         let duration = slot.duration();
         let reservation = TimelineReservation::new(
-            id, pid, resource, instance, slot, reservation_type, priority,
+            id,
+            pid,
+            resource,
+            instance,
+            slot,
+            reservation_type,
+            priority,
         );
         self.reservations.insert(id, reservation);
 
@@ -366,14 +372,21 @@ impl CoopTimelineManager {
     }
 
     /// Detect conflicts for a resource/instance
-    pub fn detect_conflicts(&mut self, resource: TimelineResource, instance: u32) -> Vec<TimelineConflict> {
+    pub fn detect_conflicts(
+        &mut self,
+        resource: TimelineResource,
+        instance: u32,
+    ) -> Vec<TimelineConflict> {
         let mut active: Vec<&TimelineReservation> = self
             .reservations
             .values()
             .filter(|r| {
                 r.resource == resource
                     && r.instance == instance
-                    && matches!(r.state, ReservationState::Active | ReservationState::Pending)
+                    && matches!(
+                        r.state,
+                        ReservationState::Active | ReservationState::Pending
+                    )
             })
             .collect();
 
@@ -404,13 +417,16 @@ impl CoopTimelineManager {
 
     /// Get active reservations at timestamp
     #[inline]
-    pub fn active_at(&self, resource: TimelineResource, instance: u32, timestamp: u64) -> Vec<&TimelineReservation> {
+    pub fn active_at(
+        &self,
+        resource: TimelineResource,
+        instance: u32,
+        timestamp: u64,
+    ) -> Vec<&TimelineReservation> {
         self.reservations
             .values()
             .filter(|r| {
-                r.resource == resource
-                    && r.instance == instance
-                    && r.is_active_at(timestamp)
+                r.resource == resource && r.instance == instance && r.is_active_at(timestamp)
             })
             .collect()
     }

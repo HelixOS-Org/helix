@@ -8,13 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::fast::linear_map::LinearMap;
 use crate::math::F64Ext;
 use crate::types::Timestamp;
 
@@ -482,7 +482,7 @@ impl Default for MetaLearner {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     #[test]
     fn test_register_strategy() {

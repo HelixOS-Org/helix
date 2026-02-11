@@ -174,12 +174,7 @@ impl AppsEvolution {
 
     /// Register a fitness test case.
     #[inline]
-    pub fn register_fitness_case(
-        &mut self,
-        features: &[u64],
-        expected: u64,
-        weight: u64,
-    ) -> u64 {
+    pub fn register_fitness_case(&mut self, features: &[u64], expected: u64, weight: u64) -> u64 {
         let cid = self.hash_features(features) ^ xorshift64(&mut self.rng);
         self.fitness_cases.insert(cid, FitnessCase {
             case_id: cid,
@@ -402,11 +397,7 @@ impl AppsEvolution {
         result % 101
     }
 
-    fn crossover_internal(
-        &mut self,
-        genome_a: u64,
-        genome_b: u64,
-    ) -> Option<AlgorithmGenome> {
+    fn crossover_internal(&mut self, genome_a: u64, genome_b: u64) -> Option<AlgorithmGenome> {
         let ga = self.population.get(&genome_a)?;
         let gb = self.population.get(&genome_b)?;
 

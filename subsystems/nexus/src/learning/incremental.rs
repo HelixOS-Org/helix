@@ -8,13 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::fast::linear_map::LinearMap;
 use crate::math::F64Ext;
 use crate::types::Timestamp;
 
@@ -677,7 +677,7 @@ impl Default for IncrementalEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     fn make_example(features: Vec<f64>, class: u64) -> Example {
         Example {

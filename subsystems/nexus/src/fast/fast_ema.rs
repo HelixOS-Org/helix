@@ -197,9 +197,8 @@ impl FastEmaInt {
         if self.count == 0 {
             self.value_scaled = sample_scaled;
         } else {
-            self.value_scaled = (self.num * sample_scaled
-                + (self.den - self.num) * self.value_scaled)
-                / self.den;
+            self.value_scaled =
+                (self.num * sample_scaled + (self.den - self.num) * self.value_scaled) / self.den;
         }
         if sample_scaled < self.min_scaled {
             self.min_scaled = sample_scaled;

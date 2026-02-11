@@ -13,7 +13,13 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SwapDeviceType { SSD, HDD, NVMe, ZRAM, Network }
+pub enum SwapDeviceType {
+    SSD,
+    HDD,
+    NVMe,
+    ZRAM,
+    Network,
+}
 
 impl SwapDeviceType {
     #[inline]
@@ -43,13 +49,19 @@ pub struct SwapDevice {
 impl SwapDevice {
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.total_slots == 0 { return 0.0; }
+        if self.total_slots == 0 {
+            return 0.0;
+        }
         self.used_slots as f64 / self.total_slots as f64
     }
     #[inline(always)]
-    pub fn free_slots(&self) -> u64 { self.total_slots.saturating_sub(self.used_slots) }
+    pub fn free_slots(&self) -> u64 {
+        self.total_slots.saturating_sub(self.used_slots)
+    }
     #[inline(always)]
-    pub fn is_congested(&self) -> bool { self.io_queue_depth > 32 }
+    pub fn is_congested(&self) -> bool {
+        self.io_queue_depth > 32
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -66,12 +78,16 @@ pub struct ZswapGlobalStats {
 impl ZswapGlobalStats {
     #[inline(always)]
     pub fn compression_ratio(&self) -> f64 {
-        if self.compressed_bytes == 0 { return 1.0; }
+        if self.compressed_bytes == 0 {
+            return 1.0;
+        }
         self.original_bytes as f64 / self.compressed_bytes as f64
     }
     #[inline(always)]
     pub fn pool_utilization(&self) -> f64 {
-        if self.pool_size_bytes == 0 { return 0.0; }
+        if self.pool_size_bytes == 0 {
+            return 0.0;
+        }
         self.compressed_bytes as f64 / self.pool_size_bytes as f64
     }
 }
@@ -101,9 +117,12 @@ impl SwapHolisticManager {
         Self {
             devices: BTreeMap::new(),
             zswap: ZswapGlobalStats {
-                pool_size_bytes: 0, stored_pages: 0,
-                compressed_bytes: 0, original_bytes: 0,
-                reject_count: 0, writeback_count: 0,
+                pool_size_bytes: 0,
+                stored_pages: 0,
+                compressed_bytes: 0,
+                original_bytes: 0,
+                reject_count: 0,
+                writeback_count: 0,
             },
             usage_history: Vec::new(),
             stats: SwapHolisticStats::default(),
@@ -119,7 +138,8 @@ impl SwapHolisticManager {
 
     /// Balance I/O across swap devices
     pub fn select_device_for_write(&self, pages: u64) -> Option<u64> {
-        self.devices.iter()
+        self.devices
+            .iter()
             .filter(|(_, d)| d.free_slots() >= pages && !d.is_congested())
             .max_by_key(|(_, d)| {
                 // Score: prefer fastest device with most free space
@@ -134,7 +154,8 @@ impl SwapHolisticManager {
     /// Balance swap reads across devices
     #[inline]
     pub fn select_device_for_read(&self) -> Option<u64> {
-        self.devices.iter()
+        self.devices
+            .iter()
             .filter(|(_, d)| d.used_slots > 0 && !d.is_congested())
             .min_by_key(|(_, d)| d.device_type.latency_estimate_ns())
             .map(|(id, _)| *id)
@@ -144,14 +165,19 @@ impl SwapHolisticManager {
     #[inline]
     pub fn update_usage(&mut self, device_id: u64, used_delta: i64, now: u64) {
         if let Some(dev) = self.devices.get_mut(&device_id) {
-            if used_delta > 0 { dev.used_slots += used_delta as u64; }
-            else { dev.used_slots = dev.used_slots.saturating_sub((-used_delta) as u64); }
+            if used_delta > 0 {
+                dev.used_slots += used_delta as u64;
+            } else {
+                dev.used_slots = dev.used_slots.saturating_sub((-used_delta) as u64);
+            }
         }
 
         // Update global stats
         self.stats.total_used = self.devices.values().map(|d| d.used_slots).sum();
         self.usage_history.push((now, self.stats.total_used));
-        if self.usage_history.len() > 256 { self.usage_history.drain(..128); }
+        if self.usage_history.len() > 256 {
+            self.usage_history.drain(..128);
+        }
     }
 
     /// Update zswap statistics
@@ -163,15 +189,26 @@ impl SwapHolisticManager {
 
     /// Predict when swap will be exhausted
     pub fn predict_exhaustion(&mut self) -> Option<u64> {
-        if self.usage_history.len() < 10 { return None; }
+        if self.usage_history.len() < 10 {
+            return None;
+        }
 
         let recent = &self.usage_history[self.usage_history.len() - 10..];
-        let dt = recent.last().unwrap().0.saturating_sub(recent.first().unwrap().0);
+        let dt = recent
+            .last()
+            .unwrap()
+            .0
+            .saturating_sub(recent.first().unwrap().0);
         let du = recent.last().unwrap().1 as i64 - recent.first().unwrap().1 as i64;
 
-        if dt == 0 || du <= 0 { return None; }
+        if dt == 0 || du <= 0 {
+            return None;
+        }
 
-        let remaining = self.stats.total_swap_space.saturating_sub(self.stats.total_used);
+        let remaining = self
+            .stats
+            .total_swap_space
+            .saturating_sub(self.stats.total_used);
         let rate = du as u64;
         let time = (remaining * dt) / rate.max(1);
         self.stats.predicted_exhaustion_ns = Some(time);
@@ -181,14 +218,22 @@ impl SwapHolisticManager {
     /// Global swap utilization
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.stats.total_swap_space == 0 { return 0.0; }
+        if self.stats.total_swap_space == 0 {
+            return 0.0;
+        }
         self.stats.total_used as f64 / self.stats.total_swap_space as f64
     }
 
     #[inline(always)]
-    pub fn device(&self, id: u64) -> Option<&SwapDevice> { self.devices.get(&id) }
+    pub fn device(&self, id: u64) -> Option<&SwapDevice> {
+        self.devices.get(&id)
+    }
     #[inline(always)]
-    pub fn zswap_stats(&self) -> &ZswapGlobalStats { &self.zswap }
+    pub fn zswap_stats(&self) -> &ZswapGlobalStats {
+        &self.zswap
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &SwapHolisticStats { &self.stats }
+    pub fn stats(&self) -> &SwapHolisticStats {
+        &self.stats
+    }
 }

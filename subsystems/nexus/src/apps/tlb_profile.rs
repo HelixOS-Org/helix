@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// TLB level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -164,7 +165,9 @@ impl ProcessTlbProfile {
     /// Hot pages (most accessed)
     #[inline]
     pub fn hot_pages(&self, n: usize) -> Vec<(u64, u32)> {
-        let mut pages: Vec<(u64, u32)> = self.distinct_pages.iter()
+        let mut pages: Vec<(u64, u32)> = self
+            .distinct_pages
+            .iter()
             .map(|(addr, count)| (addr, count))
             .collect();
         pages.sort_by(|a, b| b.1.cmp(&a.1));
@@ -200,7 +203,8 @@ impl AppTlbProfiler {
 
     #[inline]
     pub fn record_event(&mut self, pid: u64, event: &TlbEvent) {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessTlbProfile::new(pid))
             .record_event(event);
         self.update_stats();
@@ -208,18 +212,28 @@ impl AppTlbProfiler {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.total_tlb_misses = self.processes.values()
+        self.stats.total_tlb_misses = self
+            .processes
+            .values()
             .map(|p| p.itlb_misses + p.dtlb_misses + p.stlb_misses)
             .sum();
         if !self.processes.is_empty() {
-            self.stats.avg_dtlb_miss_rate = self.processes.values()
+            self.stats.avg_dtlb_miss_rate = self
+                .processes
+                .values()
                 .map(|p| p.dtlb_miss_rate)
-                .sum::<f64>() / self.processes.len() as f64;
-            self.stats.avg_wss_pages = self.processes.values()
+                .sum::<f64>()
+                / self.processes.len() as f64;
+            self.stats.avg_wss_pages = self
+                .processes
+                .values()
                 .map(|p| p.wss_pages() as f64)
-                .sum::<f64>() / self.processes.len() as f64;
+                .sum::<f64>()
+                / self.processes.len() as f64;
         }
-        self.stats.huge_page_candidates = self.processes.values()
+        self.stats.huge_page_candidates = self
+            .processes
+            .values()
             .filter(|p| p.should_use_huge_pages())
             .count();
     }

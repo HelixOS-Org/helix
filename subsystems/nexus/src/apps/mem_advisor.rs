@@ -71,22 +71,47 @@ pub struct MemRegionStats {
 impl MemRegionStats {
     pub fn new(start: u64, size: u64) -> Self {
         Self {
-            start_addr: start, size_bytes: size, resident_bytes: 0,
-            swapped_bytes: 0, shared_bytes: 0, pattern: MemPattern::Mixed,
-            access_count: 0, fault_count: 0, numa_node: 0, numa_misses: 0,
-            thp_eligible: false, last_access_ts: 0, hot_score: 0.0,
+            start_addr: start,
+            size_bytes: size,
+            resident_bytes: 0,
+            swapped_bytes: 0,
+            shared_bytes: 0,
+            pattern: MemPattern::Mixed,
+            access_count: 0,
+            fault_count: 0,
+            numa_node: 0,
+            numa_misses: 0,
+            thp_eligible: false,
+            last_access_ts: 0,
+            hot_score: 0.0,
         }
     }
 
     #[inline(always)]
-    pub fn residency_pct(&self) -> f64 { if self.size_bytes == 0 { 0.0 } else { self.resident_bytes as f64 / self.size_bytes as f64 * 100.0 } }
+    pub fn residency_pct(&self) -> f64 {
+        if self.size_bytes == 0 {
+            0.0
+        } else {
+            self.resident_bytes as f64 / self.size_bytes as f64 * 100.0
+        }
+    }
     #[inline(always)]
-    pub fn numa_local_pct(&self) -> f64 { if self.access_count == 0 { 100.0 } else { (self.access_count - self.numa_misses) as f64 / self.access_count as f64 * 100.0 } }
+    pub fn numa_local_pct(&self) -> f64 {
+        if self.access_count == 0 {
+            100.0
+        } else {
+            (self.access_count - self.numa_misses) as f64 / self.access_count as f64 * 100.0
+        }
+    }
 
     #[inline]
     pub fn update_hot_score(&mut self, now: u64) {
         let age = now.saturating_sub(self.last_access_ts);
-        let freq = if age == 0 { self.access_count as f64 } else { self.access_count as f64 / (age as f64 / 1_000_000.0) };
+        let freq = if age == 0 {
+            self.access_count as f64
+        } else {
+            self.access_count as f64 / (age as f64 / 1_000_000.0)
+        };
         self.hot_score = freq;
     }
 }
@@ -111,22 +136,48 @@ pub struct ProcessMemProfile {
 impl ProcessMemProfile {
     pub fn new(pid: u64) -> Self {
         Self {
-            pid, rss_bytes: 0, vss_bytes: 0, shared_bytes: 0, swap_bytes: 0,
-            regions: Vec::new(), working_set_bytes: 0, wss_window_us: 1_000_000,
-            numa_pref: NumaPref::Local, major_faults: 0, minor_faults: 0, oom_score_adj: 0,
+            pid,
+            rss_bytes: 0,
+            vss_bytes: 0,
+            shared_bytes: 0,
+            swap_bytes: 0,
+            regions: Vec::new(),
+            working_set_bytes: 0,
+            wss_window_us: 1_000_000,
+            numa_pref: NumaPref::Local,
+            major_faults: 0,
+            minor_faults: 0,
+            oom_score_adj: 0,
         }
     }
 
     #[inline(always)]
     pub fn estimate_wss(&mut self, now: u64) {
         let threshold = now.saturating_sub(self.wss_window_us);
-        self.working_set_bytes = self.regions.iter().filter(|r| r.last_access_ts >= threshold).map(|r| r.resident_bytes).sum();
+        self.working_set_bytes = self
+            .regions
+            .iter()
+            .filter(|r| r.last_access_ts >= threshold)
+            .map(|r| r.resident_bytes)
+            .sum();
     }
 
     #[inline(always)]
-    pub fn rss_to_wss_ratio(&self) -> f64 { if self.working_set_bytes == 0 { 0.0 } else { self.rss_bytes as f64 / self.working_set_bytes as f64 } }
+    pub fn rss_to_wss_ratio(&self) -> f64 {
+        if self.working_set_bytes == 0 {
+            0.0
+        } else {
+            self.rss_bytes as f64 / self.working_set_bytes as f64
+        }
+    }
     #[inline(always)]
-    pub fn fault_rate(&self) -> f64 { if self.rss_bytes == 0 { 0.0 } else { (self.major_faults + self.minor_faults) as f64 } }
+    pub fn fault_rate(&self) -> f64 {
+        if self.rss_bytes == 0 {
+            0.0
+        } else {
+            (self.major_faults + self.minor_faults) as f64
+        }
+    }
 }
 
 /// Advisory recommendation
@@ -172,26 +223,49 @@ pub struct AppsMemAdvisor {
 }
 
 impl AppsMemAdvisor {
-    pub fn new() -> Self { Self { profiles: BTreeMap::new(), advisories: Vec::new(), stats: MemAdvisorStats::default() } }
+    pub fn new() -> Self {
+        Self {
+            profiles: BTreeMap::new(),
+            advisories: Vec::new(),
+            stats: MemAdvisorStats::default(),
+        }
+    }
 
     #[inline(always)]
-    pub fn track(&mut self, pid: u64) { self.profiles.entry(pid).or_insert_with(|| ProcessMemProfile::new(pid)); }
+    pub fn track(&mut self, pid: u64) {
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ProcessMemProfile::new(pid));
+    }
     #[inline(always)]
-    pub fn untrack(&mut self, pid: u64) { self.profiles.remove(&pid); }
+    pub fn untrack(&mut self, pid: u64) {
+        self.profiles.remove(&pid);
+    }
 
     #[inline(always)]
     pub fn update_rss(&mut self, pid: u64, rss: u64, swap: u64) {
-        if let Some(p) = self.profiles.get_mut(&pid) { p.rss_bytes = rss; p.swap_bytes = swap; }
+        if let Some(p) = self.profiles.get_mut(&pid) {
+            p.rss_bytes = rss;
+            p.swap_bytes = swap;
+        }
     }
 
     #[inline(always)]
     pub fn record_fault(&mut self, pid: u64, major: bool) {
-        if let Some(p) = self.profiles.get_mut(&pid) { if major { p.major_faults += 1; } else { p.minor_faults += 1; } }
+        if let Some(p) = self.profiles.get_mut(&pid) {
+            if major {
+                p.major_faults += 1;
+            } else {
+                p.minor_faults += 1;
+            }
+        }
     }
 
     #[inline(always)]
     pub fn add_region(&mut self, pid: u64, start: u64, size: u64) {
-        if let Some(p) = self.profiles.get_mut(&pid) { p.regions.push(MemRegionStats::new(start, size)); }
+        if let Some(p) = self.profiles.get_mut(&pid) {
+            p.regions.push(MemRegionStats::new(start, size));
+        }
     }
 
     pub fn generate_advisories(&mut self, now: u64) {
@@ -202,17 +276,45 @@ impl AppsMemAdvisor {
                 p.estimate_wss(now);
                 for r in &p.regions {
                     if r.hot_score < 0.1 && r.resident_bytes > 4096 {
-                        self.advisories.push(MemAdvisory { pid, region_start: r.start_addr, advice: MemAdvice::Cold, reason: AdvisoryReason::Cold, priority: 3, ts: now });
+                        self.advisories.push(MemAdvisory {
+                            pid,
+                            region_start: r.start_addr,
+                            advice: MemAdvice::Cold,
+                            reason: AdvisoryReason::Cold,
+                            priority: 3,
+                            ts: now,
+                        });
                     }
                     if r.numa_local_pct() < 50.0 {
-                        self.advisories.push(MemAdvisory { pid, region_start: r.start_addr, advice: MemAdvice::Normal, reason: AdvisoryReason::NumaMismatch, priority: 5, ts: now });
+                        self.advisories.push(MemAdvisory {
+                            pid,
+                            region_start: r.start_addr,
+                            advice: MemAdvice::Normal,
+                            reason: AdvisoryReason::NumaMismatch,
+                            priority: 5,
+                            ts: now,
+                        });
                     }
                     if r.thp_eligible && r.size_bytes >= 2 * 1024 * 1024 {
-                        self.advisories.push(MemAdvisory { pid, region_start: r.start_addr, advice: MemAdvice::HugePage, reason: AdvisoryReason::ThpCandidate, priority: 2, ts: now });
+                        self.advisories.push(MemAdvisory {
+                            pid,
+                            region_start: r.start_addr,
+                            advice: MemAdvice::HugePage,
+                            reason: AdvisoryReason::ThpCandidate,
+                            priority: 2,
+                            ts: now,
+                        });
                     }
                 }
                 if p.swap_bytes > p.rss_bytes / 4 {
-                    self.advisories.push(MemAdvisory { pid, region_start: 0, advice: MemAdvice::WillNeed, reason: AdvisoryReason::HighSwap, priority: 7, ts: now });
+                    self.advisories.push(MemAdvisory {
+                        pid,
+                        region_start: 0,
+                        advice: MemAdvice::WillNeed,
+                        reason: AdvisoryReason::HighSwap,
+                        priority: 7,
+                        ts: now,
+                    });
                 }
             }
         }
@@ -228,9 +330,15 @@ impl AppsMemAdvisor {
     }
 
     #[inline(always)]
-    pub fn profile(&self, pid: u64) -> Option<&ProcessMemProfile> { self.profiles.get(&pid) }
+    pub fn profile(&self, pid: u64) -> Option<&ProcessMemProfile> {
+        self.profiles.get(&pid)
+    }
     #[inline(always)]
-    pub fn advisories(&self) -> &[MemAdvisory] { &self.advisories }
+    pub fn advisories(&self) -> &[MemAdvisory] {
+        &self.advisories
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &MemAdvisorStats { &self.stats }
+    pub fn stats(&self) -> &MemAdvisorStats {
+        &self.stats
+    }
 }

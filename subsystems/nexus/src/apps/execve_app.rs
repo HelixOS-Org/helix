@@ -51,7 +51,14 @@ pub struct ProcessExecTracker {
 
 impl ProcessExecTracker {
     pub fn new(pid: u64) -> Self {
-        Self { pid, total_execs: 0, success_count: 0, fail_count: 0, last_binary_hash: 0, avg_load_ns: 0 }
+        Self {
+            pid,
+            total_execs: 0,
+            success_count: 0,
+            fail_count: 0,
+            last_binary_hash: 0,
+            avg_load_ns: 0,
+        }
     }
 
     #[inline]
@@ -84,24 +91,39 @@ pub struct AppExecve {
 }
 
 impl AppExecve {
-    pub fn new() -> Self { Self { procs: BTreeMap::new() } }
-
-    #[inline(always)]
-    pub fn track(&mut self, pid: u64) { self.procs.insert(pid, ProcessExecTracker::new(pid)); }
-
-    #[inline(always)]
-    pub fn exec(&mut self, entry: &ExecEntry) {
-        if let Some(t) = self.procs.get_mut(&entry.pid) { t.record(entry); }
+    pub fn new() -> Self {
+        Self {
+            procs: BTreeMap::new(),
+        }
     }
 
     #[inline(always)]
-    pub fn untrack(&mut self, pid: u64) { self.procs.remove(&pid); }
+    pub fn track(&mut self, pid: u64) {
+        self.procs.insert(pid, ProcessExecTracker::new(pid));
+    }
+
+    #[inline(always)]
+    pub fn exec(&mut self, entry: &ExecEntry) {
+        if let Some(t) = self.procs.get_mut(&entry.pid) {
+            t.record(entry);
+        }
+    }
+
+    #[inline(always)]
+    pub fn untrack(&mut self, pid: u64) {
+        self.procs.remove(&pid);
+    }
 
     #[inline]
     pub fn stats(&self) -> ExecveAppStats {
         let execs: u64 = self.procs.values().map(|p| p.total_execs).sum();
         let succ: u64 = self.procs.values().map(|p| p.success_count).sum();
         let fail: u64 = self.procs.values().map(|p| p.fail_count).sum();
-        ExecveAppStats { tracked_procs: self.procs.len() as u32, total_execs: execs, total_success: succ, total_failures: fail }
+        ExecveAppStats {
+            tracked_procs: self.procs.len() as u32,
+            total_execs: execs,
+            total_success: succ,
+            total_failures: fail,
+        }
     }
 }

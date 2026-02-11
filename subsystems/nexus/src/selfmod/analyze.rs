@@ -609,11 +609,15 @@ impl AnalysisPass for RiskAssessmentPass {
         // Start with base risk from modification type
         let base_risk = match modification.mod_type {
             ModificationType::BugFix => RiskLevel::Low,
-            ModificationType::Optimization | ModificationType::PerformanceOptimization => RiskLevel::Medium,
+            ModificationType::Optimization | ModificationType::PerformanceOptimization => {
+                RiskLevel::Medium
+            },
             ModificationType::Feature | ModificationType::NewFeature => RiskLevel::Medium,
             ModificationType::SecurityPatch => RiskLevel::High,
             ModificationType::Refactor | ModificationType::Refactoring => RiskLevel::Low,
-            ModificationType::Configuration | ModificationType::ConfigurationChange => RiskLevel::Minimal,
+            ModificationType::Configuration | ModificationType::ConfigurationChange => {
+                RiskLevel::Minimal
+            },
             ModificationType::AlgorithmImprovement => RiskLevel::Medium,
             ModificationType::ResourceTuning => RiskLevel::Low,
         };
@@ -647,11 +651,13 @@ impl AnalysisPass for RiskAssessmentPass {
 
         // Add recommendation based on risk
         let recommendation = match result.risk_level {
-            RiskLevel::Minimal | RiskLevel::Low | RiskLevel::MinimalRisk | RiskLevel::LowRisk => Recommendation {
-                rec_type: RecommendationType::ApplyAsIs,
-                description: String::from("Low risk change, can be applied"),
-                priority: 3,
-                suggested_fix: None,
+            RiskLevel::Minimal | RiskLevel::Low | RiskLevel::MinimalRisk | RiskLevel::LowRisk => {
+                Recommendation {
+                    rec_type: RecommendationType::ApplyAsIs,
+                    description: String::from("Low risk change, can be applied"),
+                    priority: 3,
+                    suggested_fix: None,
+                }
             },
             RiskLevel::Medium | RiskLevel::MediumRisk => Recommendation {
                 rec_type: RecommendationType::AdditionalTesting,

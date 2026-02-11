@@ -3,9 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Binary format types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,16 +89,26 @@ pub enum SegmentType {
 
 impl ProgramSegment {
     #[inline(always)]
-    pub fn is_readable(&self) -> bool { self.flags & 0x4 != 0 }
+    pub fn is_readable(&self) -> bool {
+        self.flags & 0x4 != 0
+    }
     #[inline(always)]
-    pub fn is_writable(&self) -> bool { self.flags & 0x2 != 0 }
+    pub fn is_writable(&self) -> bool {
+        self.flags & 0x2 != 0
+    }
     #[inline(always)]
-    pub fn is_executable(&self) -> bool { self.flags & 0x1 != 0 }
+    pub fn is_executable(&self) -> bool {
+        self.flags & 0x1 != 0
+    }
 
     #[inline(always)]
-    pub fn end_vaddr(&self) -> u64 { self.vaddr + self.mem_size }
+    pub fn end_vaddr(&self) -> u64 {
+        self.vaddr + self.mem_size
+    }
     #[inline(always)]
-    pub fn bss_size(&self) -> u64 { self.mem_size.saturating_sub(self.file_size) }
+    pub fn bss_size(&self) -> u64 {
+        self.mem_size.saturating_sub(self.file_size)
+    }
 }
 
 /// binfmt_misc registration
@@ -115,12 +126,22 @@ pub struct BinfmtMiscEntry {
 impl BinfmtMiscEntry {
     #[inline]
     pub fn matches(&self, header: &[u8]) -> bool {
-        if !self.enabled { return false; }
+        if !self.enabled {
+            return false;
+        }
         let off = self.offset as usize;
-        if header.len() < off + self.magic.len() { return false; }
+        if header.len() < off + self.magic.len() {
+            return false;
+        }
         for (i, &m) in self.magic.iter().enumerate() {
-            let mask_byte = if i < self.mask.len() { self.mask[i] } else { 0xFF };
-            if (header[off + i] & mask_byte) != (m & mask_byte) { return false; }
+            let mask_byte = if i < self.mask.len() {
+                self.mask[i]
+            } else {
+                0xFF
+            };
+            if (header[off + i] & mask_byte) != (m & mask_byte) {
+                return false;
+            }
         }
         true
     }
@@ -163,9 +184,12 @@ pub struct AppBinfmtMgr {
 impl AppBinfmtMgr {
     pub fn new() -> Self {
         Self {
-            misc_entries: Vec::new(), format_counts: ArrayMap::new(0),
-            total_execs: 0, validation_failures: 0,
-            interpreter_lookups: 0, max_binary_size: 256 * 1024 * 1024,
+            misc_entries: Vec::new(),
+            format_counts: ArrayMap::new(0),
+            total_execs: 0,
+            validation_failures: 0,
+            interpreter_lookups: 0,
+            max_binary_size: 256 * 1024 * 1024,
             stack_executable: false,
         }
     }
@@ -183,25 +207,41 @@ impl AppBinfmtMgr {
     }
 
     pub fn detect_format(&self, header: &[u8]) -> Option<BinaryFormat> {
-        if header.len() < 4 { return None; }
+        if header.len() < 4 {
+            return None;
+        }
         if header[0..4] == [0x7f, b'E', b'L', b'F'] {
             if header.len() > 4 {
-                return Some(if header[4] == 2 { BinaryFormat::Elf64 } else { BinaryFormat::Elf32 });
+                return Some(if header[4] == 2 {
+                    BinaryFormat::Elf64
+                } else {
+                    BinaryFormat::Elf32
+                });
             }
             return Some(BinaryFormat::Elf64);
         }
-        if header[0..2] == [b'#', b'!'] { return Some(BinaryFormat::Script); }
-        if header[0..2] == [b'M', b'Z'] { return Some(BinaryFormat::PeExe); }
-        if header[0..4] == [0x00, 0x61, 0x73, 0x6d] { return Some(BinaryFormat::Wasm); }
+        if header[0..2] == [b'#', b'!'] {
+            return Some(BinaryFormat::Script);
+        }
+        if header[0..2] == [b'M', b'Z'] {
+            return Some(BinaryFormat::PeExe);
+        }
+        if header[0..4] == [0x00, 0x61, 0x73, 0x6d] {
+            return Some(BinaryFormat::Wasm);
+        }
         for entry in &self.misc_entries {
-            if entry.matches(header) { return Some(BinaryFormat::Custom); }
+            if entry.matches(header) {
+                return Some(BinaryFormat::Custom);
+            }
         }
         None
     }
 
     #[inline]
     pub fn validate_exec(&self, header: &BinaryHeader, file_size: u64) -> ExecValidation {
-        if file_size > self.max_binary_size { return ExecValidation::TooLarge; }
+        if file_size > self.max_binary_size {
+            return ExecValidation::TooLarge;
+        }
         if header.entry_point == 0 && header.format != BinaryFormat::Script {
             return ExecValidation::CorruptHeader;
         }
@@ -215,7 +255,9 @@ impl AppBinfmtMgr {
     }
 
     #[inline(always)]
-    pub fn record_failure(&mut self) { self.validation_failures += 1; }
+    pub fn record_failure(&mut self) {
+        self.validation_failures += 1;
+    }
 
     #[inline]
     pub fn lookup_interpreter(&mut self, header: &BinaryHeader) -> Option<InterpreterInfo> {
@@ -226,7 +268,9 @@ impl AppBinfmtMgr {
                 args: Vec::new(),
                 is_dynamic_linker: true,
             })
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]

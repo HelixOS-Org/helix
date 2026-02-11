@@ -38,17 +38,28 @@ pub struct BindAddress {
 impl BindAddress {
     pub fn new(family: BindFamily, addr: &[u8], port: u16) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for &b in addr { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for &b in addr {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            family, addr_hash: h, port,
-            reuse_addr: false, reuse_port: false, transparent: false,
+            family,
+            addr_hash: h,
+            port,
+            reuse_addr: false,
+            reuse_port: false,
+            transparent: false,
         }
     }
 
     #[inline(always)]
-    pub fn is_wildcard(&self) -> bool { self.addr_hash == 0 }
+    pub fn is_wildcard(&self) -> bool {
+        self.addr_hash == 0
+    }
     #[inline(always)]
-    pub fn is_loopback(&self) -> bool { self.port == 0 }
+    pub fn is_loopback(&self) -> bool {
+        self.port == 0
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -91,8 +102,10 @@ impl AppBind {
             port_map: BTreeMap::new(),
             records: Vec::new(),
             stats: BindAppStats {
-                total_binds: 0, successful_binds: 0,
-                addr_in_use_errors: 0, wildcard_binds: 0,
+                total_binds: 0,
+                successful_binds: 0,
+                addr_in_use_errors: 0,
+                wildcard_binds: 0,
                 reuse_port_binds: 0,
             },
         }
@@ -100,28 +113,49 @@ impl AppBind {
 
     pub fn try_bind(&mut self, fd: u64, pid: u64, address: BindAddress, ts: u64) -> BindResult {
         self.stats.total_binds += 1;
-        if address.is_wildcard() { self.stats.wildcard_binds += 1; }
-        if address.reuse_port { self.stats.reuse_port_binds += 1; }
+        if address.is_wildcard() {
+            self.stats.wildcard_binds += 1;
+        }
+        if address.reuse_port {
+            self.stats.reuse_port_binds += 1;
+        }
 
         let port = address.port;
         let existing = self.port_map.entry(port).or_insert_with(Vec::new);
 
         if !existing.is_empty() && !address.reuse_port {
-            let conflict = existing.iter().any(|a| a.family == address.family && !address.reuse_addr);
+            let conflict = existing
+                .iter()
+                .any(|a| a.family == address.family && !address.reuse_addr);
             if conflict {
                 self.stats.addr_in_use_errors += 1;
-                self.records.push(BindRecord { fd, pid, address, result: BindResult::AddrInUse, timestamp: ts });
+                self.records.push(BindRecord {
+                    fd,
+                    pid,
+                    address,
+                    result: BindResult::AddrInUse,
+                    timestamp: ts,
+                });
                 return BindResult::AddrInUse;
             }
         }
 
         existing.push(PortAllocation {
-            port, family: address.family,
-            owner_fd: fd, owner_pid: pid, reuse_count: 0,
+            port,
+            family: address.family,
+            owner_fd: fd,
+            owner_pid: pid,
+            reuse_count: 0,
         });
         self.stats.successful_binds += 1;
         let result = BindResult::Success;
-        self.records.push(BindRecord { fd, pid, address, result, timestamp: ts });
+        self.records.push(BindRecord {
+            fd,
+            pid,
+            address,
+            result,
+            timestamp: ts,
+        });
         result
     }
 
@@ -133,7 +167,9 @@ impl AppBind {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &BindAppStats { &self.stats }
+    pub fn stats(&self) -> &BindAppStats {
+        &self.stats
+    }
 }
 
 // ============================================================================

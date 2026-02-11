@@ -10,10 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// IOMMU domain type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -71,17 +71,26 @@ pub struct IommuDomain {
 impl IommuDomain {
     pub fn new(id: u32, dtype: IommuDomainType) -> Self {
         Self {
-            domain_id: id, domain_type: dtype, mappings: Vec::new(),
-            assigned_devices: Vec::new(), total_mapped_bytes: 0,
-            translation_faults: 0, dma_ops: 0,
+            domain_id: id,
+            domain_type: dtype,
+            mappings: Vec::new(),
+            assigned_devices: Vec::new(),
+            total_mapped_bytes: 0,
+            translation_faults: 0,
+            dma_ops: 0,
         }
     }
 
     #[inline]
     pub fn map(&mut self, iova: u64, phys: u64, size: u64, read: bool, write: bool) {
         self.mappings.push(IovaRegion {
-            iova_start: iova, iova_end: iova + size, phys_addr: phys,
-            size_bytes: size, readable: read, writable: write, cacheable: true,
+            iova_start: iova,
+            iova_end: iova + size,
+            phys_addr: phys,
+            size_bytes: size,
+            readable: read,
+            writable: write,
+            cacheable: true,
         });
         self.total_mapped_bytes += size;
     }
@@ -101,20 +110,27 @@ impl IommuDomain {
         self.dma_ops += 1;
         match self.domain_type {
             IommuDomainType::Identity => Some(iova),
-            IommuDomainType::Blocked => { self.translation_faults += 1; None }
+            IommuDomainType::Blocked => {
+                self.translation_faults += 1;
+                None
+            },
             IommuDomainType::Translated | IommuDomainType::Nested => {
                 for region in &self.mappings {
-                    if let Some(pa) = region.translate(iova) { return Some(pa); }
+                    if let Some(pa) = region.translate(iova) {
+                        return Some(pa);
+                    }
                 }
                 self.translation_faults += 1;
                 None
-            }
+            },
         }
     }
 
     #[inline(always)]
     pub fn attach_device(&mut self, dev_id: u32) {
-        if !self.assigned_devices.contains(&dev_id) { self.assigned_devices.push(dev_id); }
+        if !self.assigned_devices.contains(&dev_id) {
+            self.assigned_devices.push(dev_id);
+        }
     }
 
     #[inline(always)]
@@ -124,7 +140,9 @@ impl IommuDomain {
 
     #[inline(always)]
     pub fn fault_rate(&self) -> f64 {
-        if self.dma_ops == 0 { return 0.0; }
+        if self.dma_ops == 0 {
+            return 0.0;
+        }
         self.translation_faults as f64 / self.dma_ops as f64
     }
 }
@@ -151,7 +169,12 @@ pub struct IotlbCache {
 
 impl IotlbCache {
     pub fn new(max: usize) -> Self {
-        Self { entries: BTreeMap::new(), max_entries: max, hits: 0, misses: 0 }
+        Self {
+            entries: BTreeMap::new(),
+            max_entries: max,
+            hits: 0,
+            misses: 0,
+        }
     }
 
     #[inline]
@@ -170,13 +193,21 @@ impl IotlbCache {
     pub fn insert(&mut self, iova: u64, phys: u64, domain_id: u32, ts: u64) {
         if self.entries.len() >= self.max_entries {
             // Evict LRU
-            let lru_key = self.entries.iter()
+            let lru_key = self
+                .entries
+                .iter()
                 .min_by_key(|(_, e)| e.last_access_ts)
                 .map(|(&k, _)| k);
-            if let Some(k) = lru_key { self.entries.remove(&k); }
+            if let Some(k) = lru_key {
+                self.entries.remove(&k);
+            }
         }
         self.entries.insert(iova, IotlbEntry {
-            iova, phys, domain_id, hits: 0, last_access_ts: ts,
+            iova,
+            phys,
+            domain_id,
+            hits: 0,
+            last_access_ts: ts,
         });
     }
 
@@ -186,12 +217,16 @@ impl IotlbCache {
     }
 
     #[inline(always)]
-    pub fn flush(&mut self) { self.entries.clear(); }
+    pub fn flush(&mut self) {
+        self.entries.clear();
+    }
 
     #[inline]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.hits as f64 / total as f64
     }
 }
@@ -236,16 +271,21 @@ pub struct HolisticIommuMgr {
 impl HolisticIommuMgr {
     pub fn new(iotlb_size: usize) -> Self {
         Self {
-            domains: BTreeMap::new(), device_to_domain: ArrayMap::new(0),
-            iotlb: IotlbCache::new(iotlb_size), fault_log: VecDeque::new(),
-            next_domain_id: 1, next_fault_id: 1, max_fault_log: 1000,
+            domains: BTreeMap::new(),
+            device_to_domain: ArrayMap::new(0),
+            iotlb: IotlbCache::new(iotlb_size),
+            fault_log: VecDeque::new(),
+            next_domain_id: 1,
+            next_fault_id: 1,
+            max_fault_log: 1000,
             stats: IommuMgrStats::default(),
         }
     }
 
     #[inline]
     pub fn create_domain(&mut self, dtype: IommuDomainType) -> u32 {
-        let id = self.next_domain_id; self.next_domain_id += 1;
+        let id = self.next_domain_id;
+        self.next_domain_id += 1;
         self.domains.insert(id, IommuDomain::new(id, dtype));
         id
     }
@@ -261,14 +301,26 @@ impl HolisticIommuMgr {
     #[inline]
     pub fn detach(&mut self, dev_id: u32) {
         if let Some(dom_id) = self.device_to_domain.try_get(dev_id as usize) {
-            if let Some(dom) = self.domains.get_mut(&dom_id) { dom.detach_device(dev_id); }
+            if let Some(dom) = self.domains.get_mut(&dom_id) {
+                dom.detach_device(dev_id);
+            }
             self.device_to_domain.remove(dev_id);
         }
     }
 
     #[inline(always)]
-    pub fn map_iova(&mut self, domain_id: u32, iova: u64, phys: u64, size: u64, read: bool, write: bool) {
-        if let Some(dom) = self.domains.get_mut(&domain_id) { dom.map(iova, phys, size, read, write); }
+    pub fn map_iova(
+        &mut self,
+        domain_id: u32,
+        iova: u64,
+        phys: u64,
+        size: u64,
+        read: bool,
+        write: bool,
+    ) {
+        if let Some(dom) = self.domains.get_mut(&domain_id) {
+            dom.map(iova, phys, size, read, write);
+        }
     }
 
     #[inline]
@@ -281,20 +333,32 @@ impl HolisticIommuMgr {
 
     pub fn translate(&mut self, dev_id: u32, iova: u64, is_write: bool, ts: u64) -> Option<u64> {
         // Try IOTLB first
-        if let Some(phys) = self.iotlb.lookup(iova, ts) { return Some(phys); }
+        if let Some(phys) = self.iotlb.lookup(iova, ts) {
+            return Some(phys);
+        }
         let dom_id = self.device_to_domain.try_get(dev_id as usize)?;
         let dom = self.domains.get_mut(&dom_id)?;
         match dom.translate(iova) {
-            Some(phys) => { self.iotlb.insert(iova, phys, dom_id, ts); Some(phys) }
+            Some(phys) => {
+                self.iotlb.insert(iova, phys, dom_id, ts);
+                Some(phys)
+            },
             None => {
-                let fid = self.next_fault_id; self.next_fault_id += 1;
+                let fid = self.next_fault_id;
+                self.next_fault_id += 1;
                 self.fault_log.push_back(DmaFault {
-                    fault_id: fid, domain_id: dom_id, device_id: dev_id,
-                    iova, is_write, timestamp_ns: ts,
+                    fault_id: fid,
+                    domain_id: dom_id,
+                    device_id: dev_id,
+                    iova,
+                    is_write,
+                    timestamp_ns: ts,
                 });
-                if self.fault_log.len() > self.max_fault_log { self.fault_log.remove(0); }
+                if self.fault_log.len() > self.max_fault_log {
+                    self.fault_log.remove(0);
+                }
                 None
-            }
+            },
         }
     }
 
@@ -311,5 +375,7 @@ impl HolisticIommuMgr {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &IommuMgrStats { &self.stats }
+    pub fn stats(&self) -> &IommuMgrStats {
+        &self.stats
+    }
 }

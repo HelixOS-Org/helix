@@ -66,21 +66,40 @@ pub struct AppCgroup {
 impl AppCgroup {
     pub fn new(id: u64, name: String, parent: Option<u64>) -> Self {
         Self {
-            id, name, parent_id: parent, children: Vec::new(), pid_count: 0,
-            cpu_quota_us: -1, cpu_period_us: 100_000, cpu_shares: 1024,
-            mem_limit: u64::MAX, mem_soft: u64::MAX, mem_swap_limit: u64::MAX,
-            pids_max: u32::MAX, io_weight: 100,
-            cpu_usage_us: 0, mem_usage: 0, io_bytes: 0,
-            nr_throttled: 0, throttled_time_us: 0,
+            id,
+            name,
+            parent_id: parent,
+            children: Vec::new(),
+            pid_count: 0,
+            cpu_quota_us: -1,
+            cpu_period_us: 100_000,
+            cpu_shares: 1024,
+            mem_limit: u64::MAX,
+            mem_soft: u64::MAX,
+            mem_swap_limit: u64::MAX,
+            pids_max: u32::MAX,
+            io_weight: 100,
+            cpu_usage_us: 0,
+            mem_usage: 0,
+            io_bytes: 0,
+            nr_throttled: 0,
+            throttled_time_us: 0,
             state: EnforcementState::Normal,
-            burst_budget_us: 0, burst_used_us: 0,
+            burst_budget_us: 0,
+            burst_used_us: 0,
         }
     }
 
     #[inline(always)]
-    pub fn set_cpu_quota(&mut self, quota_us: i64, period_us: u64) { self.cpu_quota_us = quota_us; self.cpu_period_us = period_us; }
+    pub fn set_cpu_quota(&mut self, quota_us: i64, period_us: u64) {
+        self.cpu_quota_us = quota_us;
+        self.cpu_period_us = period_us;
+    }
     #[inline(always)]
-    pub fn set_mem_limit(&mut self, hard: u64, soft: u64) { self.mem_limit = hard; self.mem_soft = soft; }
+    pub fn set_mem_limit(&mut self, hard: u64, soft: u64) {
+        self.mem_limit = hard;
+        self.mem_soft = soft;
+    }
 
     pub fn charge_cpu(&mut self, us: u64) {
         self.cpu_usage_us += us;
@@ -97,30 +116,47 @@ impl AppCgroup {
 
     #[inline]
     pub fn charge_mem(&mut self, bytes: u64) -> bool {
-        if self.mem_usage + bytes > self.mem_limit { self.state = EnforcementState::OverLimit; return false; }
+        if self.mem_usage + bytes > self.mem_limit {
+            self.state = EnforcementState::OverLimit;
+            return false;
+        }
         self.mem_usage += bytes;
-        if self.mem_usage > self.mem_soft { self.state = EnforcementState::OverLimit; }
+        if self.mem_usage > self.mem_soft {
+            self.state = EnforcementState::OverLimit;
+        }
         true
     }
 
     #[inline(always)]
-    pub fn uncharge_mem(&mut self, bytes: u64) { self.mem_usage = self.mem_usage.saturating_sub(bytes); }
+    pub fn uncharge_mem(&mut self, bytes: u64) {
+        self.mem_usage = self.mem_usage.saturating_sub(bytes);
+    }
 
     #[inline]
     pub fn reset_period(&mut self) {
         self.cpu_usage_us = 0;
         self.burst_used_us = 0;
-        if self.state == EnforcementState::Throttled || self.state == EnforcementState::Burst { self.state = EnforcementState::Normal; }
+        if self.state == EnforcementState::Throttled || self.state == EnforcementState::Burst {
+            self.state = EnforcementState::Normal;
+        }
     }
 
     #[inline(always)]
     pub fn cpu_util_pct(&self) -> f64 {
-        if self.cpu_quota_us <= 0 { 0.0 } else { self.cpu_usage_us as f64 / self.cpu_quota_us as f64 * 100.0 }
+        if self.cpu_quota_us <= 0 {
+            0.0
+        } else {
+            self.cpu_usage_us as f64 / self.cpu_quota_us as f64 * 100.0
+        }
     }
 
     #[inline(always)]
     pub fn mem_util_pct(&self) -> f64 {
-        if self.mem_limit == u64::MAX { 0.0 } else { self.mem_usage as f64 / self.mem_limit as f64 * 100.0 }
+        if self.mem_limit == u64::MAX {
+            0.0
+        } else {
+            self.mem_usage as f64 / self.mem_limit as f64 * 100.0
+        }
     }
 }
 
@@ -165,14 +201,26 @@ pub struct AppsCgroupCtrl {
 }
 
 impl AppsCgroupCtrl {
-    pub fn new() -> Self { Self { cgroups: BTreeMap::new(), events: Vec::new(), stats: AppCgroupStats::default(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            cgroups: BTreeMap::new(),
+            events: Vec::new(),
+            stats: AppCgroupStats::default(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, name: String, parent: Option<u64>) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         let cg = AppCgroup::new(id, name, parent);
         self.cgroups.insert(id, cg);
-        if let Some(pid) = parent { if let Some(p) = self.cgroups.get_mut(&pid) { p.children.push(id); } }
+        if let Some(pid) = parent {
+            if let Some(p) = self.cgroups.get_mut(&pid) {
+                p.children.push(id);
+            }
+        }
         id
     }
 
@@ -182,7 +230,12 @@ impl AppsCgroupCtrl {
             let old = cg.state;
             cg.charge_cpu(us);
             if cg.state == EnforcementState::Throttled && old != EnforcementState::Throttled {
-                self.events.push(AppCgroupEvent { cgroup_id: id, kind: AppCgroupEventKind::Throttled, ts, value: cg.cpu_usage_us });
+                self.events.push(AppCgroupEvent {
+                    cgroup_id: id,
+                    kind: AppCgroupEventKind::Throttled,
+                    ts,
+                    value: cg.cpu_usage_us,
+                });
             }
         }
     }
@@ -191,33 +244,67 @@ impl AppsCgroupCtrl {
     pub fn charge_mem(&mut self, id: u64, bytes: u64, ts: u64) -> bool {
         if let Some(cg) = self.cgroups.get_mut(&id) {
             let ok = cg.charge_mem(bytes);
-            if !ok { self.events.push(AppCgroupEvent { cgroup_id: id, kind: AppCgroupEventKind::OverMemLimit, ts, value: cg.mem_usage }); }
+            if !ok {
+                self.events.push(AppCgroupEvent {
+                    cgroup_id: id,
+                    kind: AppCgroupEventKind::OverMemLimit,
+                    ts,
+                    value: cg.mem_usage,
+                });
+            }
             ok
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn uncharge_mem(&mut self, id: u64, bytes: u64) { if let Some(cg) = self.cgroups.get_mut(&id) { cg.uncharge_mem(bytes); } }
+    pub fn uncharge_mem(&mut self, id: u64, bytes: u64) {
+        if let Some(cg) = self.cgroups.get_mut(&id) {
+            cg.uncharge_mem(bytes);
+        }
+    }
 
     #[inline]
     pub fn reset_periods(&mut self, ts: u64) {
         let ids: Vec<u64> = self.cgroups.keys().copied().collect();
-        for id in ids { if let Some(cg) = self.cgroups.get_mut(&id) { cg.reset_period(); } }
-        self.events.push(AppCgroupEvent { cgroup_id: 0, kind: AppCgroupEventKind::PeriodReset, ts, value: 0 });
+        for id in ids {
+            if let Some(cg) = self.cgroups.get_mut(&id) {
+                cg.reset_period();
+            }
+        }
+        self.events.push(AppCgroupEvent {
+            cgroup_id: 0,
+            kind: AppCgroupEventKind::PeriodReset,
+            ts,
+            value: 0,
+        });
     }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_cgroups = self.cgroups.len();
-        self.stats.throttled_count = self.cgroups.values().filter(|c| c.state == EnforcementState::Throttled).count();
-        self.stats.over_limit_count = self.cgroups.values().filter(|c| c.state == EnforcementState::OverLimit).count();
+        self.stats.throttled_count = self
+            .cgroups
+            .values()
+            .filter(|c| c.state == EnforcementState::Throttled)
+            .count();
+        self.stats.over_limit_count = self
+            .cgroups
+            .values()
+            .filter(|c| c.state == EnforcementState::OverLimit)
+            .count();
         self.stats.total_cpu_usage_us = self.cgroups.values().map(|c| c.cpu_usage_us).sum();
         self.stats.total_mem_usage = self.cgroups.values().map(|c| c.mem_usage).sum();
         self.stats.total_throttle_events = self.cgroups.values().map(|c| c.nr_throttled).sum();
     }
 
     #[inline(always)]
-    pub fn cgroup(&self, id: u64) -> Option<&AppCgroup> { self.cgroups.get(&id) }
+    pub fn cgroup(&self, id: u64) -> Option<&AppCgroup> {
+        self.cgroups.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppCgroupStats { &self.stats }
+    pub fn stats(&self) -> &AppCgroupStats {
+        &self.stats
+    }
 }

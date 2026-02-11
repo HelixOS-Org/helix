@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -85,7 +84,8 @@ pub struct ZoneCompactState {
 impl ZoneCompactState {
     pub fn new(zone_name: String, zone_id: u32) -> Self {
         Self {
-            zone_name, zone_id,
+            zone_name,
+            zone_id,
             free_pages: 0,
             free_blocks_order: [0; 11],
             fragmentation_index: 0.0,
@@ -103,13 +103,17 @@ impl ZoneCompactState {
     #[inline]
     pub fn success_rate(&self) -> f64 {
         let total = self.compact_success + self.compact_fail;
-        if total == 0 { return 1.0; }
+        if total == 0 {
+            return 1.0;
+        }
         self.compact_success as f64 / total as f64
     }
 
     #[inline(always)]
     pub fn efficiency(&self) -> f64 {
-        if self.compact_pages_scanned == 0 { return 0.0; }
+        if self.compact_pages_scanned == 0 {
+            return 0.0;
+        }
         self.compact_pages_moved as f64 / self.compact_pages_scanned as f64
     }
 
@@ -132,10 +136,12 @@ impl ZoneCompactState {
 
     #[inline]
     pub fn external_fragmentation(&self) -> f64 {
-        if self.free_pages == 0 { return 1.0; }
-        let high_order: u64 = (4..11).map(|i| {
-            (self.free_blocks_order[i] as u64) << i
-        }).sum();
+        if self.free_pages == 0 {
+            return 1.0;
+        }
+        let high_order: u64 = (4..11)
+            .map(|i| (self.free_blocks_order[i] as u64) << i)
+            .sum();
         1.0 - (high_order as f64 / self.free_pages as f64)
     }
 }
@@ -156,7 +162,9 @@ pub struct CompactEvent {
 impl CompactEvent {
     #[inline(always)]
     pub fn throughput(&self) -> f64 {
-        if self.duration_us == 0 { return 0.0; }
+        if self.duration_us == 0 {
+            return 0.0;
+        }
         self.pages_moved as f64 / (self.duration_us as f64 / 1_000_000.0)
     }
 }
@@ -189,7 +197,9 @@ impl MigrationScanner {
     #[inline]
     pub fn progress(&self) -> f64 {
         let total = self.pfn_free_start.saturating_sub(self.pfn_migrate_start);
-        if total == 0 { return 1.0; }
+        if total == 0 {
+            return 1.0;
+        }
         let done = self.pfn_migrate_end.saturating_sub(self.pfn_migrate_start)
             + self.pfn_free_start.saturating_sub(self.pfn_free_end);
         (done as f64 / total as f64).min(1.0)
@@ -233,9 +243,12 @@ impl HolisticMemoryCompact {
             history: VecDeque::new(),
             max_history: 2048,
             stats: CompactStats {
-                total_attempts: 0, total_success: 0,
-                total_pages_moved: 0, total_pages_scanned: 0,
-                avg_duration_us: 0, proactive_triggered: 0,
+                total_attempts: 0,
+                total_success: 0,
+                total_pages_moved: 0,
+                total_pages_scanned: 0,
+                avg_duration_us: 0,
+                proactive_triggered: 0,
                 direct_stalls: 0,
             },
             proactive_enabled: true,
@@ -250,14 +263,21 @@ impl HolisticMemoryCompact {
 
     pub fn record_event(&mut self, event: CompactEvent) {
         self.stats.total_attempts += 1;
-        if event.result == CompactResult::Success { self.stats.total_success += 1; }
+        if event.result == CompactResult::Success {
+            self.stats.total_success += 1;
+        }
         self.stats.total_pages_moved += event.pages_moved;
         self.stats.total_pages_scanned += event.pages_scanned;
-        if event.mode == CompactMode::Direct { self.stats.direct_stalls += 1; }
-        if event.mode == CompactMode::Proactive { self.stats.proactive_triggered += 1; }
+        if event.mode == CompactMode::Direct {
+            self.stats.direct_stalls += 1;
+        }
+        if event.mode == CompactMode::Proactive {
+            self.stats.proactive_triggered += 1;
+        }
 
         let n = self.stats.total_attempts;
-        self.stats.avg_duration_us = ((self.stats.avg_duration_us * (n - 1)) + event.duration_us) / n;
+        self.stats.avg_duration_us =
+            ((self.stats.avg_duration_us * (n - 1)) + event.duration_us) / n;
 
         if let Some(zone) = self.zones.get_mut(&event.zone_id) {
             zone.compact_considered += 1;
@@ -278,7 +298,8 @@ impl HolisticMemoryCompact {
 
     #[inline]
     pub fn zones_needing_compaction(&self, order: u8) -> Vec<u32> {
-        self.zones.iter()
+        self.zones
+            .iter()
             .filter(|(_, z)| z.needs_compaction(order))
             .map(|(&id, _)| id)
             .collect()
@@ -286,7 +307,9 @@ impl HolisticMemoryCompact {
 
     #[inline]
     pub fn most_fragmented_zones(&self, n: usize) -> Vec<(u32, f64)> {
-        let mut v: Vec<_> = self.zones.iter()
+        let mut v: Vec<_> = self
+            .zones
+            .iter()
             .map(|(&id, z)| (id, z.external_fragmentation()))
             .collect();
         v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
@@ -305,8 +328,11 @@ impl HolisticMemoryCompact {
 
     #[inline]
     pub fn proactive_candidates(&self) -> Vec<u32> {
-        if !self.proactive_enabled { return Vec::new(); }
-        self.zones.iter()
+        if !self.proactive_enabled {
+            return Vec::new();
+        }
+        self.zones
+            .iter()
             .filter(|(_, z)| z.fragmentation_index > self.proactive_threshold)
             .map(|(&id, _)| id)
             .collect()

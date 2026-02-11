@@ -125,14 +125,30 @@ impl SessionCapabilities {
     /// Count active capabilities
     pub fn count(&self) -> u32 {
         let mut c = 0u32;
-        if self.hints { c += 1; }
-        if self.advisories { c += 1; }
-        if self.negotiation { c += 1; }
-        if self.coop_scheduling { c += 1; }
-        if self.memory_coop { c += 1; }
-        if self.io_coop { c += 1; }
-        if self.shared_memory { c += 1; }
-        if self.events { c += 1; }
+        if self.hints {
+            c += 1;
+        }
+        if self.advisories {
+            c += 1;
+        }
+        if self.negotiation {
+            c += 1;
+        }
+        if self.coop_scheduling {
+            c += 1;
+        }
+        if self.memory_coop {
+            c += 1;
+        }
+        if self.io_coop {
+            c += 1;
+        }
+        if self.shared_memory {
+            c += 1;
+        }
+        if self.events {
+            c += 1;
+        }
         c
     }
 }
@@ -332,7 +348,9 @@ impl SessionManager {
     /// Get session for a PID
     #[inline(always)]
     pub fn get_by_pid(&self, pid: u64) -> Option<&Session> {
-        self.pid_sessions.get(&pid).and_then(|id| self.sessions.get(&id.0))
+        self.pid_sessions
+            .get(&pid)
+            .and_then(|id| self.sessions.get(&id.0))
     }
 
     /// Get mutable session for a PID
@@ -372,7 +390,8 @@ impl SessionManager {
     pub fn create_group(&mut self, leader_pid: u64, timestamp: u64) -> u64 {
         let gid = self.next_group_id;
         self.next_group_id += 1;
-        self.groups.insert(gid, SessionGroup::new(gid, leader_pid, timestamp));
+        self.groups
+            .insert(gid, SessionGroup::new(gid, leader_pid, timestamp));
         gid
     }
 

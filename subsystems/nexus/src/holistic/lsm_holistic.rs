@@ -25,7 +25,13 @@ pub struct LsmFinding {
 
 impl LsmFinding {
     pub fn new(metric: LsmHolisticMetric) -> Self {
-        Self { metric, score: 0, active_modules: 0, conflict_count: 0, agreement_rate: 1.0 }
+        Self {
+            metric,
+            score: 0,
+            active_modules: 0,
+            conflict_count: 0,
+            agreement_rate: 1.0,
+        }
     }
 }
 
@@ -47,15 +53,25 @@ pub struct HolisticLsm {
 
 impl HolisticLsm {
     pub fn new() -> Self {
-        Self { stats: LsmHolisticStats { total_analyses: 0, conflicts_detected: 0, avg_agreement: 1.0, max_stack_depth: 0 } }
+        Self {
+            stats: LsmHolisticStats {
+                total_analyses: 0,
+                conflicts_detected: 0,
+                avg_agreement: 1.0,
+                max_stack_depth: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn analyze(&mut self, finding: &LsmFinding) {
         self.stats.total_analyses += 1;
         self.stats.conflicts_detected += finding.conflict_count as u64;
-        if finding.active_modules > self.stats.max_stack_depth { self.stats.max_stack_depth = finding.active_modules; }
+        if finding.active_modules > self.stats.max_stack_depth {
+            self.stats.max_stack_depth = finding.active_modules;
+        }
         let n = self.stats.total_analyses as f64;
-        self.stats.avg_agreement = self.stats.avg_agreement * ((n - 1.0) / n) + finding.agreement_rate / n;
+        self.stats.avg_agreement =
+            self.stats.avg_agreement * ((n - 1.0) / n) + finding.agreement_rate / n;
     }
 }

@@ -85,7 +85,9 @@ impl CoopWritebackManager {
         if matches!(reason, CoopWritebackReason::MemoryPressure) {
             self.stats.pressure_events += 1;
         }
-        let candidates: Vec<u64> = self.dirty_inodes.iter()
+        let candidates: Vec<u64> = self
+            .dirty_inodes
+            .iter()
             .filter(|(_, e)| !e.in_progress)
             .map(|(&ino, _)| ino)
             .collect();

@@ -15,8 +15,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -367,12 +366,15 @@ impl HolisticEvolution {
         self.stats.current_generation = self.generation;
         self.stats.peak_fitness = peak;
         self.stats.elite_count = elite;
-        let avg = if alive_count > 0 { sum_fit / alive_count } else { 0 };
+        let avg = if alive_count > 0 {
+            sum_fit / alive_count
+        } else {
+            0
+        };
         self.stats.avg_fitness = avg;
         self.stats.ema_fitness = ema_update(self.stats.ema_fitness, avg);
         if self.tick > 0 {
-            self.stats.evolution_rate_per_1k =
-                self.generation.saturating_mul(1_000) / self.tick;
+            self.stats.evolution_rate_per_1k = self.generation.saturating_mul(1_000) / self.tick;
         }
     }
 
@@ -380,7 +382,11 @@ impl HolisticEvolution {
         let len = a.len().min(b.len());
         let mut diff: u64 = 0;
         for i in 0..len {
-            diff = diff.wrapping_add(if a[i] > b[i] { a[i] - b[i] } else { b[i] - a[i] });
+            diff = diff.wrapping_add(if a[i] > b[i] {
+                a[i] - b[i]
+            } else {
+                b[i] - a[i]
+            });
         }
         if len > 0 { diff / len as u64 } else { 0 }
     }
@@ -482,7 +488,8 @@ impl HolisticEvolution {
             }
             fitness_before = cfg.fitness;
             // Re-evaluate with slight randomness
-            cfg.throughput_score = ema_update(cfg.throughput_score, 3_000 + self.rng.next() % 7_001);
+            cfg.throughput_score =
+                ema_update(cfg.throughput_score, 3_000 + self.rng.next() % 7_001);
             cfg.evaluate_fitness();
             fitness_after = cfg.fitness;
         }
@@ -584,7 +591,10 @@ impl HolisticEvolution {
         let before_pop = self.population.values().filter(|c| c.alive).count() as u64;
 
         // Kill unfit
-        let threshold = self.stats.avg_fitness.saturating_sub(EXTINCTION_THRESHOLD_BPS);
+        let threshold = self
+            .stats
+            .avg_fitness
+            .saturating_sub(EXTINCTION_THRESHOLD_BPS);
         let mut extinctions: u64 = 0;
         let to_kill: Vec<u64> = self
             .population
@@ -664,9 +674,8 @@ impl HolisticEvolution {
                 if dist < SPECIATION_DISTANCE_BPS {
                     assigned.insert(*ch2, sh);
                     member_count += 1;
-                    sum_fit = sum_fit.wrapping_add(
-                        self.population.get(ch2).map(|c| c.fitness).unwrap_or(0),
-                    );
+                    sum_fit = sum_fit
+                        .wrapping_add(self.population.get(ch2).map(|c| c.fitness).unwrap_or(0));
                     if let Some(cfg) = self.population.get_mut(ch2) {
                         cfg.species_hash = sh;
                     }
@@ -677,7 +686,11 @@ impl HolisticEvolution {
                 cfg.species_hash = sh;
             }
 
-            let avg_fit = if member_count > 0 { sum_fit / member_count } else { 0 };
+            let avg_fit = if member_count > 0 {
+                sum_fit / member_count
+            } else {
+                0
+            };
             let sp = Species {
                 species_hash: sh,
                 representative_hash: *ch,

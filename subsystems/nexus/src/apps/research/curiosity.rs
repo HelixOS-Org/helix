@@ -11,8 +11,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -229,7 +228,8 @@ impl AppsCuriosityEngine {
             } else {
                 f32::MAX // unexplored → always selected
             };
-            let exploration_bonus = UCB_C * sqrt_approx(ln_approx(total_n) / (frontier.visits.max(1) as f32));
+            let exploration_bonus =
+                UCB_C * sqrt_approx(ln_approx(total_n) / (frontier.visits.max(1) as f32));
             let surprise_factor = 1.0 + frontier.surprise_history * SURPRISE_BOOST;
             let ucb = avg_reward * surprise_factor + exploration_bonus;
 
@@ -247,7 +247,8 @@ impl AppsCuriosityEngine {
             self.budget_spent += 1;
 
             let util = self.budget_spent as f32 / self.budget_total.max(1) as f32;
-            self.stats.budget_utilization = EMA_ALPHA * util + (1.0 - EMA_ALPHA) * self.stats.budget_utilization;
+            self.stats.budget_utilization =
+                EMA_ALPHA * util + (1.0 - EMA_ALPHA) * self.stats.budget_utilization;
 
             Some(frontier.clone())
         } else {
@@ -347,7 +348,12 @@ impl AppsCuriosityEngine {
 
     /// Record a curiosity reward from a completed exploration.
     #[inline]
-    pub fn curiosity_reward(&mut self, frontier_id: u64, raw_reward: f32, surprise: f32) -> CuriosityReward {
+    pub fn curiosity_reward(
+        &mut self,
+        frontier_id: u64,
+        raw_reward: f32,
+        surprise: f32,
+    ) -> CuriosityReward {
         self.tick += 1;
         let surprise_bonus = surprise * SURPRISE_BOOST;
         let total = raw_reward + surprise_bonus;
@@ -360,7 +366,8 @@ impl AppsCuriosityEngine {
         }
 
         self.stats.ema_reward = EMA_ALPHA * total + (1.0 - EMA_ALPHA) * self.stats.ema_reward;
-        self.stats.ema_surprise = EMA_ALPHA * surprise + (1.0 - EMA_ALPHA) * self.stats.ema_surprise;
+        self.stats.ema_surprise =
+            EMA_ALPHA * surprise + (1.0 - EMA_ALPHA) * self.stats.ema_surprise;
 
         let record = CuriosityReward {
             exploration_id: frontier_id,

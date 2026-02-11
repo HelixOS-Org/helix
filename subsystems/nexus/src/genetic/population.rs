@@ -524,7 +524,7 @@ mod tests {
     use core::sync::atomic::AtomicU64;
 
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     fn create_test_individual(id: u64, fitness: f64) -> Individual {
         let counter = AtomicU64::new(1);

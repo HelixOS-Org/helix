@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Batch operation type
@@ -38,7 +37,13 @@ pub struct BatchParticipant {
 
 impl BatchParticipant {
     pub fn new(id: u32, now: u64) -> Self {
-        Self { id, state: ParticipantState::Waiting, joined_at: now, ready_at: 0, result: None }
+        Self {
+            id,
+            state: ParticipantState::Waiting,
+            joined_at: now,
+            ready_at: 0,
+            result: None,
+        }
     }
 
     #[inline]
@@ -50,7 +55,11 @@ impl BatchParticipant {
 
     #[inline(always)]
     pub fn wait_time(&self) -> u64 {
-        if self.ready_at > 0 { self.ready_at - self.joined_at } else { 0 }
+        if self.ready_at > 0 {
+            self.ready_at - self.joined_at
+        } else {
+            0
+        }
     }
 }
 
@@ -76,16 +85,27 @@ impl BatchGroup {
             _ => required,
         };
         Self {
-            id, op_type, participants: Vec::new(), required_count: required,
-            quorum_size: quorum, timeout_ns: timeout, created_at: now,
-            completed_at: 0, is_resolved: false, success: false,
+            id,
+            op_type,
+            participants: Vec::new(),
+            required_count: required,
+            quorum_size: quorum,
+            timeout_ns: timeout,
+            created_at: now,
+            completed_at: 0,
+            is_resolved: false,
+            success: false,
         }
     }
 
     #[inline]
     pub fn add_participant(&mut self, pid: u32, now: u64) -> bool {
-        if self.is_resolved { return false; }
-        if self.participants.iter().any(|p| p.id == pid) { return false; }
+        if self.is_resolved {
+            return false;
+        }
+        if self.participants.iter().any(|p| p.id == pid) {
+            return false;
+        }
         self.participants.push(BatchParticipant::new(pid, now));
         true
     }
@@ -103,7 +123,10 @@ impl BatchGroup {
 
     #[inline(always)]
     pub fn ready_count(&self) -> u32 {
-        self.participants.iter().filter(|p| p.state == ParticipantState::Ready).count() as u32
+        self.participants
+            .iter()
+            .filter(|p| p.state == ParticipantState::Ready)
+            .count() as u32
     }
 
     #[inline]
@@ -112,14 +135,14 @@ impl BatchGroup {
             BatchOpType::AllComplete => self.ready_count() >= self.required_count,
             BatchOpType::AnyComplete => self.ready_count() >= 1,
             BatchOpType::Quorum => self.ready_count() >= self.quorum_size,
-            BatchOpType::Ordered => {
-                self.ready_count() >= self.required_count
-            }
+            BatchOpType::Ordered => self.ready_count() >= self.required_count,
         }
     }
 
     pub fn check_timeout(&mut self, now: u64) -> bool {
-        if self.is_resolved { return false; }
+        if self.is_resolved {
+            return false;
+        }
         if self.timeout_ns > 0 && now.saturating_sub(self.created_at) >= self.timeout_ns {
             for p in &mut self.participants {
                 if p.state == ParticipantState::Waiting {
@@ -135,7 +158,9 @@ impl BatchGroup {
     }
 
     pub fn try_resolve(&mut self, now: u64) -> bool {
-        if self.is_resolved { return false; }
+        if self.is_resolved {
+            return false;
+        }
         if self.is_complete() {
             for p in &mut self.participants {
                 if p.state == ParticipantState::Ready {
@@ -152,12 +177,18 @@ impl BatchGroup {
 
     #[inline(always)]
     pub fn duration(&self) -> u64 {
-        if self.completed_at > 0 { self.completed_at - self.created_at } else { 0 }
+        if self.completed_at > 0 {
+            self.completed_at - self.created_at
+        } else {
+            0
+        }
     }
 
     #[inline(always)]
     pub fn completion_ratio(&self) -> f64 {
-        if self.required_count == 0 { return 0.0; }
+        if self.required_count == 0 {
+            return 0.0;
+        }
         self.ready_count() as f64 / self.required_count as f64
     }
 }
@@ -189,25 +220,39 @@ pub struct CoopBatchSync {
 impl CoopBatchSync {
     pub fn new(max_history: usize) -> Self {
         Self {
-            groups: BTreeMap::new(), completed: VecDeque::new(),
-            max_completed: max_history, next_id: 1,
-            total_created: 0, total_completed: 0,
-            total_timed_out: 0, total_completion_ns: 0,
+            groups: BTreeMap::new(),
+            completed: VecDeque::new(),
+            max_completed: max_history,
+            next_id: 1,
+            total_created: 0,
+            total_completed: 0,
+            total_timed_out: 0,
+            total_completion_ns: 0,
         }
     }
 
     #[inline]
-    pub fn create_group(&mut self, op_type: BatchOpType, required: u32, timeout: u64, now: u64) -> u64 {
+    pub fn create_group(
+        &mut self,
+        op_type: BatchOpType,
+        required: u32,
+        timeout: u64,
+        now: u64,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         self.total_created += 1;
-        self.groups.insert(id, BatchGroup::new(id, op_type, required, timeout, now));
+        self.groups
+            .insert(id, BatchGroup::new(id, op_type, required, timeout, now));
         id
     }
 
     #[inline(always)]
     pub fn join(&mut self, group_id: u64, pid: u32, now: u64) -> bool {
-        self.groups.get_mut(&group_id).map(|g| g.add_participant(pid, now)).unwrap_or(false)
+        self.groups
+            .get_mut(&group_id)
+            .map(|g| g.add_participant(pid, now))
+            .unwrap_or(false)
     }
 
     pub fn signal_ready(&mut self, group_id: u64, pid: u32, result: i64, now: u64) -> bool {
@@ -236,13 +281,17 @@ impl CoopBatchSync {
     }
 
     pub fn collect_resolved(&mut self) -> Vec<u64> {
-        let resolved: Vec<u64> = self.groups.iter()
+        let resolved: Vec<u64> = self
+            .groups
+            .iter()
             .filter(|(_, g)| g.is_resolved)
             .map(|(&id, _)| id)
             .collect();
         for id in &resolved {
             if let Some(g) = self.groups.remove(id) {
-                if self.completed.len() >= self.max_completed { self.completed.remove(0); }
+                if self.completed.len() >= self.max_completed {
+                    self.completed.remove(0);
+                }
                 self.completed.push_back(g);
             }
         }
@@ -250,8 +299,11 @@ impl CoopBatchSync {
     }
 
     pub fn stats(&self) -> BatchSyncStats {
-        let total_parts: u64 = self.groups.values()
-            .map(|g| g.participants.len() as u64).sum();
+        let total_parts: u64 = self
+            .groups
+            .values()
+            .map(|g| g.participants.len() as u64)
+            .sum();
         BatchSyncStats {
             active_groups: self.groups.len() as u32,
             total_created: self.total_created,
@@ -260,7 +312,9 @@ impl CoopBatchSync {
             total_participants: total_parts,
             avg_completion_ns: if self.total_completed > 0 {
                 self.total_completion_ns / self.total_completed
-            } else { 0 },
+            } else {
+                0
+            },
         }
     }
 }

@@ -9,8 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -98,7 +97,11 @@ impl DriftDetector {
         let sum: f64 = self.window.iter().sum();
         self.mean = sum / n;
 
-        let var_sum: f64 = self.window.iter().map(|x| (x - self.mean) * (x - self.mean)).sum();
+        let var_sum: f64 = self
+            .window
+            .iter()
+            .map(|x| (x - self.mean) * (x - self.mean))
+            .sum();
         self.variance = if n > 1.0 { var_sum / (n - 1.0) } else { 0.0 };
 
         // Check for drift by comparing halves
@@ -266,7 +269,12 @@ impl MetricAnomalyTracker {
         }
         let sum: f64 = self.values.iter().sum();
         self.mean = sum / n;
-        let var: f64 = self.values.iter().map(|x| (x - self.mean) * (x - self.mean)).sum::<f64>() / (n - 1.0);
+        let var: f64 = self
+            .values
+            .iter()
+            .map(|x| (x - self.mean) * (x - self.mean))
+            .sum::<f64>()
+            / (n - 1.0);
         self.stddev = libm::sqrt(var.max(0.0));
     }
 }
@@ -321,7 +329,9 @@ impl HolisticAnomalyV2 {
     /// Record metric value
     pub fn record(&mut self, metric_name: &str, value: f64, now: u64) -> Option<HolisticAnomaly> {
         let hash = Self::hash_metric(metric_name);
-        let tracker = self.trackers.entry(hash)
+        let tracker = self
+            .trackers
+            .entry(hash)
             .or_insert_with(|| MetricAnomalyTracker::new(hash, 3.0));
 
         let anomaly = tracker.add(value, now);
@@ -347,7 +357,9 @@ impl HolisticAnomalyV2 {
 
     fn update_stats(&mut self) {
         self.stats.tracked_metrics = self.trackers.len();
-        self.stats.active_drifts = self.trackers.values()
+        self.stats.active_drifts = self
+            .trackers
+            .values()
             .filter(|t| t.drift.drift_detected)
             .count();
         self.stats.recent_anomalies = self.recent.len();

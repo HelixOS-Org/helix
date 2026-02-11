@@ -2,9 +2,10 @@
 //! NEXUS Coop — Thread (cooperative thread management)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Thread cooperation level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,7 +76,7 @@ impl CoopThreadManager {
         match level {
             CoopThreadLevel::Cooperative => self.stats.cooperative_groups += 1,
             CoopThreadLevel::FullyMerged => self.stats.merged_groups += 1,
-            _ => {}
+            _ => {},
         }
     }
 

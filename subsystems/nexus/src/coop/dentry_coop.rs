@@ -2,11 +2,11 @@
 //! Coop dentry — cooperative dentry cache with shared negative lookups
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-
 /// Coop dentry state
 use alloc::string::String;
+
+use crate::fast::linear_map::LinearMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoopDentryState {
     Positive,
@@ -31,18 +31,39 @@ pub struct CoopDentryEntry {
 impl CoopDentryEntry {
     pub fn new(name: &[u8], parent_hash: u64) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in name { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { name_hash: h, parent_hash, inode: 0, state: CoopDentryState::Positive, shared_count: 1, hits: 0, last_revalidation: 0 }
+        for b in name {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            name_hash: h,
+            parent_hash,
+            inode: 0,
+            state: CoopDentryState::Positive,
+            shared_count: 1,
+            hits: 0,
+            last_revalidation: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn share(&mut self) { self.shared_count += 1; self.state = CoopDentryState::Shared; }
+    pub fn share(&mut self) {
+        self.shared_count += 1;
+        self.state = CoopDentryState::Shared;
+    }
     #[inline(always)]
-    pub fn hit(&mut self) { self.hits += 1; }
+    pub fn hit(&mut self) {
+        self.hits += 1;
+    }
     #[inline(always)]
-    pub fn invalidate(&mut self) { self.state = CoopDentryState::Dead; }
+    pub fn invalidate(&mut self) {
+        self.state = CoopDentryState::Dead;
+    }
     #[inline(always)]
-    pub fn make_negative(&mut self) { self.state = CoopDentryState::Negative; self.inode = 0; }
+    pub fn make_negative(&mut self) {
+        self.state = CoopDentryState::Negative;
+        self.inode = 0;
+    }
 }
 
 /// Coop dentry stats
@@ -65,7 +86,16 @@ pub struct CoopDentry {
 
 impl CoopDentry {
     pub fn new() -> Self {
-        Self { entries: BTreeMap::new(), stats: CoopDentryStats { total_lookups: 0, hits: 0, negative_hits: 0, shared_lookups: 0, invalidations: 0 } }
+        Self {
+            entries: BTreeMap::new(),
+            stats: CoopDentryStats {
+                total_lookups: 0,
+                hits: 0,
+                negative_hits: 0,
+                shared_lookups: 0,
+                invalidations: 0,
+            },
+        }
     }
 
     pub fn lookup(&mut self, name_hash: u64) -> Option<&CoopDentryEntry> {
@@ -73,9 +103,16 @@ impl CoopDentry {
         if let Some(entry) = self.entries.get_mut(&name_hash) {
             entry.hit();
             match entry.state {
-                CoopDentryState::Negative => { self.stats.negative_hits += 1; }
-                CoopDentryState::Shared => { self.stats.shared_lookups += 1; self.stats.hits += 1; }
-                _ => { self.stats.hits += 1; }
+                CoopDentryState::Negative => {
+                    self.stats.negative_hits += 1;
+                },
+                CoopDentryState::Shared => {
+                    self.stats.shared_lookups += 1;
+                    self.stats.hits += 1;
+                },
+                _ => {
+                    self.stats.hits += 1;
+                },
             }
         }
         self.entries.get(&name_hash)
@@ -90,7 +127,11 @@ impl CoopDentry {
 
     #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
-        if self.stats.total_lookups == 0 { 0.0 } else { self.stats.hits as f64 / self.stats.total_lookups as f64 }
+        if self.stats.total_lookups == 0 {
+            0.0
+        } else {
+            self.stats.hits as f64 / self.stats.total_lookups as f64
+        }
     }
 }
 
@@ -209,7 +250,9 @@ impl CoopDentryV2Manager {
     }
 
     pub fn prune(&mut self, max_age: u64) -> usize {
-        let to_prune: alloc::vec::Vec<u64> = self.cache.iter()
+        let to_prune: alloc::vec::Vec<u64> = self
+            .cache
+            .iter()
             .filter(|(_, e)| e.ref_count == 0 && e.last_validated < max_age)
             .map(|(&k, _)| k)
             .collect();

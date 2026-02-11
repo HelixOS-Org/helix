@@ -183,7 +183,8 @@ impl ProcessVfsProfile {
     /// Most common operation
     #[inline]
     pub fn most_common_op(&self) -> Option<u8> {
-        self.op_counts.iter()
+        self.op_counts
+            .iter()
             .max_by_key(|&(_, &count)| count)
             .map(|(&op, _)| op)
     }
@@ -301,7 +302,8 @@ impl BridgeVfsProxy {
             self.evict_stat();
         }
         let hash = Self::hash_path(path);
-        self.stat_cache.insert(hash, StatCacheEntry::new(hash, size, mode, now_ns));
+        self.stat_cache
+            .insert(hash, StatCacheEntry::new(hash, size, mode, now_ns));
         self.update_stats();
     }
 
@@ -316,7 +318,9 @@ impl BridgeVfsProxy {
 
     fn evict_dentry(&mut self) {
         // Evict least-hit entry
-        if let Some(&key) = self.dentry_cache.iter()
+        if let Some(&key) = self
+            .dentry_cache
+            .iter()
             .min_by_key(|(_, v)| v.hits)
             .map(|(k, _)| k)
         {
@@ -325,7 +329,9 @@ impl BridgeVfsProxy {
     }
 
     fn evict_stat(&mut self) {
-        if let Some(&key) = self.stat_cache.iter()
+        if let Some(&key) = self
+            .stat_cache
+            .iter()
             .min_by_key(|(_, v)| v.hits)
             .map(|(k, _)| k)
         {

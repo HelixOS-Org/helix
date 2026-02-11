@@ -8,13 +8,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
+use crate::fast::linear_map::LinearMap;
 use crate::math::F64Ext;
 use crate::types::Timestamp;
 
@@ -289,10 +289,7 @@ impl RegressionDetector {
             let current = metric.history.last().unwrap().value;
 
             // Compare against baseline or target
-            let baseline = baseline_values
-                .get(&metric.id)
-                
-                .unwrap_or(metric.target);
+            let baseline = baseline_values.get(&metric.id).unwrap_or(metric.target);
 
             let change = current - baseline;
             let change_percent = if baseline.abs() > f64::EPSILON {
@@ -547,7 +544,7 @@ pub enum TrendDirection {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     #[test]
     fn test_metric_registration() {

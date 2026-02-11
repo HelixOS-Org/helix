@@ -245,7 +245,11 @@ impl AppEmotionalProfile {
             sum_var += sig.variance;
             count += 1;
         }
-        self.emotional_volatility = if count > 0 { sum_var / count as f32 } else { 0.0 };
+        self.emotional_volatility = if count > 0 {
+            sum_var / count as f32
+        } else {
+            0.0
+        };
     }
 
     fn decay_all(&mut self) {
@@ -297,7 +301,11 @@ impl AppsEmotionEngine {
         }
         Self {
             profiles: BTreeMap::new(),
-            rng_state: if seed == 0 { 0xDEAD_BEEF_CAFE_1234 } else { seed },
+            rng_state: if seed == 0 {
+                0xDEAD_BEEF_CAFE_1234
+            } else {
+                seed
+            },
             tick: 0,
             total_evaluations: 0,
             landscape_emotion: EmotionKind::Confidence,

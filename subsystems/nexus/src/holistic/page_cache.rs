@@ -65,13 +65,17 @@ impl InodeCacheState {
     #[inline]
     pub fn hit_ratio(&self) -> f64 {
         let total = self.read_hits + self.read_misses;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.read_hits as f64 / total as f64
     }
 
     #[inline(always)]
     pub fn dirty_ratio(&self) -> f64 {
-        if self.cached_pages == 0 { return 0.0; }
+        if self.cached_pages == 0 {
+            return 0.0;
+        }
         self.dirty_pages as f64 / self.cached_pages as f64
     }
 }
@@ -184,13 +188,17 @@ pub struct GlobalCacheStats {
 impl GlobalCacheStats {
     #[inline(always)]
     pub fn cache_pressure(&self) -> f64 {
-        if self.total_memory_pages == 0 { return 0.0; }
+        if self.total_memory_pages == 0 {
+            return 0.0;
+        }
         self.total_cached_pages as f64 / self.total_memory_pages as f64
     }
 
     #[inline(always)]
     pub fn dirty_pressure(&self) -> f64 {
-        if self.total_memory_pages == 0 { return 0.0; }
+        if self.total_memory_pages == 0 {
+            return 0.0;
+        }
         self.total_dirty_pages as f64 / self.total_memory_pages as f64
     }
 }
@@ -231,28 +239,39 @@ impl HolisticPageCache {
     }
 
     pub fn record_read(&mut self, inode_id: u64, device_id: u32, hit: bool, pid: u64, now_ns: u64) {
-        let entry = self.inodes.entry(inode_id)
+        let entry = self
+            .inodes
+            .entry(inode_id)
             .or_insert_with(|| InodeCacheState::new(inode_id, device_id));
         entry.last_access_ns = now_ns;
-        if hit { entry.read_hits += 1; }
-        else {
+        if hit {
+            entry.read_hits += 1;
+        } else {
             entry.read_misses += 1;
             entry.cached_pages += 1;
         }
 
-        let proc = self.processes.entry(pid)
+        let proc = self
+            .processes
+            .entry(pid)
             .or_insert_with(|| ProcessCacheUsage::new(pid));
-        if !hit { proc.cached_pages += 1; }
+        if !hit {
+            proc.cached_pages += 1;
+        }
         let proc_total = proc.cached_pages;
         let proc_hits = entry.read_hits;
         proc.hit_ratio = if proc_total > 0 {
             proc_hits as f64 / (proc_hits + entry.read_misses) as f64
-        } else { 0.0 };
+        } else {
+            0.0
+        };
     }
 
     #[inline]
     pub fn record_write(&mut self, inode_id: u64, device_id: u32, pages: u64) {
-        let entry = self.inodes.entry(inode_id)
+        let entry = self
+            .inodes
+            .entry(inode_id)
             .or_insert_with(|| InodeCacheState::new(inode_id, device_id));
         entry.dirty_pages += pages;
         entry.write_count += 1;
@@ -277,10 +296,15 @@ impl HolisticPageCache {
     #[inline]
     pub fn writeback_mode(&self) -> WritebackMode {
         let dirty = self.stats.dirty_pressure();
-        if dirty > 0.20 { WritebackMode::Forced }
-        else if dirty > 0.15 { WritebackMode::Throttled }
-        else if dirty > 0.10 { WritebackMode::Periodic }
-        else { WritebackMode::Background }
+        if dirty > 0.20 {
+            WritebackMode::Forced
+        } else if dirty > 0.15 {
+            WritebackMode::Throttled
+        } else if dirty > 0.10 {
+            WritebackMode::Periodic
+        } else {
+            WritebackMode::Background
+        }
     }
 
     #[inline]
@@ -291,17 +315,27 @@ impl HolisticPageCache {
         let total_hits: u64 = self.inodes.values().map(|i| i.read_hits).sum();
         let total_misses: u64 = self.inodes.values().map(|i| i.read_misses).sum();
         let total = total_hits + total_misses;
-        self.stats.global_hit_ratio = if total > 0 { total_hits as f64 / total as f64 } else { 0.0 };
-        self.stats.thrashing_processes = self.processes.values()
-            .filter(|p| p.is_thrashing()).count();
+        self.stats.global_hit_ratio = if total > 0 {
+            total_hits as f64 / total as f64
+        } else {
+            0.0
+        };
+        self.stats.thrashing_processes =
+            self.processes.values().filter(|p| p.is_thrashing()).count();
     }
 
     #[inline(always)]
-    pub fn inode_cache(&self, id: u64) -> Option<&InodeCacheState> { self.inodes.get(&id) }
+    pub fn inode_cache(&self, id: u64) -> Option<&InodeCacheState> {
+        self.inodes.get(&id)
+    }
     #[inline(always)]
-    pub fn process_cache(&self, pid: u64) -> Option<&ProcessCacheUsage> { self.processes.get(&pid) }
+    pub fn process_cache(&self, pid: u64) -> Option<&ProcessCacheUsage> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &GlobalCacheStats { &self.stats }
+    pub fn stats(&self) -> &GlobalCacheStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -333,17 +367,30 @@ pub struct CachedPageV2 {
 
 impl CachedPageV2 {
     pub fn new(index: u64, inode: u64, now: u64) -> Self {
-        Self { index, inode, state: PageCacheStateV2::Uptodate, flags: 0, access_count: 1, last_access: now, dirty_since: 0 }
+        Self {
+            index,
+            inode,
+            state: PageCacheStateV2::Uptodate,
+            flags: 0,
+            access_count: 1,
+            last_access: now,
+            dirty_since: 0,
+        }
     }
 
     #[inline(always)]
     pub fn mark_dirty(&mut self, now: u64) {
         self.state = PageCacheStateV2::Dirty;
-        if self.dirty_since == 0 { self.dirty_since = now; }
+        if self.dirty_since == 0 {
+            self.dirty_since = now;
+        }
     }
 
     #[inline(always)]
-    pub fn access(&mut self, now: u64) { self.access_count += 1; self.last_access = now; }
+    pub fn access(&mut self, now: u64) {
+        self.access_count += 1;
+        self.last_access = now;
+    }
 }
 
 /// Radix tree node for page lookup
@@ -354,7 +401,12 @@ pub struct PageTreeNode {
 }
 
 impl PageTreeNode {
-    pub fn new() -> Self { Self { pages: BTreeMap::new(), nr_pages: 0 } }
+    pub fn new() -> Self {
+        Self {
+            pages: BTreeMap::new(),
+            nr_pages: 0,
+        }
+    }
 }
 
 /// Stats
@@ -378,27 +430,46 @@ pub struct HolisticPageCacheV2 {
 }
 
 impl HolisticPageCacheV2 {
-    pub fn new() -> Self { Self { inodes: BTreeMap::new(), total_lookups: 0, total_hits: 0 } }
+    pub fn new() -> Self {
+        Self {
+            inodes: BTreeMap::new(),
+            total_lookups: 0,
+            total_hits: 0,
+        }
+    }
 
     #[inline]
     pub fn find_or_create(&mut self, inode: u64, index: u64, now: u64) -> bool {
         self.total_lookups += 1;
         let tree = self.inodes.entry(inode).or_insert_with(PageTreeNode::new);
-        if let Some(page) = tree.pages.get_mut(&index) { page.access(now); self.total_hits += 1; true }
-        else { tree.pages.insert(index, CachedPageV2::new(index, inode, now)); tree.nr_pages += 1; false }
+        if let Some(page) = tree.pages.get_mut(&index) {
+            page.access(now);
+            self.total_hits += 1;
+            true
+        } else {
+            tree.pages
+                .insert(index, CachedPageV2::new(index, inode, now));
+            tree.nr_pages += 1;
+            false
+        }
     }
 
     #[inline]
     pub fn mark_dirty(&mut self, inode: u64, index: u64, now: u64) {
         if let Some(tree) = self.inodes.get_mut(&inode) {
-            if let Some(page) = tree.pages.get_mut(&index) { page.mark_dirty(now); }
+            if let Some(page) = tree.pages.get_mut(&index) {
+                page.mark_dirty(now);
+            }
         }
     }
 
     #[inline]
     pub fn evict(&mut self, inode: u64, index: u64) -> bool {
         if let Some(tree) = self.inodes.get_mut(&inode) {
-            if tree.pages.remove(&index).is_some() { tree.nr_pages -= 1; return true; }
+            if tree.pages.remove(&index).is_some() {
+                tree.nr_pages -= 1;
+                return true;
+            }
         }
         false
     }
@@ -406,10 +477,31 @@ impl HolisticPageCacheV2 {
     #[inline]
     pub fn stats(&self) -> PageCacheV2Stats {
         let total: u64 = self.inodes.values().map(|t| t.nr_pages).sum();
-        let dirty: u64 = self.inodes.values().flat_map(|t| t.pages.values()).filter(|p| p.state == PageCacheStateV2::Dirty).count() as u64;
-        let wb: u64 = self.inodes.values().flat_map(|t| t.pages.values()).filter(|p| p.state == PageCacheStateV2::Writeback).count() as u64;
-        let ratio = if self.total_lookups == 0 { 0.0 } else { self.total_hits as f64 / self.total_lookups as f64 };
-        PageCacheV2Stats { total_pages: total, dirty_pages: dirty, writeback_pages: wb, hit_ratio: ratio, total_lookups: self.total_lookups, total_hits: self.total_hits }
+        let dirty: u64 = self
+            .inodes
+            .values()
+            .flat_map(|t| t.pages.values())
+            .filter(|p| p.state == PageCacheStateV2::Dirty)
+            .count() as u64;
+        let wb: u64 = self
+            .inodes
+            .values()
+            .flat_map(|t| t.pages.values())
+            .filter(|p| p.state == PageCacheStateV2::Writeback)
+            .count() as u64;
+        let ratio = if self.total_lookups == 0 {
+            0.0
+        } else {
+            self.total_hits as f64 / self.total_lookups as f64
+        };
+        PageCacheV2Stats {
+            total_pages: total,
+            dirty_pages: dirty,
+            writeback_pages: wb,
+            hit_ratio: ratio,
+            total_lookups: self.total_lookups,
+            total_hits: self.total_hits,
+        }
     }
 }
 
@@ -428,10 +520,10 @@ pub enum PageGeneration {
 /// Folio order (log2 of pages in folio).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FolioOrder {
-    Order0,  // 1 page (4K)
-    Order2,  // 4 pages (16K)
-    Order4,  // 16 pages (64K)
-    Order9,  // 512 pages (2M)
+    Order0, // 1 page (4K)
+    Order2, // 4 pages (16K)
+    Order4, // 16 pages (64K)
+    Order9, // 512 pages (2M)
 }
 
 impl FolioOrder {
@@ -583,7 +675,10 @@ impl HolisticPageCacheV3 {
         let id = self.next_folio_id;
         self.next_folio_id += 1;
         let folio = PageCacheV3Folio::new(id, inode, offset, order);
-        self.inode_index.entry(inode).or_insert_with(Vec::new).push(id);
+        self.inode_index
+            .entry(inode)
+            .or_insert_with(Vec::new)
+            .push(id);
         self.folios.insert(id, folio);
         self.current_pages += pages;
         self.stats.total_folios += 1;

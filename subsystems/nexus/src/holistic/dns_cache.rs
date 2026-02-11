@@ -268,7 +268,9 @@ impl HolisticDnsCache {
 
     #[inline]
     pub fn gc_expired(&mut self, now_ns: u64) {
-        let expired: Vec<u64> = self.entries.iter()
+        let expired: Vec<u64> = self
+            .entries
+            .iter()
             .filter(|(_, e)| e.is_expired(now_ns))
             .map(|(&k, _)| k)
             .collect();

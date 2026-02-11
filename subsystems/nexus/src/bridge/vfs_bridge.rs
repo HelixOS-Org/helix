@@ -50,9 +50,20 @@ pub struct VfsBridgeRecord {
 impl VfsBridgeRecord {
     pub fn new(call_type: BridgeVfsCall, path: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         let comps = path.iter().filter(|&&b| b == b'/').count() as u32;
-        Self { call_type, result: BridgeVfsResult::Success, path_hash: h, fd: -1, bytes: 0, latency_ns: 0, path_components: comps }
+        Self {
+            call_type,
+            result: BridgeVfsResult::Success,
+            path_hash: h,
+            fd: -1,
+            bytes: 0,
+            latency_ns: 0,
+            path_components: comps,
+        }
     }
 }
 
@@ -76,7 +87,16 @@ pub struct BridgeVfs {
 
 impl BridgeVfs {
     pub fn new() -> Self {
-        Self { stats: VfsBridgeStats { total_calls: 0, reads: 0, writes: 0, errors: 0, total_bytes: 0, total_latency_ns: 0 } }
+        Self {
+            stats: VfsBridgeStats {
+                total_calls: 0,
+                reads: 0,
+                writes: 0,
+                errors: 0,
+                total_bytes: 0,
+                total_latency_ns: 0,
+            },
+        }
     }
 
     #[inline]
@@ -87,14 +107,20 @@ impl BridgeVfs {
         match rec.call_type {
             BridgeVfsCall::Read => self.stats.reads += 1,
             BridgeVfsCall::Write => self.stats.writes += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result != BridgeVfsResult::Success { self.stats.errors += 1; }
+        if rec.result != BridgeVfsResult::Success {
+            self.stats.errors += 1;
+        }
     }
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.stats.total_calls == 0 { 0 } else { self.stats.total_latency_ns / self.stats.total_calls }
+        if self.stats.total_calls == 0 {
+            0
+        } else {
+            self.stats.total_latency_ns / self.stats.total_calls
+        }
     }
 }
 
@@ -103,7 +129,15 @@ impl BridgeVfs {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VfsV2Op { Lookup, Create, Unlink, Rename, Mkdir, Rmdir, Symlink }
+pub enum VfsV2Op {
+    Lookup,
+    Create,
+    Unlink,
+    Rename,
+    Mkdir,
+    Rmdir,
+    Symlink,
+}
 
 /// VFS v2 record
 #[derive(Debug, Clone)]
@@ -117,20 +151,44 @@ pub struct VfsV2Record {
 }
 
 impl VfsV2Record {
-    pub fn new(op: VfsV2Op) -> Self { Self { op, inode: 0, parent_inode: 0, name_hash: 0, latency_ns: 0 } }
+    pub fn new(op: VfsV2Op) -> Self {
+        Self {
+            op,
+            inode: 0,
+            parent_inode: 0,
+            name_hash: 0,
+            latency_ns: 0,
+        }
+    }
 }
 
 /// VFS v2 bridge stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct VfsV2BridgeStats { pub total_ops: u64, pub lookups: u64, pub mutations: u64, pub errors: u64 }
+pub struct VfsV2BridgeStats {
+    pub total_ops: u64,
+    pub lookups: u64,
+    pub mutations: u64,
+    pub errors: u64,
+}
 
 /// Main bridge VFS v2
 #[derive(Debug)]
-pub struct BridgeVfsV2 { pub stats: VfsV2BridgeStats }
+pub struct BridgeVfsV2 {
+    pub stats: VfsV2BridgeStats,
+}
 
 impl BridgeVfsV2 {
-    pub fn new() -> Self { Self { stats: VfsV2BridgeStats { total_ops: 0, lookups: 0, mutations: 0, errors: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: VfsV2BridgeStats {
+                total_ops: 0,
+                lookups: 0,
+                mutations: 0,
+                errors: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &VfsV2Record) {
         self.stats.total_ops += 1;

@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Page fault type
@@ -73,7 +72,8 @@ pub struct AppMemRegion {
 impl AppMemRegion {
     pub fn new(start: u64, end: u64) -> Self {
         Self {
-            start, end,
+            start,
+            end,
             resident_pages: 0,
             fault_count: 0,
             hint: MadviseHint::Normal,
@@ -85,16 +85,24 @@ impl AppMemRegion {
     }
 
     #[inline(always)]
-    pub fn size(&self) -> u64 { self.end - self.start }
+    pub fn size(&self) -> u64 {
+        self.end - self.start
+    }
     #[inline(always)]
-    pub fn page_count(&self) -> u64 { self.size() / 4096 }
+    pub fn page_count(&self) -> u64 {
+        self.size() / 4096
+    }
     #[inline(always)]
-    pub fn contains(&self, addr: u64) -> bool { addr >= self.start && addr < self.end }
+    pub fn contains(&self, addr: u64) -> bool {
+        addr >= self.start && addr < self.end
+    }
 
     #[inline]
     pub fn residency(&self) -> f64 {
         let pages = self.page_count();
-        if pages == 0 { return 0.0; }
+        if pages == 0 {
+            return 0.0;
+        }
         self.resident_pages as f64 / pages as f64
     }
 }
@@ -152,9 +160,11 @@ impl AppVmState {
     pub fn record_fault(&mut self, addr: u64, fault_type: PageFaultType, latency: u64, ts: u64) {
         match fault_type {
             PageFaultType::Minor | PageFaultType::ZeroPage => self.minor_faults += 1,
-            PageFaultType::Major | PageFaultType::SwapIn | PageFaultType::FileBacked => self.major_faults += 1,
+            PageFaultType::Major | PageFaultType::SwapIn | PageFaultType::FileBacked => {
+                self.major_faults += 1
+            },
             PageFaultType::CopyOnWrite => self.cow_faults += 1,
-            _ => {}
+            _ => {},
         }
 
         if let Some(region) = self.regions.iter_mut().find(|r| r.contains(addr)) {
@@ -163,7 +173,10 @@ impl AppVmState {
         }
 
         self.fault_history.push_back(PageFaultRecord {
-            address: addr, fault_type, latency_ns: latency, timestamp_ns: ts,
+            address: addr,
+            fault_type,
+            latency_ns: latency,
+            timestamp_ns: ts,
         });
         while self.fault_history.len() > self.max_fault_history {
             self.fault_history.remove(0);
@@ -178,8 +191,8 @@ impl AppVmState {
                 MadviseHint::NoHugePage => region.huge_page_eligible = false,
                 MadviseHint::DontNeed => {
                     region.resident_pages = 0;
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
     }
@@ -190,7 +203,9 @@ impl AppVmState {
         let cutoff = ts.saturating_sub(window);
         let mut accessed = BTreeMap::new();
         for fault in self.fault_history.iter().rev() {
-            if fault.timestamp_ns < cutoff { break; }
+            if fault.timestamp_ns < cutoff {
+                break;
+            }
             let page = fault.address / 4096;
             *accessed.entry(page).or_insert(0u32) += 1;
         }
@@ -202,7 +217,9 @@ impl AppVmState {
             growth_rate: 0.0,
         };
         self.wss_estimates.push_back(est);
-        if self.wss_estimates.len() > 64 { self.wss_estimates.remove(0); }
+        if self.wss_estimates.len() > 64 {
+            self.wss_estimates.remove(0);
+        }
     }
 
     #[inline]
@@ -215,7 +232,9 @@ impl AppVmState {
 
     #[inline(always)]
     pub fn fault_rate(&self, window_faults: u64, window_ns: u64) -> f64 {
-        if window_ns == 0 { return 0.0; }
+        if window_ns == 0 {
+            return 0.0;
+        }
         window_faults as f64 / (window_ns as f64 / 1_000_000_000.0)
     }
 }
@@ -248,16 +267,27 @@ impl AppsVmMgr {
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64, max_history: usize) {
-        self.states.entry(pid).or_insert_with(|| AppVmState::new(pid, max_history));
+        self.states
+            .entry(pid)
+            .or_insert_with(|| AppVmState::new(pid, max_history));
     }
 
     #[inline(always)]
     pub fn add_region(&mut self, pid: u64, region: AppMemRegion) {
-        if let Some(state) = self.states.get_mut(&pid) { state.add_region(region); }
+        if let Some(state) = self.states.get_mut(&pid) {
+            state.add_region(region);
+        }
     }
 
     #[inline]
-    pub fn record_fault(&mut self, pid: u64, addr: u64, ftype: PageFaultType, latency: u64, ts: u64) {
+    pub fn record_fault(
+        &mut self,
+        pid: u64,
+        addr: u64,
+        ftype: PageFaultType,
+        latency: u64,
+        ts: u64,
+    ) {
         if let Some(state) = self.states.get_mut(&pid) {
             state.record_fault(addr, ftype, latency, ts);
         }
@@ -265,29 +295,40 @@ impl AppsVmMgr {
 
     #[inline(always)]
     pub fn apply_madvise(&mut self, pid: u64, addr: u64, hint: MadviseHint) {
-        if let Some(state) = self.states.get_mut(&pid) { state.apply_madvise(addr, hint); }
+        if let Some(state) = self.states.get_mut(&pid) {
+            state.apply_madvise(addr, hint);
+        }
     }
 
     #[inline(always)]
     pub fn estimate_all_wss(&mut self, ts: u64) {
-        for state in self.states.values_mut() { state.estimate_wss(ts); }
+        for state in self.states.values_mut() {
+            state.estimate_wss(ts);
+        }
     }
 
     #[inline(always)]
-    pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
+    pub fn remove_process(&mut self, pid: u64) {
+        self.states.remove(&pid);
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.states.len();
         self.stats.total_regions = self.states.values().map(|s| s.regions.len()).sum();
         self.stats.total_mapped_pages = self.states.values().map(|s| s.total_mapped_pages).sum();
-        self.stats.total_resident_pages = self.states.values().map(|s| s.total_resident_pages).sum();
+        self.stats.total_resident_pages =
+            self.states.values().map(|s| s.total_resident_pages).sum();
         self.stats.total_minor_faults = self.states.values().map(|s| s.minor_faults).sum();
         self.stats.total_major_faults = self.states.values().map(|s| s.major_faults).sum();
     }
 
     #[inline(always)]
-    pub fn app_state(&self, pid: u64) -> Option<&AppVmState> { self.states.get(&pid) }
+    pub fn app_state(&self, pid: u64) -> Option<&AppVmState> {
+        self.states.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsVmMgrStats { &self.stats }
+    pub fn stats(&self) -> &AppsVmMgrStats {
+        &self.stats
+    }
 }

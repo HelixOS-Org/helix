@@ -11,10 +11,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -217,12 +218,7 @@ impl BridgeKnowledgeBase {
     }
 
     /// Store a new knowledge entry.
-    pub fn store_knowledge(
-        &mut self,
-        category: &str,
-        content: &str,
-        confidence: f32,
-    ) -> u64 {
+    pub fn store_knowledge(&mut self, category: &str, content: &str, confidence: f32) -> u64 {
         self.tick += 1;
         let clamped_conf = confidence.max(MIN_CONFIDENCE).min(1.0);
         let id = fnv1a_hash(content.as_bytes()) ^ self.tick;
@@ -292,11 +288,7 @@ impl BridgeKnowledgeBase {
         let n_docs = self.entries.len().max(1) as f32;
 
         for &qt in &query_tokens {
-            let doc_freq = self
-                .inverted_index
-                .get(&qt)
-                .map(|v| v.len())
-                .unwrap_or(0) as f32;
+            let doc_freq = self.inverted_index.get(&qt).map(|v| v.len()).unwrap_or(0) as f32;
             let idf = if doc_freq > 0.0 {
                 ln_approx(n_docs / doc_freq) + 1.0
             } else {
@@ -311,8 +303,8 @@ impl BridgeKnowledgeBase {
                         let tf_norm = tf / entry.tokens.len().max(1) as f32;
                         let tfidf = tf_norm * idf;
                         // Boost by confidence and recency
-                        let recency = 1.0
-                            / (1.0 + (self.tick - entry.last_used_tick) as f32 * 0.001);
+                        let recency =
+                            1.0 / (1.0 + (self.tick - entry.last_used_tick) as f32 * 0.001);
                         let boost = entry.confidence * 0.3 + recency * 0.2;
                         *scores.entry(eid).or_insert(0.0) += tfidf + boost;
                     }
@@ -348,8 +340,7 @@ impl BridgeKnowledgeBase {
         }
 
         self.stats.avg_relevance_ema = if !results.is_empty() {
-            let avg_rel = results.iter().map(|r| r.relevance).sum::<f32>()
-                / results.len() as f32;
+            let avg_rel = results.iter().map(|r| r.relevance).sum::<f32>() / results.len() as f32;
             self.stats.avg_relevance_ema * (1.0 - EMA_ALPHA) + avg_rel * EMA_ALPHA
         } else {
             self.stats.avg_relevance_ema * (1.0 - EMA_ALPHA)
@@ -364,7 +355,15 @@ impl BridgeKnowledgeBase {
     pub fn knowledge_graph(&self, source_id: u64, max_depth: usize) -> Vec<GraphPath> {
         let mut paths = Vec::new();
         let mut visited: Vec<u64> = Vec::new();
-        self.traverse(source_id, &mut visited, &mut Vec::new(), &mut Vec::new(), 0.0, max_depth, &mut paths);
+        self.traverse(
+            source_id,
+            &mut visited,
+            &mut Vec::new(),
+            &mut Vec::new(),
+            0.0,
+            max_depth,
+            &mut paths,
+        );
         paths
     }
 

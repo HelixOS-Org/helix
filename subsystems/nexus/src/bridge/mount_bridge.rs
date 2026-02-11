@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -46,16 +45,28 @@ impl MountFlags {
     pub const LAZYTIME: u64 = 1 << 25;
 
     #[inline(always)]
-    pub fn empty() -> Self { Self { bits: 0 } }
-    pub fn new(bits: u64) -> Self { Self { bits } }
+    pub fn empty() -> Self {
+        Self { bits: 0 }
+    }
+    pub fn new(bits: u64) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u64) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u64) -> bool {
+        self.bits & flag != 0
+    }
     #[inline(always)]
-    pub fn is_readonly(&self) -> bool { self.has(Self::RDONLY) }
+    pub fn is_readonly(&self) -> bool {
+        self.has(Self::RDONLY)
+    }
     #[inline(always)]
-    pub fn is_bind(&self) -> bool { self.has(Self::BIND) }
+    pub fn is_bind(&self) -> bool {
+        self.has(Self::BIND)
+    }
     #[inline(always)]
-    pub fn is_remount(&self) -> bool { self.has(Self::REMOUNT) }
+    pub fn is_remount(&self) -> bool {
+        self.has(Self::REMOUNT)
+    }
 }
 
 /// Filesystem type
@@ -93,19 +104,41 @@ pub struct MountPoint {
 }
 
 impl MountPoint {
-    pub fn new(id: u64, parent: u64, device: String, path: String, fs_type: FsType, ts: u64) -> Self {
+    pub fn new(
+        id: u64,
+        parent: u64,
+        device: String,
+        path: String,
+        fs_type: FsType,
+        ts: u64,
+    ) -> Self {
         Self {
-            mount_id: id, parent_id: parent, device, mount_path: path,
-            fs_type, flags: MountFlags::empty(), propagation: MountPropagation::Private,
-            peer_group: 0, ns_id: 0, created_ts: ts, access_count: 0,
+            mount_id: id,
+            parent_id: parent,
+            device,
+            mount_path: path,
+            fs_type,
+            flags: MountFlags::empty(),
+            propagation: MountPropagation::Private,
+            peer_group: 0,
+            ns_id: 0,
+            created_ts: ts,
+            access_count: 0,
             children: Vec::new(),
         }
     }
 
     #[inline(always)]
-    pub fn is_readonly(&self) -> bool { self.flags.is_readonly() }
+    pub fn is_readonly(&self) -> bool {
+        self.flags.is_readonly()
+    }
     #[inline(always)]
-    pub fn is_virtual(&self) -> bool { matches!(self.fs_type, FsType::Proc | FsType::Sysfs | FsType::Tmpfs | FsType::Devtmpfs | FsType::Cgroup2) }
+    pub fn is_virtual(&self) -> bool {
+        matches!(
+            self.fs_type,
+            FsType::Proc | FsType::Sysfs | FsType::Tmpfs | FsType::Devtmpfs | FsType::Cgroup2
+        )
+    }
 }
 
 /// Mount event
@@ -141,7 +174,12 @@ pub struct MountNamespace {
 
 impl MountNamespace {
     pub fn new(id: u64, root: u64, owner: u64) -> Self {
-        Self { ns_id: id, root_mount: root, mount_count: 1, owner_pid: owner }
+        Self {
+            ns_id: id,
+            root_mount: root,
+            mount_count: 1,
+            owner_pid: owner,
+        }
     }
 }
 
@@ -174,14 +212,26 @@ pub struct BridgeMountBridge {
 impl BridgeMountBridge {
     pub fn new() -> Self {
         Self {
-            mounts: BTreeMap::new(), namespaces: BTreeMap::new(),
-            events: VecDeque::new(), max_events: 512,
-            next_mount_id: 1, next_ns_id: 1,
+            mounts: BTreeMap::new(),
+            namespaces: BTreeMap::new(),
+            events: VecDeque::new(),
+            max_events: 512,
+            next_mount_id: 1,
+            next_ns_id: 1,
             stats: MountBridgeStats::default(),
         }
     }
 
-    pub fn mount(&mut self, parent: u64, device: String, path: String, fs_type: FsType, flags: MountFlags, pid: u64, ts: u64) -> u64 {
+    pub fn mount(
+        &mut self,
+        parent: u64,
+        device: String,
+        path: String,
+        fs_type: FsType,
+        flags: MountFlags,
+        pid: u64,
+        ts: u64,
+    ) -> u64 {
         let id = self.next_mount_id;
         self.next_mount_id += 1;
         let mut mp = MountPoint::new(id, parent, device, path.clone(), fs_type, ts);
@@ -193,25 +243,46 @@ impl BridgeMountBridge {
         }
 
         self.events.push_back(MountEvent {
-            event_type: if flags.is_bind() { MountEventType::Bind } else { MountEventType::Mount },
-            mount_id: id, path, pid, timestamp: ts, success: true,
+            event_type: if flags.is_bind() {
+                MountEventType::Bind
+            } else {
+                MountEventType::Mount
+            },
+            mount_id: id,
+            path,
+            pid,
+            timestamp: ts,
+            success: true,
         });
-        if self.events.len() > self.max_events { self.events.remove(0); }
+        if self.events.len() > self.max_events {
+            self.events.remove(0);
+        }
         id
     }
 
     pub fn unmount(&mut self, mount_id: u64, pid: u64, ts: u64) -> bool {
         if let Some(mp) = self.mounts.get(&mount_id) {
-            if !mp.children.is_empty() { return false; } // busy
+            if !mp.children.is_empty() {
+                return false;
+            } // busy
             let path = mp.mount_path.clone();
             let parent = mp.parent_id;
             self.mounts.remove(&mount_id);
             if let Some(p) = self.mounts.get_mut(&parent) {
                 p.children.retain(|&c| c != mount_id);
             }
-            self.events.push_back(MountEvent { event_type: MountEventType::Unmount, mount_id, path, pid, timestamp: ts, success: true });
+            self.events.push_back(MountEvent {
+                event_type: MountEventType::Unmount,
+                mount_id,
+                path,
+                pid,
+                timestamp: ts,
+                success: true,
+            });
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -219,20 +290,30 @@ impl BridgeMountBridge {
         if let Some(mp) = self.mounts.get_mut(&mount_id) {
             let path = mp.mount_path.clone();
             mp.flags = flags;
-            self.events.push_back(MountEvent { event_type: MountEventType::Remount, mount_id, path, pid, timestamp: ts, success: true });
+            self.events.push_back(MountEvent {
+                event_type: MountEventType::Remount,
+                mount_id,
+                path,
+                pid,
+                timestamp: ts,
+                success: true,
+            });
         }
     }
 
     #[inline(always)]
     pub fn set_propagation(&mut self, mount_id: u64, prop: MountPropagation) {
-        if let Some(mp) = self.mounts.get_mut(&mount_id) { mp.propagation = prop; }
+        if let Some(mp) = self.mounts.get_mut(&mount_id) {
+            mp.propagation = prop;
+        }
     }
 
     #[inline]
     pub fn create_namespace(&mut self, root_mount: u64, owner: u64) -> u64 {
         let id = self.next_ns_id;
         self.next_ns_id += 1;
-        self.namespaces.insert(id, MountNamespace::new(id, root_mount, owner));
+        self.namespaces
+            .insert(id, MountNamespace::new(id, root_mount, owner));
         id
     }
 
@@ -248,15 +329,31 @@ impl BridgeMountBridge {
         self.stats.readonly_mounts = self.mounts.values().filter(|m| m.is_readonly()).count();
         self.stats.bind_mounts = self.mounts.values().filter(|m| m.flags.is_bind()).count();
         self.stats.namespaces = self.namespaces.len();
-        self.stats.total_mount_ops = self.events.iter().filter(|e| matches!(e.event_type, MountEventType::Mount | MountEventType::Bind)).count() as u64;
-        self.stats.total_unmount_ops = self.events.iter().filter(|e| e.event_type == MountEventType::Unmount).count() as u64;
-        self.stats.overlay_mounts = self.mounts.values().filter(|m| m.fs_type == FsType::Overlay).count();
+        self.stats.total_mount_ops = self
+            .events
+            .iter()
+            .filter(|e| matches!(e.event_type, MountEventType::Mount | MountEventType::Bind))
+            .count() as u64;
+        self.stats.total_unmount_ops = self
+            .events
+            .iter()
+            .filter(|e| e.event_type == MountEventType::Unmount)
+            .count() as u64;
+        self.stats.overlay_mounts = self
+            .mounts
+            .values()
+            .filter(|m| m.fs_type == FsType::Overlay)
+            .count();
     }
 
     #[inline(always)]
-    pub fn mount_point(&self, id: u64) -> Option<&MountPoint> { self.mounts.get(&id) }
+    pub fn mount_point(&self, id: u64) -> Option<&MountPoint> {
+        self.mounts.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &MountBridgeStats { &self.stats }
+    pub fn stats(&self) -> &MountBridgeStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -489,12 +586,7 @@ impl BridgeMountV2 {
     }
 
     #[inline]
-    pub fn create_mount(
-        &mut self,
-        source: String,
-        target: String,
-        fs_type: MountV2FsType,
-    ) -> u64 {
+    pub fn create_mount(&mut self, source: String, target: String, fs_type: MountV2FsType) -> u64 {
         let id = self.next_mount_id;
         self.next_mount_id += 1;
         let entry = MountV2Entry::new(id, source, target, fs_type);
@@ -597,14 +689,29 @@ impl MountV3BridgeRecord {
     pub fn new(op: MountV3BridgeOp, source: &[u8], target: &[u8]) -> Self {
         let hash = |d: &[u8]| -> u64 {
             let mut h: u64 = 0xcbf29ce484222325;
-            for b in d { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+            for b in d {
+                h ^= *b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
             h
         };
-        Self { op, result: MountV3Result::Success, source_hash: hash(source), target_hash: hash(target), fs_type_hash: 0, flags: 0, ns_id: 0, idmap_ns: 0, duration_ns: 0 }
+        Self {
+            op,
+            result: MountV3Result::Success,
+            source_hash: hash(source),
+            target_hash: hash(target),
+            fs_type_hash: 0,
+            flags: 0,
+            ns_id: 0,
+            idmap_ns: 0,
+            duration_ns: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn is_idmapped(&self) -> bool { self.idmap_ns != 0 }
+    pub fn is_idmapped(&self) -> bool {
+        self.idmap_ns != 0
+    }
 }
 
 /// Mount v3 bridge stats
@@ -626,19 +733,34 @@ pub struct BridgeMountV3 {
 
 impl BridgeMountV3 {
     pub fn new() -> Self {
-        Self { stats: MountV3BridgeStats { total_ops: 0, mounts: 0, umounts: 0, idmap_mounts: 0, failures: 0 } }
+        Self {
+            stats: MountV3BridgeStats {
+                total_ops: 0,
+                mounts: 0,
+                umounts: 0,
+                idmap_mounts: 0,
+                failures: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn record(&mut self, rec: &MountV3BridgeRecord) {
         self.stats.total_ops += 1;
         match rec.op {
-            MountV3BridgeOp::Mount | MountV3BridgeOp::Bind | MountV3BridgeOp::FsMount => self.stats.mounts += 1,
+            MountV3BridgeOp::Mount | MountV3BridgeOp::Bind | MountV3BridgeOp::FsMount => {
+                self.stats.mounts += 1
+            },
             MountV3BridgeOp::Umount => self.stats.umounts += 1,
-            MountV3BridgeOp::IdmapMount => { self.stats.mounts += 1; self.stats.idmap_mounts += 1; }
-            _ => {}
+            MountV3BridgeOp::IdmapMount => {
+                self.stats.mounts += 1;
+                self.stats.idmap_mounts += 1;
+            },
+            _ => {},
         }
-        if rec.result != MountV3Result::Success { self.stats.failures += 1; }
+        if rec.result != MountV3Result::Success {
+            self.stats.failures += 1;
+        }
     }
 }
 
@@ -647,7 +769,14 @@ impl BridgeMountV3 {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MountV4Event { Mount, Unmount, Remount, BindMount, MoveMount, Pivot }
+pub enum MountV4Event {
+    Mount,
+    Unmount,
+    Remount,
+    BindMount,
+    MoveMount,
+    Pivot,
+}
 
 /// Mount v4 record
 #[derive(Debug, Clone)]
@@ -660,20 +789,44 @@ pub struct MountV4Record {
 }
 
 impl MountV4Record {
-    pub fn new(event: MountV4Event) -> Self { Self { event, fs_type_hash: 0, mount_id: 0, flags: 0, propagation: 0 } }
+    pub fn new(event: MountV4Event) -> Self {
+        Self {
+            event,
+            fs_type_hash: 0,
+            mount_id: 0,
+            flags: 0,
+            propagation: 0,
+        }
+    }
 }
 
 /// Mount v4 bridge stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct MountV4BridgeStats { pub total_events: u64, pub mounts: u64, pub unmounts: u64, pub binds: u64 }
+pub struct MountV4BridgeStats {
+    pub total_events: u64,
+    pub mounts: u64,
+    pub unmounts: u64,
+    pub binds: u64,
+}
 
 /// Main bridge mount v4
 #[derive(Debug)]
-pub struct BridgeMountV4 { pub stats: MountV4BridgeStats }
+pub struct BridgeMountV4 {
+    pub stats: MountV4BridgeStats,
+}
 
 impl BridgeMountV4 {
-    pub fn new() -> Self { Self { stats: MountV4BridgeStats { total_events: 0, mounts: 0, unmounts: 0, binds: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: MountV4BridgeStats {
+                total_events: 0,
+                mounts: 0,
+                unmounts: 0,
+                binds: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &MountV4Record) {
         self.stats.total_events += 1;
@@ -681,7 +834,7 @@ impl BridgeMountV4 {
             MountV4Event::Mount | MountV4Event::Pivot => self.stats.mounts += 1,
             MountV4Event::Unmount => self.stats.unmounts += 1,
             MountV4Event::BindMount | MountV4Event::MoveMount => self.stats.binds += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

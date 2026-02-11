@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -26,10 +25,10 @@ pub enum DeliveryGuarantee {
 /// Broadcast message priority
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BroadcastPriority {
-    Low = 0,
-    Normal = 1,
-    High = 2,
-    Urgent = 3,
+    Low      = 0,
+    Normal   = 1,
+    High     = 2,
+    Urgent   = 3,
     Critical = 4,
 }
 
@@ -66,7 +65,9 @@ impl BroadcastMsg {
 
     #[inline(always)]
     pub fn is_expired(&self, now_ns: u64) -> bool {
-        if self.ttl_ns == 0 { return false; }
+        if self.ttl_ns == 0 {
+            return false;
+        }
         now_ns.saturating_sub(self.timestamp_ns) > self.ttl_ns
     }
 }
@@ -100,7 +101,9 @@ impl Subscriber {
 
     #[inline]
     pub fn matches_topic(&self, topic: &str) -> bool {
-        if self.topic_filter == "*" { return true; }
+        if self.topic_filter == "*" {
+            return true;
+        }
         if self.topic_filter.ends_with(".*") {
             let prefix = &self.topic_filter[..self.topic_filter.len() - 2];
             topic.starts_with(prefix)
@@ -135,7 +138,9 @@ impl Subscriber {
     #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.total_received + self.dropped_count;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.dropped_count as f64 / total as f64
     }
 }
@@ -189,7 +194,9 @@ impl BroadcastTopic {
 
     #[inline(always)]
     pub fn avg_msg_size(&self) -> f64 {
-        if self.msg_count == 0 { return 0.0; }
+        if self.msg_count == 0 {
+            return 0.0;
+        }
         self.total_bytes as f64 / self.msg_count as f64
     }
 }
@@ -242,7 +249,8 @@ impl CoopBroadcast {
     #[inline]
     pub fn create_topic(&mut self, name: String, now_ns: u64) {
         if !self.topics.contains_key(&name) {
-            self.topics.insert(name.clone(), BroadcastTopic::new(name, now_ns));
+            self.topics
+                .insert(name.clone(), BroadcastTopic::new(name, now_ns));
             self.stats.total_topics += 1;
         }
     }
@@ -276,7 +284,14 @@ impl CoopBroadcast {
         }
     }
 
-    pub fn publish(&mut self, topic: &str, publisher: u64, payload_size: usize, payload_hash: u64, now_ns: u64) -> u64 {
+    pub fn publish(
+        &mut self,
+        topic: &str,
+        publisher: u64,
+        payload_size: usize,
+        payload_hash: u64,
+        now_ns: u64,
+    ) -> u64 {
         let seq = self.next_seq;
         self.next_seq += 1;
 
@@ -289,7 +304,9 @@ impl CoopBroadcast {
         }
 
         // Deliver to matching subscribers
-        let sub_ids: Vec<u64> = self.subscribers.iter()
+        let sub_ids: Vec<u64> = self
+            .subscribers
+            .iter()
             .filter(|(_, s)| s.matches_topic(topic))
             .map(|(&id, _)| id)
             .collect();
@@ -333,7 +350,9 @@ impl CoopBroadcast {
 
     #[inline]
     pub fn busiest_topics(&self, top: usize) -> Vec<(&str, u64)> {
-        let mut v: Vec<(&str, u64)> = self.topics.iter()
+        let mut v: Vec<(&str, u64)> = self
+            .topics
+            .iter()
             .map(|(name, t)| (name.as_str(), t.msg_count))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
@@ -343,7 +362,9 @@ impl CoopBroadcast {
 
     #[inline]
     pub fn slowest_subscribers(&self, top: usize) -> Vec<(u64, f64)> {
-        let mut v: Vec<(u64, f64)> = self.subscribers.iter()
+        let mut v: Vec<(u64, f64)> = self
+            .subscribers
+            .iter()
             .map(|(&id, s)| (id, s.drop_rate()))
             .collect();
         v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));

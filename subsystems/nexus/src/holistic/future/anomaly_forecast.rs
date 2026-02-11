@@ -18,11 +18,12 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::linear_map::LinearMap;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -451,8 +452,12 @@ impl HolisticAnomalyForecast {
         let mut cascades: Vec<CascadePrediction> = Vec::new();
 
         let sources = [
-            AnomalySource::Scheduler, AnomalySource::Memory, AnomalySource::Io,
-            AnomalySource::Network, AnomalySource::Thermal, AnomalySource::Power,
+            AnomalySource::Scheduler,
+            AnomalySource::Memory,
+            AnomalySource::Io,
+            AnomalySource::Network,
+            AnomalySource::Thermal,
+            AnomalySource::Power,
         ];
 
         for &trigger in &sources {
@@ -526,23 +531,24 @@ impl HolisticAnomalyForecast {
         let mut warnings: Vec<CliffWarning> = Vec::new();
 
         let sources = [
-            AnomalySource::Scheduler, AnomalySource::Memory, AnomalySource::Io,
-            AnomalySource::Network, AnomalySource::Thermal, AnomalySource::Power,
+            AnomalySource::Scheduler,
+            AnomalySource::Memory,
+            AnomalySource::Io,
+            AnomalySource::Network,
+            AnomalySource::Thermal,
+            AnomalySource::Power,
         ];
 
         for &src in &sources {
-            let src_signals: Vec<&AnomalySignal> = self
-                .signals
-                .iter()
-                .filter(|s| s.source == src)
-                .collect();
+            let src_signals: Vec<&AnomalySignal> =
+                self.signals.iter().filter(|s| s.source == src).collect();
 
             if src_signals.is_empty() {
                 continue;
             }
 
-            let avg_mag = src_signals.iter().map(|s| s.magnitude).sum::<f32>()
-                / src_signals.len() as f32;
+            let avg_mag =
+                src_signals.iter().map(|s| s.magnitude).sum::<f32>() / src_signals.len() as f32;
             let distance = (CLIFF_THRESHOLD - avg_mag).max(0.0);
 
             if distance < 0.2 {
@@ -638,7 +644,10 @@ impl HolisticAnomalyForecast {
 
         for signal in &self.signals {
             let ck = signal.category as u8;
-            cat_signals.entry(ck).or_insert_with(Vec::new).push(signal.signal_id);
+            cat_signals
+                .entry(ck)
+                .or_insert_with(Vec::new)
+                .push(signal.signal_id);
             *cat_risk.entry(ck).or_insert(0.0) += signal.magnitude * signal.confidence;
         }
 
@@ -680,8 +689,8 @@ impl HolisticAnomalyForecast {
         }
 
         self.stats.avg_lead_time_us = if !warnings.is_empty() {
-            let avg = warnings.iter().map(|w| w.lead_time_us as f32).sum::<f32>()
-                / warnings.len() as f32;
+            let avg =
+                warnings.iter().map(|w| w.lead_time_us as f32).sum::<f32>() / warnings.len() as f32;
             ema_update(self.stats.avg_lead_time_us, avg)
         } else {
             self.stats.avg_lead_time_us

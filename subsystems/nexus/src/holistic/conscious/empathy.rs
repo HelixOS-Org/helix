@@ -29,12 +29,12 @@
 
 extern crate alloc;
 
-use crate::fast::math::F32Ext;
-
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -126,11 +126,20 @@ impl SubsystemEmpathyState {
     /// Update the empathy state with new observations
     #[inline]
     pub fn update(&mut self, wellbeing: f32, stress: f32, resource_sat: f32, perf: f32, tick: u64) {
-        let clamp = |v: f32| if v < 0.0 { 0.0 } else if v > 1.0 { 1.0 } else { v };
+        let clamp = |v: f32| {
+            if v < 0.0 {
+                0.0
+            } else if v > 1.0 {
+                1.0
+            } else {
+                v
+            }
+        };
         let old_composite = self.composite;
         self.wellbeing += EMA_ALPHA * (clamp(wellbeing) - self.wellbeing);
         self.stress += EMA_ALPHA * (clamp(stress) - self.stress);
-        self.resource_satisfaction += EMA_ALPHA * (clamp(resource_sat) - self.resource_satisfaction);
+        self.resource_satisfaction +=
+            EMA_ALPHA * (clamp(resource_sat) - self.resource_satisfaction);
         self.relative_performance += EMA_ALPHA * (clamp(perf) - self.relative_performance);
         self.composite = self.wellbeing * 0.3
             + (1.0 - self.stress) * 0.3
@@ -186,7 +195,8 @@ impl CrossCorrelation {
         let product = delta_a * delta_b;
         self.co_movement += EMA_ALPHA * (product - self.co_movement);
         // Approximate correlation from co-movement direction
-        self.correlation += EMA_ALPHA * (product.signum() * product.abs().sqrt() - self.correlation);
+        self.correlation +=
+            EMA_ALPHA * (product.signum() * product.abs().sqrt() - self.correlation);
         self.correlation = self.correlation.max(-1.0).min(1.0);
         self.observation_count += 1;
         self.significant = self.correlation.abs() > CORRELATION_MIN && self.observation_count > 5;
@@ -387,7 +397,10 @@ impl HolisticEmpathyEngine {
         // Detect new pain points
         for (id, sub) in &self.subsystems {
             if sub.is_pain_point() {
-                let already_tracked = self.pain_points.iter().any(|pp| pp.subsystem_id == *id && !pp.resolved);
+                let already_tracked = self
+                    .pain_points
+                    .iter()
+                    .any(|pp| pp.subsystem_id == *id && !pp.resolved);
                 if !already_tracked && self.pain_points.len() < MAX_PAIN_POINTS {
                     let affected: Vec<u64> = self
                         .correlations
@@ -406,9 +419,11 @@ impl HolisticEmpathyEngine {
                         resolved: false,
                     });
                     self.stats.total_pain_points_detected += 1;
-                    if sub.stress > self.subsystems
-                        .get(&self.stats.most_painful_subsystem)
-                        .map_or(0.0, |s| s.stress)
+                    if sub.stress
+                        > self
+                            .subsystems
+                            .get(&self.stats.most_painful_subsystem)
+                            .map_or(0.0, |s| s.stress)
                     {
                         self.stats.most_painful_subsystem = *id;
                     }
@@ -426,9 +441,12 @@ impl HolisticEmpathyEngine {
         } else {
             0.0
         };
-        let obs_depth = self.subsystems.values().map(|s| {
-            (s.observation_count as f32 / 100.0).min(1.0)
-        }).sum::<f32>() / self.subsystems.len().max(1) as f32;
+        let obs_depth = self
+            .subsystems
+            .values()
+            .map(|s| (s.observation_count as f32 / 100.0).min(1.0))
+            .sum::<f32>()
+            / self.subsystems.len().max(1) as f32;
         let depth = subsystem_coverage * 0.3 + correlation_depth * 0.4 + obs_depth * 0.3;
         depth.min(EMPATHY_DEPTH_MAX)
     }
@@ -522,7 +540,7 @@ impl HolisticEmpathyEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F32Ext, F64Ext};
+    use crate::fast::math::{F32Ext, F64Ext};
 
     #[test]
     fn test_subsystem_empathy_state() {

@@ -250,10 +250,16 @@ impl HolisticMethodology {
         let id = fnv1a_hash(name.as_bytes());
         let desc_hash = fnv1a_hash(&[id as u8, (self.tick & 0xFF) as u8]);
         let standard = MethodologyStandard {
-            id, name, description_hash: desc_hash,
-            strictness: strictness.min(1.0), weight: weight.min(1.0),
-            version: 1, adopted_tick: self.tick, last_updated_tick: self.tick,
-            enforcement_count: 0, violation_count: 0,
+            id,
+            name,
+            description_hash: desc_hash,
+            strictness: strictness.min(1.0),
+            weight: weight.min(1.0),
+            version: 1,
+            adopted_tick: self.tick,
+            last_updated_tick: self.tick,
+            enforcement_count: 0,
+            violation_count: 0,
         };
         if self.standards.len() < MAX_STANDARDS {
             self.standards.insert(id, standard);
@@ -263,8 +269,11 @@ impl HolisticMethodology {
     }
 
     /// Audit an experiment for methodology compliance
-    pub fn system_methodology_audit(&mut self, subsystem: MethodologySubsystem,
-                                     experiment_hash: u64) -> MethodologyAudit {
+    pub fn system_methodology_audit(
+        &mut self,
+        subsystem: MethodologySubsystem,
+        experiment_hash: u64,
+    ) -> MethodologyAudit {
         let standard_ids: Vec<u64> = self.standards.keys().copied().collect();
         let mut passed = Vec::new();
         let mut failed = Vec::new();
@@ -272,7 +281,10 @@ impl HolisticMethodology {
         let mut weight_sum = 0.0f32;
         for &sid in &standard_ids {
             let (strictness, weight) = {
-                let s = match self.standards.get(&sid) { Some(s) => s, None => continue };
+                let s = match self.standards.get(&sid) {
+                    Some(s) => s,
+                    None => continue,
+                };
                 (s.strictness, s.weight)
             };
             let noise = xorshift_f32(&mut self.rng_state);
@@ -282,15 +294,23 @@ impl HolisticMethodology {
                 quality_sum += compliance * weight;
             } else {
                 failed.push(sid);
-                let severity = if compliance < strictness * 0.3 { ViolationSeverity::Critical }
-                    else if compliance < strictness * 0.5 { ViolationSeverity::Major }
-                    else if compliance < strictness * 0.7 { ViolationSeverity::Moderate }
-                    else { ViolationSeverity::Minor };
+                let severity = if compliance < strictness * 0.3 {
+                    ViolationSeverity::Critical
+                } else if compliance < strictness * 0.5 {
+                    ViolationSeverity::Major
+                } else if compliance < strictness * 0.7 {
+                    ViolationSeverity::Moderate
+                } else {
+                    ViolationSeverity::Minor
+                };
                 let viol_id = self.stats.total_violations;
                 if self.violations.len() < MAX_VIOLATIONS {
                     self.violations.push(MethodologyViolation {
-                        id: viol_id, audit_id: self.stats.total_audits,
-                        standard_id: sid, subsystem, severity,
+                        id: viol_id,
+                        audit_id: self.stats.total_audits,
+                        standard_id: sid,
+                        subsystem,
+                        severity,
                         description_hash: fnv1a_hash(&[sid as u8, subsystem as u8]),
                         tick: self.tick,
                     });
@@ -308,24 +328,43 @@ impl HolisticMethodology {
                 s.enforcement_count += 1;
             }
         }
-        let quality = if weight_sum > 0.0 { quality_sum / weight_sum } else { 0.0 };
-        let status = if failed.is_empty() { AuditStatus::Passed }
-            else if quality >= QUALITY_THRESHOLD { AuditStatus::Conditional }
-            else { AuditStatus::Failed };
-        let audit = MethodologyAudit {
-            id: self.stats.total_audits, experiment_hash, subsystem,
-            standards_checked: standard_ids, standards_passed: passed,
-            standards_failed: failed, quality_score: quality,
-            status, tick: self.tick,
+        let quality = if weight_sum > 0.0 {
+            quality_sum / weight_sum
+        } else {
+            0.0
         };
-        if self.audits.len() >= MAX_AUDITS { self.audits.remove(0); }
+        let status = if failed.is_empty() {
+            AuditStatus::Passed
+        } else if quality >= QUALITY_THRESHOLD {
+            AuditStatus::Conditional
+        } else {
+            AuditStatus::Failed
+        };
+        let audit = MethodologyAudit {
+            id: self.stats.total_audits,
+            experiment_hash,
+            subsystem,
+            standards_checked: standard_ids,
+            standards_passed: passed,
+            standards_failed: failed,
+            quality_score: quality,
+            status,
+            tick: self.tick,
+        };
+        if self.audits.len() >= MAX_AUDITS {
+            self.audits.remove(0);
+        }
         self.audits.push(audit.clone());
         self.stats.total_audits += 1;
-        let is_pass = if status == AuditStatus::Passed { 1.0 } else { 0.0 };
-        self.stats.pass_rate_ema = self.stats.pass_rate_ema
-            * (1.0 - EMA_ALPHA) + is_pass * EMA_ALPHA;
-        self.stats.avg_quality_ema = self.stats.avg_quality_ema
-            * (1.0 - EMA_ALPHA) + quality * EMA_ALPHA;
+        let is_pass = if status == AuditStatus::Passed {
+            1.0
+        } else {
+            0.0
+        };
+        self.stats.pass_rate_ema =
+            self.stats.pass_rate_ema * (1.0 - EMA_ALPHA) + is_pass * EMA_ALPHA;
+        self.stats.avg_quality_ema =
+            self.stats.avg_quality_ema * (1.0 - EMA_ALPHA) + quality * EMA_ALPHA;
         self.stats.last_tick = self.tick;
         audit
     }
@@ -333,19 +372,19 @@ impl HolisticMethodology {
     /// Get global research standards summary
     #[inline]
     pub fn global_standards(&self) -> Vec<(u64, f32, f32, u32)> {
-        self.standards.values()
+        self.standards
+            .values()
             .map(|s| (s.id, s.strictness, s.weight, s.version))
             .collect()
     }
 
     /// Enforce methodology — block experiments below threshold
     #[inline]
-    pub fn methodology_enforcement(&mut self, _experiment_hash: u64,
-                                    quality_score: f32) -> bool {
+    pub fn methodology_enforcement(&mut self, _experiment_hash: u64, quality_score: f32) -> bool {
         let allowed = quality_score >= QUALITY_THRESHOLD;
         let enforce_signal = if allowed { 1.0 } else { 0.0 };
-        self.stats.enforcement_rate_ema = self.stats.enforcement_rate_ema
-            * (1.0 - EMA_ALPHA) + enforce_signal * EMA_ALPHA;
+        self.stats.enforcement_rate_ema =
+            self.stats.enforcement_rate_ema * (1.0 - EMA_ALPHA) + enforce_signal * EMA_ALPHA;
         allowed
     }
 
@@ -354,31 +393,42 @@ impl HolisticMethodology {
         let mut practices: Vec<BestPractice> = self.practices.values().cloned().collect();
         for practice in &mut practices {
             let noise = xorshift_f32(&mut self.rng_state) * 0.05;
-            practice.effectiveness_ema = practice.effectiveness_ema
-                * (1.0 - EMA_ALPHA) + (practice.adoption_rate + noise) * EMA_ALPHA;
+            practice.effectiveness_ema = practice.effectiveness_ema * (1.0 - EMA_ALPHA)
+                + (practice.adoption_rate + noise) * EMA_ALPHA;
             practice.last_measured_tick = self.tick;
         }
         for p in &practices {
             self.practices.insert(p.id, p.clone());
         }
-        let avg_adoption: f32 = if practices.is_empty() { 0.0 } else {
-            practices.iter().map(|p| p.adoption_rate).sum::<f32>()
-                / practices.len() as f32
+        let avg_adoption: f32 = if practices.is_empty() {
+            0.0
+        } else {
+            practices.iter().map(|p| p.adoption_rate).sum::<f32>() / practices.len() as f32
         };
-        self.stats.practice_adoption_ema = self.stats.practice_adoption_ema
-            * (1.0 - EMA_ALPHA) + avg_adoption * EMA_ALPHA;
+        self.stats.practice_adoption_ema =
+            self.stats.practice_adoption_ema * (1.0 - EMA_ALPHA) + avg_adoption * EMA_ALPHA;
         practices
     }
 
     /// Register a new best practice
     #[inline]
-    pub fn register_practice(&mut self, name: String, adoption_rate: f32,
-                              subsystems: Vec<MethodologySubsystem>) {
+    pub fn register_practice(
+        &mut self,
+        name: String,
+        adoption_rate: f32,
+        subsystems: Vec<MethodologySubsystem>,
+    ) {
         let id = fnv1a_hash(name.as_bytes());
-        if self.practices.len() >= MAX_PRACTICES { return; }
+        if self.practices.len() >= MAX_PRACTICES {
+            return;
+        }
         self.practices.insert(id, BestPractice {
-            id, name, adoption_rate, effectiveness_ema: adoption_rate,
-            subsystems_adopted: subsystems, created_tick: self.tick,
+            id,
+            name,
+            adoption_rate,
+            effectiveness_ema: adoption_rate,
+            subsystems_adopted: subsystems,
+            created_tick: self.tick,
             last_measured_tick: self.tick,
         });
     }
@@ -389,10 +439,15 @@ impl HolisticMethodology {
         let standard_ids: Vec<u64> = self.standards.keys().copied().collect();
         for sid in standard_ids {
             let (old_version, old_strictness, violation_rate) = {
-                let s = match self.standards.get(&sid) { Some(s) => s, None => continue };
+                let s = match self.standards.get(&sid) {
+                    Some(s) => s,
+                    None => continue,
+                };
                 let vr = if s.enforcement_count > 0 {
                     s.violation_count as f32 / s.enforcement_count as f32
-                } else { 0.0 };
+                } else {
+                    0.0
+                };
                 (s.version, s.strictness, vr)
             };
             let noise = xorshift_f32(&mut self.rng_state) * EVOLUTION_RATE;
@@ -400,8 +455,12 @@ impl HolisticMethodology {
                 -EVOLUTION_RATE * 0.5 + noise
             } else if violation_rate < 0.1 {
                 EVOLUTION_RATE * 0.3 + noise
-            } else { continue };
-            if delta.abs() < 0.001 { continue; }
+            } else {
+                continue;
+            };
+            if delta.abs() < 0.001 {
+                continue;
+            }
             let new_strictness = (old_strictness + delta).max(0.1).min(1.0);
             if let Some(s) = self.standards.get_mut(&sid) {
                 s.strictness = new_strictness;
@@ -410,36 +469,51 @@ impl HolisticMethodology {
             }
             let reason = fnv1a_hash(&[sid as u8, (self.tick & 0xFF) as u8, 0xEE]);
             evolutions.push(MethodologyEvolution {
-                standard_id: sid, old_version, new_version: old_version + 1,
-                strictness_delta: delta, reason_hash: reason, tick: self.tick,
+                standard_id: sid,
+                old_version,
+                new_version: old_version + 1,
+                strictness_delta: delta,
+                reason_hash: reason,
+                tick: self.tick,
             });
             self.stats.evolution_count += 1;
         }
-        for e in &evolutions { self.evolutions.push(e.clone()); }
+        for e in &evolutions {
+            self.evolutions.push(e.clone());
+        }
         evolutions
     }
 
     /// Issue quality certifications for subsystems
     pub fn quality_guarantee(&mut self, subsystem: MethodologySubsystem) -> QualityCertification {
-        let recent_audits: Vec<&MethodologyAudit> = self.audits.iter()
-            .filter(|a| a.subsystem == subsystem).collect();
+        let recent_audits: Vec<&MethodologyAudit> = self
+            .audits
+            .iter()
+            .filter(|a| a.subsystem == subsystem)
+            .collect();
         let (met, total, avg_quality) = if recent_audits.is_empty() {
             (0u64, self.standards.len() as u64, 0.0f32)
         } else {
-            let met: u64 = recent_audits.iter()
-                .map(|a| a.standards_passed.len() as u64).sum();
-            let total: u64 = recent_audits.iter()
-                .map(|a| a.standards_checked.len() as u64).sum();
-            let avg: f32 = recent_audits.iter()
-                .map(|a| a.quality_score).sum::<f32>()
+            let met: u64 = recent_audits
+                .iter()
+                .map(|a| a.standards_passed.len() as u64)
+                .sum();
+            let total: u64 = recent_audits
+                .iter()
+                .map(|a| a.standards_checked.len() as u64)
+                .sum();
+            let avg: f32 = recent_audits.iter().map(|a| a.quality_score).sum::<f32>()
                 / recent_audits.len() as f32;
             (met, total, avg)
         };
         let cert_id = self.stats.total_certifications;
         let is_valid = avg_quality >= QUALITY_THRESHOLD;
         let cert = QualityCertification {
-            id: cert_id, subsystem, quality_score: avg_quality,
-            standards_met: met, standards_total: total,
+            id: cert_id,
+            subsystem,
+            quality_score: avg_quality,
+            standards_met: met,
+            standards_total: total,
             certified_tick: self.tick,
             expires_tick: self.tick + CERTIFICATION_VALIDITY,
             is_valid,
@@ -447,36 +521,53 @@ impl HolisticMethodology {
         let key = fnv1a_hash(&[subsystem as u8, (cert_id & 0xFF) as u8]);
         if self.certifications.len() >= MAX_CERTIFICATIONS {
             let oldest = self.certifications.keys().next().copied();
-            if let Some(k) = oldest { self.certifications.remove(&k); }
+            if let Some(k) = oldest {
+                self.certifications.remove(&k);
+            }
         }
         self.certifications.insert(key, cert.clone());
         self.stats.total_certifications += 1;
-        self.stats.active_certifications = self.certifications.values()
-            .filter(|c| c.is_valid && c.expires_tick > self.tick).count() as u64;
+        self.stats.active_certifications = self
+            .certifications
+            .values()
+            .filter(|c| c.is_valid && c.expires_tick > self.tick)
+            .count() as u64;
         cert
     }
 
     /// Advance the engine tick
     #[inline(always)]
-    pub fn tick(&mut self) { self.tick += 1; }
+    pub fn tick(&mut self) {
+        self.tick += 1;
+    }
 
     /// Get current statistics
     #[inline(always)]
-    pub fn stats(&self) -> &MethodologyStats { &self.stats }
+    pub fn stats(&self) -> &MethodologyStats {
+        &self.stats
+    }
 
     /// Get all standards
     #[inline(always)]
-    pub fn standards(&self) -> &BTreeMap<u64, MethodologyStandard> { &self.standards }
+    pub fn standards(&self) -> &BTreeMap<u64, MethodologyStandard> {
+        &self.standards
+    }
 
     /// Get audit log
     #[inline(always)]
-    pub fn audit_log(&self) -> &[MethodologyAudit] { &self.audits }
+    pub fn audit_log(&self) -> &[MethodologyAudit] {
+        &self.audits
+    }
 
     /// Get violation log
     #[inline(always)]
-    pub fn violation_log(&self) -> &[MethodologyViolation] { &self.violations }
+    pub fn violation_log(&self) -> &[MethodologyViolation] {
+        &self.violations
+    }
 
     /// Get certifications
     #[inline(always)]
-    pub fn certifications(&self) -> &BTreeMap<u64, QualityCertification> { &self.certifications }
+    pub fn certifications(&self) -> &BTreeMap<u64, QualityCertification> {
+        &self.certifications
+    }
 }

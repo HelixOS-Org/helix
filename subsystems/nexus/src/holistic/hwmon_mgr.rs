@@ -45,19 +45,40 @@ pub struct HwmonSensor {
 
 impl HwmonSensor {
     pub fn new(id: u64, name: String, st: HwmonSensorType) -> Self {
-        Self { id, name, sensor_type: st, value: 0, min_value: i64::MAX, max_value: i64::MIN, crit_low: i64::MIN, crit_high: i64::MAX, alarm: SensorAlarm::Normal, readings: 0, unit_scale: 1000 }
+        Self {
+            id,
+            name,
+            sensor_type: st,
+            value: 0,
+            min_value: i64::MAX,
+            max_value: i64::MIN,
+            crit_low: i64::MIN,
+            crit_high: i64::MAX,
+            alarm: SensorAlarm::Normal,
+            readings: 0,
+            unit_scale: 1000,
+        }
     }
 
     #[inline]
     pub fn update(&mut self, value: i64) {
         self.value = value;
-        if value < self.min_value { self.min_value = value; }
-        if value > self.max_value { self.max_value = value; }
+        if value < self.min_value {
+            self.min_value = value;
+        }
+        if value > self.max_value {
+            self.max_value = value;
+        }
         self.readings += 1;
-        self.alarm = if value >= self.crit_high { SensorAlarm::Emergency }
-            else if value >= (self.crit_high * 90 / 100) { SensorAlarm::Critical }
-            else if value >= (self.crit_high * 80 / 100) { SensorAlarm::Warning }
-            else { SensorAlarm::Normal };
+        self.alarm = if value >= self.crit_high {
+            SensorAlarm::Emergency
+        } else if value >= (self.crit_high * 90 / 100) {
+            SensorAlarm::Critical
+        } else if value >= (self.crit_high * 80 / 100) {
+            SensorAlarm::Warning
+        } else {
+            SensorAlarm::Normal
+        };
     }
 }
 
@@ -79,26 +100,52 @@ pub struct HolisticHwmonMgr {
 }
 
 impl HolisticHwmonMgr {
-    pub fn new() -> Self { Self { sensors: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            sensors: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn register(&mut self, name: String, st: HwmonSensorType) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.sensors.insert(id, HwmonSensor::new(id, name, st));
         id
     }
 
     #[inline(always)]
     pub fn update_sensor(&mut self, id: u64, value: i64) {
-        if let Some(s) = self.sensors.get_mut(&id) { s.update(value); }
+        if let Some(s) = self.sensors.get_mut(&id) {
+            s.update(value);
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> HwmonMgrStats {
-        let warn = self.sensors.values().filter(|s| s.alarm == SensorAlarm::Warning).count() as u32;
-        let crit = self.sensors.values().filter(|s| s.alarm == SensorAlarm::Critical).count() as u32;
-        let emrg = self.sensors.values().filter(|s| s.alarm == SensorAlarm::Emergency).count() as u32;
+        let warn = self
+            .sensors
+            .values()
+            .filter(|s| s.alarm == SensorAlarm::Warning)
+            .count() as u32;
+        let crit = self
+            .sensors
+            .values()
+            .filter(|s| s.alarm == SensorAlarm::Critical)
+            .count() as u32;
+        let emrg = self
+            .sensors
+            .values()
+            .filter(|s| s.alarm == SensorAlarm::Emergency)
+            .count() as u32;
         let readings: u64 = self.sensors.values().map(|s| s.readings).sum();
-        HwmonMgrStats { total_sensors: self.sensors.len() as u32, alarms_warning: warn, alarms_critical: crit, alarms_emergency: emrg, total_readings: readings }
+        HwmonMgrStats {
+            total_sensors: self.sensors.len() as u32,
+            alarms_warning: warn,
+            alarms_critical: crit,
+            alarms_emergency: emrg,
+            total_readings: readings,
+        }
     }
 }

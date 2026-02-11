@@ -69,9 +69,19 @@ pub struct PerfCounter {
 impl PerfCounter {
     pub fn new(id: u64, event: HwEvent, mode: CounterMode) -> Self {
         Self {
-            id, event, mode, value: 0, enabled_ns: 0, running_ns: 0,
-            overflows: 0, sample_period: 0, last_read_ts: 0,
-            cpu: None, task_id: None, group_leader: None, active: false,
+            id,
+            event,
+            mode,
+            value: 0,
+            enabled_ns: 0,
+            running_ns: 0,
+            overflows: 0,
+            sample_period: 0,
+            last_read_ts: 0,
+            cpu: None,
+            task_id: None,
+            group_leader: None,
+            active: false,
         }
     }
 
@@ -94,11 +104,24 @@ impl PerfCounter {
     }
 
     #[inline(always)]
-    pub fn overflow(&mut self) { self.overflows += 1; }
+    pub fn overflow(&mut self) {
+        self.overflows += 1;
+    }
     #[inline(always)]
-    pub fn reset(&mut self) { self.value = 0; self.overflows = 0; self.enabled_ns = 0; self.running_ns = 0; }
+    pub fn reset(&mut self) {
+        self.value = 0;
+        self.overflows = 0;
+        self.enabled_ns = 0;
+        self.running_ns = 0;
+    }
     #[inline(always)]
-    pub fn multiplex_ratio(&self) -> f64 { if self.enabled_ns == 0 { 1.0 } else { self.running_ns as f64 / self.enabled_ns as f64 } }
+    pub fn multiplex_ratio(&self) -> f64 {
+        if self.enabled_ns == 0 {
+            1.0
+        } else {
+            self.running_ns as f64 / self.enabled_ns as f64
+        }
+    }
 }
 
 /// Counter group
@@ -133,7 +156,13 @@ pub struct PmuState {
 
 impl PmuState {
     pub fn new(cpu: u32, hw: u32, fixed: u32) -> Self {
-        Self { cpu_id: cpu, hw_counters: hw, active_counters: 0, fixed_counters: fixed, multiplex_switches: 0 }
+        Self {
+            cpu_id: cpu,
+            hw_counters: hw,
+            active_counters: 0,
+            fixed_counters: fixed,
+            multiplex_switches: 0,
+        }
     }
 }
 
@@ -176,51 +205,77 @@ pub struct HolisticPerfCounter {
 impl HolisticPerfCounter {
     pub fn new() -> Self {
         Self {
-            counters: BTreeMap::new(), groups: Vec::new(),
-            pmus: BTreeMap::new(), samples: Vec::new(),
-            derived: Vec::new(), stats: PerfCounterStats::default(),
+            counters: BTreeMap::new(),
+            groups: Vec::new(),
+            pmus: BTreeMap::new(),
+            samples: Vec::new(),
+            derived: Vec::new(),
+            stats: PerfCounterStats::default(),
             next_id: 1,
         }
     }
 
     #[inline(always)]
     pub fn add_pmu(&mut self, cpu: u32, hw_counters: u32, fixed: u32) {
-        self.pmus.insert(cpu, PmuState::new(cpu, hw_counters, fixed));
+        self.pmus
+            .insert(cpu, PmuState::new(cpu, hw_counters, fixed));
     }
 
     #[inline]
     pub fn create_counter(&mut self, event: HwEvent, mode: CounterMode) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.counters.insert(id, PerfCounter::new(id, event, mode));
         id
     }
 
     #[inline(always)]
     pub fn bind_cpu(&mut self, counter_id: u64, cpu: u32) {
-        if let Some(c) = self.counters.get_mut(&counter_id) { c.cpu = Some(cpu); }
+        if let Some(c) = self.counters.get_mut(&counter_id) {
+            c.cpu = Some(cpu);
+        }
     }
 
     #[inline(always)]
     pub fn bind_task(&mut self, counter_id: u64, task: u64) {
-        if let Some(c) = self.counters.get_mut(&counter_id) { c.task_id = Some(task); }
+        if let Some(c) = self.counters.get_mut(&counter_id) {
+            c.task_id = Some(task);
+        }
     }
 
     #[inline]
     pub fn create_group(&mut self, leader: u64, members: Vec<u64>) {
         for &m in &members {
-            if let Some(c) = self.counters.get_mut(&m) { c.group_leader = Some(leader); }
+            if let Some(c) = self.counters.get_mut(&m) {
+                c.group_leader = Some(leader);
+            }
         }
-        self.groups.push(CounterGroup { leader_id: leader, members, pinned: false, exclusive: false });
+        self.groups.push(CounterGroup {
+            leader_id: leader,
+            members,
+            pinned: false,
+            exclusive: false,
+        });
     }
 
     #[inline(always)]
-    pub fn enable(&mut self, id: u64) { if let Some(c) = self.counters.get_mut(&id) { c.active = true; } }
+    pub fn enable(&mut self, id: u64) {
+        if let Some(c) = self.counters.get_mut(&id) {
+            c.active = true;
+        }
+    }
     #[inline(always)]
-    pub fn disable(&mut self, id: u64) { if let Some(c) = self.counters.get_mut(&id) { c.active = false; } }
+    pub fn disable(&mut self, id: u64) {
+        if let Some(c) = self.counters.get_mut(&id) {
+            c.active = false;
+        }
+    }
 
     #[inline(always)]
     pub fn update(&mut self, id: u64, delta: u64, enabled: u64, running: u64) {
-        if let Some(c) = self.counters.get_mut(&id) { c.update(delta, enabled, running); }
+        if let Some(c) = self.counters.get_mut(&id) {
+            c.update(delta, enabled, running);
+        }
     }
 
     #[inline(always)]
@@ -229,30 +284,87 @@ impl HolisticPerfCounter {
     }
 
     #[inline(always)]
-    pub fn record_sample(&mut self, counter_id: u64, ip: u64, pid: u64, cpu: u32, ts: u64, value: u64) {
-        self.samples.push(PerfSample { counter_id, ip, pid, cpu, ts, value });
+    pub fn record_sample(
+        &mut self,
+        counter_id: u64,
+        ip: u64,
+        pid: u64,
+        cpu: u32,
+        ts: u64,
+        value: u64,
+    ) {
+        self.samples.push(PerfSample {
+            counter_id,
+            ip,
+            pid,
+            cpu,
+            ts,
+            value,
+        });
         self.stats.samples += 1;
     }
 
     pub fn compute_derived(&mut self, ts: u64) {
-        let cycles = self.counters.values().filter(|c| matches!(c.event, HwEvent::Cycles)).map(|c| c.value).sum::<u64>();
-        let insns = self.counters.values().filter(|c| matches!(c.event, HwEvent::Instructions)).map(|c| c.value).sum::<u64>();
-        let cache_refs = self.counters.values().filter(|c| matches!(c.event, HwEvent::CacheReferences)).map(|c| c.value).sum::<u64>();
-        let cache_misses = self.counters.values().filter(|c| matches!(c.event, HwEvent::CacheMisses)).map(|c| c.value).sum::<u64>();
-        let br_insns = self.counters.values().filter(|c| matches!(c.event, HwEvent::BranchInstructions)).map(|c| c.value).sum::<u64>();
-        let br_misses = self.counters.values().filter(|c| matches!(c.event, HwEvent::BranchMisses)).map(|c| c.value).sum::<u64>();
+        let cycles = self
+            .counters
+            .values()
+            .filter(|c| matches!(c.event, HwEvent::Cycles))
+            .map(|c| c.value)
+            .sum::<u64>();
+        let insns = self
+            .counters
+            .values()
+            .filter(|c| matches!(c.event, HwEvent::Instructions))
+            .map(|c| c.value)
+            .sum::<u64>();
+        let cache_refs = self
+            .counters
+            .values()
+            .filter(|c| matches!(c.event, HwEvent::CacheReferences))
+            .map(|c| c.value)
+            .sum::<u64>();
+        let cache_misses = self
+            .counters
+            .values()
+            .filter(|c| matches!(c.event, HwEvent::CacheMisses))
+            .map(|c| c.value)
+            .sum::<u64>();
+        let br_insns = self
+            .counters
+            .values()
+            .filter(|c| matches!(c.event, HwEvent::BranchInstructions))
+            .map(|c| c.value)
+            .sum::<u64>();
+        let br_misses = self
+            .counters
+            .values()
+            .filter(|c| matches!(c.event, HwEvent::BranchMisses))
+            .map(|c| c.value)
+            .sum::<u64>();
 
         if cycles > 0 {
             self.stats.ipc = insns as f64 / cycles as f64;
-            self.derived.push(DerivedMetric { name_hash: 0x1, value: self.stats.ipc, ts });
+            self.derived.push(DerivedMetric {
+                name_hash: 0x1,
+                value: self.stats.ipc,
+                ts,
+            });
         }
         if cache_refs > 0 {
             self.stats.cache_miss_ratio = cache_misses as f64 / cache_refs as f64;
-            self.derived.push(DerivedMetric { name_hash: 0x2, value: self.stats.cache_miss_ratio, ts });
+            self.derived.push(DerivedMetric {
+                name_hash: 0x2,
+                value: self.stats.cache_miss_ratio,
+                ts,
+            });
         }
         if br_insns > 0 {
             self.stats.branch_miss_ratio = br_misses as f64 / br_insns as f64;
-            self.derived.push(DerivedMetric { name_hash: 0x3, value: self.stats.branch_miss_ratio, ts });
+            self.derived.push(DerivedMetric {
+                name_hash: 0x3,
+                value: self.stats.branch_miss_ratio,
+                ts,
+            });
         }
     }
 
@@ -264,11 +376,19 @@ impl HolisticPerfCounter {
     }
 
     #[inline(always)]
-    pub fn counter(&self, id: u64) -> Option<&PerfCounter> { self.counters.get(&id) }
+    pub fn counter(&self, id: u64) -> Option<&PerfCounter> {
+        self.counters.get(&id)
+    }
     #[inline(always)]
-    pub fn pmu(&self, cpu: u32) -> Option<&PmuState> { self.pmus.get(&cpu) }
+    pub fn pmu(&self, cpu: u32) -> Option<&PmuState> {
+        self.pmus.get(&cpu)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &PerfCounterStats { &self.stats }
+    pub fn stats(&self) -> &PerfCounterStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn derived(&self) -> &[DerivedMetric] { &self.derived }
+    pub fn derived(&self) -> &[DerivedMetric] {
+        &self.derived
+    }
 }

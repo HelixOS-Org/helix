@@ -34,7 +34,9 @@ impl AddressHeatmap {
 
     #[inline]
     pub fn record(&mut self, addr: u64) {
-        if addr < self.base_addr { return; }
+        if addr < self.base_addr {
+            return;
+        }
         let offset = addr - self.base_addr;
         let idx = (offset / self.bucket_size.max(1)) as usize;
         if idx < HEATMAP_BUCKETS {
@@ -45,17 +47,25 @@ impl AddressHeatmap {
 
     #[inline]
     pub fn hottest_regions(&self, top_n: usize) -> Vec<(u64, u64)> {
-        let mut indexed: Vec<(usize, u64)> = self.buckets.iter()
-            .enumerate().map(|(i, &v)| (i, v)).collect();
+        let mut indexed: Vec<(usize, u64)> = self
+            .buckets
+            .iter()
+            .enumerate()
+            .map(|(i, &v)| (i, v))
+            .collect();
         indexed.sort_by(|a, b| b.1.cmp(&a.1));
-        indexed.into_iter().take(top_n)
+        indexed
+            .into_iter()
+            .take(top_n)
             .map(|(i, count)| (self.base_addr + i as u64 * self.bucket_size, count))
             .collect()
     }
 
     #[inline]
     pub fn entropy(&self) -> f64 {
-        if self.total_samples == 0 { return 0.0; }
+        if self.total_samples == 0 {
+            return 0.0;
+        }
         let mut h = 0.0f64;
         for &b in &self.buckets {
             if b > 0 {
@@ -107,9 +117,13 @@ impl MmapHolisticManager {
 
     #[inline]
     pub fn register_mapping(&mut self, pid: u64, addr: u64, size: u64, file_hash: u64) {
-        self.process_mappings.entry(pid).or_insert_with(Vec::new)
+        self.process_mappings
+            .entry(pid)
+            .or_insert_with(Vec::new)
             .push((addr, size, file_hash));
-        self.file_sharing.entry(file_hash).or_insert_with(Vec::new)
+        self.file_sharing
+            .entry(file_hash)
+            .or_insert_with(Vec::new)
             .push(pid);
         self.heatmap.record(addr);
         self.stats.total_mapped_bytes += size;
@@ -117,10 +131,13 @@ impl MmapHolisticManager {
 
     /// Find file mappings shared by multiple processes (dedup opportunities)
     pub fn find_dedup_candidates(&self, min_sharers: usize) -> Vec<DedupCandidate> {
-        self.file_sharing.iter()
+        self.file_sharing
+            .iter()
             .filter(|(_, pids)| pids.len() >= min_sharers)
             .map(|(&hash, pids)| {
-                let size = self.process_mappings.values()
+                let size = self
+                    .process_mappings
+                    .values()
                     .flat_map(|v| v.iter())
                     .find(|(_, _, h)| *h == hash)
                     .map(|(_, s, _)| *s)
@@ -138,24 +155,37 @@ impl MmapHolisticManager {
 
     /// Compute system-wide fragmentation: variance of gap sizes
     pub fn compute_fragmentation(&mut self) -> f64 {
-        let mut all_addrs: Vec<(u64, u64)> = self.process_mappings.values()
+        let mut all_addrs: Vec<(u64, u64)> = self
+            .process_mappings
+            .values()
             .flat_map(|v| v.iter().map(|&(a, s, _)| (a, a + s)))
             .collect();
         all_addrs.sort();
 
-        if all_addrs.len() < 2 { return 0.0; }
+        if all_addrs.len() < 2 {
+            return 0.0;
+        }
 
         let mut gaps = Vec::new();
         for i in 1..all_addrs.len() {
             let gap = all_addrs[i].0.saturating_sub(all_addrs[i - 1].1);
-            if gap > 0 { gaps.push(gap); }
+            if gap > 0 {
+                gaps.push(gap);
+            }
         }
 
-        if gaps.is_empty() { return 0.0; }
+        if gaps.is_empty() {
+            return 0.0;
+        }
         let avg = gaps.iter().sum::<u64>() / gaps.len() as u64;
-        let variance: f64 = gaps.iter()
-            .map(|&g| { let d = g as f64 - avg as f64; d * d })
-            .sum::<f64>() / gaps.len() as f64;
+        let variance: f64 = gaps
+            .iter()
+            .map(|&g| {
+                let d = g as f64 - avg as f64;
+                d * d
+            })
+            .sum::<f64>()
+            / gaps.len() as f64;
         let idx = libm::sqrt(variance) / avg.max(1) as f64;
         self.stats.fragmentation_index = idx;
         idx
@@ -167,7 +197,11 @@ impl MmapHolisticManager {
     }
 
     #[inline(always)]
-    pub fn address_entropy(&self) -> f64 { self.heatmap.entropy() }
+    pub fn address_entropy(&self) -> f64 {
+        self.heatmap.entropy()
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &MmapHolisticStats { &self.stats }
+    pub fn stats(&self) -> &MmapHolisticStats {
+        &self.stats
+    }
 }

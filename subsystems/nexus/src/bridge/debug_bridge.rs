@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -58,7 +57,9 @@ pub struct DebugBreakpoint {
 impl DebugBreakpoint {
     pub fn new(id: u32, address: u64, bp_type: BreakpointType) -> Self {
         Self {
-            id, address, bp_type,
+            id,
+            address,
+            bp_type,
             state: BpState::Pending,
             hit_count: 0,
             condition: None,
@@ -69,11 +70,14 @@ impl DebugBreakpoint {
 
     #[inline]
     pub fn is_hardware(&self) -> bool {
-        matches!(self.bp_type, BreakpointType::Hardware
-            | BreakpointType::Watchpoint
-            | BreakpointType::WatchpointRead
-            | BreakpointType::WatchpointWrite
-            | BreakpointType::WatchpointAccess)
+        matches!(
+            self.bp_type,
+            BreakpointType::Hardware
+                | BreakpointType::Watchpoint
+                | BreakpointType::WatchpointRead
+                | BreakpointType::WatchpointWrite
+                | BreakpointType::WatchpointAccess
+        )
     }
 }
 
@@ -94,7 +98,9 @@ impl KprobeEntry {
     #[inline]
     pub fn miss_rate(&self) -> f64 {
         let total = self.hit_count + self.missed;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.missed as f64 / total as f64
     }
 }
@@ -149,7 +155,9 @@ pub struct FtraceFunction {
 impl FtraceFunction {
     #[inline(always)]
     pub fn avg_time_ns(&self) -> u64 {
-        if self.hit_count == 0 { return 0; }
+        if self.hit_count == 0 {
+            return 0;
+        }
         self.total_time_ns / self.hit_count
     }
 }
@@ -193,8 +201,12 @@ impl BridgeDebug {
             max_events: 4096,
             next_bp_id: 1,
             stats: DebugBridgeStats {
-                breakpoint_count: 0, kprobe_count: 0, uprobe_count: 0,
-                dyndbg_entries: 0, total_hits: 0, total_events: 0,
+                breakpoint_count: 0,
+                kprobe_count: 0,
+                uprobe_count: 0,
+                dyndbg_entries: 0,
+                total_hits: 0,
+                total_events: 0,
                 ftrace_functions: 0,
             },
             hw_bp_max,
@@ -210,7 +222,9 @@ impl BridgeDebug {
         self.next_bp_id += 1;
         let mut bp = DebugBreakpoint::new(id, address, bp_type);
         bp.state = BpState::Active;
-        if bp.is_hardware() { self.hw_bp_used += 1; }
+        if bp.is_hardware() {
+            self.hw_bp_used += 1;
+        }
         self.breakpoints.insert(id, bp);
         self.stats.breakpoint_count += 1;
         Some(id)
@@ -220,9 +234,13 @@ impl BridgeDebug {
     pub fn remove_breakpoint(&mut self, id: u32) -> bool {
         if let Some(bp) = self.breakpoints.remove(&id) {
             self.stats.breakpoint_count -= 1;
-            if bp.is_hardware() && self.hw_bp_used > 0 { self.hw_bp_used -= 1; }
+            if bp.is_hardware() && self.hw_bp_used > 0 {
+                self.hw_bp_used -= 1;
+            }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -247,7 +265,9 @@ impl BridgeDebug {
     pub fn record_event(&mut self, event: DebugEvent) {
         self.stats.total_events += 1;
         self.stats.total_hits += 1;
-        if self.events.len() >= self.max_events { self.events.remove(0); }
+        if self.events.len() >= self.max_events {
+            self.events.remove(0);
+        }
         self.events.push_back(event);
     }
 
@@ -261,7 +281,9 @@ impl BridgeDebug {
 
     #[inline]
     pub fn hottest_kprobes(&self, n: usize) -> Vec<(&str, u64)> {
-        let mut v: Vec<_> = self.kprobes.iter()
+        let mut v: Vec<_> = self
+            .kprobes
+            .iter()
             .map(|(name, p)| (name.as_str(), p.hit_count))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
@@ -271,7 +293,9 @@ impl BridgeDebug {
 
     #[inline]
     pub fn hottest_ftrace(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut v: Vec<_> = self.ftrace.iter()
+        let mut v: Vec<_> = self
+            .ftrace
+            .iter()
             .map(|(&addr, f)| (addr, f.hit_count))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));

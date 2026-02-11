@@ -3,10 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Madvise advice types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,7 +36,10 @@ pub enum MadviseAdvice {
 impl MadviseAdvice {
     #[inline(always)]
     pub fn is_destructive(&self) -> bool {
-        matches!(self, Self::DontNeed | Self::Free | Self::Remove | Self::PageOut)
+        matches!(
+            self,
+            Self::DontNeed | Self::Free | Self::Remove | Self::PageOut
+        )
     }
 
     #[inline(always)]
@@ -61,7 +64,9 @@ pub struct MadviseRegion {
 
 impl MadviseRegion {
     #[inline(always)]
-    pub fn end(&self) -> u64 { self.start + self.len }
+    pub fn end(&self) -> u64 {
+        self.start + self.len
+    }
     #[inline(always)]
     pub fn pages(&self, page_size: u64) -> u64 {
         (self.len + page_size - 1) / page_size
@@ -82,8 +87,11 @@ pub struct ProcessMadviseState {
 impl ProcessMadviseState {
     pub fn new(pid: u32) -> Self {
         Self {
-            pid, active_hints: Vec::new(), total_calls: 0,
-            total_bytes_affected: 0, advice_counts: ArrayMap::new(0),
+            pid,
+            active_hints: Vec::new(),
+            total_calls: 0,
+            total_bytes_affected: 0,
+            advice_counts: ArrayMap::new(0),
         }
     }
 
@@ -94,19 +102,27 @@ impl ProcessMadviseState {
         self.advice_counts.add(advice as usize, 1);
 
         // Remove conflicting hints for same range
-        self.active_hints.retain(|h| !(h.start == start && h.len == len));
-        self.active_hints.push(MadviseRegion { start, len, advice, applied_at: now });
+        self.active_hints
+            .retain(|h| !(h.start == start && h.len == len));
+        self.active_hints.push(MadviseRegion {
+            start,
+            len,
+            advice,
+            applied_at: now,
+        });
     }
 
     #[inline]
     pub fn hints_in_range(&self, start: u64, end: u64) -> Vec<&MadviseRegion> {
-        self.active_hints.iter()
+        self.active_hints
+            .iter()
             .filter(|h| h.start < end && h.end() > start)
             .collect()
     }
 
     pub fn dominant_advice(&self) -> Option<MadviseAdvice> {
-        self.advice_counts.iter()
+        self.advice_counts
+            .iter()
             .max_by_key(|(_, count)| *count)
             .and_then(|(k, _)| {
                 Some(match k {
@@ -181,9 +197,14 @@ pub struct AppMadviseMgr {
 impl AppMadviseMgr {
     pub fn new(page_size: u64) -> Self {
         Self {
-            processes: BTreeMap::new(), events: VecDeque::new(),
-            max_events: 4096, success_count: 0, failure_count: 0,
-            destructive_calls: 0, thp_calls: 0, page_size,
+            processes: BTreeMap::new(),
+            events: VecDeque::new(),
+            max_events: 4096,
+            success_count: 0,
+            failure_count: 0,
+            destructive_calls: 0,
+            thp_calls: 0,
+            page_size,
         }
     }
 
@@ -194,20 +215,42 @@ impl AppMadviseMgr {
         }
     }
 
-    pub fn apply(&mut self, pid: u32, start: u64, len: u64, advice: MadviseAdvice, now: u64) -> MadviseResult {
-        if start % self.page_size != 0 { return MadviseResult::InvalidRange; }
-        if len == 0 { return MadviseResult::InvalidRange; }
+    pub fn apply(
+        &mut self,
+        pid: u32,
+        start: u64,
+        len: u64,
+        advice: MadviseAdvice,
+        now: u64,
+    ) -> MadviseResult {
+        if start % self.page_size != 0 {
+            return MadviseResult::InvalidRange;
+        }
+        if len == 0 {
+            return MadviseResult::InvalidRange;
+        }
 
         self.ensure_process(pid);
         if let Some(state) = self.processes.get_mut(&pid) {
             state.apply_hint(start, len, advice, now);
         }
 
-        if advice.is_destructive() { self.destructive_calls += 1; }
-        if advice.affects_thp() { self.thp_calls += 1; }
+        if advice.is_destructive() {
+            self.destructive_calls += 1;
+        }
+        if advice.affects_thp() {
+            self.thp_calls += 1;
+        }
         self.success_count += 1;
 
-        self.record_event(MadviseEvent { pid, start, len, advice, result: MadviseResult::Success, timestamp: now });
+        self.record_event(MadviseEvent {
+            pid,
+            start,
+            len,
+            advice,
+            result: MadviseResult::Success,
+            timestamp: now,
+        });
         MadviseResult::Success
     }
 
@@ -225,7 +268,9 @@ impl AppMadviseMgr {
     }
 
     fn record_event(&mut self, event: MadviseEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
+        if self.events.len() >= self.max_events {
+            self.events.remove(0);
+        }
         self.events.push_back(event);
     }
 
@@ -236,17 +281,23 @@ impl AppMadviseMgr {
 
     #[inline]
     pub fn hints_for_range(&self, pid: u32, start: u64, end: u64) -> Vec<MadviseRegion> {
-        self.processes.get(&pid)
+        self.processes
+            .get(&pid)
             .map(|s| s.hints_in_range(start, end).into_iter().cloned().collect())
             .unwrap_or_default()
     }
 
     pub fn stats(&self) -> MadviseMgrStats {
         let total_calls: u64 = self.processes.values().map(|p| p.total_calls).sum();
-        let total_bytes: u64 = self.processes.values().map(|p| p.total_bytes_affected).sum();
+        let total_bytes: u64 = self
+            .processes
+            .values()
+            .map(|p| p.total_bytes_affected)
+            .sum();
         MadviseMgrStats {
             tracked_processes: self.processes.len() as u32,
-            total_calls, total_bytes,
+            total_calls,
+            total_bytes,
             success_count: self.success_count,
             failure_count: self.failure_count,
             destructive_calls: self.destructive_calls,

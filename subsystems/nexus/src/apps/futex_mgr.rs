@@ -77,7 +77,9 @@ impl FutexWaiter {
     pub fn wait_duration(&self) -> u64 {
         if self.wakeup_ns > self.enqueue_ns {
             self.wakeup_ns - self.enqueue_ns
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     #[inline(always)]
@@ -129,7 +131,9 @@ impl FutexQueue {
         let mut woken = Vec::new();
         let mut remaining = count;
         for waiter in self.waiters.iter_mut() {
-            if remaining == 0 { break; }
+            if remaining == 0 {
+                break;
+            }
             if waiter.state == FutexWaiterState::Waiting {
                 waiter.state = FutexWaiterState::Woken;
                 waiter.wakeup_ns = now;
@@ -138,7 +142,8 @@ impl FutexQueue {
                 self.total_wakes += 1;
             }
         }
-        self.waiters.retain(|w| w.state == FutexWaiterState::Waiting);
+        self.waiters
+            .retain(|w| w.state == FutexWaiterState::Waiting);
         woken
     }
 
@@ -146,7 +151,9 @@ impl FutexQueue {
         let mut woken = Vec::new();
         let mut remaining = count;
         for waiter in self.waiters.iter_mut() {
-            if remaining == 0 { break; }
+            if remaining == 0 {
+                break;
+            }
             if waiter.state == FutexWaiterState::Waiting && (waiter.bitset & bitset) != 0 {
                 waiter.state = FutexWaiterState::Woken;
                 waiter.wakeup_ns = now;
@@ -155,7 +162,8 @@ impl FutexQueue {
                 self.total_wakes += 1;
             }
         }
-        self.waiters.retain(|w| w.state == FutexWaiterState::Waiting);
+        self.waiters
+            .retain(|w| w.state == FutexWaiterState::Waiting);
         woken
     }
 
@@ -169,16 +177,23 @@ impl FutexQueue {
                 self.total_timeouts += 1;
             }
         }
-        self.waiters.retain(|w| w.state == FutexWaiterState::Waiting);
+        self.waiters
+            .retain(|w| w.state == FutexWaiterState::Waiting);
         expired
     }
 
     #[inline(always)]
-    pub fn waiter_count(&self) -> usize { self.waiters.len() }
+    pub fn waiter_count(&self) -> usize {
+        self.waiters.len()
+    }
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.waiters.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.waiters.is_empty()
+    }
     #[inline(always)]
-    pub fn contention_level(&self) -> f64 { self.waiters.len() as f64 }
+    pub fn contention_level(&self) -> f64 {
+        self.waiters.len() as f64
+    }
 }
 
 /// Robust futex entry
@@ -227,7 +242,10 @@ impl AppsFutexMgr {
 
     #[inline(always)]
     pub fn futex_wait(&mut self, addr: u64, waiter: FutexWaiter) {
-        let queue = self.queues.entry(addr).or_insert_with(|| FutexQueue::new(addr));
+        let queue = self
+            .queues
+            .entry(addr)
+            .or_insert_with(|| FutexQueue::new(addr));
         queue.enqueue(waiter);
     }
 
@@ -235,20 +253,39 @@ impl AppsFutexMgr {
     pub fn futex_wake(&mut self, addr: u64, count: usize, now: u64) -> Vec<u64> {
         if let Some(queue) = self.queues.get_mut(&addr) {
             queue.wake(count, now)
-        } else { Vec::new() }
+        } else {
+            Vec::new()
+        }
     }
 
     #[inline]
-    pub fn futex_wake_bitset(&mut self, addr: u64, bitset: u32, count: usize, now: u64) -> Vec<u64> {
+    pub fn futex_wake_bitset(
+        &mut self,
+        addr: u64,
+        bitset: u32,
+        count: usize,
+        now: u64,
+    ) -> Vec<u64> {
         if let Some(queue) = self.queues.get_mut(&addr) {
             queue.wake_bitset(bitset, count, now)
-        } else { Vec::new() }
+        } else {
+            Vec::new()
+        }
     }
 
-    pub fn futex_requeue(&mut self, from: u64, to: u64, wake_count: usize, requeue_count: usize, now: u64) -> (Vec<u64>, usize) {
+    pub fn futex_requeue(
+        &mut self,
+        from: u64,
+        to: u64,
+        wake_count: usize,
+        requeue_count: usize,
+        now: u64,
+    ) -> (Vec<u64>, usize) {
         let woken = if let Some(q) = self.queues.get_mut(&from) {
             q.wake(wake_count, now)
-        } else { return (Vec::new(), 0); };
+        } else {
+            return (Vec::new(), 0);
+        };
 
         // Move remaining waiters to target queue
         let mut moved = 0;
@@ -263,7 +300,9 @@ impl AppsFutexMgr {
                     to_move.push(w);
                     remaining -= 1;
                     moved += 1;
-                } else { i += 1; }
+                } else {
+                    i += 1;
+                }
             }
             from_q.total_requeues += moved as u64;
 
@@ -289,7 +328,9 @@ impl AppsFutexMgr {
     #[inline]
     pub fn register_robust_list(&mut self, pid: u64, head: u64) {
         self.robust_lists.insert(pid, ProcessRobustList {
-            process_id: pid, entries: Vec::new(), head_addr: head,
+            process_id: pid,
+            entries: Vec::new(),
+            head_addr: head,
         });
     }
 
@@ -313,11 +354,20 @@ impl AppsFutexMgr {
         self.stats.total_waits = self.queues.values().map(|q| q.total_waits).sum();
         self.stats.total_wakes = self.queues.values().map(|q| q.total_wakes).sum();
         self.stats.total_timeouts = self.queues.values().map(|q| q.total_timeouts).sum();
-        self.stats.max_contention = self.queues.values().map(|q| q.max_waiters).max().unwrap_or(0);
+        self.stats.max_contention = self
+            .queues
+            .values()
+            .map(|q| q.max_waiters)
+            .max()
+            .unwrap_or(0);
     }
 
     #[inline(always)]
-    pub fn queue(&self, addr: u64) -> Option<&FutexQueue> { self.queues.get(&addr) }
+    pub fn queue(&self, addr: u64) -> Option<&FutexQueue> {
+        self.queues.get(&addr)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsFutexMgrStats { &self.stats }
+    pub fn stats(&self) -> &AppsFutexMgrStats {
+        &self.stats
+    }
 }

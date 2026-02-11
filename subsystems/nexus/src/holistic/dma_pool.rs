@@ -3,10 +3,9 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
-
 /// DMA buffer state
 use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DmaBufferState {
     Free,
@@ -30,7 +29,15 @@ pub struct DmaBuffer {
 
 impl DmaBuffer {
     pub fn new(id: u64, phys_addr: u64, size: usize) -> Self {
-        Self { id, phys_addr, size, state: DmaBufferState::Free, coherent: false, owner_device: 0, transfer_count: 0 }
+        Self {
+            id,
+            phys_addr,
+            size,
+            state: DmaBufferState::Free,
+            coherent: false,
+            owner_device: 0,
+            transfer_count: 0,
+        }
     }
 }
 
@@ -49,11 +56,21 @@ pub struct DmaPool {
 
 impl DmaPool {
     pub fn new(id: u64, base_phys: u64, total_size: usize) -> Self {
-        Self { id, buffers: Vec::new(), total_size, free_size: total_size, next_phys: base_phys, allocations: 0, frees: 0 }
+        Self {
+            id,
+            buffers: Vec::new(),
+            total_size,
+            free_size: total_size,
+            next_phys: base_phys,
+            allocations: 0,
+            frees: 0,
+        }
     }
 
     pub fn allocate(&mut self, size: usize) -> Option<u64> {
-        if size > self.free_size { return None; }
+        if size > self.free_size {
+            return None;
+        }
         let buf_id = self.buffers.len() as u64 + 1;
         let phys = self.next_phys;
         self.next_phys += size as u64;
@@ -72,11 +89,19 @@ impl DmaPool {
             buf.state = DmaBufferState::Free;
             self.frees += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn utilization(&self) -> f64 { if self.total_size == 0 { 0.0 } else { 1.0 - self.free_size as f64 / self.total_size as f64 } }
+    pub fn utilization(&self) -> f64 {
+        if self.total_size == 0 {
+            0.0
+        } else {
+            1.0 - self.free_size as f64 / self.total_size as f64
+        }
+    }
 }
 
 /// Stats
@@ -99,11 +124,17 @@ pub struct HolisticDmaPool {
 }
 
 impl HolisticDmaPool {
-    pub fn new() -> Self { Self { pools: Vec::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            pools: Vec::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create_pool(&mut self, base: u64, size: usize) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.pools.push(DmaPool::new(id, base, size));
         id
     }
@@ -115,8 +146,19 @@ impl HolisticDmaPool {
         let free: usize = self.pools.iter().map(|p| p.free_size).sum();
         let allocs: u64 = self.pools.iter().map(|p| p.allocations).sum();
         let utils: Vec<f64> = self.pools.iter().map(|p| p.utilization()).collect();
-        let avg = if utils.is_empty() { 0.0 } else { utils.iter().sum::<f64>() / utils.len() as f64 };
-        DmaPoolStats { total_pools: self.pools.len() as u32, total_buffers: buffers, total_allocated: allocated, total_free: free, total_allocs: allocs, avg_utilization: avg }
+        let avg = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
+        DmaPoolStats {
+            total_pools: self.pools.len() as u32,
+            total_buffers: buffers,
+            total_allocated: allocated,
+            total_free: free,
+            total_allocs: allocs,
+            avg_utilization: avg,
+        }
     }
 }
 
@@ -157,20 +199,37 @@ pub struct DmaPoolV2 {
 
 impl DmaPoolV2 {
     pub fn new(name: u64, block_size: u32, boundary: u32) -> Self {
-        Self { name_hash: name, block_size, boundary, entries: Vec::new(), alloc_count: 0, free_count: 0 }
+        Self {
+            name_hash: name,
+            block_size,
+            boundary,
+            entries: Vec::new(),
+            alloc_count: 0,
+            free_count: 0,
+        }
     }
 
     #[inline]
     pub fn alloc(&mut self, phys: u64, virt: u64, dev: u32) -> usize {
         let idx = self.entries.len();
-        self.entries.push(DmaV2Entry { phys_addr: phys, virt_addr: virt, size: self.block_size, state: DmaV2AllocState::Allocated, device_id: dev, direction: 0 });
+        self.entries.push(DmaV2Entry {
+            phys_addr: phys,
+            virt_addr: virt,
+            size: self.block_size,
+            state: DmaV2AllocState::Allocated,
+            device_id: dev,
+            direction: 0,
+        });
         self.alloc_count += 1;
         idx
     }
 
     #[inline(always)]
     pub fn free(&mut self, idx: usize) {
-        if idx < self.entries.len() { self.entries[idx].state = DmaV2AllocState::Free; self.free_count += 1; }
+        if idx < self.entries.len() {
+            self.entries[idx].state = DmaV2AllocState::Free;
+            self.free_count += 1;
+        }
     }
 }
 
@@ -191,31 +250,58 @@ pub struct HolisticDmaPoolV2 {
 }
 
 impl HolisticDmaPoolV2 {
-    pub fn new() -> Self { Self { pools: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            pools: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn create_pool(&mut self, name: u64, block_size: u32, boundary: u32) {
-        self.pools.insert(name, DmaPoolV2::new(name, block_size, boundary));
+        self.pools
+            .insert(name, DmaPoolV2::new(name, block_size, boundary));
     }
 
     #[inline(always)]
     pub fn alloc(&mut self, pool: u64, phys: u64, virt: u64, dev: u32) -> Option<usize> {
-        if let Some(p) = self.pools.get_mut(&pool) { Some(p.alloc(phys, virt, dev)) } else { None }
+        if let Some(p) = self.pools.get_mut(&pool) {
+            Some(p.alloc(phys, virt, dev))
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
     pub fn free(&mut self, pool: u64, idx: usize) {
-        if let Some(p) = self.pools.get_mut(&pool) { p.free(idx); }
+        if let Some(p) = self.pools.get_mut(&pool) {
+            p.free(idx);
+        }
     }
 
     #[inline(always)]
-    pub fn destroy_pool(&mut self, name: u64) { self.pools.remove(&name); }
+    pub fn destroy_pool(&mut self, name: u64) {
+        self.pools.remove(&name);
+    }
 
     #[inline]
     pub fn stats(&self) -> DmaPoolV2Stats {
         let allocs: u64 = self.pools.values().map(|p| p.alloc_count).sum();
         let frees: u64 = self.pools.values().map(|p| p.free_count).sum();
-        let active: u32 = self.pools.values().map(|p| p.entries.iter().filter(|e| e.state == DmaV2AllocState::Allocated).count() as u32).sum();
-        DmaPoolV2Stats { total_pools: self.pools.len() as u32, total_allocs: allocs, total_frees: frees, active_entries: active }
+        let active: u32 = self
+            .pools
+            .values()
+            .map(|p| {
+                p.entries
+                    .iter()
+                    .filter(|e| e.state == DmaV2AllocState::Allocated)
+                    .count() as u32
+            })
+            .sum();
+        DmaPoolV2Stats {
+            total_pools: self.pools.len() as u32,
+            total_allocs: allocs,
+            total_frees: frees,
+            active_entries: active,
+        }
     }
 }

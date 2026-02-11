@@ -33,7 +33,9 @@ impl DualQueueNode {
         Self {
             node_type: DualQueueNodeType::Data(value),
             state: DualQueueNodeState::Pending,
-            thread_id, result: None, timestamp: ts,
+            thread_id,
+            result: None,
+            timestamp: ts,
         }
     }
 
@@ -42,7 +44,9 @@ impl DualQueueNode {
         Self {
             node_type: DualQueueNodeType::Request,
             state: DualQueueNodeState::Pending,
-            thread_id, result: None, timestamp: ts,
+            thread_id,
+            result: None,
+            timestamp: ts,
         }
     }
 
@@ -58,9 +62,13 @@ impl DualQueueNode {
     }
 
     #[inline(always)]
-    pub fn is_data(&self) -> bool { matches!(self.node_type, DualQueueNodeType::Data(_)) }
+    pub fn is_data(&self) -> bool {
+        matches!(self.node_type, DualQueueNodeType::Data(_))
+    }
     #[inline(always)]
-    pub fn is_request(&self) -> bool { matches!(self.node_type, DualQueueNodeType::Request) }
+    pub fn is_request(&self) -> bool {
+        matches!(self.node_type, DualQueueNodeType::Request)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -78,8 +86,10 @@ impl DualQueueState {
     pub fn new() -> Self {
         Self {
             queue: Vec::new(),
-            total_data: 0, total_requests: 0,
-            total_matches: 0, total_cancels: 0,
+            total_data: 0,
+            total_requests: 0,
+            total_matches: 0,
+            total_cancels: 0,
             total_latency_ns: 0,
         }
     }
@@ -120,18 +130,27 @@ impl DualQueueState {
 
     #[inline(always)]
     pub fn cleanup(&mut self) {
-        self.queue.retain(|n| n.state == DualQueueNodeState::Pending);
+        self.queue
+            .retain(|n| n.state == DualQueueNodeState::Pending);
     }
 
     #[inline(always)]
     pub fn avg_match_latency_ns(&self) -> u64 {
-        if self.total_matches == 0 { 0 } else { self.total_latency_ns / self.total_matches }
+        if self.total_matches == 0 {
+            0
+        } else {
+            self.total_latency_ns / self.total_matches
+        }
     }
 
     #[inline(always)]
     pub fn match_rate(&self) -> u64 {
         let total = self.total_data + self.total_requests;
-        if total == 0 { 0 } else { (self.total_matches * 200) / total } // x2 because each match takes 2
+        if total == 0 {
+            0
+        } else {
+            (self.total_matches * 200) / total
+        } // x2 because each match takes 2
     }
 }
 
@@ -155,8 +174,10 @@ impl CoopDualQueue {
         Self {
             queues: Vec::new(),
             stats: DualQueueStats {
-                total_queues: 0, total_data: 0,
-                total_requests: 0, total_matches: 0,
+                total_queues: 0,
+                total_data: 0,
+                total_requests: 0,
+                total_matches: 0,
             },
         }
     }
@@ -182,11 +203,17 @@ impl CoopDualQueue {
         if let Some(q) = self.queues.get_mut(queue_idx) {
             self.stats.total_requests += 1;
             let result = q.take(thread_id, ts);
-            if result.is_some() { self.stats.total_matches += 1; }
+            if result.is_some() {
+                self.stats.total_matches += 1;
+            }
             result
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &DualQueueStats { &self.stats }
+    pub fn stats(&self) -> &DualQueueStats {
+        &self.stats
+    }
 }

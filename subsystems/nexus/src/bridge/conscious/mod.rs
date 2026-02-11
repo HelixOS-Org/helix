@@ -94,20 +94,19 @@ pub mod qualia;
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
 
+pub use self::attention::BridgeAttentionEngine;
 pub use self::awareness::BridgeAwareness;
+pub use self::conscience::BridgeConscience;
+pub use self::dream::BridgeDreamEngine;
+pub use self::emotion::BridgeEmotionEngine;
+pub use self::empathy::BridgeEmpathyEngine;
 pub use self::goal_tracker::BridgeGoalTracker;
 pub use self::identity::BridgeIdentity;
 pub use self::introspect::BridgeIntrospector;
+pub use self::intuition::BridgeIntuitionEngine;
+pub use self::memory_palace::BridgeMemoryPalace;
 pub use self::meta_bridge::BridgeMetaCognition;
+pub use self::qualia::BridgeQualiaEngine;
 pub use self::reflection::BridgeReflection;
 pub use self::self_model::BridgeSelfModel;
 pub use self::world_model::BridgeWorldModel;
-
-pub use self::emotion::BridgeEmotionEngine;
-pub use self::attention::BridgeAttentionEngine;
-pub use self::dream::BridgeDreamEngine;
-pub use self::empathy::BridgeEmpathyEngine;
-pub use self::intuition::BridgeIntuitionEngine;
-pub use self::memory_palace::BridgeMemoryPalace;
-pub use self::conscience::BridgeConscience;
-pub use self::qualia::BridgeQualiaEngine;

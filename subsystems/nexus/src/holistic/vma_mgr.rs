@@ -23,11 +23,17 @@ impl VmaFlags {
     pub const DONTEXPAND: u64 = 1 << 9;
     pub const MERGEABLE: u64 = 1 << 10;
 
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn set(&mut self, f: u64) { self.0 |= f; }
+    pub fn set(&mut self, f: u64) {
+        self.0 |= f;
+    }
     #[inline(always)]
-    pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u64) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// VMA type
@@ -59,17 +65,36 @@ pub struct Vma {
 
 impl Vma {
     pub fn new(start: u64, end: u64, flags: VmaFlags, vtype: VmaType) -> Self {
-        Self { start, end, flags, vma_type: vtype, file_offset: 0, inode: 0, pgoff: 0, page_count: 0, rss_pages: 0, swap_pages: 0 }
+        Self {
+            start,
+            end,
+            flags,
+            vma_type: vtype,
+            file_offset: 0,
+            inode: 0,
+            pgoff: 0,
+            page_count: 0,
+            rss_pages: 0,
+            swap_pages: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn size(&self) -> u64 { self.end - self.start }
+    pub fn size(&self) -> u64 {
+        self.end - self.start
+    }
     #[inline(always)]
-    pub fn pages(&self) -> u64 { self.size() / 4096 }
+    pub fn pages(&self) -> u64 {
+        self.size() / 4096
+    }
     #[inline(always)]
-    pub fn overlaps(&self, start: u64, end: u64) -> bool { self.start < end && start < self.end }
+    pub fn overlaps(&self, start: u64, end: u64) -> bool {
+        self.start < end && start < self.end
+    }
     #[inline(always)]
-    pub fn can_merge(&self, other: &Vma) -> bool { self.end == other.start && self.flags.0 == other.flags.0 && self.vma_type == other.vma_type }
+    pub fn can_merge(&self, other: &Vma) -> bool {
+        self.end == other.start && self.flags.0 == other.flags.0 && self.vma_type == other.vma_type
+    }
 }
 
 /// Process MM
@@ -87,13 +112,27 @@ pub struct ProcessMm {
 
 impl ProcessMm {
     pub fn new(pid: u64) -> Self {
-        Self { pid, vmas: Vec::new(), total_vm: 0, rss: 0, brk_start: 0, brk_end: 0, stack_start: 0, mmap_base: 0x7f0000000000 }
+        Self {
+            pid,
+            vmas: Vec::new(),
+            total_vm: 0,
+            rss: 0,
+            brk_start: 0,
+            brk_end: 0,
+            stack_start: 0,
+            mmap_base: 0x7f0000000000,
+        }
     }
 
     #[inline(always)]
-    pub fn add_vma(&mut self, vma: Vma) { self.total_vm += vma.size(); self.vmas.push(vma); }
+    pub fn add_vma(&mut self, vma: Vma) {
+        self.total_vm += vma.size();
+        self.vmas.push(vma);
+    }
     #[inline(always)]
-    pub fn vma_count(&self) -> u32 { self.vmas.len() as u32 }
+    pub fn vma_count(&self) -> u32 {
+        self.vmas.len() as u32
+    }
 
     #[inline(always)]
     pub fn find_vma(&self, addr: u64) -> Option<&Vma> {
@@ -118,13 +157,21 @@ pub struct HolisticVmaMgr {
 }
 
 impl HolisticVmaMgr {
-    pub fn new() -> Self { Self { processes: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            processes: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessMm::new(pid)); }
+    pub fn register(&mut self, pid: u64) {
+        self.processes.insert(pid, ProcessMm::new(pid));
+    }
 
     #[inline(always)]
     pub fn mmap(&mut self, pid: u64, start: u64, end: u64, flags: VmaFlags, vtype: VmaType) {
-        if let Some(mm) = self.processes.get_mut(&pid) { mm.add_vma(Vma::new(start, end, flags, vtype)); }
+        if let Some(mm) = self.processes.get_mut(&pid) {
+            mm.add_vma(Vma::new(start, end, flags, vtype));
+        }
     }
 
     #[inline]
@@ -132,7 +179,17 @@ impl HolisticVmaMgr {
         let vmas: u32 = self.processes.values().map(|mm| mm.vma_count()).sum();
         let vm: u64 = self.processes.values().map(|mm| mm.total_vm).sum();
         let rss: u64 = self.processes.values().map(|mm| mm.rss).sum();
-        let avg = if self.processes.is_empty() { 0.0 } else { vmas as f64 / self.processes.len() as f64 };
-        VmaMgrStats { total_processes: self.processes.len() as u32, total_vmas: vmas, total_vm_bytes: vm, total_rss_bytes: rss, avg_vmas_per_process: avg }
+        let avg = if self.processes.is_empty() {
+            0.0
+        } else {
+            vmas as f64 / self.processes.len() as f64
+        };
+        VmaMgrStats {
+            total_processes: self.processes.len() as u32,
+            total_vmas: vmas,
+            total_vm_bytes: vm,
+            total_rss_bytes: rss,
+            avg_vmas_per_process: avg,
+        }
     }
 }

@@ -327,13 +327,15 @@ impl HolisticAccountingEngine {
     pub fn generate_report(&self, start: u64, end: u64) -> AccountingPeriod {
         let mut report = AccountingPeriod::new(start, end);
         for ledger in self.ledgers.values() {
-            report.entity_costs.push((ledger.entity_id, ledger.total_cost));
+            report
+                .entity_costs
+                .push((ledger.entity_id, ledger.total_cost));
             report.total_cost += ledger.total_cost;
         }
         report.entity_count = self.ledgers.len();
-        report.entity_costs.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal)
-        });
+        report
+            .entity_costs
+            .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
         report
     }
 

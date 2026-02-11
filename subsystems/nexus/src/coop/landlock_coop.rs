@@ -25,7 +25,13 @@ pub struct LandlockCoopRecord {
 
 impl LandlockCoopRecord {
     pub fn new(event: LandlockCoopEvent) -> Self {
-        Self { event, ruleset_layers: 1, access_mask: 0, source_pid: 0, child_pid: 0 }
+        Self {
+            event,
+            ruleset_layers: 1,
+            access_mask: 0,
+            source_pid: 0,
+            child_pid: 0,
+        }
     }
 }
 
@@ -47,7 +53,14 @@ pub struct CoopLandlock {
 
 impl CoopLandlock {
     pub fn new() -> Self {
-        Self { stats: LandlockCoopStats { total_events: 0, stacks: 0, inherits: 0, narrows: 0 } }
+        Self {
+            stats: LandlockCoopStats {
+                total_events: 0,
+                stacks: 0,
+                inherits: 0,
+                narrows: 0,
+            },
+        }
     }
 
     #[inline]
@@ -57,7 +70,7 @@ impl CoopLandlock {
             LandlockCoopEvent::RulesetStack => self.stats.stacks += 1,
             LandlockCoopEvent::RulesetInherit => self.stats.inherits += 1,
             LandlockCoopEvent::AccessNarrow => self.stats.narrows += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

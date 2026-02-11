@@ -39,8 +39,12 @@ pub struct CreditGrant {
 impl CreditGrant {
     pub fn new(id: u64, ctype: CreditType, amount: u64, now: u64, ttl: u64) -> Self {
         Self {
-            id, credit_type: ctype, amount, remaining: amount,
-            granted_at: now, expires_at: now + ttl,
+            id,
+            credit_type: ctype,
+            amount,
+            remaining: amount,
+            granted_at: now,
+            expires_at: now + ttl,
         }
     }
 
@@ -52,12 +56,18 @@ impl CreditGrant {
     }
 
     #[inline(always)]
-    pub fn is_expired(&self, now: u64) -> bool { now >= self.expires_at }
+    pub fn is_expired(&self, now: u64) -> bool {
+        now >= self.expires_at
+    }
     #[inline(always)]
-    pub fn is_exhausted(&self) -> bool { self.remaining == 0 }
+    pub fn is_exhausted(&self) -> bool {
+        self.remaining == 0
+    }
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.amount == 0 { return 1.0; }
+        if self.amount == 0 {
+            return 1.0;
+        }
         (self.amount - self.remaining) as f64 / self.amount as f64
     }
 }
@@ -78,9 +88,14 @@ pub struct CreditEndpoint {
 impl CreditEndpoint {
     pub fn new(id: u64) -> Self {
         Self {
-            id, grants: Vec::new(), state: CreditFlowState::Normal,
-            total_credits_received: 0, total_credits_consumed: 0,
-            total_blocked_ns: 0, block_count: 0, last_grant_at: 0,
+            id,
+            grants: Vec::new(),
+            state: CreditFlowState::Normal,
+            total_credits_received: 0,
+            total_credits_consumed: 0,
+            total_blocked_ns: 0,
+            block_count: 0,
+            last_grant_at: 0,
         }
     }
 
@@ -97,7 +112,9 @@ impl CreditEndpoint {
     pub fn consume(&mut self, amount: u64) -> u64 {
         let mut remaining = amount;
         for grant in &mut self.grants {
-            if remaining == 0 { break; }
+            if remaining == 0 {
+                break;
+            }
             remaining -= grant.consume(remaining);
         }
         let consumed = amount - remaining;
@@ -113,14 +130,19 @@ impl CreditEndpoint {
 
     #[inline(always)]
     pub fn cleanup_expired(&mut self, now: u64) {
-        self.grants.retain(|g| !g.is_expired(now) || !g.is_exhausted());
+        self.grants
+            .retain(|g| !g.is_expired(now) || !g.is_exhausted());
     }
 
     fn update_state(&mut self) {
         let avail = self.available();
-        self.state = if avail == 0 { CreditFlowState::Blocked }
-            else if avail < 10 { CreditFlowState::LowCredit }
-            else { CreditFlowState::Normal };
+        self.state = if avail == 0 {
+            CreditFlowState::Blocked
+        } else if avail < 10 {
+            CreditFlowState::LowCredit
+        } else {
+            CreditFlowState::Normal
+        };
     }
 }
 
@@ -143,7 +165,12 @@ pub struct CoopCreditFlow {
 }
 
 impl CoopCreditFlow {
-    pub fn new() -> Self { Self { endpoints: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            endpoints: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create_endpoint(&mut self) -> u64 {
@@ -155,27 +182,59 @@ impl CoopCreditFlow {
 
     #[inline(always)]
     pub fn grant(&mut self, endpoint: u64, ctype: CreditType, amount: u64, now: u64, ttl: u64) {
-        if let Some(ep) = self.endpoints.get_mut(&endpoint) { ep.grant(ctype, amount, now, ttl); }
+        if let Some(ep) = self.endpoints.get_mut(&endpoint) {
+            ep.grant(ctype, amount, now, ttl);
+        }
     }
 
     #[inline(always)]
     pub fn consume(&mut self, endpoint: u64, amount: u64) -> u64 {
-        self.endpoints.get_mut(&endpoint).map(|ep| ep.consume(amount)).unwrap_or(0)
+        self.endpoints
+            .get_mut(&endpoint)
+            .map(|ep| ep.consume(amount))
+            .unwrap_or(0)
     }
 
     pub fn stats(&self) -> CreditFlowStats {
-        let blocked = self.endpoints.values().filter(|e| e.state == CreditFlowState::Blocked).count() as u32;
-        let granted: u64 = self.endpoints.values().map(|e| e.total_credits_received).sum();
-        let consumed: u64 = self.endpoints.values().map(|e| e.total_credits_consumed).sum();
+        let blocked = self
+            .endpoints
+            .values()
+            .filter(|e| e.state == CreditFlowState::Blocked)
+            .count() as u32;
+        let granted: u64 = self
+            .endpoints
+            .values()
+            .map(|e| e.total_credits_received)
+            .sum();
+        let consumed: u64 = self
+            .endpoints
+            .values()
+            .map(|e| e.total_credits_consumed)
+            .sum();
         let blocks: u64 = self.endpoints.values().map(|e| e.block_count).sum();
-        let utils: Vec<f64> = self.endpoints.values().map(|e| {
-            if e.total_credits_received == 0 { 0.0 } else { e.total_credits_consumed as f64 / e.total_credits_received as f64 }
-        }).collect();
-        let avg = if utils.is_empty() { 0.0 } else { utils.iter().sum::<f64>() / utils.len() as f64 };
+        let utils: Vec<f64> = self
+            .endpoints
+            .values()
+            .map(|e| {
+                if e.total_credits_received == 0 {
+                    0.0
+                } else {
+                    e.total_credits_consumed as f64 / e.total_credits_received as f64
+                }
+            })
+            .collect();
+        let avg = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
         CreditFlowStats {
-            total_endpoints: self.endpoints.len() as u32, blocked_endpoints: blocked,
-            total_credits_granted: granted, total_credits_consumed: consumed,
-            total_blocks: blocks, avg_utilization: avg,
+            total_endpoints: self.endpoints.len() as u32,
+            blocked_endpoints: blocked,
+            total_credits_granted: granted,
+            total_credits_consumed: consumed,
+            total_blocks: blocks,
+            avg_utilization: avg,
         }
     }
 }

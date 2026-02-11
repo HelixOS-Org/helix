@@ -3,8 +3,7 @@
 //! The rate limiter tracks action frequency and enforces cooldown
 //! periods to prevent flip-flop behavior and system oscillation.
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::format;
 use alloc::string::String;
 use core::sync::atomic::{AtomicU64, Ordering};

@@ -13,8 +13,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -261,8 +260,10 @@ impl CoopCuriosityEngine {
         self.stats.total_reward_earned += reward;
         self.stats.total_cost_spent += cost;
         self.stats.current_budget = self.current_budget;
-        self.stats.avg_novelty_ema = EMA_ALPHA * novelty + (1.0 - EMA_ALPHA) * self.stats.avg_novelty_ema;
-        self.stats.avg_reward_ema = EMA_ALPHA * reward + (1.0 - EMA_ALPHA) * self.stats.avg_reward_ema;
+        self.stats.avg_novelty_ema =
+            EMA_ALPHA * novelty + (1.0 - EMA_ALPHA) * self.stats.avg_novelty_ema;
+        self.stats.avg_reward_ema =
+            EMA_ALPHA * reward + (1.0 - EMA_ALPHA) * self.stats.avg_reward_ema;
         if self.strategies.len() >= MAX_STRATEGIES {
             self.strategies.remove(0);
         }
@@ -300,7 +301,11 @@ impl CoopCuriosityEngine {
             },
             created_tick: self.tick,
         };
-        self.update_territory(variant_params, CuriosityDimension::FairnessAlgorithm, reward);
+        self.update_territory(
+            variant_params,
+            CuriosityDimension::FairnessAlgorithm,
+            reward,
+        );
         if self.strategies.len() >= MAX_STRATEGIES {
             self.strategies.remove(0);
         }
@@ -375,7 +380,8 @@ impl CoopCuriosityEngine {
             for j in 0..step_limit {
                 let x = i as f32 * TERRITORY_RESOLUTION;
                 let y = j as f32 * TERRITORY_RESOLUTION;
-                let cell_hash = fnv1a_hash(&x.to_le_bytes()) ^ fnv1a_hash(&y.to_le_bytes()) ^ dim_key;
+                let cell_hash =
+                    fnv1a_hash(&x.to_le_bytes()) ^ fnv1a_hash(&y.to_le_bytes()) ^ dim_key;
                 if !visited_hashes.contains(&cell_hash) {
                     let mut point = Vec::new();
                     point.push(x);
@@ -417,10 +423,7 @@ impl CoopCuriosityEngine {
             return 1.0;
         }
         let dim_filter = dimension as u64;
-        let relevant: Vec<&Vec<f32>> = self
-            .exploration_history
-            .iter()
-            .collect();
+        let relevant: Vec<&Vec<f32>> = self.exploration_history.iter().collect();
         if relevant.is_empty() {
             return 1.0;
         }
@@ -442,7 +445,11 @@ impl CoopCuriosityEngine {
             count += 1;
         }
         let _ = dim_filter;
-        let avg_dist = if count > 0 { total_dist / count as f32 } else { 1.0 };
+        let avg_dist = if count > 0 {
+            total_dist / count as f32
+        } else {
+            1.0
+        };
         let novelty = (min_dist * 0.4 + avg_dist * 0.6).min(1.0);
         novelty
     }
@@ -494,7 +501,11 @@ impl CoopCuriosityEngine {
                 allocated: CURIOSITY_BUDGET_INITIAL / 7.0,
                 spent: cost,
                 reward_earned: reward,
-                roi: if cost > 0.0 { (reward - cost) / cost } else { 0.0 },
+                roi: if cost > 0.0 {
+                    (reward - cost) / cost
+                } else {
+                    0.0
+                },
             };
             self.budget_allocations.insert(key, alloc);
         }

@@ -52,7 +52,14 @@ pub struct SemaphoreRecord {
 
 impl SemaphoreRecord {
     pub fn new(op: SemaphoreOp) -> Self {
-        Self { op, result: SemaphoreResult::Success, semid: -1, nsems: 0, sem_num: 0, key: 0 }
+        Self {
+            op,
+            result: SemaphoreResult::Success,
+            semid: -1,
+            nsems: 0,
+            sem_num: 0,
+            key: 0,
+        }
     }
 }
 
@@ -76,7 +83,15 @@ pub struct BridgeSemaphore {
 
 impl BridgeSemaphore {
     pub fn new() -> Self {
-        Self { stats: SemaphoreBridgeStats { total_ops: 0, semops: 0, sets_created: 0, blocks: 0, errors: 0 } }
+        Self {
+            stats: SemaphoreBridgeStats {
+                total_ops: 0,
+                semops: 0,
+                sets_created: 0,
+                blocks: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
@@ -85,9 +100,13 @@ impl BridgeSemaphore {
         match rec.op {
             SemaphoreOp::Semop | SemaphoreOp::Semtimedop => self.stats.semops += 1,
             SemaphoreOp::Semget => self.stats.sets_created += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result == SemaphoreResult::WouldBlock { self.stats.blocks += 1; }
-        if rec.result == SemaphoreResult::Error { self.stats.errors += 1; }
+        if rec.result == SemaphoreResult::WouldBlock {
+            self.stats.blocks += 1;
+        }
+        if rec.result == SemaphoreResult::Error {
+            self.stats.errors += 1;
+        }
     }
 }

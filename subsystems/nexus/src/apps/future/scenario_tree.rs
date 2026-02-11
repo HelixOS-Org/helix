@@ -14,10 +14,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -137,12 +138,7 @@ pub struct ScenarioNode {
 
 impl ScenarioNode {
     fn new(node_id: u64, action: AppAction, probability: f64, depth: usize) -> Self {
-        let label_bytes = [
-            action.as_str().as_bytes(),
-            b"_d",
-            &[(depth as u8) + b'0'],
-        ]
-        .concat();
+        let label_bytes = [action.as_str().as_bytes(), b"_d", &[(depth as u8) + b'0']].concat();
         let label = String::from_utf8(label_bytes).unwrap_or_default();
         Self {
             node_id,
@@ -289,7 +285,10 @@ impl AppsScenarioTree {
         if self.app_states.len() >= MAX_APPS && !self.app_states.contains_key(&app_id) {
             return;
         }
-        let state = self.app_states.entry(app_id).or_insert_with(|| AppTreeState::new(app_id));
+        let state = self
+            .app_states
+            .entry(app_id)
+            .or_insert_with(|| AppTreeState::new(app_id));
         state.record_action(action);
     }
 
@@ -305,7 +304,7 @@ impl AppsScenarioTree {
             None => {
                 self.app_states.insert(app_id, AppTreeState::new(app_id));
                 self.app_states.get_mut(&app_id).unwrap()
-            }
+            },
         };
         state.last_build_tick = self.tick;
 
@@ -341,11 +340,14 @@ impl AppsScenarioTree {
                     continue;
                 }
 
-                let nid = fnv1a_hash(&[
-                    &app_id.to_le_bytes()[..],
-                    &(parent_idx as u64).to_le_bytes()[..],
-                    &(action_i as u64).to_le_bytes()[..],
-                ].concat());
+                let nid = fnv1a_hash(
+                    &[
+                        &app_id.to_le_bytes()[..],
+                        &(parent_idx as u64).to_le_bytes()[..],
+                        &(action_i as u64).to_le_bytes()[..],
+                    ]
+                    .concat(),
+                );
 
                 let mut node = ScenarioNode::new(nid, action, prob, parent_depth + 1);
                 node.cumulative_probability = cum_prob;
@@ -375,9 +377,18 @@ impl AppsScenarioTree {
 
         state.node_count = self.nodes.len();
         state.max_depth_reached = max_depth;
-        state.total_probability_mass = self.nodes.iter().filter(|n| n.is_leaf()).map(|n| n.cumulative_probability).sum();
+        state.total_probability_mass = self
+            .nodes
+            .iter()
+            .filter(|n| n.is_leaf())
+            .map(|n| n.cumulative_probability)
+            .sum();
 
-        let bf = if branch_points > 0 { total_branches as f64 / branch_points as f64 } else { 0.0 };
+        let bf = if branch_points > 0 {
+            total_branches as f64 / branch_points as f64
+        } else {
+            0.0
+        };
         self.ema_branch_factor = ema_update(self.ema_branch_factor, bf, EMA_ALPHA);
         self.ema_depth = ema_update(self.ema_depth, max_depth as f64, EMA_ALPHA);
 
@@ -413,15 +424,11 @@ impl AppsScenarioTree {
             }
             path.push(node.action);
 
-            let best_child = node
-                .children
-                .iter()
-                .copied()
-                .max_by(|&a, &b| {
-                    let pa = self.nodes[a].probability;
-                    let pb = self.nodes[b].probability;
-                    pa.partial_cmp(&pb).unwrap_or(core::cmp::Ordering::Equal)
-                });
+            let best_child = node.children.iter().copied().max_by(|&a, &b| {
+                let pa = self.nodes[a].probability;
+                let pb = self.nodes[b].probability;
+                pa.partial_cmp(&pb).unwrap_or(core::cmp::Ordering::Equal)
+            });
 
             match best_child {
                 Some(idx) => current = idx,
@@ -502,7 +509,11 @@ impl AppsScenarioTree {
     /// Prune branches whose cumulative probability falls below threshold.
     /// Returns the number of nodes pruned.
     pub fn prune_tree(&mut self, threshold: f64) -> usize {
-        let cutoff = if threshold > 0.0 { threshold } else { PRUNE_THRESHOLD };
+        let cutoff = if threshold > 0.0 {
+            threshold
+        } else {
+            PRUNE_THRESHOLD
+        };
         let mut pruned = 0usize;
         let mut keep = Vec::with_capacity(self.nodes.len());
         keep.resize(self.nodes.len(), true);
@@ -518,7 +529,8 @@ impl AppsScenarioTree {
         for i in 0..self.nodes.len() {
             if keep[i] {
                 let node = &mut self.nodes[i];
-                node.children.retain(|&child| child < keep.len() && keep[child]);
+                node.children
+                    .retain(|&child| child < keep.len() && keep[child]);
             }
         }
 

@@ -46,15 +46,22 @@ pub struct SharedPktBuf {
 impl SharedPktBuf {
     pub fn new(buf_id: u64, capacity: u32) -> Self {
         Self {
-            buf_id, state: PktBufState::Free, data_len: 0,
-            headroom: 128, tailroom: capacity - 128, ref_count: 0,
-            protocol: CoopPktProto::Ethernet, hash: 0,
+            buf_id,
+            state: PktBufState::Free,
+            data_len: 0,
+            headroom: 128,
+            tailroom: capacity - 128,
+            ref_count: 0,
+            protocol: CoopPktProto::Ethernet,
+            hash: 0,
         }
     }
 
     #[inline]
     pub fn allocate(&mut self, data_len: u32) -> bool {
-        if self.state != PktBufState::Free { return false; }
+        if self.state != PktBufState::Free {
+            return false;
+        }
         self.state = PktBufState::Allocated;
         self.data_len = data_len;
         self.ref_count = 1;
@@ -62,20 +69,34 @@ impl SharedPktBuf {
     }
 
     #[inline(always)]
-    pub fn share(&mut self) { self.ref_count += 1; self.state = PktBufState::Shared; }
+    pub fn share(&mut self) {
+        self.ref_count += 1;
+        self.state = PktBufState::Shared;
+    }
     #[inline(always)]
     pub fn release(&mut self) -> bool {
         self.ref_count = self.ref_count.saturating_sub(1);
-        if self.ref_count == 0 { self.state = PktBufState::Free; true } else { false }
+        if self.ref_count == 0 {
+            self.state = PktBufState::Free;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn clone_buf(&mut self) { self.ref_count += 1; self.state = PktBufState::Cloned; }
+    pub fn clone_buf(&mut self) {
+        self.ref_count += 1;
+        self.state = PktBufState::Cloned;
+    }
 
     #[inline]
     pub fn compute_hash(&mut self, data: &[u8]) {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in data { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in data {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         self.hash = h;
     }
 }
@@ -99,7 +120,15 @@ impl SharedBufPool {
         for i in 0..capacity {
             buffers.push(SharedPktBuf::new(i as u64, 2048));
         }
-        Self { pool_id, buffers, capacity, allocated: 0, shared_count: 0, total_allocs: 0, total_frees: 0 }
+        Self {
+            pool_id,
+            buffers,
+            capacity,
+            allocated: 0,
+            shared_count: 0,
+            total_allocs: 0,
+            total_frees: 0,
+        }
     }
 
     #[inline]
@@ -118,14 +147,25 @@ impl SharedBufPool {
     #[inline]
     pub fn free(&mut self, buf_id: u64) -> bool {
         if let Some(buf) = self.buffers.iter_mut().find(|b| b.buf_id == buf_id) {
-            if buf.release() { self.allocated -= 1; self.total_frees += 1; true }
-            else { false }
-        } else { false }
+            if buf.release() {
+                self.allocated -= 1;
+                self.total_frees += 1;
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.capacity == 0 { 0.0 } else { self.allocated as f64 / self.capacity as f64 }
+        if self.capacity == 0 {
+            0.0
+        } else {
+            self.allocated as f64 / self.capacity as f64
+        }
     }
 }
 
@@ -150,13 +190,19 @@ impl CoopPacket {
     pub fn new() -> Self {
         Self {
             pools: BTreeMap::new(),
-            stats: CoopPktStats { total_pools: 0, total_allocs: 0, total_shares: 0, total_bytes: 0 },
+            stats: CoopPktStats {
+                total_pools: 0,
+                total_allocs: 0,
+                total_shares: 0,
+                total_bytes: 0,
+            },
         }
     }
 
     #[inline(always)]
     pub fn create_pool(&mut self, pool_id: u64, capacity: u32) {
-        self.pools.insert(pool_id, SharedBufPool::new(pool_id, capacity));
+        self.pools
+            .insert(pool_id, SharedBufPool::new(pool_id, capacity));
         self.stats.total_pools += 1;
     }
 
@@ -169,6 +215,8 @@ impl CoopPacket {
                 self.stats.total_bytes += data_len as u64;
             }
             result
-        } else { None }
+        } else {
+            None
+        }
     }
 }

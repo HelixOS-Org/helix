@@ -28,11 +28,17 @@ impl UffdFeatures {
     pub const POISON: u64 = 1 << 14;
     pub const WP_ASYNC: u64 = 1 << 15;
 
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn set(&mut self, f: u64) { self.0 |= f; }
+    pub fn set(&mut self, f: u64) {
+        self.0 |= f;
+    }
     #[inline(always)]
-    pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u64) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Fault type
@@ -57,7 +63,15 @@ pub struct UffdEvent {
 
 impl UffdEvent {
     pub fn new(id: u64, ftype: UffdFaultType, addr: u64, tid: u64, now: u64) -> Self {
-        Self { id, fault_type: ftype, address: addr, tid, timestamp: now, resolved: false, resolution_ns: 0 }
+        Self {
+            id,
+            fault_type: ftype,
+            address: addr,
+            tid,
+            timestamp: now,
+            resolved: false,
+            resolution_ns: 0,
+        }
     }
 
     #[inline(always)]
@@ -102,15 +116,26 @@ pub struct UffdInstance {
 impl UffdInstance {
     pub fn new(id: u64, features: UffdFeatures, now: u64) -> Self {
         Self {
-            id, features, ranges: Vec::new(), pending_events: Vec::new(),
-            total_faults: 0, total_resolved: 0, total_copy: 0,
-            total_zeropage: 0, total_wp: 0, created_at: now,
+            id,
+            features,
+            ranges: Vec::new(),
+            pending_events: Vec::new(),
+            total_faults: 0,
+            total_resolved: 0,
+            total_copy: 0,
+            total_zeropage: 0,
+            total_wp: 0,
+            created_at: now,
         }
     }
 
     #[inline(always)]
     pub fn register(&mut self, start: u64, length: u64, mode: UffdRegMode) {
-        self.ranges.push(UffdRange { start, length, mode });
+        self.ranges.push(UffdRange {
+            start,
+            length,
+            mode,
+        });
     }
 
     #[inline]
@@ -161,23 +186,41 @@ pub struct BridgeUserfaultfd {
 }
 
 impl BridgeUserfaultfd {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, features: UffdFeatures, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.instances.insert(id, UffdInstance::new(id, features, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.instances
+            .insert(id, UffdInstance::new(id, features, now));
         id
     }
 
     #[inline(always)]
     pub fn register(&mut self, id: u64, start: u64, length: u64, mode: UffdRegMode) {
-        if let Some(inst) = self.instances.get_mut(&id) { inst.register(start, length, mode); }
+        if let Some(inst) = self.instances.get_mut(&id) {
+            inst.register(start, length, mode);
+        }
     }
 
     #[inline(always)]
-    pub fn fault(&mut self, id: u64, ftype: UffdFaultType, addr: u64, tid: u64, now: u64) -> Option<u64> {
-        self.instances.get_mut(&id).map(|inst| inst.fault(ftype, addr, tid, now))
+    pub fn fault(
+        &mut self,
+        id: u64,
+        ftype: UffdFaultType,
+        addr: u64,
+        tid: u64,
+        now: u64,
+    ) -> Option<u64> {
+        self.instances
+            .get_mut(&id)
+            .map(|inst| inst.fault(ftype, addr, tid, now))
     }
 
     #[inline]
@@ -185,10 +228,31 @@ impl BridgeUserfaultfd {
         let ranges: u32 = self.instances.values().map(|i| i.ranges.len() as u32).sum();
         let faults: u64 = self.instances.values().map(|i| i.total_faults).sum();
         let resolved: u64 = self.instances.values().map(|i| i.total_resolved).sum();
-        let pending: u32 = self.instances.values().map(|i| i.pending_events.iter().filter(|e| !e.resolved).count() as u32).sum();
-        let res_times: Vec<u64> = self.instances.values().flat_map(|i| &i.pending_events).filter(|e| e.resolved).map(|e| e.resolution_ns).collect();
-        let avg = if res_times.is_empty() { 0 } else { res_times.iter().sum::<u64>() / res_times.len() as u64 };
-        UffdBridgeStats { total_instances: self.instances.len() as u32, total_ranges: ranges, total_faults: faults, total_resolved: resolved, pending_faults: pending, avg_resolution_ns: avg }
+        let pending: u32 = self
+            .instances
+            .values()
+            .map(|i| i.pending_events.iter().filter(|e| !e.resolved).count() as u32)
+            .sum();
+        let res_times: Vec<u64> = self
+            .instances
+            .values()
+            .flat_map(|i| &i.pending_events)
+            .filter(|e| e.resolved)
+            .map(|e| e.resolution_ns)
+            .collect();
+        let avg = if res_times.is_empty() {
+            0
+        } else {
+            res_times.iter().sum::<u64>() / res_times.len() as u64
+        };
+        UffdBridgeStats {
+            total_instances: self.instances.len() as u32,
+            total_ranges: ranges,
+            total_faults: faults,
+            total_resolved: resolved,
+            pending_faults: pending,
+            avg_resolution_ns: avg,
+        }
     }
 }
 
@@ -245,15 +309,33 @@ pub struct UffdV2Instance {
 
 impl UffdV2Instance {
     pub fn new(fd: u64, pid: u64, features: u64) -> Self {
-        Self { fd, pid, features, registered_ranges: Vec::new(), events: Vec::new(), total_faults: 0, total_resolved: 0 }
+        Self {
+            fd,
+            pid,
+            features,
+            registered_ranges: Vec::new(),
+            events: Vec::new(),
+            total_faults: 0,
+            total_resolved: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn register_range(&mut self, start: u64, len: u64) { self.registered_ranges.push((start, len)); }
+    pub fn register_range(&mut self, start: u64, len: u64) {
+        self.registered_ranges.push((start, len));
+    }
 
     #[inline(always)]
     pub fn fault(&mut self, id: u64, ft: UffdV2Type, addr: u64, now: u64) {
-        self.events.push(UffdV2Event { id, fault_type: ft, address: addr, pid: self.pid, timestamp: now, resolved: false, resolution_ns: 0 });
+        self.events.push(UffdV2Event {
+            id,
+            fault_type: ft,
+            address: addr,
+            pid: self.pid,
+            timestamp: now,
+            resolved: false,
+            resolution_ns: 0,
+        });
         self.total_faults += 1;
     }
 
@@ -285,21 +367,46 @@ pub struct BridgeUserfaultfdV2 {
 }
 
 impl BridgeUserfaultfdV2 {
-    pub fn new() -> Self { Self { instances: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn create(&mut self, fd: u64, pid: u64, features: u64) { self.instances.insert(fd, UffdV2Instance::new(fd, pid, features)); }
+    pub fn create(&mut self, fd: u64, pid: u64, features: u64) {
+        self.instances
+            .insert(fd, UffdV2Instance::new(fd, pid, features));
+    }
 
     #[inline(always)]
-    pub fn close(&mut self, fd: u64) { self.instances.remove(&fd); }
+    pub fn close(&mut self, fd: u64) {
+        self.instances.remove(&fd);
+    }
 
     #[inline]
     pub fn stats(&self) -> UffdV2BridgeStats {
         let faults: u64 = self.instances.values().map(|i| i.total_faults).sum();
         let resolved: u64 = self.instances.values().map(|i| i.total_resolved).sum();
         let pending = faults - resolved;
-        let res_times: Vec<u64> = self.instances.values().flat_map(|i| i.events.iter()).filter(|e| e.resolved).map(|e| e.resolution_ns).collect();
-        let avg = if res_times.is_empty() { 0 } else { res_times.iter().sum::<u64>() / res_times.len() as u64 };
-        UffdV2BridgeStats { total_instances: self.instances.len() as u32, total_faults: faults, total_resolved: resolved, pending_faults: pending, avg_resolution_ns: avg }
+        let res_times: Vec<u64> = self
+            .instances
+            .values()
+            .flat_map(|i| i.events.iter())
+            .filter(|e| e.resolved)
+            .map(|e| e.resolution_ns)
+            .collect();
+        let avg = if res_times.is_empty() {
+            0
+        } else {
+            res_times.iter().sum::<u64>() / res_times.len() as u64
+        };
+        UffdV2BridgeStats {
+            total_instances: self.instances.len() as u32,
+            total_faults: faults,
+            total_resolved: resolved,
+            pending_faults: pending,
+            avg_resolution_ns: avg,
+        }
     }
 }

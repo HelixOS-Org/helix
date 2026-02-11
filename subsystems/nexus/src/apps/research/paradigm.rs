@@ -234,12 +234,12 @@ impl AppsParadigm {
                 EvidenceDirection::ContradictsModel | EvidenceDirection::InvalidatesModel => {
                     contra_sum += ev.strength * ev.weight;
                     contra_count += 1;
-                }
+                },
                 EvidenceDirection::SupportsModel => {
                     support_sum += ev.strength * ev.weight;
                     _support_count += 1;
-                }
-                EvidenceDirection::Neutral => {}
+                },
+                EvidenceDirection::Neutral => {},
             }
         }
 
@@ -259,8 +259,8 @@ impl AppsParadigm {
             ParadigmStatus::Stable
         };
 
-        let shift_detected = self.status == ParadigmStatus::Shifting
-            && old_status != ParadigmStatus::Shifting;
+        let shift_detected =
+            self.status == ParadigmStatus::Shifting && old_status != ParadigmStatus::Shifting;
 
         if shift_detected {
             self.stats.shifts_detected += 1;
@@ -323,12 +323,12 @@ impl AppsParadigm {
                 EvidenceDirection::ContradictsModel | EvidenceDirection::InvalidatesModel => {
                     contra += 1;
                     contra_weight += ev.weight;
-                }
+                },
                 EvidenceDirection::SupportsModel => {
                     support += 1;
                     support_weight += ev.weight;
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -409,11 +409,20 @@ impl AppsParadigm {
 
         let mut phases = Vec::new();
         let phase_names = [
-            ("Assessment", "Evaluate new paradigm against current workloads"),
+            (
+                "Assessment",
+                "Evaluate new paradigm against current workloads",
+            ),
             ("Dual-Run", "Run both paradigms in parallel and compare"),
-            ("Gradual Migration", "Shift classification weight toward new paradigm"),
+            (
+                "Gradual Migration",
+                "Shift classification weight toward new paradigm",
+            ),
             ("Validation", "Verify new paradigm meets quality bar"),
-            ("Cutover", "Fully switch to new paradigm with rollback ready"),
+            (
+                "Cutover",
+                "Fully switch to new paradigm with rollback ready",
+            ),
         ];
 
         let base_risk = 1.0 - proposal.viability_score;
@@ -460,8 +469,8 @@ impl AppsParadigm {
         };
 
         self.stats.transitions_completed += 1;
-        self.stats.ema_shift_magnitude =
-            EMA_ALPHA * proposal.viability_score + (1.0 - EMA_ALPHA) * self.stats.ema_shift_magnitude;
+        self.stats.ema_shift_magnitude = EMA_ALPHA * proposal.viability_score
+            + (1.0 - EMA_ALPHA) * self.stats.ema_shift_magnitude;
 
         self.current_paradigm = proposal.name.clone();
         self.status = ParadigmStatus::Stable;

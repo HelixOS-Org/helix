@@ -176,7 +176,10 @@ impl AppAccess {
             h ^= *b as u64;
             h = h.wrapping_mul(0x100000001b3);
         }
-        let state = self.processes.entry(pid).or_insert_with(|| ProcessAccessState::new(pid));
+        let state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessAccessState::new(pid));
         state.record_check(h, result, cap_used);
         let mut rec = AccessRecord::new(id, pid, path, mode);
         rec.result = result;
@@ -185,7 +188,7 @@ impl AppAccess {
         match result {
             AccessResult::Allowed => self.stats.total_allowed += 1,
             AccessResult::Denied | AccessResult::PermissionDenied => self.stats.total_denied += 1,
-            _ => {}
+            _ => {},
         }
         if cap_used {
             self.stats.capability_overrides += 1;
@@ -254,7 +257,10 @@ pub struct AccessV2Record {
 impl AccessV2Record {
     pub fn new(path: &[u8], mode: AccessV2Mode, flag: AccessV2Flag) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
             path_hash: h,
             mode,
@@ -312,7 +318,11 @@ impl PathAccessPattern {
 
     #[inline(always)]
     pub fn deny_rate(&self) -> f64 {
-        if self.check_count == 0 { 0.0 } else { self.denied_count as f64 / self.check_count as f64 }
+        if self.check_count == 0 {
+            0.0
+        } else {
+            self.denied_count as f64 / self.check_count as f64
+        }
     }
 }
 
@@ -354,20 +364,25 @@ impl AppAccessV2 {
             AccessV2Result::Allowed => self.stats.allowed += 1,
             AccessV2Result::PermissionDenied => self.stats.denied += 1,
             AccessV2Result::NotFound => self.stats.not_found += 1,
-            _ => {}
+            _ => {},
         }
         if record.used_effective_id() {
             self.stats.eaccess_checks += 1;
         }
-        let pattern = self.patterns.entry(record.path_hash)
+        let pattern = self
+            .patterns
+            .entry(record.path_hash)
             .or_insert_with(|| PathAccessPattern::new(record.path_hash));
         pattern.record(record.result, record.mode);
     }
 
     #[inline(always)]
     pub fn denial_rate(&self) -> f64 {
-        if self.stats.total_checks == 0 { 0.0 }
-        else { self.stats.denied as f64 / self.stats.total_checks as f64 }
+        if self.stats.total_checks == 0 {
+            0.0
+        } else {
+            self.stats.denied as f64 / self.stats.total_checks as f64
+        }
     }
 }
 

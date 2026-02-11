@@ -2,8 +2,9 @@
 //! NEXUS Holistic — Exec (holistic execution analysis)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Exec pattern classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,7 +73,14 @@ impl HolisticExecManager {
         h
     }
 
-    pub fn analyze_exec(&mut self, pid: u64, path: &str, pages: u64, relocs: u32, after_fork: bool) -> HolisticExecPattern {
+    pub fn analyze_exec(
+        &mut self,
+        pid: u64,
+        path: &str,
+        pages: u64,
+        relocs: u32,
+        after_fork: bool,
+    ) -> HolisticExecPattern {
         let hash = Self::hash_path(path);
         let freq = self.binary_frequency.entry(hash).or_insert(0);
         let was_new = *freq == 0;

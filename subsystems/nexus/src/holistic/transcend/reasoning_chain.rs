@@ -15,11 +15,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -381,12 +381,7 @@ impl HolisticReasoningChain {
     }
 
     fn add_evidence_item(&mut self, source: &str, desc: &str, conf: u64) -> u64 {
-        let e = Evidence::new(
-            String::from(source),
-            String::from(desc),
-            conf,
-            self.tick,
-        );
+        let e = Evidence::new(String::from(source), String::from(desc), conf, self.tick);
         let h = e.evidence_hash;
         if self.evidence.len() < MAX_EVIDENCE_ITEMS {
             self.evidence.insert(h, e);
@@ -395,12 +390,8 @@ impl HolisticReasoningChain {
     }
 
     fn create_node(&mut self, label: &str, rule: &str, depth: u64) -> u64 {
-        let mut node = ReasoningNode::new(
-            String::from(label),
-            String::from(rule),
-            depth,
-            self.tick,
-        );
+        let mut node =
+            ReasoningNode::new(String::from(label), String::from(rule), depth, self.tick);
         let conf = 5_000_u64.wrapping_add(self.rng.next() % 5_001);
         node.confidence_bps = conf;
         let h = node.node_hash;
@@ -454,8 +445,16 @@ impl HolisticReasoningChain {
         let conclusion = self.create_node(decision, "decision_synthesis", 2);
         self.link_parent_child(mid, conclusion);
 
-        let overall_conf = self.nodes.get(&conclusion).map(|n| n.confidence_bps).unwrap_or(0);
-        let completeness = if overall_conf >= STRONG_CONCLUSION_BPS { 10_000 } else { overall_conf };
+        let overall_conf = self
+            .nodes
+            .get(&conclusion)
+            .map(|n| n.confidence_bps)
+            .unwrap_or(0);
+        let completeness = if overall_conf >= STRONG_CONCLUSION_BPS {
+            10_000
+        } else {
+            overall_conf
+        };
 
         let chain_hash = self.gen_hash(decision);
         let record = ReasoningChainRecord {
@@ -641,8 +640,7 @@ impl HolisticReasoningChain {
         self.refresh_stats();
         let chain_coverage = self.stats.avg_completeness_bps;
         let evidence_ratio = if self.stats.total_nodes > 0 {
-            (self.stats.total_evidence.saturating_mul(10_000))
-                / self.stats.total_nodes.max(1)
+            (self.stats.total_evidence.saturating_mul(10_000)) / self.stats.total_nodes.max(1)
         } else {
             0
         };
@@ -679,8 +677,19 @@ impl HolisticReasoningChain {
 
         // Self-consistency: do chains with similar evidence reach similar conclusions?
         let consistency = if self.stats.total_chains > 1 {
-            let variance = self.chains.values().map(|c| c.overall_confidence_bps).max().unwrap_or(0)
-                .saturating_sub(self.chains.values().map(|c| c.overall_confidence_bps).min().unwrap_or(0));
+            let variance = self
+                .chains
+                .values()
+                .map(|c| c.overall_confidence_bps)
+                .max()
+                .unwrap_or(0)
+                .saturating_sub(
+                    self.chains
+                        .values()
+                        .map(|c| c.overall_confidence_bps)
+                        .min()
+                        .unwrap_or(0),
+                );
             10_000u64.saturating_sub(variance)
         } else {
             10_000

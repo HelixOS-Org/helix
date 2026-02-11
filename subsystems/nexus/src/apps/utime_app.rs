@@ -169,7 +169,10 @@ impl AppUtime {
     ) -> u64 {
         let id = self.next_record_id;
         self.next_record_id += 1;
-        let state = self.files.entry(inode).or_insert_with(|| FileTimestampState::new(inode));
+        let state = self
+            .files
+            .entry(inode)
+            .or_insert_with(|| FileTimestampState::new(inode));
         state.update(&atime, &mtime, current_time);
         let mut rec = UtimeRecord::new(id, pid, variant);
         rec.atime = atime;
@@ -178,12 +181,20 @@ impl AppUtime {
         match variant {
             UtimeVariant::Utimensat => self.stats.utimensat_calls += 1,
             UtimeVariant::Futimens => self.stats.futimens_calls += 1,
-            _ => {}
+            _ => {},
         }
-        if matches!(atime, UtimeSpecial::Now) { self.stats.utime_now_count += 1; }
-        if matches!(mtime, UtimeSpecial::Now) { self.stats.utime_now_count += 1; }
-        if matches!(atime, UtimeSpecial::Omit) { self.stats.utime_omit_count += 1; }
-        if matches!(mtime, UtimeSpecial::Omit) { self.stats.utime_omit_count += 1; }
+        if matches!(atime, UtimeSpecial::Now) {
+            self.stats.utime_now_count += 1;
+        }
+        if matches!(mtime, UtimeSpecial::Now) {
+            self.stats.utime_now_count += 1;
+        }
+        if matches!(atime, UtimeSpecial::Omit) {
+            self.stats.utime_omit_count += 1;
+        }
+        if matches!(mtime, UtimeSpecial::Omit) {
+            self.stats.utime_omit_count += 1;
+        }
         self.recent_records.push(rec);
         id
     }

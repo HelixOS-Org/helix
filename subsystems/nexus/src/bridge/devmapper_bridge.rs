@@ -47,8 +47,19 @@ pub struct DmBridgeRecord {
 impl DmBridgeRecord {
     pub fn new(op: DmBridgeOp, name: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in name { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { op, result: DmBridgeResult::Success, name_hash: h, uuid_hash: 0, nr_targets: 0, flags: 0, latency_ns: 0 }
+        for b in name {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            op,
+            result: DmBridgeResult::Success,
+            name_hash: h,
+            uuid_hash: 0,
+            nr_targets: 0,
+            flags: 0,
+            latency_ns: 0,
+        }
     }
 }
 
@@ -72,7 +83,16 @@ pub struct BridgeDevMapper {
 
 impl BridgeDevMapper {
     pub fn new() -> Self {
-        Self { stats: DmBridgeStats { total_ops: 0, creates: 0, removes: 0, suspends: 0, table_loads: 0, errors: 0 } }
+        Self {
+            stats: DmBridgeStats {
+                total_ops: 0,
+                creates: 0,
+                removes: 0,
+                suspends: 0,
+                table_loads: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
@@ -83,8 +103,10 @@ impl BridgeDevMapper {
             DmBridgeOp::Remove => self.stats.removes += 1,
             DmBridgeOp::Suspend => self.stats.suspends += 1,
             DmBridgeOp::LoadTable => self.stats.table_loads += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result != DmBridgeResult::Success { self.stats.errors += 1; }
+        if rec.result != DmBridgeResult::Success {
+            self.stats.errors += 1;
+        }
     }
 }

@@ -74,14 +74,18 @@ impl IdMapping {
     pub fn translate_to_outer(&self, inner: u32) -> Option<u32> {
         if inner >= self.inner_start && inner < self.inner_start + self.count {
             Some(self.outer_start + (inner - self.inner_start))
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
     pub fn translate_to_inner(&self, outer: u32) -> Option<u32> {
         if outer >= self.outer_start && outer < self.outer_start + self.count {
             Some(self.inner_start + (outer - self.outer_start))
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 
@@ -182,7 +186,13 @@ impl BridgeNsProxy {
         }
     }
 
-    pub fn create_namespace(&mut self, ns_type: NsType, owner: u64, parent: Option<u64>, now: u64) -> u64 {
+    pub fn create_namespace(
+        &mut self,
+        ns_type: NsType,
+        owner: u64,
+        parent: Option<u64>,
+        now: u64,
+    ) -> u64 {
         let id = self.next_ns_id;
         self.next_ns_id += 1;
         let mut desc = NamespaceDesc::new(id, ns_type, owner, now);
@@ -197,7 +207,11 @@ impl BridgeNsProxy {
 
     #[inline(always)]
     pub fn add_pid_mapping(&mut self, inner: u64, outer: u64, ns_id: u64) {
-        self.pid_mappings.push(PidMapping { inner_pid: inner, outer_pid: outer, ns_id });
+        self.pid_mappings.push(PidMapping {
+            inner_pid: inner,
+            outer_pid: outer,
+            ns_id,
+        });
     }
 
     #[inline(always)]
@@ -212,16 +226,21 @@ impl BridgeNsProxy {
 
     /// Translate PID from one namespace to another
     pub fn translate_pid(&self, pid: u64, from_ns: u64, to_ns: u64) -> Option<u64> {
-        if from_ns == to_ns { return Some(pid); }
+        if from_ns == to_ns {
+            return Some(pid);
+        }
 
         // Find outer PID from source ns
-        let outer = self.pid_mappings.iter()
+        let outer = self
+            .pid_mappings
+            .iter()
             .find(|m| m.inner_pid == pid && m.ns_id == from_ns)
             .map(|m| m.outer_pid)
             .unwrap_or(pid);
 
         // Find inner PID in target ns
-        self.pid_mappings.iter()
+        self.pid_mappings
+            .iter()
             .find(|m| m.outer_pid == outer && m.ns_id == to_ns)
             .map(|m| m.inner_pid)
             .or(Some(outer))
@@ -265,9 +284,15 @@ impl BridgeNsProxy {
     }
 
     #[inline(always)]
-    pub fn namespace(&self, id: u64) -> Option<&NamespaceDesc> { self.namespaces.get(&id) }
+    pub fn namespace(&self, id: u64) -> Option<&NamespaceDesc> {
+        self.namespaces.get(&id)
+    }
     #[inline(always)]
-    pub fn process_nset(&self, pid: u64) -> Option<&ProcessNsSet> { self.process_ns.get(&pid) }
+    pub fn process_nset(&self, pid: u64) -> Option<&ProcessNsSet> {
+        self.process_ns.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeNsProxyStats { &self.stats }
+    pub fn stats(&self) -> &BridgeNsProxyStats {
+        &self.stats
+    }
 }

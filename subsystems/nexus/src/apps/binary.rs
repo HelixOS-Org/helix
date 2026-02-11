@@ -233,7 +233,7 @@ impl BinaryProfile {
             SectionType::Text => self.code_size += section.size,
             SectionType::Data | SectionType::Bss => self.data_size += section.size,
             SectionType::Debug => self.has_debug = true,
-            _ => {}
+            _ => {},
         }
         if section.perms.is_wx() {
             self.wx_sections += 1;
@@ -254,10 +254,18 @@ impl BinaryProfile {
     #[inline]
     pub fn security_score(&self) -> u32 {
         let mut score = 50u32;
-        if self.is_pie { score += 15; }
-        if self.has_relro { score += 15; }
-        if self.has_stack_canary { score += 10; }
-        if self.wx_sections > 0 { score = score.saturating_sub(20); }
+        if self.is_pie {
+            score += 15;
+        }
+        if self.has_relro {
+            score += 15;
+        }
+        if self.has_stack_canary {
+            score += 10;
+        }
+        if self.wx_sections > 0 {
+            score = score.saturating_sub(20);
+        }
         score.min(100)
     }
 
@@ -323,7 +331,8 @@ impl AppBinaryAnalyzer {
     /// Insecure binaries
     #[inline]
     pub fn insecure_binaries(&self) -> Vec<u64> {
-        self.profiles.iter()
+        self.profiles
+            .iter()
             .filter(|(_, p)| p.security_score() < 50)
             .map(|(&pid, _)| pid)
             .collect()
@@ -333,7 +342,11 @@ impl AppBinaryAnalyzer {
         self.stats.profiles_analyzed = self.profiles.len();
         self.stats.total_code_size = self.profiles.values().map(|p| p.code_size).sum();
         if !self.profiles.is_empty() {
-            let sum: f64 = self.profiles.values().map(|p| p.security_score() as f64).sum();
+            let sum: f64 = self
+                .profiles
+                .values()
+                .map(|p| p.security_score() as f64)
+                .sum();
             self.stats.avg_security_score = sum / self.profiles.len() as f64;
         }
     }

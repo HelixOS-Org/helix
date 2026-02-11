@@ -100,7 +100,9 @@ impl HugePagePool {
 
     #[inline]
     pub fn utilization(&self) -> f64 {
-        if self.total_pages == 0 { return 0.0; }
+        if self.total_pages == 0 {
+            return 0.0;
+        }
         let used = self.total_pages.saturating_sub(self.free_pages);
         used as f64 / self.total_pages as f64
     }
@@ -152,7 +154,9 @@ impl HugePagePool {
     #[inline]
     pub fn failure_rate(&self) -> f64 {
         let total = self.alloc_count + self.alloc_failures;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.alloc_failures as f64 / total as f64
     }
 }
@@ -195,7 +199,9 @@ impl ProcessReservation {
 
     #[inline(always)]
     pub fn fulfillment_ratio(&self) -> f64 {
-        if self.reserved == 0 { return 1.0; }
+        if self.reserved == 0 {
+            return 1.0;
+        }
         self.allocated as f64 / self.reserved as f64
     }
 }
@@ -226,7 +232,9 @@ impl HugetlbCgroupLimit {
 
     #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
-        if self.limit_pages == 0 { return 0.0; }
+        if self.limit_pages == 0 {
+            return 0.0;
+        }
         self.current_pages as f64 / self.limit_pages as f64
     }
 }
@@ -309,9 +317,10 @@ impl BridgeHugetlb {
             let allocated = pool.allocate(count);
             if allocated > 0 {
                 self.stats.alloc_successes += allocated;
-                self.stats.free_huge_bytes = self.stats.free_huge_bytes.saturating_sub(
-                    allocated * size.bytes(),
-                );
+                self.stats.free_huge_bytes = self
+                    .stats
+                    .free_huge_bytes
+                    .saturating_sub(allocated * size.bytes());
                 // Update cgroup
                 if let Some(cg_id) = cgroup_id {
                     if let Some(limits) = self.cgroup_limits.get_mut(&cg_id) {
@@ -349,20 +358,15 @@ impl BridgeHugetlb {
         }
     }
 
-    pub fn reserve(
-        &mut self,
-        pid: u64,
-        size: HugePageSize,
-        count: u64,
-        addr: u64,
-    ) -> bool {
+    pub fn reserve(&mut self, pid: u64, size: HugePageSize, count: u64, addr: u64) -> bool {
         let key = Self::size_key(size);
         if let Some(pool) = self.pools.get_mut(&key) {
             if pool.available() < count {
                 return false;
             }
             pool.reserved_pages += count;
-            self.reservations.push(ProcessReservation::new(pid, size, count, addr));
+            self.reservations
+                .push(ProcessReservation::new(pid, size, count, addr));
             self.stats.reservations_active += 1;
             true
         } else {
@@ -380,12 +384,7 @@ impl BridgeHugetlb {
         false
     }
 
-    pub fn set_cgroup_limit(
-        &mut self,
-        cgroup_id: u64,
-        size: HugePageSize,
-        limit: u64,
-    ) {
+    pub fn set_cgroup_limit(&mut self, cgroup_id: u64, size: HugePageSize, limit: u64) {
         let limits = self.cgroup_limits.entry(cgroup_id).or_insert_with(Vec::new);
         for existing in limits.iter_mut() {
             if existing.size == size {
@@ -403,14 +402,17 @@ impl BridgeHugetlb {
 
     #[inline]
     pub fn pool_info(&self, size: HugePageSize) -> Option<(u64, u64, f64)> {
-        self.pools.get(&Self::size_key(size)).map(|p| {
-            (p.total_pages, p.free_pages, p.utilization())
-        })
+        self.pools
+            .get(&Self::size_key(size))
+            .map(|p| (p.total_pages, p.free_pages, p.utilization()))
     }
 
     #[inline(always)]
     pub fn total_reserved_bytes(&self) -> u64 {
-        self.reservations.iter().map(|r| r.reserved * r.size.bytes()).sum()
+        self.reservations
+            .iter()
+            .map(|r| r.reserved * r.size.bytes())
+            .sum()
     }
 
     #[inline(always)]

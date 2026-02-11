@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -66,12 +65,18 @@ pub struct OomTaskInfo {
 impl OomTaskInfo {
     #[inline]
     pub fn badness_score(&self) -> i64 {
-        if self.is_unkillable { return 0; }
-        let base = self.rss_pages as i64 + self.swap_pages as i64
-            + (self.pgtable_bytes / 4096) as i64;
+        if self.is_unkillable {
+            return 0;
+        }
+        let base =
+            self.rss_pages as i64 + self.swap_pages as i64 + (self.pgtable_bytes / 4096) as i64;
         let adj = self.oom_score_adj as i64;
         let adjusted = base + (base * adj) / 1000;
-        if adjusted < 1 && !self.is_unkillable { 1 } else { adjusted.max(0) }
+        if adjusted < 1 && !self.is_unkillable {
+            1
+        } else {
+            adjusted.max(0)
+        }
     }
 
     #[inline(always)]
@@ -137,7 +142,9 @@ pub struct CgroupOomState {
 impl CgroupOomState {
     #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
-        if self.limit_pages == 0 { return 0.0; }
+        if self.limit_pages == 0 {
+            return 0.0;
+        }
         self.usage_pages as f64 / self.limit_pages as f64
     }
 
@@ -181,9 +188,13 @@ impl HolisticOomReaper {
             kill_history: VecDeque::new(),
             max_history: 1024,
             stats: OomReaperStats {
-                total_kills: 0, total_pages_freed: 0, avg_reap_time_us: 0,
-                system_oom_count: 0, cgroup_oom_count: 0,
-                ineffective_kills: 0, panic_count: 0,
+                total_kills: 0,
+                total_pages_freed: 0,
+                avg_reap_time_us: 0,
+                system_oom_count: 0,
+                cgroup_oom_count: 0,
+                ineffective_kills: 0,
+                panic_count: 0,
             },
             pressure: MemPressureLevel::None,
             oom_score_adj_min: -1000,
@@ -208,39 +219,43 @@ impl HolisticOomReaper {
     pub fn select_victim(&self, reason: OomReason) -> Option<u32> {
         match self.policy {
             OomPolicy::Panic => None,
-            OomPolicy::LargestRss => {
-                self.tasks.values()
-                    .filter(|t| !t.is_unkillable && t.oom_score_adj > self.oom_score_adj_min)
-                    .max_by_key(|t| t.rss_pages)
-                    .map(|t| t.pid)
-            }
-            OomPolicy::Youngest => {
-                self.tasks.values()
-                    .filter(|t| !t.is_unkillable && t.oom_score_adj > self.oom_score_adj_min)
-                    .max_by_key(|t| t.start_time)
-                    .map(|t| t.pid)
-            }
+            OomPolicy::LargestRss => self
+                .tasks
+                .values()
+                .filter(|t| !t.is_unkillable && t.oom_score_adj > self.oom_score_adj_min)
+                .max_by_key(|t| t.rss_pages)
+                .map(|t| t.pid),
+            OomPolicy::Youngest => self
+                .tasks
+                .values()
+                .filter(|t| !t.is_unkillable && t.oom_score_adj > self.oom_score_adj_min)
+                .max_by_key(|t| t.start_time)
+                .map(|t| t.pid),
             OomPolicy::CgroupFirst => {
                 if let OomReason::CgroupLimit | OomReason::MemcgOom = reason {
                     // find highest-usage cgroup first
-                    if let Some(cg) = self.cgroup_states.values()
-                        .max_by(|a, b| a.usage_ratio().partial_cmp(&b.usage_ratio())
-                            .unwrap_or(core::cmp::Ordering::Equal))
-                    {
-                        return self.tasks.values()
+                    if let Some(cg) = self.cgroup_states.values().max_by(|a, b| {
+                        a.usage_ratio()
+                            .partial_cmp(&b.usage_ratio())
+                            .unwrap_or(core::cmp::Ordering::Equal)
+                    }) {
+                        return self
+                            .tasks
+                            .values()
                             .filter(|t| t.cgroup_id == cg.cgroup_id && !t.is_unkillable)
                             .max_by_key(|t| t.badness_score())
                             .map(|t| t.pid);
                     }
                 }
                 self.select_by_badness()
-            }
+            },
             _ => self.select_by_badness(),
         }
     }
 
     fn select_by_badness(&self) -> Option<u32> {
-        self.tasks.values()
+        self.tasks
+            .values()
             .filter(|t| !t.is_unkillable && t.oom_score_adj > self.oom_score_adj_min)
             .max_by_key(|t| t.badness_score())
             .map(|t| t.pid)
@@ -249,11 +264,13 @@ impl HolisticOomReaper {
     pub fn record_kill(&mut self, record: OomKillRecord) {
         self.stats.total_kills += 1;
         self.stats.total_pages_freed += record.freed_pages;
-        if !record.was_effective() { self.stats.ineffective_kills += 1; }
+        if !record.was_effective() {
+            self.stats.ineffective_kills += 1;
+        }
         match record.reason {
             OomReason::SystemWide | OomReason::NoPagesAvail => self.stats.system_oom_count += 1,
             OomReason::CgroupLimit | OomReason::MemcgOom => self.stats.cgroup_oom_count += 1,
-            _ => {}
+            _ => {},
         }
         let n = self.stats.total_kills;
         self.stats.avg_reap_time_us =
@@ -274,7 +291,9 @@ impl HolisticOomReaper {
 
     #[inline]
     pub fn top_victims(&self, n: usize) -> Vec<(u32, i64)> {
-        let mut v: Vec<_> = self.tasks.values()
+        let mut v: Vec<_> = self
+            .tasks
+            .values()
             .filter(|t| !t.is_unkillable)
             .map(|t| (t.pid, t.badness_score()))
             .collect();
@@ -339,7 +358,17 @@ pub struct OomV2Victim {
 
 impl OomV2Victim {
     pub fn new(pid: u64, score: i32, adj: i32, rss: u64, reason: OomV2Reason, now: u64) -> Self {
-        Self { pid, oom_score: score, oom_score_adj: adj, rss_pages: rss, swap_pages: 0, reason, killed_at: now, reaped: false, freed_pages: 0 }
+        Self {
+            pid,
+            oom_score: score,
+            oom_score_adj: adj,
+            rss_pages: rss,
+            swap_pages: 0,
+            reason,
+            killed_at: now,
+            reaped: false,
+            freed_pages: 0,
+        }
     }
 }
 
@@ -356,7 +385,9 @@ pub struct OomV2ProcessInfo {
 impl OomV2ProcessInfo {
     #[inline]
     pub fn effective_score(&self) -> i32 {
-        if self.is_unkillable { return -1000; }
+        if self.is_unkillable {
+            return -1000;
+        }
         let base = (self.rss_pages as i32).min(1000);
         (base + self.oom_score_adj).max(-1000).min(1000)
     }
@@ -379,16 +410,28 @@ pub struct HolisticOomReaperV2 {
 }
 
 impl HolisticOomReaperV2 {
-    pub fn new() -> Self { Self { procs: BTreeMap::new(), victims: Vec::new() } }
+    pub fn new() -> Self {
+        Self {
+            procs: BTreeMap::new(),
+            victims: Vec::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn track(&mut self, pid: u64, adj: i32, rss: u64) {
-        self.procs.insert(pid, OomV2ProcessInfo { pid, oom_score_adj: adj, rss_pages: rss, swap_pages: 0, is_unkillable: false });
+        self.procs.insert(pid, OomV2ProcessInfo {
+            pid,
+            oom_score_adj: adj,
+            rss_pages: rss,
+            swap_pages: 0,
+            is_unkillable: false,
+        });
     }
 
     #[inline]
     pub fn select_victim(&self, _reason: OomV2Reason) -> Option<u64> {
-        self.procs.values()
+        self.procs
+            .values()
             .filter(|p| !p.is_unkillable && p.oom_score_adj > -1000)
             .max_by_key(|p| p.effective_score())
             .map(|p| p.pid)
@@ -397,14 +440,25 @@ impl HolisticOomReaperV2 {
     #[inline]
     pub fn kill(&mut self, pid: u64, reason: OomV2Reason, now: u64) {
         if let Some(p) = self.procs.get(&pid) {
-            self.victims.push(OomV2Victim::new(pid, p.effective_score(), p.oom_score_adj, p.rss_pages, reason, now));
+            self.victims.push(OomV2Victim::new(
+                pid,
+                p.effective_score(),
+                p.oom_score_adj,
+                p.rss_pages,
+                reason,
+                now,
+            ));
         }
     }
 
     #[inline]
     pub fn reap(&mut self, pid: u64, freed: u64) {
         for v in &mut self.victims {
-            if v.pid == pid && !v.reaped { v.reaped = true; v.freed_pages = freed; break; }
+            if v.pid == pid && !v.reaped {
+                v.reaped = true;
+                v.freed_pages = freed;
+                break;
+            }
         }
         self.procs.remove(&pid);
     }
@@ -413,6 +467,11 @@ impl HolisticOomReaperV2 {
     pub fn stats(&self) -> OomReaperV2Stats {
         let reaped = self.victims.iter().filter(|v| v.reaped).count() as u64;
         let freed: u64 = self.victims.iter().map(|v| v.freed_pages).sum();
-        OomReaperV2Stats { total_kills: self.victims.len() as u64, total_reaped: reaped, total_freed_pages: freed, tracked_procs: self.procs.len() as u32 }
+        OomReaperV2Stats {
+            total_kills: self.victims.len() as u64,
+            total_reaped: reaped,
+            total_freed_pages: freed,
+            tracked_procs: self.procs.len() as u32,
+        }
     }
 }

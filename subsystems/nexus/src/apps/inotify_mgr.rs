@@ -28,11 +28,17 @@ impl InotifyMask {
     pub const ISDIR: u32 = 0x40000000;
     pub const ONESHOT: u32 = 0x80000000;
 
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u32) -> bool {
+        self.bits & flag != 0
+    }
     #[inline(always)]
-    pub fn is_oneshot(&self) -> bool { self.has(Self::ONESHOT) }
+    pub fn is_oneshot(&self) -> bool {
+        self.has(Self::ONESHOT)
+    }
 }
 
 /// Watch descriptor
@@ -48,7 +54,14 @@ pub struct InotifyWatch {
 
 impl InotifyWatch {
     pub fn new(wd: i32, inode: u64, mask: InotifyMask, now: u64) -> Self {
-        Self { wd, inode, mask, active: true, events_delivered: 0, created_at: now }
+        Self {
+            wd,
+            inode,
+            mask,
+            active: true,
+            events_delivered: 0,
+            created_at: now,
+        }
     }
 
     #[inline(always)]
@@ -59,7 +72,9 @@ impl InotifyWatch {
     #[inline(always)]
     pub fn deliver(&mut self) {
         self.events_delivered += 1;
-        if self.mask.is_oneshot() { self.active = false; }
+        if self.mask.is_oneshot() {
+            self.active = false;
+        }
     }
 }
 
@@ -89,8 +104,14 @@ pub struct InotifyInstance {
 impl InotifyInstance {
     pub fn new(id: u64, pid: u64, now: u64) -> Self {
         Self {
-            id, pid, watches: BTreeMap::new(), event_queue: Vec::new(),
-            queue_max: 16384, next_wd: 1, overflow_count: 0, created_at: now,
+            id,
+            pid,
+            watches: BTreeMap::new(),
+            event_queue: Vec::new(),
+            queue_max: 16384,
+            next_wd: 1,
+            overflow_count: 0,
+            created_at: now,
         }
     }
 
@@ -98,25 +119,46 @@ impl InotifyInstance {
     pub fn add_watch(&mut self, inode: u64, mask: InotifyMask, now: u64) -> i32 {
         let wd = self.next_wd;
         self.next_wd += 1;
-        self.watches.insert(wd, InotifyWatch::new(wd, inode, mask, now));
+        self.watches
+            .insert(wd, InotifyWatch::new(wd, inode, mask, now));
         wd
     }
 
     #[inline(always)]
-    pub fn remove_watch(&mut self, wd: i32) -> bool { self.watches.remove(&wd).is_some() }
+    pub fn remove_watch(&mut self, wd: i32) -> bool {
+        self.watches.remove(&wd).is_some()
+    }
 
-    pub fn deliver_event(&mut self, inode: u64, mask: u32, cookie: u32, name_hash: u64, now: u64) -> u32 {
+    pub fn deliver_event(
+        &mut self,
+        inode: u64,
+        mask: u32,
+        cookie: u32,
+        name_hash: u64,
+        now: u64,
+    ) -> u32 {
         let mut delivered = 0u32;
-        let wds: Vec<i32> = self.watches.iter()
+        let wds: Vec<i32> = self
+            .watches
+            .iter()
             .filter(|(_, w)| w.inode == inode && w.matches(mask))
-            .map(|(&wd, _)| wd).collect();
+            .map(|(&wd, _)| wd)
+            .collect();
         for wd in wds {
             if self.event_queue.len() as u32 >= self.queue_max {
                 self.overflow_count += 1;
                 break;
             }
-            self.event_queue.push(InotifyEvent { wd, mask, cookie, name_hash, timestamp: now });
-            if let Some(w) = self.watches.get_mut(&wd) { w.deliver(); }
+            self.event_queue.push(InotifyEvent {
+                wd,
+                mask,
+                cookie,
+                name_hash,
+                timestamp: now,
+            });
+            if let Some(w) = self.watches.get_mut(&wd) {
+                w.deliver();
+            }
             delivered += 1;
         }
         delivered
@@ -146,29 +188,47 @@ pub struct AppInotifyMgr {
 }
 
 impl AppInotifyMgr {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, pid: u64, now: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.instances.insert(id, InotifyInstance::new(id, pid, now));
+        self.instances
+            .insert(id, InotifyInstance::new(id, pid, now));
         id
     }
 
     #[inline(always)]
     pub fn add_watch(&mut self, inst_id: u64, inode: u64, mask: u32, now: u64) -> Option<i32> {
-        self.instances.get_mut(&inst_id).map(|i| i.add_watch(inode, InotifyMask::new(mask), now))
+        self.instances
+            .get_mut(&inst_id)
+            .map(|i| i.add_watch(inode, InotifyMask::new(mask), now))
     }
 
     #[inline]
     pub fn stats(&self) -> InotifyMgrStats {
-        let watches: u32 = self.instances.values().map(|i| i.watches.len() as u32).sum();
-        let queued: u64 = self.instances.values().map(|i| i.event_queue.len() as u64).sum();
+        let watches: u32 = self
+            .instances
+            .values()
+            .map(|i| i.watches.len() as u32)
+            .sum();
+        let queued: u64 = self
+            .instances
+            .values()
+            .map(|i| i.event_queue.len() as u64)
+            .sum();
         let overflows: u64 = self.instances.values().map(|i| i.overflow_count).sum();
         InotifyMgrStats {
-            total_instances: self.instances.len() as u32, total_watches: watches,
-            total_events_queued: queued, total_overflows: overflows,
+            total_instances: self.instances.len() as u32,
+            total_watches: watches,
+            total_events_queued: queued,
+            total_overflows: overflows,
         }
     }
 }

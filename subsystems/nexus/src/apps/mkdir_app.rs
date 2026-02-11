@@ -2,10 +2,10 @@
 //! NEXUS Apps — Mkdir App (directory creation tracking)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Mkdir result codes
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,9 +61,13 @@ impl AppMkdir {
             history: VecDeque::new(),
             max_history,
             stats: MkdirAppStats {
-                total_calls: 0, successful: 0, failed: 0,
-                recursive_calls: 0, dirs_created: 0,
-                already_exists: 0, permission_denied: 0,
+                total_calls: 0,
+                successful: 0,
+                failed: 0,
+                recursive_calls: 0,
+                dirs_created: 0,
+                already_exists: 0,
+                permission_denied: 0,
             },
         }
     }
@@ -77,7 +81,16 @@ impl AppMkdir {
         h
     }
 
-    pub fn mkdir(&mut self, path: &str, mode: u32, pid: u64, uid: u32, gid: u32, recursive: bool, tick: u64) -> MkdirResult {
+    pub fn mkdir(
+        &mut self,
+        path: &str,
+        mode: u32,
+        pid: u64,
+        uid: u32,
+        gid: u32,
+        recursive: bool,
+        tick: u64,
+    ) -> MkdirResult {
         self.stats.total_calls += 1;
         if recursive {
             self.stats.recursive_calls += 1;
@@ -89,7 +102,10 @@ impl AppMkdir {
 
         let record = MkdirRecord {
             path_hash: Self::hash_path(path),
-            mode, pid, uid, gid,
+            mode,
+            pid,
+            uid,
+            gid,
             result,
             recursive,
             dirs_created,
@@ -228,8 +244,11 @@ impl AppMkdirV2 {
 
     #[inline(always)]
     pub fn success_rate(&self) -> f64 {
-        if self.stats.total_ops == 0 { 0.0 }
-        else { (self.stats.total_ops - self.stats.failures) as f64 / self.stats.total_ops as f64 }
+        if self.stats.total_ops == 0 {
+            0.0
+        } else {
+            (self.stats.total_ops - self.stats.failures) as f64 / self.stats.total_ops as f64
+        }
     }
 }
 

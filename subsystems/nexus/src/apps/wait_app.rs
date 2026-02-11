@@ -73,7 +73,12 @@ impl AppWaitManager {
         self.zombie_queue.insert(status.pid, status);
     }
 
-    pub fn wait(&mut self, parent: u64, target: AppWaitTarget, option: AppWaitOption) -> Option<AppChildStatus> {
+    pub fn wait(
+        &mut self,
+        parent: u64,
+        target: AppWaitTarget,
+        option: AppWaitOption,
+    ) -> Option<AppChildStatus> {
         self.stats.total_waits += 1;
         self.wait_history.push((parent, target));
         match target {
@@ -88,7 +93,7 @@ impl AppWaitManager {
                     }
                     None
                 }
-            }
+            },
             AppWaitTarget::AnyChild => {
                 if let Some((&pid, _)) = self.zombie_queue.iter().next() {
                     let status = self.zombie_queue.remove(&pid).unwrap();
@@ -98,7 +103,7 @@ impl AppWaitManager {
                 } else {
                     None
                 }
-            }
+            },
             _ => None,
         }
     }

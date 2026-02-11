@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Capability type
@@ -86,12 +85,18 @@ impl CapToken {
 
     #[inline]
     pub fn is_valid(&self, now: u64) -> bool {
-        if self.state != CapState::Active { return false; }
+        if self.state != CapState::Active {
+            return false;
+        }
         if let Some(exp) = self.expires_ns {
-            if now >= exp { return false; }
+            if now >= exp {
+                return false;
+            }
         }
         if let Some(max) = self.max_uses {
-            if self.use_count >= max { return false; }
+            if self.use_count >= max {
+                return false;
+            }
         }
         true
     }
@@ -116,9 +121,9 @@ impl CapToken {
 #[derive(Debug, Clone)]
 pub struct CapSet {
     pub process_id: u64,
-    pub effective: Vec<u64>,     // active token IDs,
-    pub permitted: Vec<u64>,     // allowed token IDs,
-    pub inheritable: Vec<u64>,   // inherited on exec,
+    pub effective: Vec<u64>,   // active token IDs,
+    pub permitted: Vec<u64>,   // allowed token IDs,
+    pub inheritable: Vec<u64>, // inherited on exec,
     pub ambient: Vec<BridgeCapType>,
 }
 
@@ -200,14 +205,24 @@ impl BridgeCapMgr {
     }
 
     /// Grant a capability
-    pub fn grant(&mut self, cap_type: BridgeCapType, owner: u64, resource: u64, grantor: u64, now: u64) -> u64 {
+    pub fn grant(
+        &mut self,
+        cap_type: BridgeCapType,
+        owner: u64,
+        resource: u64,
+        grantor: u64,
+        now: u64,
+    ) -> u64 {
         let id = self.next_token_id;
         self.next_token_id += 1;
         let mut token = CapToken::new(id, cap_type, owner, resource, now);
         token.granted_by = grantor;
         self.tokens.insert(id, token);
 
-        let set = self.cap_sets.entry(owner).or_insert_with(|| CapSet::new(owner));
+        let set = self
+            .cap_sets
+            .entry(owner)
+            .or_insert_with(|| CapSet::new(owner));
         set.effective.push(id);
         set.permitted.push(id);
 
@@ -216,7 +231,13 @@ impl BridgeCapMgr {
     }
 
     /// Check capability
-    pub fn check(&mut self, process_id: u64, cap_type: BridgeCapType, resource: u64, now: u64) -> bool {
+    pub fn check(
+        &mut self,
+        process_id: u64,
+        cap_type: BridgeCapType,
+        resource: u64,
+        now: u64,
+    ) -> bool {
         self.stats.total_checks += 1;
 
         // Check ambient first
@@ -226,7 +247,10 @@ impl BridgeCapMgr {
             }
             for &tid in &set.effective {
                 if let Some(token) = self.tokens.get(&tid) {
-                    if token.cap_type == cap_type && token.resource_id == resource && token.is_valid(now) {
+                    if token.cap_type == cap_type
+                        && token.resource_id == resource
+                        && token.is_valid(now)
+                    {
                         self.audit(now, tid, process_id, CapAuditAction::Check, resource, true);
                         return true;
                     }
@@ -252,7 +276,14 @@ impl BridgeCapMgr {
         } else {
             return false;
         };
-        self.audit(now, token_id, owner_id, CapAuditAction::Use, resource_id, true);
+        self.audit(
+            now,
+            token_id,
+            owner_id,
+            CapAuditAction::Use,
+            resource_id,
+            true,
+        );
         true
     }
 
@@ -275,14 +306,26 @@ impl BridgeCapMgr {
     pub fn delegate(&mut self, token_id: u64, target_pid: u64, now: u64) -> Option<u64> {
         let (cap_type, resource, delegatable) = if let Some(token) = self.tokens.get(&token_id) {
             (token.cap_type, token.resource_id, token.delegatable)
-        } else { return None; };
+        } else {
+            return None;
+        };
 
-        if !delegatable { return None; }
+        if !delegatable {
+            return None;
+        }
         let new_id = self.grant(cap_type, target_pid, resource, token_id, now);
         Some(new_id)
     }
 
-    fn audit(&mut self, ts: u64, token: u64, pid: u64, action: CapAuditAction, resource: u64, result: bool) {
+    fn audit(
+        &mut self,
+        ts: u64,
+        token: u64,
+        pid: u64,
+        action: CapAuditAction,
+        resource: u64,
+        result: bool,
+    ) {
         self.audit_log.push_back(CapAuditEntry {
             timestamp_ns: ts,
             token_id: token,
@@ -299,16 +342,28 @@ impl BridgeCapMgr {
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_tokens = self.tokens.len();
-        self.stats.active_tokens = self.tokens.values()
-            .filter(|t| t.state == CapState::Active).count();
-        self.stats.revoked_tokens = self.tokens.values()
-            .filter(|t| t.state == CapState::Revoked).count();
+        self.stats.active_tokens = self
+            .tokens
+            .values()
+            .filter(|t| t.state == CapState::Active)
+            .count();
+        self.stats.revoked_tokens = self
+            .tokens
+            .values()
+            .filter(|t| t.state == CapState::Revoked)
+            .count();
     }
 
     #[inline(always)]
-    pub fn token(&self, id: u64) -> Option<&CapToken> { self.tokens.get(&id) }
+    pub fn token(&self, id: u64) -> Option<&CapToken> {
+        self.tokens.get(&id)
+    }
     #[inline(always)]
-    pub fn cap_set(&self, pid: u64) -> Option<&CapSet> { self.cap_sets.get(&pid) }
+    pub fn cap_set(&self, pid: u64) -> Option<&CapSet> {
+        self.cap_sets.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeCapMgrStats { &self.stats }
+    pub fn stats(&self) -> &BridgeCapMgrStats {
+        &self.stats
+    }
 }

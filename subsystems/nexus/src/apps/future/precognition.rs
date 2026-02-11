@@ -15,8 +15,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -214,7 +213,8 @@ impl MetricTracker {
         let normalized = (value - self.ema_slow) / std;
         self.cusum_pos = (self.cusum_pos + normalized - CUSUM_SLACK).max(0.0);
         self.cusum_neg = (self.cusum_neg - normalized - CUSUM_SLACK).max(0.0);
-        self.changepoint_detected = self.cusum_pos > CUSUM_TRIGGER || self.cusum_neg > CUSUM_TRIGGER;
+        self.changepoint_detected =
+            self.cusum_pos > CUSUM_TRIGGER || self.cusum_neg > CUSUM_TRIGGER;
 
         if self.changepoint_detected {
             self.cusum_pos = 0.0;
@@ -304,7 +304,11 @@ impl AppPrecogState {
         }
 
         // Check if enough metrics have changepoints
-        let changepoint_count = self.trackers.iter().filter(|t| t.changepoint_detected).count();
+        let changepoint_count = self
+            .trackers
+            .iter()
+            .filter(|t| t.changepoint_detected)
+            .count();
         if changepoint_count < 2 {
             self.phase_hash = new_hash;
             return None;
@@ -470,7 +474,10 @@ impl AppsPrecognition {
 
         if !drifts.is_empty() {
             self.stats.drift_detections += 1;
-            let max_drift = drifts.iter().map(|d| d.drift_score).fold(0.0_f64, |a, b| if b > a { b } else { a });
+            let max_drift = drifts
+                .iter()
+                .map(|d| d.drift_score)
+                .fold(0.0_f64, |a, b| if b > a { b } else { a });
             self.ema_drift_global = ema_update(self.ema_drift_global, max_drift, EMA_ALPHA);
             self.stats.average_drift_magnitude = self.ema_drift_global;
         }
@@ -543,7 +550,8 @@ impl AppsPrecognition {
         let score = 0.6 * drift_component + 0.4 * cusum_component;
 
         state.precognition_score = ema_update(state.precognition_score, score, EMA_ALPHA);
-        self.ema_precog_score = ema_update(self.ema_precog_score, state.precognition_score, EMA_ALPHA);
+        self.ema_precog_score =
+            ema_update(self.ema_precog_score, state.precognition_score, EMA_ALPHA);
         self.stats.average_precognition_score = self.ema_precog_score;
 
         state.precognition_score
@@ -566,42 +574,42 @@ impl AppsPrecognition {
                         } else {
                             String::from("reclaim_idle_cpu_slices")
                         }
-                    }
+                    },
                     BehaviorMetric::MemoryFootprint => {
                         if tracker.drift_direction > 0.0 {
                             String::from("pre_allocate_memory_pool")
                         } else {
                             String::from("shrink_memory_reservation")
                         }
-                    }
+                    },
                     BehaviorMetric::IoRate => {
                         if tracker.drift_direction > 0.0 {
                             String::from("warm_io_cache_prefetch")
                         } else {
                             String::from("release_io_buffers")
                         }
-                    }
+                    },
                     BehaviorMetric::SyscallRate => {
                         if tracker.drift_direction > 0.0 {
                             String::from("prepare_syscall_fast_path")
                         } else {
                             String::from("no_action_needed")
                         }
-                    }
+                    },
                     BehaviorMetric::FaultRate => {
                         if tracker.drift_direction > 0.0 {
                             String::from("pre_map_likely_pages")
                         } else {
                             String::from("no_action_needed")
                         }
-                    }
+                    },
                     BehaviorMetric::ThreadActivity => {
                         if tracker.drift_direction > 0.0 {
                             String::from("reserve_scheduler_slots")
                         } else {
                             String::from("compact_thread_pool")
                         }
-                    }
+                    },
                 };
                 actions.push((tracker.metric, tracker.drift_score, suggestion));
                 state.total_adaptations += 1;

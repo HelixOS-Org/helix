@@ -35,8 +35,17 @@ pub struct CryptoCoopRecord {
 impl CryptoCoopRecord {
     pub fn new(event: CryptoCoopEvent, alg: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in alg { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { event, mode: CryptoCoopMode::Exclusive, alg_hash: h, participants: 0, bytes_processed: 0 }
+        for b in alg {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            event,
+            mode: CryptoCoopMode::Exclusive,
+            alg_hash: h,
+            participants: 0,
+            bytes_processed: 0,
+        }
     }
 }
 
@@ -58,16 +67,27 @@ pub struct CoopCrypto {
 
 impl CoopCrypto {
     pub fn new() -> Self {
-        Self { stats: CryptoCoopStats { total_events: 0, tfm_shares: 0, batch_ops: 0, bytes_saved: 0 } }
+        Self {
+            stats: CryptoCoopStats {
+                total_events: 0,
+                tfm_shares: 0,
+                batch_ops: 0,
+                bytes_saved: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn record(&mut self, rec: &CryptoCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {
-            CryptoCoopEvent::TfmShare | CryptoCoopEvent::KeyScheduleCache => self.stats.tfm_shares += 1,
-            CryptoCoopEvent::BatchEncrypt | CryptoCoopEvent::BatchDecrypt => self.stats.batch_ops += 1,
-            _ => {}
+            CryptoCoopEvent::TfmShare | CryptoCoopEvent::KeyScheduleCache => {
+                self.stats.tfm_shares += 1
+            },
+            CryptoCoopEvent::BatchEncrypt | CryptoCoopEvent::BatchDecrypt => {
+                self.stats.batch_ops += 1
+            },
+            _ => {},
         }
     }
 }

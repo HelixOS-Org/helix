@@ -62,8 +62,8 @@ impl CircuitBreakerConfig {
     pub fn default_config() -> Self {
         Self {
             failure_threshold: 5,
-            window_ns: 10_000_000_000, // 10s
-            cooldown_ns: 5_000_000_000,  // 5s
+            window_ns: 10_000_000_000,  // 10s
+            cooldown_ns: 5_000_000_000, // 5s
             probe_count: 3,
             success_threshold: 2,
         }
@@ -227,7 +227,7 @@ impl CircuitBreaker {
             CircuitState::Open => {
                 // Check cooldown
                 now.saturating_sub(self.opened_at) >= self.config.cooldown_ns
-            }
+            },
             CircuitState::HalfOpen => self.probe_attempts < self.config.probe_count,
         }
     }
@@ -237,7 +237,7 @@ impl CircuitBreaker {
         self.total_success += 1;
 
         match self.state {
-            CircuitState::Closed => {}
+            CircuitState::Closed => {},
             CircuitState::HalfOpen => {
                 self.probe_successes += 1;
                 self.probe_attempts += 1;
@@ -246,14 +246,14 @@ impl CircuitBreaker {
                     self.probe_successes = 0;
                     self.probe_attempts = 0;
                 }
-            }
+            },
             CircuitState::Open => {
                 if now.saturating_sub(self.opened_at) >= self.config.cooldown_ns {
                     self.state = CircuitState::HalfOpen;
                     self.probe_successes = 1;
                     self.probe_attempts = 1;
                 }
-            }
+            },
         }
     }
 
@@ -273,7 +273,7 @@ impl CircuitBreaker {
                     self.opened_at = now;
                     self.total_trips += 1;
                 }
-            }
+            },
             CircuitState::HalfOpen => {
                 self.probe_attempts += 1;
                 // Any failure in half-open re-opens
@@ -282,8 +282,8 @@ impl CircuitBreaker {
                 self.total_trips += 1;
                 self.probe_successes = 0;
                 self.probe_attempts = 0;
-            }
-            CircuitState::Open => {}
+            },
+            CircuitState::Open => {},
         }
     }
 

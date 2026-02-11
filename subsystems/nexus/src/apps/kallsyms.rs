@@ -201,12 +201,13 @@ impl AppKallsyms {
         match symbol.sym_type {
             SymbolType::Text => self.stats.text_symbols += 1,
             SymbolType::Data | SymbolType::Bss | SymbolType::Rodata => self.stats.data_symbols += 1,
-            _ => {}
+            _ => {},
         }
         if symbol.module.is_some() {
             self.stats.module_symbols += 1;
         }
-        self.name_index.insert(symbol.name.clone(), self.symbols_by_addr.len());
+        self.name_index
+            .insert(symbol.name.clone(), self.symbols_by_addr.len());
         self.symbols_by_addr.push(symbol);
     }
 
@@ -222,7 +223,8 @@ impl AppKallsyms {
             if self.symbols_by_addr[i].size == 0 {
                 let next_addr = self.symbols_by_addr[i + 1].address;
                 let gap = next_addr.saturating_sub(self.symbols_by_addr[i].address);
-                if gap < 1024 * 1024 { // Max 1MB per symbol
+                if gap < 1024 * 1024 {
+                    // Max 1MB per symbol
                     self.symbols_by_addr[i].size = gap;
                 }
             }
@@ -252,7 +254,10 @@ impl AppKallsyms {
             return None;
         }
         // Binary search for the nearest symbol at or before addr
-        let idx = match self.symbols_by_addr.binary_search_by_key(&addr, |s| s.address) {
+        let idx = match self
+            .symbols_by_addr
+            .binary_search_by_key(&addr, |s| s.address)
+        {
             Ok(i) => i,
             Err(i) => {
                 if i == 0 {
@@ -260,7 +265,7 @@ impl AppKallsyms {
                     return None;
                 }
                 i - 1
-            }
+            },
         };
         let sym = &self.symbols_by_addr[idx];
         let offset = addr.saturating_sub(sym.address);
@@ -288,15 +293,25 @@ impl AppKallsyms {
 
     #[inline(always)]
     pub fn symbolize_stack(&mut self, addresses: &[u64]) -> Vec<SymbolLookup> {
-        addresses.iter().filter_map(|&addr| self.lookup_by_addr(addr)).collect()
+        addresses
+            .iter()
+            .filter_map(|&addr| self.lookup_by_addr(addr))
+            .collect()
     }
 
     #[inline]
     pub fn add_section(&mut self, name: String, start: u64, end: u64) {
-        let count = self.symbols_by_addr.iter()
+        let count = self
+            .symbols_by_addr
+            .iter()
             .filter(|s| s.address >= start && s.address < end)
             .count();
-        self.sections.push(SymbolSection { name, start, end, symbol_count: count });
+        self.sections.push(SymbolSection {
+            name,
+            start,
+            end,
+            symbol_count: count,
+        });
     }
 
     #[inline(always)]
@@ -306,7 +321,8 @@ impl AppKallsyms {
 
     #[inline]
     pub fn search_prefix(&self, prefix: &str, max: usize) -> Vec<&str> {
-        self.name_index.keys()
+        self.name_index
+            .keys()
             .filter(|name| name.starts_with(prefix))
             .take(max)
             .map(|s| s.as_str())

@@ -57,11 +57,25 @@ pub struct KernelKey {
 
 impl KernelKey {
     pub fn new(serial: u64, kt: KeyType, uid: u32, gid: u32, desc_hash: u64, now: u64) -> Self {
-        Self { serial, key_type: kt, state: KeyState::Valid, uid, gid, perm: 0x3f3f0000, description_hash: desc_hash, payload_len: 0, expiry: 0, created_at: now, ref_count: 1 }
+        Self {
+            serial,
+            key_type: kt,
+            state: KeyState::Valid,
+            uid,
+            gid,
+            perm: 0x3f3f0000,
+            description_hash: desc_hash,
+            payload_len: 0,
+            expiry: 0,
+            created_at: now,
+            ref_count: 1,
+        }
     }
 
     #[inline(always)]
-    pub fn is_expired(&self, now: u64) -> bool { self.expiry > 0 && now >= self.expiry }
+    pub fn is_expired(&self, now: u64) -> bool {
+        self.expiry > 0 && now >= self.expiry
+    }
 }
 
 /// Stats
@@ -82,25 +96,51 @@ pub struct BridgeKeyctl {
 }
 
 impl BridgeKeyctl {
-    pub fn new() -> Self { Self { keys: BTreeMap::new(), next_serial: 1 } }
+    pub fn new() -> Self {
+        Self {
+            keys: BTreeMap::new(),
+            next_serial: 1,
+        }
+    }
 
     #[inline]
     pub fn add_key(&mut self, kt: KeyType, uid: u32, gid: u32, desc_hash: u64, now: u64) -> u64 {
-        let serial = self.next_serial; self.next_serial += 1;
-        self.keys.insert(serial, KernelKey::new(serial, kt, uid, gid, desc_hash, now));
+        let serial = self.next_serial;
+        self.next_serial += 1;
+        self.keys
+            .insert(serial, KernelKey::new(serial, kt, uid, gid, desc_hash, now));
         serial
     }
 
     #[inline(always)]
     pub fn revoke(&mut self, serial: u64) {
-        if let Some(k) = self.keys.get_mut(&serial) { k.state = KeyState::Revoked; }
+        if let Some(k) = self.keys.get_mut(&serial) {
+            k.state = KeyState::Revoked;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> KeyctlBridgeStats {
-        let valid = self.keys.values().filter(|k| k.state == KeyState::Valid).count() as u32;
-        let expired = self.keys.values().filter(|k| k.state == KeyState::Expired).count() as u32;
-        let revoked = self.keys.values().filter(|k| k.state == KeyState::Revoked).count() as u32;
-        KeyctlBridgeStats { total_keys: self.keys.len() as u32, valid_keys: valid, expired_keys: expired, revoked_keys: revoked }
+        let valid = self
+            .keys
+            .values()
+            .filter(|k| k.state == KeyState::Valid)
+            .count() as u32;
+        let expired = self
+            .keys
+            .values()
+            .filter(|k| k.state == KeyState::Expired)
+            .count() as u32;
+        let revoked = self
+            .keys
+            .values()
+            .filter(|k| k.state == KeyState::Revoked)
+            .count() as u32;
+        KeyctlBridgeStats {
+            total_keys: self.keys.len() as u32,
+            valid_keys: valid,
+            expired_keys: expired,
+            revoked_keys: revoked,
+        }
     }
 }

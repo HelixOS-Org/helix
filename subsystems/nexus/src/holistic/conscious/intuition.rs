@@ -30,11 +30,11 @@
 
 extern crate alloc;
 
-use crate::fast::math::F32Ext;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -394,7 +394,12 @@ impl HolisticIntuitionEngine {
     }
 
     /// Perform a rapid assessment — snap judgment on a named scenario
-    pub fn rapid_assessment(&mut self, scenario: &str, state: &[f32], tick: u64) -> Option<RapidAssessment> {
+    pub fn rapid_assessment(
+        &mut self,
+        scenario: &str,
+        state: &[f32],
+        tick: u64,
+    ) -> Option<RapidAssessment> {
         self.tick = tick;
         let scenario_hash = fnv1a_hash(scenario.as_bytes());
         // First try exact pattern match
@@ -417,7 +422,9 @@ impl HolisticIntuitionEngine {
         // Fall back to best match across all patterns
         let matches = self.global_pattern_match(state);
         matches.into_iter().max_by(|a, b| {
-            a.confidence.partial_cmp(&b.confidence).unwrap_or(core::cmp::Ordering::Equal)
+            a.confidence
+                .partial_cmp(&b.confidence)
+                .unwrap_or(core::cmp::Ordering::Equal)
         })
     }
 
@@ -510,7 +517,7 @@ impl HolisticIntuitionEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F32Ext, F64Ext};
+    use crate::fast::math::{F32Ext, F64Ext};
 
     #[test]
     fn test_pattern_similarity() {

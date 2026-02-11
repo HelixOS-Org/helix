@@ -434,14 +434,23 @@ pub struct AllocRecordV2 {
 impl AllocRecordV2 {
     pub fn new(addr: u64, size: u64, callsite: u64, thread_id: u64, ts: u64) -> Self {
         Self {
-            addr, size, callsite_hash: callsite, timestamp: ts,
-            thread_id, freed: false, free_timestamp: 0,
+            addr,
+            size,
+            callsite_hash: callsite,
+            timestamp: ts,
+            thread_id,
+            freed: false,
+            free_timestamp: 0,
         }
     }
 
     #[inline(always)]
     pub fn lifetime_ns(&self) -> u64 {
-        if self.freed { self.free_timestamp.saturating_sub(self.timestamp) } else { 0 }
+        if self.freed {
+            self.free_timestamp.saturating_sub(self.timestamp)
+        } else {
+            0
+        }
     }
 }
 
@@ -464,10 +473,14 @@ impl CallsiteLeakProfile {
     pub fn new(callsite_hash: u64) -> Self {
         Self {
             callsite_hash,
-            total_allocs: 0, total_frees: 0,
-            total_bytes_allocated: 0, total_bytes_freed: 0,
-            live_count: 0, live_bytes: 0,
-            peak_live_count: 0, peak_live_bytes: 0,
+            total_allocs: 0,
+            total_frees: 0,
+            total_bytes_allocated: 0,
+            total_bytes_freed: 0,
+            live_count: 0,
+            live_bytes: 0,
+            peak_live_count: 0,
+            peak_live_bytes: 0,
             growth_samples: Vec::new(),
         }
     }
@@ -477,8 +490,12 @@ impl CallsiteLeakProfile {
         self.total_bytes_allocated += size;
         self.live_count += 1;
         self.live_bytes += size;
-        if self.live_count > self.peak_live_count { self.peak_live_count = self.live_count; }
-        if self.live_bytes > self.peak_live_bytes { self.peak_live_bytes = self.live_bytes; }
+        if self.live_count > self.peak_live_count {
+            self.peak_live_count = self.live_count;
+        }
+        if self.live_bytes > self.peak_live_bytes {
+            self.peak_live_bytes = self.live_bytes;
+        }
 
         self.growth_samples.push((ts, self.live_bytes));
         if self.growth_samples.len() > 128 {
@@ -502,19 +519,33 @@ impl CallsiteLeakProfile {
 
     #[inline(always)]
     pub fn leak_ratio(&self) -> f64 {
-        if self.total_allocs == 0 { return 0.0; }
+        if self.total_allocs == 0 {
+            return 0.0;
+        }
         (self.total_allocs - self.total_frees) as f64 / self.total_allocs as f64
     }
 
     pub fn growth_rate_bps(&self) -> f64 {
-        if self.growth_samples.len() < 2 { return 0.0; }
+        if self.growth_samples.len() < 2 {
+            return 0.0;
+        }
         let n = self.growth_samples.len() as f64;
         let sum_x: f64 = self.growth_samples.iter().map(|(t, _)| *t as f64).sum();
         let sum_y: f64 = self.growth_samples.iter().map(|(_, b)| *b as f64).sum();
-        let sum_xy: f64 = self.growth_samples.iter().map(|(t, b)| *t as f64 * *b as f64).sum();
-        let sum_x2: f64 = self.growth_samples.iter().map(|(t, _)| (*t as f64) * (*t as f64)).sum();
+        let sum_xy: f64 = self
+            .growth_samples
+            .iter()
+            .map(|(t, b)| *t as f64 * *b as f64)
+            .sum();
+        let sum_x2: f64 = self
+            .growth_samples
+            .iter()
+            .map(|(t, _)| (*t as f64) * (*t as f64))
+            .sum();
         let denom = n * sum_x2 - sum_x * sum_x;
-        if libm::fabs(denom) < 1e-10 { return 0.0; }
+        if libm::fabs(denom) < 1e-10 {
+            return 0.0;
+        }
         let slope = (n * sum_xy - sum_x * sum_y) / denom;
         slope * 1_000_000_000.0
     }
@@ -523,10 +554,18 @@ impl CallsiteLeakProfile {
     pub fn severity(&self) -> LeakSeverityV2 {
         let ratio = self.leak_ratio();
         let growth = self.growth_rate_bps();
-        if ratio < 0.01 || self.live_count < 10 { return LeakSeverityV2::None; }
-        if ratio < 0.1 && growth < 1024.0 { return LeakSeverityV2::Suspected; }
-        if ratio < 0.3 && growth < 65536.0 { return LeakSeverityV2::Probable; }
-        if self.live_bytes > 1024 * 1024 && growth > 65536.0 { return LeakSeverityV2::Critical; }
+        if ratio < 0.01 || self.live_count < 10 {
+            return LeakSeverityV2::None;
+        }
+        if ratio < 0.1 && growth < 1024.0 {
+            return LeakSeverityV2::Suspected;
+        }
+        if ratio < 0.3 && growth < 65536.0 {
+            return LeakSeverityV2::Probable;
+        }
+        if self.live_bytes > 1024 * 1024 && growth > 65536.0 {
+            return LeakSeverityV2::Critical;
+        }
         LeakSeverityV2::Confirmed
     }
 }
@@ -562,8 +601,11 @@ impl ProcessLeakProfileV2 {
         self.live_allocs.insert(addr, record);
         self.total_allocs += 1;
         self.live_bytes += size;
-        if self.live_bytes > self.peak_live_bytes { self.peak_live_bytes = self.live_bytes; }
-        self.callsites.entry(callsite)
+        if self.live_bytes > self.peak_live_bytes {
+            self.peak_live_bytes = self.live_bytes;
+        }
+        self.callsites
+            .entry(callsite)
             .or_insert_with(|| CallsiteLeakProfile::new(callsite))
             .record_alloc(size, ts);
     }
@@ -582,7 +624,8 @@ impl ProcessLeakProfileV2 {
     }
 
     pub fn worst_severity(&self) -> LeakSeverityV2 {
-        self.callsites.values()
+        self.callsites
+            .values()
             .map(|cs| cs.severity())
             .max_by_key(|s| match s {
                 LeakSeverityV2::None => 0,
@@ -596,7 +639,9 @@ impl ProcessLeakProfileV2 {
 
     #[inline]
     pub fn leak_sites(&self) -> Vec<&CallsiteLeakProfile> {
-        let mut sites: Vec<_> = self.callsites.values()
+        let mut sites: Vec<_> = self
+            .callsites
+            .values()
             .filter(|cs| cs.severity() != LeakSeverityV2::None)
             .collect();
         sites.sort_by(|a, b| b.live_bytes.cmp(&a.live_bytes));
@@ -632,11 +677,21 @@ impl AppLeakDetectorV2 {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.profiles.entry(pid).or_insert_with(|| ProcessLeakProfileV2::new(pid));
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ProcessLeakProfileV2::new(pid));
     }
 
     #[inline]
-    pub fn record_alloc(&mut self, pid: u64, addr: u64, size: u64, callsite: u64, tid: u64, ts: u64) {
+    pub fn record_alloc(
+        &mut self,
+        pid: u64,
+        addr: u64,
+        size: u64,
+        callsite: u64,
+        tid: u64,
+        ts: u64,
+    ) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.record_alloc(addr, size, callsite, tid, ts);
         }
@@ -662,7 +717,7 @@ impl AppLeakDetectorV2 {
                     LeakSeverityV2::Suspected => suspected += 1,
                     LeakSeverityV2::Probable | LeakSeverityV2::Confirmed => confirmed += 1,
                     LeakSeverityV2::Critical => critical += 1,
-                    _ => {}
+                    _ => {},
                 }
             }
         }

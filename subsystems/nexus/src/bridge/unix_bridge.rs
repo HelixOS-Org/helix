@@ -5,7 +5,13 @@ extern crate alloc;
 
 /// Unix socket bridge event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum UnixBridgeEvent { StreamCreate, DgramCreate, SeqpacketCreate, PassFd, PassCred }
+pub enum UnixBridgeEvent {
+    StreamCreate,
+    DgramCreate,
+    SeqpacketCreate,
+    PassFd,
+    PassCred,
+}
 
 /// Unix bridge record
 #[derive(Debug, Clone)]
@@ -17,25 +23,50 @@ pub struct UnixBridgeRecord {
 }
 
 impl UnixBridgeRecord {
-    pub fn new(event: UnixBridgeEvent) -> Self { Self { event, path_hash: 0, bytes: 0, ancillary_fds: 0 } }
+    pub fn new(event: UnixBridgeEvent) -> Self {
+        Self {
+            event,
+            path_hash: 0,
+            bytes: 0,
+            ancillary_fds: 0,
+        }
+    }
 }
 
 /// Unix bridge stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct UnixBridgeStats { pub total_events: u64, pub streams: u64, pub dgrams: u64, pub fd_passes: u64 }
+pub struct UnixBridgeStats {
+    pub total_events: u64,
+    pub streams: u64,
+    pub dgrams: u64,
+    pub fd_passes: u64,
+}
 
 /// Main bridge unix
 #[derive(Debug)]
-pub struct BridgeUnix { pub stats: UnixBridgeStats }
+pub struct BridgeUnix {
+    pub stats: UnixBridgeStats,
+}
 
 impl BridgeUnix {
-    pub fn new() -> Self { Self { stats: UnixBridgeStats { total_events: 0, streams: 0, dgrams: 0, fd_passes: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: UnixBridgeStats {
+                total_events: 0,
+                streams: 0,
+                dgrams: 0,
+                fd_passes: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &UnixBridgeRecord) {
         self.stats.total_events += 1;
         match rec.event {
-            UnixBridgeEvent::StreamCreate | UnixBridgeEvent::SeqpacketCreate => self.stats.streams += 1,
+            UnixBridgeEvent::StreamCreate | UnixBridgeEvent::SeqpacketCreate => {
+                self.stats.streams += 1
+            },
             UnixBridgeEvent::DgramCreate => self.stats.dgrams += 1,
             UnixBridgeEvent::PassFd | UnixBridgeEvent::PassCred => self.stats.fd_passes += 1,
         }

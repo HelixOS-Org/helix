@@ -47,7 +47,13 @@ pub struct CompressedPage {
 }
 
 impl CompressedPage {
-    pub fn new(pfn: u64, original: u32, compressed: u32, algo: CompressAlgorithm, pid: u64) -> Self {
+    pub fn new(
+        pfn: u64,
+        original: u32,
+        compressed: u32,
+        algo: CompressAlgorithm,
+        pid: u64,
+    ) -> Self {
         Self {
             page_pfn: pfn,
             original_size: original,
@@ -62,7 +68,9 @@ impl CompressedPage {
 
     #[inline(always)]
     pub fn ratio(&self) -> f64 {
-        if self.compressed_size == 0 { return 0.0; }
+        if self.compressed_size == 0 {
+            return 0.0;
+        }
         self.original_size as f64 / self.compressed_size as f64
     }
 
@@ -100,13 +108,17 @@ impl CompressPool {
 
     #[inline(always)]
     pub fn ratio(&self) -> f64 {
-        if self.total_compressed_bytes == 0 { return 0.0; }
+        if self.total_compressed_bytes == 0 {
+            return 0.0;
+        }
         self.total_original_bytes as f64 / self.total_compressed_bytes as f64
     }
 
     #[inline(always)]
     pub fn usage(&self) -> f64 {
-        if self.max_pages == 0 { return 0.0; }
+        if self.max_pages == 0 {
+            return 0.0;
+        }
         self.pages.len() as f64 / self.max_pages as f64
     }
 
@@ -117,7 +129,9 @@ impl CompressPool {
 
         let evicted = if self.pages.len() >= self.max_pages {
             self.evict_lru()
-        } else { None };
+        } else {
+            None
+        };
 
         self.pages.insert(page.page_pfn, page);
         evicted
@@ -130,7 +144,9 @@ impl CompressPool {
             page.last_access_ts = now;
             self.total_accesses += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -139,25 +155,32 @@ impl CompressPool {
             self.total_original_bytes -= page.original_size as u64;
             self.total_compressed_bytes -= page.compressed_size as u64;
             Some(page)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     fn evict_lru(&mut self) -> Option<CompressedPage> {
         // Find page with oldest last_access_ts
-        let victim_pfn = self.pages.iter()
+        let victim_pfn = self
+            .pages
+            .iter()
             .min_by_key(|(_, p)| p.last_access_ts)
             .map(|(&pfn, _)| pfn);
 
         if let Some(pfn) = victim_pfn {
             self.evictions += 1;
             self.remove(pfn)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     /// Get cold pages (candidates for writeback)
     #[inline]
     pub fn cold_pages(&self, age_threshold: u64, now: u64) -> Vec<u64> {
-        self.pages.iter()
+        self.pages
+            .iter()
             .filter(|(_, p)| now.saturating_sub(p.last_access_ts) > age_threshold)
             .map(|(&pfn, _)| pfn)
             .collect()
@@ -205,9 +228,18 @@ pub struct HolisticMemCompress {
 impl HolisticMemCompress {
     pub fn new(hot_max: usize, warm_max: usize, cold_max: usize) -> Self {
         let mut pools = BTreeMap::new();
-        pools.insert(CompressPoolType::Hot, CompressPool::new(CompressPoolType::Hot, hot_max));
-        pools.insert(CompressPoolType::Warm, CompressPool::new(CompressPoolType::Warm, warm_max));
-        pools.insert(CompressPoolType::Cold, CompressPool::new(CompressPoolType::Cold, cold_max));
+        pools.insert(
+            CompressPoolType::Hot,
+            CompressPool::new(CompressPoolType::Hot, hot_max),
+        );
+        pools.insert(
+            CompressPoolType::Warm,
+            CompressPool::new(CompressPoolType::Warm, warm_max),
+        );
+        pools.insert(
+            CompressPoolType::Cold,
+            CompressPool::new(CompressPoolType::Cold, cold_max),
+        );
 
         Self {
             pools,
@@ -242,11 +274,23 @@ impl HolisticMemCompress {
     }
 
     /// Store a compressed page
-    pub fn store(&mut self, pfn: u64, original_size: u32, compressed_size: u32, pid: u64) -> AdmissionDecision {
+    pub fn store(
+        &mut self,
+        pfn: u64,
+        original_size: u32,
+        compressed_size: u32,
+        pid: u64,
+    ) -> AdmissionDecision {
         let decision = self.admission_check(original_size, compressed_size);
         match decision {
             AdmissionDecision::Accept => {
-                let page = CompressedPage::new(pfn, original_size, compressed_size, self.default_algo, pid);
+                let page = CompressedPage::new(
+                    pfn,
+                    original_size,
+                    compressed_size,
+                    self.default_algo,
+                    pid,
+                );
                 if let Some(pool) = self.pools.get_mut(&CompressPoolType::Hot) {
                     if let Some(evicted) = pool.insert(page) {
                         // Move evicted to warm
@@ -259,18 +303,22 @@ impl HolisticMemCompress {
                 }
                 self.recompute();
                 AdmissionDecision::Accept
-            }
+            },
             other => {
                 self.admission_rejects += 1;
                 other
-            }
+            },
         }
     }
 
     /// Access a compressed page (decompress)
     pub fn access(&mut self, pfn: u64, now: u64) -> Option<&CompressedPage> {
         // Try pools in order: hot, warm, cold
-        for pool_type in &[CompressPoolType::Hot, CompressPoolType::Warm, CompressPoolType::Cold] {
+        for pool_type in &[
+            CompressPoolType::Hot,
+            CompressPoolType::Warm,
+            CompressPoolType::Cold,
+        ] {
             if let Some(pool) = self.pools.get_mut(pool_type) {
                 if pool.access(pfn, now) {
                     // Promote to hot if not already
@@ -284,7 +332,9 @@ impl HolisticMemCompress {
                         }
                     }
                     // Return reference from hot pool
-                    return self.pools.get(&CompressPoolType::Hot)
+                    return self
+                        .pools
+                        .get(&CompressPoolType::Hot)
                         .and_then(|p| p.pages.get(&pfn));
                 }
             }
@@ -358,7 +408,11 @@ impl HolisticMemCompress {
 
         let total_orig: u64 = self.pools.values().map(|p| p.total_original_bytes).sum();
         let total_comp: u64 = self.pools.values().map(|p| p.total_compressed_bytes).sum();
-        let ratio = if total_comp > 0 { total_orig as f64 / total_comp as f64 } else { 0.0 };
+        let ratio = if total_comp > 0 {
+            total_orig as f64 / total_comp as f64
+        } else {
+            0.0
+        };
         let savings = (total_orig - total_comp) as f64 / (1024.0 * 1024.0);
         let evictions: u64 = self.pools.values().map(|p| p.evictions).sum();
 

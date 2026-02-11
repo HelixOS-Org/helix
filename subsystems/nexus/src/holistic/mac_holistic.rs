@@ -26,7 +26,14 @@ pub struct MacHolisticFinding {
 
 impl MacHolisticFinding {
     pub fn new(metric: MacHolisticMetric) -> Self {
-        Self { metric, score: 0, policy_modules: 0, conflicts: 0, label_mismatches: 0, enforcement_gaps: 0 }
+        Self {
+            metric,
+            score: 0,
+            policy_modules: 0,
+            conflicts: 0,
+            label_mismatches: 0,
+            enforcement_gaps: 0,
+        }
     }
 }
 
@@ -48,7 +55,14 @@ pub struct HolisticMac {
 
 impl HolisticMac {
     pub fn new() -> Self {
-        Self { stats: MacHolisticStats { total_analyses: 0, policy_conflicts: 0, label_issues: 0, gaps_found: 0 } }
+        Self {
+            stats: MacHolisticStats {
+                total_analyses: 0,
+                policy_conflicts: 0,
+                label_issues: 0,
+                gaps_found: 0,
+            },
+        }
     }
 
     #[inline]

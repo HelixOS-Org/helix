@@ -11,10 +11,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-
 /// Swap device type
 use alloc::string::String;
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SwapDeviceType {
     Partition,
@@ -74,12 +73,15 @@ impl SwapDevice {
 
     #[inline(always)]
     pub fn free_pages(&self) -> u64 {
-        self.total_pages.saturating_sub(self.used_pages + self.reserved_pages)
+        self.total_pages
+            .saturating_sub(self.used_pages + self.reserved_pages)
     }
 
     #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
-        if self.total_pages == 0 { return 0.0; }
+        if self.total_pages == 0 {
+            return 0.0;
+        }
         self.used_pages as f64 / self.total_pages as f64
     }
 
@@ -92,7 +94,9 @@ impl SwapDevice {
     pub fn effective_capacity(&self) -> u64 {
         if self.compression_ratio > 0.01 {
             (self.total_pages as f64 / self.compression_ratio) as u64
-        } else { self.total_pages }
+        } else {
+            self.total_pages
+        }
     }
 
     #[inline(always)]
@@ -129,17 +133,23 @@ impl ProcessSwapUsage {
     #[inline]
     pub fn avg_swap_latency(&self) -> u64 {
         let total_ops = self.swap_ins + self.swap_outs;
-        if total_ops == 0 { return 0; }
+        if total_ops == 0 {
+            return 0;
+        }
         self.total_swap_latency_ns / total_ops
     }
 
     #[inline]
     pub fn is_thrashing(&self) -> bool {
         // Thrashing if high major fault rate and roughly equal in/out
-        if self.swap_ins < 100 { return false; }
+        if self.swap_ins < 100 {
+            return false;
+        }
         let ratio = if self.swap_outs > 0 {
             self.swap_ins as f64 / self.swap_outs as f64
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         ratio > 0.5 && ratio < 2.0 && self.major_faults > 1000
     }
 
@@ -147,7 +157,9 @@ impl ProcessSwapUsage {
     pub fn exceeds_limit(&self) -> bool {
         if let Some(limit) = self.swap_limit {
             self.swapped_pages > limit
-        } else { false }
+        } else {
+            false
+        }
     }
 }
 
@@ -179,13 +191,17 @@ impl CompressedSwapState {
 
     #[inline(always)]
     pub fn compression_ratio(&self) -> f64 {
-        if self.compressed_bytes == 0 { return 1.0; }
+        if self.compressed_bytes == 0 {
+            return 1.0;
+        }
         self.original_bytes as f64 / self.compressed_bytes as f64
     }
 
     #[inline(always)]
     pub fn pool_usage_ratio(&self) -> f64 {
-        if self.pool_limit_bytes == 0 { return 0.0; }
+        if self.pool_limit_bytes == 0 {
+            return 0.0;
+        }
         self.pool_size_bytes as f64 / self.pool_limit_bytes as f64
     }
 
@@ -244,26 +260,30 @@ impl HolisticSwapMgr {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessSwapUsage::new(pid));
     }
 
     /// Select best swap device for allocation
     pub fn select_device(&self, pages_needed: u64) -> Option<u32> {
         match self.strategy {
-            SwapAllocStrategy::PriorityBased => {
-                self.devices.values()
-                    .filter(|d| d.free_pages() >= pages_needed && d.is_healthy())
-                    .max_by_key(|d| d.priority)
-                    .map(|d| d.device_id)
-            }
-            SwapAllocStrategy::LeastUsed => {
-                self.devices.values()
-                    .filter(|d| d.free_pages() >= pages_needed && d.is_healthy())
-                    .min_by(|a, b| a.usage_ratio().partial_cmp(&b.usage_ratio())
-                        .unwrap_or(core::cmp::Ordering::Equal))
-                    .map(|d| d.device_id)
-            }
+            SwapAllocStrategy::PriorityBased => self
+                .devices
+                .values()
+                .filter(|d| d.free_pages() >= pages_needed && d.is_healthy())
+                .max_by_key(|d| d.priority)
+                .map(|d| d.device_id),
+            SwapAllocStrategy::LeastUsed => self
+                .devices
+                .values()
+                .filter(|d| d.free_pages() >= pages_needed && d.is_healthy())
+                .min_by(|a, b| {
+                    a.usage_ratio()
+                        .partial_cmp(&b.usage_ratio())
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
+                .map(|d| d.device_id),
             SwapAllocStrategy::PerformanceTiered => {
                 // Prefer compressed swap first, then fastest device
                 if let Some(ref cs) = self.compressed {
@@ -272,17 +292,18 @@ impl HolisticSwapMgr {
                         return Some(0xFFFF);
                     }
                 }
-                self.devices.values()
+                self.devices
+                    .values()
                     .filter(|d| d.free_pages() >= pages_needed && d.is_healthy())
                     .min_by_key(|d| d.avg_latency_ns)
                     .map(|d| d.device_id)
-            }
-            _ => {
-                self.devices.values()
-                    .filter(|d| d.free_pages() >= pages_needed)
-                    .next()
-                    .map(|d| d.device_id)
-            }
+            },
+            _ => self
+                .devices
+                .values()
+                .filter(|d| d.free_pages() >= pages_needed)
+                .next()
+                .map(|d| d.device_id),
         }
     }
 
@@ -321,21 +342,34 @@ impl HolisticSwapMgr {
         self.stats.used_swap_pages = self.devices.values().map(|d| d.used_pages).sum();
         self.stats.global_swap_pressure = if self.stats.total_swap_pages > 0 {
             self.stats.used_swap_pages as f64 / self.stats.total_swap_pages as f64
-        } else { 0.0 };
-        self.stats.thrashing_processes = self.processes.values()
-            .filter(|p| p.is_thrashing()).count();
-        self.stats.compressed_savings_bytes = self.compressed.as_ref()
-            .map(|c| c.savings_bytes()).unwrap_or(0);
+        } else {
+            0.0
+        };
+        self.stats.thrashing_processes =
+            self.processes.values().filter(|p| p.is_thrashing()).count();
+        self.stats.compressed_savings_bytes = self
+            .compressed
+            .as_ref()
+            .map(|c| c.savings_bytes())
+            .unwrap_or(0);
     }
 
     #[inline(always)]
-    pub fn device(&self, id: u32) -> Option<&SwapDevice> { self.devices.get(&id) }
+    pub fn device(&self, id: u32) -> Option<&SwapDevice> {
+        self.devices.get(&id)
+    }
     #[inline(always)]
-    pub fn process_swap(&self, pid: u64) -> Option<&ProcessSwapUsage> { self.processes.get(&pid) }
+    pub fn process_swap(&self, pid: u64) -> Option<&ProcessSwapUsage> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &HolisticSwapMgrStats { &self.stats }
+    pub fn stats(&self) -> &HolisticSwapMgrStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn total_free_swap(&self) -> u64 { self.devices.values().map(|d| d.free_pages()).sum() }
+    pub fn total_free_swap(&self) -> u64 {
+        self.devices.values().map(|d| d.free_pages()).sum()
+    }
 }
 
 // ============================================================================
@@ -370,21 +404,45 @@ pub struct SwapAreaV2 {
 
 impl SwapAreaV2 {
     pub fn new(id: u64, at: SwapAreaType, prio: i32, total: u64) -> Self {
-        Self { id, area_type: at, priority: SwapPriority(prio), total_pages: total, used_pages: 0, bad_pages: 0, swap_in_count: 0, swap_out_count: 0, active: true }
+        Self {
+            id,
+            area_type: at,
+            priority: SwapPriority(prio),
+            total_pages: total,
+            used_pages: 0,
+            bad_pages: 0,
+            swap_in_count: 0,
+            swap_out_count: 0,
+            active: true,
+        }
     }
 
     #[inline(always)]
-    pub fn usage_ratio(&self) -> f64 { if self.total_pages == 0 { 0.0 } else { self.used_pages as f64 / self.total_pages as f64 } }
+    pub fn usage_ratio(&self) -> f64 {
+        if self.total_pages == 0 {
+            0.0
+        } else {
+            self.used_pages as f64 / self.total_pages as f64
+        }
+    }
 
     #[inline(always)]
     pub fn swap_out(&mut self) -> bool {
-        if self.used_pages < self.total_pages - self.bad_pages { self.used_pages += 1; self.swap_out_count += 1; true }
-        else { false }
+        if self.used_pages < self.total_pages - self.bad_pages {
+            self.used_pages += 1;
+            self.swap_out_count += 1;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn swap_in(&mut self) {
-        if self.used_pages > 0 { self.used_pages -= 1; self.swap_in_count += 1; }
+        if self.used_pages > 0 {
+            self.used_pages -= 1;
+            self.swap_in_count += 1;
+        }
     }
 }
 
@@ -418,18 +476,33 @@ pub struct HolisticSwapMgrV2 {
 }
 
 impl HolisticSwapMgrV2 {
-    pub fn new() -> Self { Self { areas: BTreeMap::new(), entries: BTreeMap::new(), next_offset: 0 } }
+    pub fn new() -> Self {
+        Self {
+            areas: BTreeMap::new(),
+            entries: BTreeMap::new(),
+            next_offset: 0,
+        }
+    }
 
     #[inline(always)]
-    pub fn add_area(&mut self, id: u64, at: SwapAreaType, prio: i32, total: u64) { self.areas.insert(id, SwapAreaV2::new(id, at, prio, total)); }
+    pub fn add_area(&mut self, id: u64, at: SwapAreaType, prio: i32, total: u64) {
+        self.areas.insert(id, SwapAreaV2::new(id, at, prio, total));
+    }
 
     pub fn swap_out(&mut self, pid: u64, vaddr: u64) -> Option<u64> {
-        let mut sorted: Vec<&mut SwapAreaV2> = self.areas.values_mut().filter(|a| a.active).collect();
+        let mut sorted: Vec<&mut SwapAreaV2> =
+            self.areas.values_mut().filter(|a| a.active).collect();
         sorted.sort_by(|a, b| b.priority.cmp(&a.priority));
         for area in sorted {
             if area.swap_out() {
-                let offset = self.next_offset; self.next_offset += 1;
-                self.entries.insert(offset, SwapEntryV2 { area_id: area.id, offset, pid, vaddr });
+                let offset = self.next_offset;
+                self.next_offset += 1;
+                self.entries.insert(offset, SwapEntryV2 {
+                    area_id: area.id,
+                    offset,
+                    pid,
+                    vaddr,
+                });
                 return Some(offset);
             }
         }
@@ -439,9 +512,13 @@ impl HolisticSwapMgrV2 {
     #[inline]
     pub fn swap_in(&mut self, offset: u64) -> bool {
         if let Some(entry) = self.entries.remove(&offset) {
-            if let Some(area) = self.areas.get_mut(&entry.area_id) { area.swap_in(); }
+            if let Some(area) = self.areas.get_mut(&entry.area_id) {
+                area.swap_in();
+            }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -451,8 +528,20 @@ impl HolisticSwapMgrV2 {
         let used: u64 = self.areas.values().map(|a| a.used_pages).sum();
         let si: u64 = self.areas.values().map(|a| a.swap_in_count).sum();
         let so: u64 = self.areas.values().map(|a| a.swap_out_count).sum();
-        let ratio = if cap == 0 { 0.0 } else { used as f64 / cap as f64 };
-        SwapMgrV2Stats { total_areas: self.areas.len() as u32, active_areas: active, total_capacity_pages: cap, total_used_pages: used, total_swap_in: si, total_swap_out: so, overall_usage_ratio: ratio }
+        let ratio = if cap == 0 {
+            0.0
+        } else {
+            used as f64 / cap as f64
+        };
+        SwapMgrV2Stats {
+            total_areas: self.areas.len() as u32,
+            active_areas: active,
+            total_capacity_pages: cap,
+            total_used_pages: used,
+            total_swap_in: si,
+            total_swap_out: so,
+            overall_usage_ratio: ratio,
+        }
     }
 }
 
@@ -597,7 +686,12 @@ pub struct SwapV3Area {
 }
 
 impl SwapV3Area {
-    pub fn new(area_id: u64, name: String, device_type: SwapV3DeviceType, total_slots: u64) -> Self {
+    pub fn new(
+        area_id: u64,
+        name: String,
+        device_type: SwapV3DeviceType,
+        total_slots: u64,
+    ) -> Self {
         Self {
             area_id,
             name,
@@ -680,7 +774,12 @@ impl HolisticSwapMgrV3 {
     }
 
     #[inline]
-    pub fn add_area(&mut self, name: String, device_type: SwapV3DeviceType, total_slots: u64) -> u64 {
+    pub fn add_area(
+        &mut self,
+        name: String,
+        device_type: SwapV3DeviceType,
+        total_slots: u64,
+    ) -> u64 {
         let id = self.next_area_id;
         self.next_area_id += 1;
         let area = SwapV3Area::new(id, name, device_type, total_slots);

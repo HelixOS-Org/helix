@@ -14,8 +14,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -274,12 +273,7 @@ impl BridgeIntuitionEngine {
 
     /// Record that intuition was used and whether it was correct
     #[inline]
-    pub fn record_outcome(
-        &mut self,
-        pattern: &str,
-        was_correct: bool,
-        time_saved_ns: u64,
-    ) {
+    pub fn record_outcome(&mut self, pattern: &str, was_correct: bool, time_saved_ns: u64) {
         let hash = fnv1a_hash(pattern.as_bytes());
         if let Some(rule) = self.rules.get_mut(&hash) {
             if was_correct {
@@ -336,7 +330,11 @@ impl BridgeIntuitionEngine {
 
         for (&hash, candidate) in &self.candidates {
             if candidate.ready_for_promotion() && self.rules.len() < MAX_INTUITION_RULES {
-                to_promote.push((hash, candidate.observed_action.clone(), candidate.consistency()));
+                to_promote.push((
+                    hash,
+                    candidate.observed_action.clone(),
+                    candidate.consistency(),
+                ));
             }
         }
 
@@ -443,7 +441,14 @@ impl BridgeIntuitionEngine {
         let mut rules: Vec<(u64, String, u64, f32)> = self
             .rules
             .values()
-            .map(|r| (r.pattern_hash, r.action_name.clone(), r.hit_count, r.accuracy))
+            .map(|r| {
+                (
+                    r.pattern_hash,
+                    r.action_name.clone(),
+                    r.hit_count,
+                    r.accuracy,
+                )
+            })
             .collect();
         rules.sort_by(|a, b| b.2.cmp(&a.2));
         rules.truncate(limit);

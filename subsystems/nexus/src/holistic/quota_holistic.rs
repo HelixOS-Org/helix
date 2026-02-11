@@ -38,24 +38,46 @@ pub struct HolisticQuotaEntry {
 
 impl HolisticQuotaEntry {
     pub fn new(id: u32, qt: HolisticQuotaType) -> Self {
-        Self { id, quota_type: qt, block_soft: 0, block_hard: 0, block_used: 0, inode_soft: 0, inode_hard: 0, inode_used: 0, grace_ns: 0 }
+        Self {
+            id,
+            quota_type: qt,
+            block_soft: 0,
+            block_hard: 0,
+            block_used: 0,
+            inode_soft: 0,
+            inode_hard: 0,
+            inode_used: 0,
+            grace_ns: 0,
+        }
     }
 
     #[inline]
     pub fn state(&self) -> QuotaState {
-        if self.block_hard > 0 && self.block_used >= self.block_hard { QuotaState::HardLimitReached }
-        else if self.block_soft > 0 && self.block_used >= self.block_soft { QuotaState::SoftLimitExceeded }
-        else { QuotaState::Ok }
+        if self.block_hard > 0 && self.block_used >= self.block_hard {
+            QuotaState::HardLimitReached
+        } else if self.block_soft > 0 && self.block_used >= self.block_soft {
+            QuotaState::SoftLimitExceeded
+        } else {
+            QuotaState::Ok
+        }
     }
 
     #[inline(always)]
     pub fn block_usage_pct(&self) -> f64 {
-        if self.block_hard == 0 { 0.0 } else { self.block_used as f64 / self.block_hard as f64 }
+        if self.block_hard == 0 {
+            0.0
+        } else {
+            self.block_used as f64 / self.block_hard as f64
+        }
     }
 
     #[inline(always)]
     pub fn inode_usage_pct(&self) -> f64 {
-        if self.inode_hard == 0 { 0.0 } else { self.inode_used as f64 / self.inode_hard as f64 }
+        if self.inode_hard == 0 {
+            0.0
+        } else {
+            self.inode_used as f64 / self.inode_hard as f64
+        }
     }
 }
 
@@ -78,7 +100,15 @@ pub struct HolisticQuota {
 
 impl HolisticQuota {
     pub fn new() -> Self {
-        Self { quotas: BTreeMap::new(), stats: HolisticQuotaStats { total_quotas: 0, over_soft: 0, over_hard: 0, checks: 0 } }
+        Self {
+            quotas: BTreeMap::new(),
+            stats: HolisticQuotaStats {
+                total_quotas: 0,
+                over_soft: 0,
+                over_hard: 0,
+                checks: 0,
+            },
+        }
     }
 
     #[inline(always)]
@@ -94,7 +124,7 @@ impl HolisticQuota {
             match s {
                 QuotaState::SoftLimitExceeded => self.stats.over_soft += 1,
                 QuotaState::HardLimitReached => self.stats.over_hard += 1,
-                _ => {}
+                _ => {},
             }
             s
         } else {
@@ -181,14 +211,19 @@ impl HolisticQuotaV2Manager {
             owner_id,
             timestamp: self.samples.len() as u64,
         };
-        self.per_owner.entry(owner_id).or_insert_with(Vec::new).push(sample.clone());
+        self.per_owner
+            .entry(owner_id)
+            .or_insert_with(Vec::new)
+            .push(sample.clone());
         self.samples.push(sample);
         self.stats.samples += 1;
     }
 
     pub fn analyze(&mut self) -> &HolisticQuotaV2Health {
         self.stats.analyses += 1;
-        let usage: Vec<&HolisticQuotaV2Sample> = self.samples.iter()
+        let usage: Vec<&HolisticQuotaV2Sample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticQuotaV2Metric::UsageRatio))
             .collect();
         if !usage.is_empty() {
@@ -198,14 +233,18 @@ impl HolisticQuotaV2Manager {
                 self.stats.quota_exceeded_alerts += 1;
             }
         }
-        let denial: Vec<&HolisticQuotaV2Sample> = self.samples.iter()
+        let denial: Vec<&HolisticQuotaV2Sample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticQuotaV2Metric::DenialRate))
             .collect();
         if !denial.is_empty() {
             let avg: u64 = denial.iter().map(|s| s.value).sum::<u64>() / denial.len() as u64;
             self.health.enforcement_score = 100u64.saturating_sub(avg.min(100));
         }
-        self.health.overall = (self.health.usage_health + self.health.fairness_score + self.health.enforcement_score) / 3;
+        self.health.overall =
+            (self.health.usage_health + self.health.fairness_score + self.health.enforcement_score)
+                / 3;
         &self.health
     }
 

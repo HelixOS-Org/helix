@@ -143,7 +143,9 @@ impl EventInstance {
         };
 
         // Check if events match interest
-        if interest.events & events == 0 { return; }
+        if interest.events & events == 0 {
+            return;
+        }
 
         // Coalesce if enabled
         if interest.coalesce {
@@ -285,7 +287,11 @@ impl BridgeEventBridge {
         self.stats.total_interests = self.instances.values().map(|i| i.interests.len()).sum();
         self.stats.total_pending = self.instances.values().map(|i| i.pending_count()).sum();
         self.stats.total_waits = self.instances.values().map(|i| i.total_waits).sum();
-        self.stats.total_events_delivered = self.instances.values().map(|i| i.total_events_delivered).sum();
+        self.stats.total_events_delivered = self
+            .instances
+            .values()
+            .map(|i| i.total_events_delivered)
+            .sum();
         self.stats.total_coalesced = self.instances.values().map(|i| i.total_coalesced).sum();
     }
 

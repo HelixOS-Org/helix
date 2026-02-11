@@ -430,12 +430,7 @@ impl Channel {
             backpressure_events: self.flow.backpressure_count,
             queue_depth,
             max_queue_depth: queue_depth, // Simplified
-            avg_utilization: self
-                .lanes
-                .iter()
-                .map(|l| l.utilization())
-                .sum::<f64>()
-                / 4.0,
+            avg_utilization: self.lanes.iter().map(|l| l.utilization()).sum::<f64>() / 4.0,
         }
     }
 
@@ -569,10 +564,7 @@ impl ChannelManager {
         priority: ChannelPriority,
         timestamp: u64,
     ) -> Result<u64, ChannelError> {
-        let channel = self
-            .channels
-            .get_mut(&id.0)
-            .ok_or(ChannelError::NotFound)?;
+        let channel = self.channels.get_mut(&id.0).ok_or(ChannelError::NotFound)?;
         let seq = channel.send(msg_type, payload, priority, timestamp)?;
         self.total_messages += 1;
         Ok(seq)
@@ -581,10 +573,7 @@ impl ChannelManager {
     /// Receive from channel
     #[inline]
     pub fn receive(&mut self, id: ChannelId) -> Result<Option<ChannelMessage>, ChannelError> {
-        let channel = self
-            .channels
-            .get_mut(&id.0)
-            .ok_or(ChannelError::NotFound)?;
+        let channel = self.channels.get_mut(&id.0).ok_or(ChannelError::NotFound)?;
         Ok(channel.receive())
     }
 
@@ -693,7 +682,13 @@ pub struct ChannelSender {
 
 impl ChannelSender {
     pub fn new(id: u64, pid: u64) -> Self {
-        Self { id, pid, sends: 0, blocked_count: 0, bytes_sent: 0 }
+        Self {
+            id,
+            pid,
+            sends: 0,
+            blocked_count: 0,
+            bytes_sent: 0,
+        }
     }
 
     #[inline(always)]
@@ -709,7 +704,9 @@ impl ChannelSender {
 
     #[inline(always)]
     pub fn block_rate(&self) -> f64 {
-        if self.sends == 0 { return 0.0; }
+        if self.sends == 0 {
+            return 0.0;
+        }
         self.blocked_count as f64 / (self.sends + self.blocked_count) as f64
     }
 }
@@ -727,7 +724,14 @@ pub struct ChannelReceiver {
 
 impl ChannelReceiver {
     pub fn new(id: u64, pid: u64) -> Self {
-        Self { id, pid, receives: 0, empty_polls: 0, bytes_received: 0, total_latency_ns: 0 }
+        Self {
+            id,
+            pid,
+            receives: 0,
+            empty_polls: 0,
+            bytes_received: 0,
+            total_latency_ns: 0,
+        }
     }
 
     #[inline]
@@ -739,14 +743,18 @@ impl ChannelReceiver {
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> f64 {
-        if self.receives == 0 { return 0.0; }
+        if self.receives == 0 {
+            return 0.0;
+        }
         self.total_latency_ns as f64 / self.receives as f64
     }
 
     #[inline]
     pub fn empty_rate(&self) -> f64 {
         let total = self.receives + self.empty_polls;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.empty_polls as f64 / total as f64
     }
 }
@@ -839,7 +847,9 @@ impl ChannelInstance {
 
         // Priority channel: pick highest priority
         let idx = if self.ch_type == ChannelType::Priority {
-            self.queue.iter().enumerate()
+            self.queue
+                .iter()
+                .enumerate()
                 .max_by_key(|(_, m)| m.priority)
                 .map(|(i, _)| i)
                 .unwrap_or(0)
@@ -864,7 +874,9 @@ impl ChannelInstance {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.capacity == 0 { return 0.0; }
+        if self.capacity == 0 {
+            return 0.0;
+        }
         self.queue.len() as f64 / self.capacity as f64
     }
 
@@ -886,7 +898,9 @@ impl ChannelInstance {
 
     #[inline(always)]
     pub fn throughput_ratio(&self) -> f64 {
-        if self.total_sends == 0 { return 0.0; }
+        if self.total_sends == 0 {
+            return 0.0;
+        }
         self.total_receives as f64 / self.total_sends as f64
     }
 }
@@ -932,7 +946,8 @@ impl CoopChannelV2 {
     pub fn create_channel(&mut self, name: String, ch_type: ChannelType, capacity: usize) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.channels.insert(id, ChannelInstance::new(id, name, ch_type, capacity));
+        self.channels
+            .insert(id, ChannelInstance::new(id, name, ch_type, capacity));
         self.stats.total_channels += 1;
         self.stats.active_channels += 1;
         id
@@ -958,7 +973,13 @@ impl CoopChannelV2 {
         eid
     }
 
-    pub fn send(&mut self, chan_id: u64, sender_pid: u64, payload_size: usize, now_ns: u64) -> Option<u64> {
+    pub fn send(
+        &mut self,
+        chan_id: u64,
+        sender_pid: u64,
+        payload_size: usize,
+        now_ns: u64,
+    ) -> Option<u64> {
         if let Some(ch) = self.channels.get_mut(&chan_id) {
             let result = ch.send(sender_pid, payload_size, now_ns);
             if result.is_some() {
@@ -997,7 +1018,9 @@ impl CoopChannelV2 {
 
     #[inline]
     pub fn fullest_channels(&self, top: usize) -> Vec<(u64, f64)> {
-        let mut v: Vec<(u64, f64)> = self.channels.iter()
+        let mut v: Vec<(u64, f64)> = self
+            .channels
+            .iter()
             .filter(|(_, ch)| ch.capacity > 0)
             .map(|(&id, ch)| (id, ch.utilization()))
             .collect();

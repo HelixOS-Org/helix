@@ -234,17 +234,17 @@ pub mod skiplist;
 pub mod treiber_stack;
 pub mod wait_free;
 // Round 23
+pub mod arp_coop;
+pub mod dns_coop;
+pub mod firewall_coop;
+pub mod netdev_coop;
+pub mod netns_coop;
+pub mod packet_coop;
+pub mod qos_coop;
+pub mod route_coop;
+pub mod socket_coop;
 pub mod tcp_coop;
 pub mod udp_coop;
-pub mod route_coop;
-pub mod arp_coop;
-pub mod firewall_coop;
-pub mod socket_coop;
-pub mod netdev_coop;
-pub mod qos_coop;
-pub mod packet_coop;
-pub mod dns_coop;
-pub mod netns_coop;
 // Round 24
 pub mod bio_coop;
 pub mod blkdev_coop;
@@ -314,2052 +314,757 @@ pub mod wait_coop;
 
 // Re-export core types
 // Re-export new module types
-pub use advisory::{
-    Advisory,
-    AdvisoryCategory,
-    AdvisoryEngine,
-    AdvisoryType,
-    AdvisoryUrgency,
+// Round 13 re-exports
+pub use adaptive_lock::{
+    AdaptiveLockInstance, AdaptiveLockState, AdaptiveLockStats, ContentionLevel, CoopAdaptiveLock,
+    LockStrategy, SpinParams,
 };
+pub use advisory::{Advisory, AdvisoryCategory, AdvisoryEngine, AdvisoryType, AdvisoryUrgency};
+// Re-exports from Round 25 — Security cooperation
+pub use apparmor_coop::{AppArmorCoopEvent, AppArmorCoopRecord, AppArmorCoopStats, CoopAppArmor};
 // Round 9 re-exports
 // Round 3 re-exports
 pub use arbitrate::{
-    CoopArbitrationManager,
-    CoopArbitrationStats,
-    Dispute,
-    DisputeCategory,
-    DisputeEvidence,
-    DisputeSeverity,
-    DisputeState,
-    EvidenceType,
-    Resolution,
-    ResolutionType,
+    CoopArbitrationManager, CoopArbitrationStats, Dispute, DisputeCategory, DisputeEvidence,
+    DisputeSeverity, DisputeState, EvidenceType, Resolution, ResolutionType,
     ResourceAdjustment as ArbitrationAdjustment,
+};
+pub use arp_coop::{CoopArp, CoopArpEntry, CoopArpState, CoopArpStats, SharedArpCache};
+// Round 17 re-exports
+pub use async_barrier::{
+    AsyncBarrier, AsyncBarrierPhase, AsyncBarrierStats, AsyncWaiter, CoopAsyncBarrier,
+};
+// Round 19 re-exports
+pub use async_oneshot::{AsyncOneshot, AsyncOneshotStats, CoopAsyncOneshot, OneshotState};
+pub use async_queue::{
+    AsyncQueueInstance, AsyncQueueStats, CoopAsyncQueue, ItemState as AsyncItemState,
+    QueueItem as AsyncQueueItem, QueueOrder, QueuePriority as AsyncQueuePriority,
 };
 // Round 7 re-exports
 pub use attestation::{
-    AttestationQuote,
-    AttestationState,
-    CoopAttestationProtocol,
-    CoopAttestationStats,
-    PcrRegister,
+    AttestationQuote, AttestationState, CoopAttestationProtocol, CoopAttestationStats, PcrRegister,
     ProcessAttestation,
 };
 // Round 4 re-exports
 pub use auction::{
-    Auction,
-    AuctionBudget,
-    AuctionResource,
-    AuctionState,
-    AuctionType,
-    Bid,
-    CoopAuctionManager,
+    Auction, AuctionBudget, AuctionResource, AuctionState, AuctionType, Bid, CoopAuctionManager,
     CoopAuctionStats,
+};
+pub use audit_coop::{AuditCoopEvent, AuditCoopRecord, AuditCoopStats, CoopAudit};
+// Round 27 re-exports — Networking/socket cooperative coordination
+pub use backlog_coop::{BacklogCoopEvent, BacklogCoopRecord, BacklogCoopStats, CoopBacklog};
+// Round 18 re-exports
+pub use backoff::{
+    BackoffState, BackoffStats, BackoffStrategy as CoopBackoffStrategy, CoopBackoff,
 };
 // Round 6 re-exports
 pub use backpressure::{
-    BackpressureLevel,
-    BackpressureSignalMsg,
-    CoopBackpressureProtocol,
-    CoopBackpressureStats,
-    FlowControlState,
-    PressureAction,
-    PressureChain,
-    PressureSource,
+    BackpressureLevel, BackpressureSignalMsg, CoopBackpressureProtocol, CoopBackpressureStats,
+    FlowControlState, PressureAction, PressureChain, PressureSource,
 };
 pub use bandwidth::{
-    BandwidthBucket,
-    BandwidthResource,
-    BandwidthTransfer,
-    CoopBandwidthAllocator,
-    CoopBandwidthStats,
-    ProcessBandwidth,
+    BandwidthBucket, BandwidthResource, BandwidthTransfer, CoopBandwidthAllocator,
+    CoopBandwidthStats, ProcessBandwidth,
 };
 // Round 2 re-exports
 pub use barrier::{
-    BarrierConfig,
-    BarrierInstance,
-    BarrierManagerStats,
-    BarrierState,
-    BarrierSummary,
-    BarrierType,
+    BarrierConfig, BarrierInstance, BarrierManagerStats, BarrierState, BarrierSummary, BarrierType,
     CoopBarrierManager,
-};
-pub use broadcast_mgr::{
-    BcastGroup,
-    BcastMessage,
-    BcastMsgState,
-    BcastSequencer,
-    BcastStats,
-    BroadcastReliability,
-    CoopBroadcastMgr,
-    DeliveryQueue,
-};
-pub use budget::{
-    BudgetForecast,
-    BudgetGroup,
-    BudgetLoan,
-    BudgetManagerStats,
-    BudgetResource,
-    BudgetState,
-    CoopBudgetManager,
-    ProcessBudget,
-    ResourceBudgetEntry,
-};
-pub use cap_exchange::{
-    CapExState,
-    CapRight,
-    CapScope,
-    CapToken,
-    CapTransfer,
-    CoopCapExchange,
-    CoopCapExchangeStats,
-};
-pub use capability_proto::{
-    CapObjectType,
-    CapRight as CapProtoRight,
-    CapabilityToken,
-    CoopCapProtocol,
-    CoopCapProtocolStats,
-    ProcessCapTable,
-};
-pub use channel::{
-    Channel,
-    ChannelDirection,
-    ChannelError,
-    ChannelId,
-    ChannelManager,
-    ChannelMessage,
-    ChannelPriority,
-    ChannelState,
-    ChannelStats,
-    InlinePayload,
-    MessagePayload,
-};
-pub use checkpoint::{
-    CheckpointSchedule,
-    CheckpointState,
-    CheckpointType,
-    CoopCheckpointManager,
-    CoopCheckpointStats,
-    CoordinatedCheckpoint,
-    ParticipantState,
-    ProcessCheckpoint,
-};
-pub use clock_sync::{
-    ClockSample,
-    ClockSyncStats,
-    CoopClockSync,
-    HlcTimestamp,
-    PeerClockState,
-    SkewAlert,
-};
-pub use coalition::{
-    Coalition,
-    CoalitionMember,
-    CoalitionPurpose,
-    CoalitionState,
-    CoopCoalitionManager,
-    CoopCoalitionStats,
-    MemberRole,
-};
-pub use compliance::{
-    ComplianceLevel,
-    ComplianceMonitor,
-    ComplianceResult,
-    GracePeriod,
-    PenaltyAction,
-    PenaltySchedule,
-    SlaBound,
-    SlaMetric,
-    Violation,
-};
-pub use conflict_resolver::{
-    Conflict,
-    ConflictParty,
-    ConflictResource,
-    ConflictSeverity,
-    ConflictState,
-    CoopConflictResolver,
-    ResolutionStrategy,
-    ResolverStats,
-};
-pub use consensus::{
-    ConsensusAlgorithm,
-    CoopConsensusManager,
-    CoopConsensusStats,
-    Proposal,
-    ProposalState,
-    ProposalType,
-    VoteRecord,
-    VoteType,
-};
-pub use contract::{
-    BreachParty,
-    BreachSeverity,
-    Contract as CoopContract,
-    ContractBreach,
-    ContractManagerStats,
-    ContractState as CoopContractState,
-    ContractTerm,
-    ContractType,
-    CoopContractManager,
-    NegotiationOffer,
-    NegotiationResponse,
-    TermMeasurement,
-    TermType,
-    TermUnit,
-};
-pub use deadline::{
-    AdmissionRejection,
-    AdmissionResult,
-    CoopDeadlineManager,
-    DeadlineClass,
-    DeadlineManagerStats,
-    DeadlineMiss,
-    DeadlineTask,
-    DeadlineUrgency,
-    MissCause,
-    ReclaimableSlack,
-};
-pub use delegation::{
-    CoopDelegationManager,
-    CoopDelegationStats,
-    Delegation,
-    DelegationChain,
-    DelegationConstraint,
-    DelegationState,
-    DelegationType,
-};
-pub use dep_tracker::{
-    CoopDepEdge,
-    CoopDepGraph,
-    CoopDepState,
-    CoopDepStrength,
-    CoopDepTracker,
-    CoopDepTrackerStats,
-    CoopDepType,
-};
-// Round 5 re-exports
-pub use discovery::{
-    CoopDiscoveryManager,
-    CoopDiscoveryStats,
-    DiscoveryQuery,
-    DiscoveryResult,
-    LoadBalanceStrategy,
-    ServiceInstance,
-    ServiceState as CoopServiceState,
-    ServiceType,
-};
-// Round 8 re-exports
-pub use dlm::{
-    CoopDlm,
-    DlmLockRequest,
-    DlmLockState,
-    DlmLockType,
-    DlmResource,
-    LockCompat,
-    WaitForEdge,
-};
-pub use donation::{
-    CoopDonationManager,
-    CoopDonationStats,
-    DonationPriority,
-    DonationPriorityState,
-    DonationReason,
-    PriorityCeiling,
-    PriorityDonation,
-};
-pub use election::{
-    CoopElectionManager,
-    CoopElectionStats,
-    Election,
-    ElectionAlgorithm,
-    ElectionNode,
-    ElectionState,
-    NodeRole,
-};
-pub use embargo::{
-    CoopEmbargoEngine,
-    CoopEmbargoStats,
-    Embargo,
-    EmbargoCheckResult,
-    EmbargoRequest,
-    EmbargoResponse,
-    EmbargoTarget,
-    EmbargoType,
-};
-pub use escrow::{
-    CoopEscrowManager,
-    CoopEscrowStats,
-    DisputeResolution as EscrowDisputeResolution,
-    EscrowCondition,
-    EscrowContract,
-    EscrowResource,
-    EscrowResourceType,
-    EscrowState,
-};
-pub use event_bus::{
-    BusEvent,
-    CoopEventBus,
-    DeadLetter,
-    DeliveryStatus,
-    EventBusPriority,
-    EventTopic,
-    Subscriber as EventBusSubscriber,
-    SubscriberFilter,
-};
-pub use events::{
-    CoopEvent,
-    EventCategory,
-    EventFilter,
-    EventType,
-    SubscriptionId,
-};
-pub use exchange::{
-    CoopExchangeManager,
-    CoopExchangeStats,
-    ExchangeOrder,
-    ExchangeResource,
-    MarketStats,
-    OrderBook,
-    OrderSide,
-    OrderState,
-    Trade,
-};
-pub use fairness_monitor::{
-    CoopFairnessMonitor,
-    CoopFairnessStats,
-    FairnessResource,
-    FairnessVerdict,
-    ResourceFairness,
-    StarvationAlert,
-};
-pub use fairshare::{
-    CoopFairShareScheduler,
-    FairShareEntity,
-    FairShareStats,
-    FairnessMetrics,
-    ShareWeight,
-    VirtualTime,
-};
-pub use feedback::{
-    CoopFeedback,
-    CoopMetrics,
-    FeedbackCollector,
-    FeedbackType,
-};
-pub use fence_proto::{
-    BarrierGroup as FenceBarrierGroup,
-    CoopFenceProtoStats,
-    CoopFenceProtocol,
-    EpochState,
-    FenceType,
-    GracePeriod as FenceGracePeriod,
-    ThreadEpochInfo,
-};
-pub use gossip::{
-    CoopGossipManager,
-    GossipConfig,
-    GossipMessage,
-    GossipMessageType,
-    GossipNode,
-    GossipStats,
-    NodeHealth,
-    VectorClock,
-};
-pub use governance::{
-    ConditionOp,
-    CoopGovernanceEngine,
-    CoopGovernanceStats,
-    PolicyAction,
-    PolicyCondition,
-    PolicyPriority,
-    PolicyRule,
-    PolicyScope,
-    PolicySet,
-    TenantBoundary,
-};
-pub use group_sched::{
-    CoopGroupSched,
-    GroupMember,
-    GroupMemberState,
-    GroupSchedPolicyV2,
-    SchedGroupV2 as CoopSchedGroup,
-};
-pub use handshake::{
-    Capability,
-    CapabilitySet,
-    CoopHandshakeManager,
-    HandshakeManagerStats,
-    HandshakeSession,
-    HandshakeState,
-    HelloMessage,
-    HelloResponse,
-    PerfHintType,
-    PerformanceHint,
-    ProtocolVersion as HandshakeProtocolVersion,
-};
-pub use health_monitor::{
-    CascadeDetector,
-    CoopHealthMonitor,
-    FailureDomain,
-    HealthCheck as CoopHealthCheck,
-    HealthStatus as CoopHealthStatus,
-    Heartbeat as CoopHeartbeat,
-    MonitoredComponent,
-    RecoveryActionCoop,
-};
-pub use healthcheck::{
-    CascadeEvent,
-    CoopHealthCheckManager,
-    CoopHealthCheckStats,
-    ProbeConfig,
-    ProbeResult,
-    ProbeState,
-    ProbeType,
-    ProcessHealthState,
-};
-pub use hints::{
-    AppHint,
-    AppHintType,
-    HintBus,
-    KernelAdvisory,
-    KernelAdvisoryType,
-};
-pub use intent::{
-    CoopIntentEngine,
-    CoopIntentStats,
-    IntentCategory,
-    IntentConflict,
-    IntentDeclaration,
-    IntentPriority,
-    IntentRequirement,
-    IntentState,
-};
-pub use leader_election::{
-    CoopLeaderElection,
-    ElectionRole,
-    LeaderLease,
-    VoteResponse,
-};
-pub use learning::{
-    CoopLearningEngine,
-    Feature,
-    FeatureVector,
-    LearningConfig,
-    LearningStats,
-    QTable,
-    RewardComponent,
-    RewardSignal,
-    SchedulingAction as LearningAction,
-};
-pub use lease::{
-    CoopLeaseManager,
-    CoopLeaseStats,
-    Lease,
-    LeasePriority,
-    LeaseRequest,
-    LeaseResource,
-    LeaseState,
-};
-pub use load_shed::{
-    ClassPolicy,
-    CoopLoadShedder,
-    RequestClass,
-    ShedDecision,
-    ShedLevel,
-    SubsystemShedState,
-};
-pub use mediation::{
-    CoopMediationManager,
-    CoopMediationStats,
-    FairnessRecord,
-    MediationPolicy,
-    ResolutionState,
-};
-pub use membership_mgr::{
-    CoopMembershipMgr,
-    JoinRequest,
-    MemberDesc,
-    MemberStatus,
-    MembershipEvent,
-    MembershipEventKind,
-    MembershipStats,
-    MembershipView,
-};
-pub use migration_coop::{
-    CoopMigrationCoordinator,
-    CoopMigrationReason,
-    CoopMigrationState,
-    CoopMigrationStats,
-    MigrationPlan,
-    MigrationTarget as CoopMigrationTarget,
-    StateItemType,
-    StateTransferItem,
-};
-pub use negotiate::{
-    Contract,
-    ContractId,
-    ContractState,
-    NegotiationEngine,
-    ResourceDemand,
-    ResourceOffer,
-};
-pub use notification::{
-    CoopNotificationManager,
-    CoopNotificationStats,
-    DeliveryGuarantee,
-    Notification,
-    NotificationPriority,
-    NotificationState,
-    Subscription,
-    SubscriptionFilter,
-    Topic,
-};
-pub use partition::{
-    CoopPartitionManager,
-    CoopPartitionStats,
-    Partition,
-    PartitionBorrow,
-    PartitionOp,
-    PartitionResource,
-};
-pub use pi_protocol::{
-    BoostReasonCoop,
-    CoopPiProtocol,
-    CoopPiProtocolStats,
-    PiProtocol,
-    PiResource,
-    PriorityBoost as CoopPriorityBoost,
-    TaskPriorityState,
-};
-pub use pledge::{
-    CoopPledge,
-    CoopPledgeManager,
-    CoopPledgeStats,
-    PledgeDirection,
-    PledgeReliability,
-    PledgeResource,
-    PledgeState,
-};
-pub use priority_coop::{
-    ActiveBoost,
-    CoopBoostReason,
-    CoopPriorityClass,
-    CoopPriorityEngine,
-    CoopPriorityStats,
-    NegotiationAction,
-    NegotiationRequest,
-    NegotiationResult,
-    ProcessPriority,
-};
-pub use protocol::{
-    CoopCapability,
-    CoopMessage,
-    CoopMessageType,
-    CoopSession,
-    CoopSessionState,
-    ProtocolVersion,
-};
-pub use quorum::{
-    CoopQuorumProtocol,
-    CoopQuorumStats,
-    Proposal as QuorumProposal,
-    QuorumGroup,
-    QuorumMember,
-    QuorumPolicy,
-    QuorumState,
-    Vote as QuorumVote,
-    VoteValue as QuorumVoteValue,
-};
-pub use quorum_tracker::{
-    Ballot,
-    CoopQuorumTracker,
-    JointQuorum,
-    QuorumStats,
-    VoteValue,
-};
-pub use quota_coop::{
-    CoopQuotaManager,
-    CoopQuotaPool,
-    CoopQuotaResource,
-    CoopQuotaState,
-    CoopQuotaStats,
-    QuotaEntry,
-    QuotaLoan,
-};
-pub use raft_engine::{
-    CoopRaftEngine,
-    CoopRaftStats,
-    RaftLogEntry,
-    RaftNode,
-    RaftPeer,
-    RaftRole,
-};
-pub use rate_limiter::{
-    ConsumerRateState,
-    CoopRateLimiter,
-    RateDecision,
-    RateLimitAlgorithm,
-    SlidingWindowCounter,
-    TokenBucket,
-};
-pub use ratelimit_coop::{
-    CoopRateLimitManager,
-    CoopRateLimitStats,
-    CoopSlidingWindow,
-    CoopTokenBucket as RateLimitTokenBucket,
-    ProcessRateState,
-    RateLimitConfig,
-    RateLimitDecision,
-    RateLimitGroup,
-    RateLimitScope,
-};
-pub use registry::{
-    CapabilityCategory,
-    CapabilityRegistry,
-    CapabilityStatus,
-    RegisteredCapability,
-    ServiceDescriptor,
-    ServiceDirectory,
-};
-pub use reputation::{
-    CoopReputationManager,
-    CoopReputationStats,
-    DimensionScore,
-    ProcessReputation,
-    ReputationDimension,
-    ReputationLevel,
-};
-pub use reservation::{
-    CoopReservationManager,
-    CoopReservationStats,
-    GrantedAllocation,
-    ReservableResource,
-    Reservation,
-    ReservationPriority,
-    ReservationState as CoopReservationState,
-    ResourceCapacity,
-    ResourceRequest,
-};
-pub use rewards::{
-    CoopLevel,
-    PenaltyReason,
-    RewardConfig,
-    RewardEngine,
-    RewardReason,
-    ScoreEvent,
-    ScoreSnapshot,
-};
-pub use saga_coord::{
-    CoopSagaCoord,
-    RecoveryMode,
-    Saga,
-    SagaLogEntry,
-    SagaLogEvent,
-    SagaStats,
-    SagaStatus,
-    SagaStep,
-    StepStatus,
-};
-pub use service_mesh::{
-    CircuitState,
-    CoopServiceMesh,
-    CoopServiceMeshStats,
-    LoadBalanceStrategy as MeshLoadBalance,
-    Service,
-    ServiceInstance as MeshServiceInstance,
-    ServiceState as MeshServiceState,
-};
-pub use service_registry::{
-    CoopServiceRegistry,
-    DependencyStatus,
-    LookupResult,
-    ServiceCapability,
-    ServiceEndpoint,
-    ServiceEvent,
-    ServiceEventType,
-    ServiceHealth,
-};
-pub use session::{
-    Session,
-    SessionCapabilities,
-    SessionGroup,
-    SessionId,
-    SessionManager,
-    SessionState,
-};
-pub use sla::{
-    CoopSlaEngine,
-    CoopSlaStats,
-    ErrorBudget,
-    SlaContract,
-    SlaTier,
-    SloDefinition,
-    SloMetric,
-    SloStatus,
-};
-pub use snapshot_coop::{
-    CoopSnapshot,
-    CoopSnapshotManager,
-    CoopSnapshotStats,
-    CoordinatedSnapshot,
-    DiffType,
-    SnapshotDataType,
-    SnapshotDiff,
-    SnapshotEntry,
-    SnapshotState as CoopSnapshotState,
-};
-pub use snapshot_sync::{
-    ChannelRecording,
-    ChannelTracker,
-    ComponentSnapshot,
-    ConsistentSnapshot,
-    CoopSnapshotSync,
-    RecordedMessage,
-    SnapshotStateCoop,
-    SnapshotType,
-};
-pub use state_transfer::{
-    CoopStateTransfer,
-    SnapshotDesc,
-    TransferChunk,
-    TransferMode,
-    TransferSession,
-    TransferState,
-    TransferStats,
-};
-pub use task_graph::{
-    CoopTaskGraph,
-    CriticalPathSegment,
-    ExecLevel,
-    FailurePolicy,
-    GraphStats,
-    GraphTask,
-    GraphTaskPriority,
-    GraphTaskStatus,
-};
-pub use throttle_coop::{
-    BackpressureSignal,
-    CoopThrottleManager,
-    CoopThrottleStats,
-    CoopTokenBucket,
-    ProcessThrottleState,
-    ThrottleConfig,
-    ThrottleResource,
-    ThrottleState,
-};
-pub use timeline::{
-    CoopTimelineManager,
-    CoopTimelineStats,
-    ReservationState as TimelineReservationState,
-    ReservationType,
-    ResourceTimeline,
-    TimeSlot,
-    TimelineConflict,
-    TimelineReservation,
-    TimelineResource,
-};
-pub use token_ring::{
-    CoopTokenRing,
-    CoopTokenRingStats,
-    RingNode,
-    RingNodeState,
-    Token,
-    TokenState,
-};
-pub use trust::{
-    TrustDimension,
-    TrustEvidence,
-    TrustLevel,
-    TrustManager,
-    TrustSnapshot,
-};
-pub use txn_log::{
-    CoopTxnLog,
-    GroupCommitBatch,
-    LogRecord,
-    LogRecordType,
-    LogSegment,
-    RecoveryAction,
-    RecoveryActionType,
-    TxnCheckpoint,
-    TxnLogStats,
-    TxnMeta,
-    TxnState,
-};
-pub use voting::{
-    BallotState,
-    CoopVotingManager,
-    CoopVotingStats,
-    VoteType as CoopVoteType,
-};
-pub use watchdog_proto::{
-    CoopWatchdogProtoStats,
-    CoopWatchdogProtocol,
-    EscalationLevel,
-    LivenessState,
-    PhiDetector,
-    WatchdogRecovery,
-    WatchedProcess,
-};
-pub use witness::{
-    AgreementRecord,
-    Attestation,
-    AttestationType,
-    CoopWitnessManager,
-    CoopWitnessStats,
-    Witness,
-    WitnessRole,
-    WitnessStatus,
-};
-pub use work_steal::{
-    CoopWorkStealer,
-    StealStrategyCoop,
-    StealWorker,
-    WorkItem,
-    WorkerDeque,
-    WorkerStateCoop,
-    WorkerStats as StealWorkerStats,
-};
-
-// Round 10 re-exports
-pub use causal_order::{
-    CausalBarrier,
-    CausalEvent,
-    CausalOrderStats,
-    CoopCausalOrder,
-    DeliveryOrder,
-    NodeCausalState,
-};
-pub use circuit_breaker::{
-    Bulkhead,
-    CircuitBreaker,
-    CircuitBreakerStats,
-    CircuitConfig,
-    CoopCircuitBreaker,
-    FailureType as CircuitFailureType,
-    WindowEntry,
-};
-pub use consensus_log::{
-    CoopConsensusLog,
-    ConsensusLogStats,
-    LogEntry,
-    LogEntryState,
-    LogEntryType,
-    ReplicationProgress,
-    SnapshotMeta as ConsensusSnapshotMeta,
-};
-pub use consistent_hash::{
-    ConsistentHashStats,
-    CoopConsistentHash,
-    ItemPlacement,
-    RebalanceEvent,
-    RebalanceReason,
-    VirtualNode,
-};
-pub use failure_detector::{
-    CoopFailureDetector,
-    DetectionMethod,
-    FailureDetectorStats,
-    HealthAssessment,
-    HeartbeatWindow,
-    NodeDetectorState,
-    PartitionDetector,
-};
-pub use flow_control::{
-    CongestionSignal,
-    CongestionWindow,
-    CoopFlowControl,
-    CreditCounter,
-    FlowChannel,
-    FlowControlStats,
-    FlowState,
-};
-pub use merkle_tree::{
-    CoopMerkleTree,
-    DiffType as MerkleDiffType,
-    MerkleDiff,
-    MerkleNode as MerkleTreeNode,
-    MerkleProof,
-    MerkleTreeStats,
-    ProofStep,
-};
-pub use priority_queue::{
-    CoopPriorityQueue,
-    NodePartition,
-    PriorityBucket,
-    PriorityQueueStats,
-    QueueItem,
-    QueueItemState,
-    TaskUrgency,
-};
-pub use slot_alloc::{
-    CoopSlotAllocator,
-    NodeAllocation,
-    SlotAllocStats,
-    SlotFrame,
-    SlotPriority,
-    SlotState,
-};
-pub use svc_discovery::{
-    CoopServiceDiscovery,
-    LbStrategy,
-    ServiceDepEdge,
-    ServiceDiscoveryStats,
-    ServiceState as SvcState,
-};
-pub use versioned_state::{
-    CoopVersionedState,
-    MvccStats,
-    MvccTransaction,
-    MvccTxnState,
-    Snapshot as MvccSnapshot,
-    VersionChain,
-    VersionRecord,
-    VersionVisibility,
-};
-
-// Round 11 re-exports
-pub use bloom_filter::{
-    BloomFilter,
-    BloomFilterStats,
-    CoopBloomFilter,
-    CountingBloomFilter,
-    ScalableBloomFilter,
-};
-pub use crdt_engine::{
-    CoopCrdtEngine,
-    CrdtEngineStats,
-    CrdtType,
-    GCounter,
-    GSet,
-    LWWRegister,
-    ORSet,
-    PNCounter,
-};
-pub use epoch_mgr::{
-    AdvanceResult,
-    CleanupType,
-    CoopEpochMgr,
-    DeferredCleanup,
-    EpochMgrStats,
-    EpochParticipant,
-    ParticipantState as EpochParticipantState,
-};
-pub use id_gen::{
-    CoopIdGen,
-    IdFormat,
-    IdGenStats,
-    NamespaceGenerator,
-    NodeRegistration as IdNodeRegistration,
-    SnowflakeId,
-};
-pub use log_replicator::{
-    CompactionPolicy,
-    CoopLogReplicator,
-    FollowerInfo,
-    FollowerState,
-    LogEntry as ReplicatorLogEntry,
-    LogEntryKind as ReplicatorLogEntryKind,
-    LogReplicatorStats,
-    SnapshotMeta as ReplicatorSnapshotMeta,
-};
-pub use retry_policy::{
-    BackoffStrategy,
-    CircuitBreaker as RetryCircuitBreaker,
-    CircuitState as RetryCircuitState,
-    CoopRetryPolicy,
-    RetryOutcome,
-    RetryPolicy,
-    RetryPolicyStats,
-    RetryState,
-    StormDetector,
-};
-pub use ring_buffer::{
-    Consumer as RingConsumer,
-    CoopRingBuffer,
-    OverflowPolicy,
-    Producer as RingProducer,
-    RingBufferStats,
-    RingChannel,
-    WatermarkEvent,
-};
-pub use sharding::{
-    CoopSharding,
-    HotShardConfig,
-    Shard,
-    ShardMigration,
-    ShardNode,
-    ShardState,
-    ShardStrategy,
-    ShardingStats,
-    VirtualNode as ShardVirtualNode,
-};
-pub use vector_clock::{
-    CausalEvent as VClockCausalEvent,
-    CausalHistory,
-    CausalOrder,
-    CoopVectorClock,
-    VectorClock as VClockImpl,
-    VectorClockStats,
-    VersionVector,
-};
-pub use write_ahead_log::{
-    ActiveTransaction,
-    CoopWriteAheadLog,
-    WalCheckpoint,
-    WalEntry,
-    WalEntryType,
-    WalSegment,
-    WalStats,
-};
-
-// Round 12 re-exports
-pub use broadcast::{
-    BroadcastMsg,
-    BroadcastPriority,
-    BroadcastStats,
-    BroadcastTopic,
-    CoopBroadcast,
-    Subscriber as BroadcastSubscriber,
-};
-pub use coop_alloc::{
-    AllocClass,
-    ClassBucket,
-    CoopAlloc,
-    CoopAllocRecord,
-    CoopAllocStats,
-    CoopPool,
-    PoolPressure,
-    SubsystemBudget,
-};
-pub use epoch_barrier::{
-    CoopEpochBarrier,
-    DeferredDrop,
-    Epoch as EpochVal,
-    EpochBarrierStats,
-    EpochState as EpochBarrierState,
-    ThreadEpoch,
-};
-pub use fair_lock::{
-    CoopFairLock,
-    FairLock,
-    FairLockStats,
-    FairnessPolicy,
-    HoldType,
-    LockHolder as FairLockHolder,
-    LockWaiter as FairLockWaiter,
-    WaiterState as FairWaiterState,
-};
-pub use hazard_ptr::{
-    CoopHazardPtr,
-    HazardDomain,
-    HazardPtrStats,
-    HazardSlot,
-    HazardState,
-    RetiredNode,
-    ThreadHazardCtx,
-};
-pub use mpsc_queue::{
-    Consumer as MpscConsumer,
-    CoopMpscQueue,
-    MpscInstance,
-    MpscStats,
-    MsgPriority,
-    OverflowAction,
-    Producer as MpscProducer,
-    QueueMsg,
-};
-pub use seqlock::{
-    CoopSeqlock,
-    ReadOutcome,
-    Seqcount,
-    Seqlock,
-    SeqlockState,
-    SeqlockStats,
-};
-pub use skip_list::{
-    CoopSkipList,
-    SkipList,
-    SkipListStats,
-    SkipNode,
-};
-
-// Round 13 re-exports
-pub use adaptive_lock::{
-    AdaptiveLockInstance,
-    AdaptiveLockState,
-    AdaptiveLockStats,
-    ContentionLevel,
-    CoopAdaptiveLock,
-    LockStrategy,
-    SpinParams,
-};
-pub use async_queue::{
-    AsyncQueueInstance,
-    AsyncQueueStats,
-    CoopAsyncQueue,
-    ItemState as AsyncItemState,
-    QueueItem as AsyncQueueItem,
-    QueueOrder,
-    QueuePriority as AsyncQueuePriority,
-};
-pub use batch_sync::{
-    BatchGroup,
-    BatchOpType,
-    BatchSyncStats,
-    CoopBatchSync,
-    ParticipantState as BatchParticipantState,
-    BatchParticipant,
-};
-pub use consensus_mgr::{
-    ConsensusAlgorithm as ConsMgrAlgorithm,
-    ConsensusMgrStats,
-    CoopConsensusMgr,
-    Proposal as ConsMgrProposal,
-    ProposalState as ConsMgrProposalState,
-    Vote as ConsMgrVote,
-    VoterRecord,
-};
-pub use counter_set::{
-    CoopCounterSet,
-    Counter,
-    CounterSet,
-    CounterSetStats,
-    CounterType,
-    OverflowPolicy as CounterOverflowPolicy,
-    PerCpuCounter,
-};
-pub use event_sink::{
-    CoopEventSink,
-    EventFilter as SinkEventFilter,
-    EventSeverity as SinkEventSeverity,
-    EventCategory as SinkEventCategory,
-    EventSinkInstance,
-    EventSinkStats,
-    SinkEvent,
-    SinkSubscriber,
-};
-pub use futex_mgr::{
-    CoopFutexMgr,
-    FutexBucket,
-    FutexMgrStats,
-    FutexOp,
-    FutexWaitState,
-    FutexWaiter,
-};
-pub use lease_mgr::{
-    CoopLeaseMgr,
-    LeaseHolder,
-    LeaseMgrStats,
-    LeaseRequest as LeaseMgrRequest,
-    LeaseState as LeaseMgrV2State,
-    LeaseType as LeaseMgrV2Type,
-    ResourceLease,
-    ResourceLeaseState,
-};
-pub use prio_arbiter::{
-    ArbitrationPolicy,
-    ArbitrationRequest,
-    ArbitrationResult,
-    Contender,
-    CoopPrioArbiter,
-    PrioArbiterStats,
-    ResourceArbContext,
-};
-pub use task_steal::{
-    CoopTaskSteal,
-    StealPolicy,
-    StealPriority,
-    StealResult,
-    StealTask,
-    StealTaskState,
-    TaskStealStats,
-    WorkQueue,
-};
-pub use throttle_gate::{
-    CoopThrottleGate,
-    GateState,
-    SlidingWindowState,
-    ThrottleAlgorithm,
-    ThrottleGateInstance,
-    ThrottleGateStats,
-    TokenBucketState as ThrottleTokenBucket,
-};
-
-// Round 14 re-exports
-pub use credit_flow::{
-    CoopCreditFlow,
-    CreditEndpoint,
-    CreditFlowState,
-    CreditFlowStats,
-    CreditGrant,
-    CreditType,
-};
-pub use fair_share::{
-    AllocationResult,
-    CoopFairShare,
-    ResourceDim,
-    ShareEntity,
-    ShareEntityState,
-    ShareType,
-};
-pub use gossip_proto::{
-    CoopGossipProto,
-    GossipMessage as GossipProtoMessage,
-    GossipMsgType,
-    GossipNode as GossipProtoNode,
-    GossipNodeState,
-    GossipProtoStats,
-    GossipStyle,
-};
-pub use heartbeat_mgr::{
-    CoopHeartbeatMgr,
-    DetectorType,
-    HeartbeatMgrStats,
-    HeartbeatRecord,
-    HeartbeatState,
-    MonitoredNode,
-};
-pub use join_handle::{
-    CoopJoinHandle,
-    JoinGroup,
-    JoinHandle,
-    JoinHandleStats,
-    JoinResult,
-    JoinState,
-};
-pub use merge_sort::{
-    CoopMergeSort,
-    MergeSortStats,
-    MergeTask,
-    SortOrder,
-    SortSession,
-    SortState,
-};
-pub use permit_pool::{
-    CoopPermitPool,
-    Permit,
-    PermitPool,
-    PermitPoolStats,
-    PermitState,
-    PermitType,
-    PoolWaiter,
-};
-pub use rendezvous::{
-    CoopRendezvous,
-    ExchangeMode,
-    RendezvousParticipant,
-    RendezvousPoint,
-    RendezvousState,
-    RendezvousStats,
-};
-pub use split_lock::{
-    AlignmentIssue,
-    CoopSplitLock,
-    SplitLockAction,
-    SplitLockEvent,
-    SplitLockPolicy,
-    SplitLockStats,
-    ThreadSplitLockState,
 };
 // Round 15 re-exports
 pub use barrier_pool::{
-    BarrierInstance as PoolBarrierInstance,
-    BarrierParticipant,
-    BarrierPoolStats,
-    BarrierState as PoolBarrierState,
-    BarrierType as PoolBarrierType,
-    CoopBarrierPool,
+    BarrierInstance as PoolBarrierInstance, BarrierParticipant, BarrierPoolStats,
+    BarrierState as PoolBarrierState, BarrierType as PoolBarrierType, CoopBarrierPool,
 };
-pub use claim_mgr::{
-    Claim,
-    ClaimMgrStats,
-    ClaimState,
-    ClaimType,
-    CoopClaimMgr,
+pub use batch_sync::{
+    BatchGroup, BatchOpType, BatchParticipant, BatchSyncStats, CoopBatchSync,
+    ParticipantState as BatchParticipantState,
 };
-pub use condvar_mgr::{
-    CondVar,
-    CondWaiter,
-    CondWaitResult,
-    CondvarMgrStats,
-    CoopCondvarMgr,
+pub use bio_coop::{CoopBio, CoopBioRequest, CoopBioState, CoopBioStats, CoopBioType};
+pub use bitlock::{Bitlock, BitlockArray, BitlockState, BitlockStats, CoopBitlock};
+pub use blkdev_coop::{
+    CoopBlkdev, CoopBlkdevInstance, CoopBlkdevState, CoopBlkdevStats, CoopBwAlloc,
 };
-pub use deadline_sched::{
-    CoopDeadlineSched,
-    DeadlineSchedStats,
-    DlParams,
-    DlTask,
-    DlTaskState,
-};
-pub use dependency_graph::{
-    CoopDependencyGraph,
-    CycleInfo,
-    DepEdge,
-    DepEdgeType,
-    DepGraphStats,
-    DepNode,
-    DepNodeType,
-};
-pub use quorum_mgr::{
-    CoopQuorumMgr,
-    QuorumMgrStats,
-    QuorumType,
-    VoteResult,
-};
-pub use work_stealing::{
-    CoopWorkStealing,
-    WorkStealingStats,
-    WorkerQueue,
-    WsTask,
-    WsTaskPriority,
-    WsTaskState,
-};
-
-// Round 16 re-exports
-pub use broadcast_chan::{
-    BroadcastChannel,
-    BroadcastChanStats,
-    CoopBroadcastChan,
-    BroadcastMsg as BroadcastChanMsg,
-    BroadcastState as BroadcastChanState,
-    BroadcastSubscriber as BroadcastChanSubscriber,
-};
-pub use latch_mgr::{
-    CoopLatchMgr,
-    CountdownLatch,
-    LatchMgrStats,
-    LatchState,
-};
-pub use mpmc_queue::{
-    CoopMpmcQueue,
-    MpmcEntry,
-    MpmcQueue,
-    MpmcQueueStats,
-    MpmcState,
-};
-pub use once_cell::{
-    CoopOnceCell,
-    OnceCell,
-    OnceCellState,
-    OnceCellStats,
-};
-pub use park_mgr::{
-    CoopParkMgr,
-    ParkMgrStats,
-    ParkState,
-    ParkedThread,
-};
-pub use priority_inherit::{
-    CoopPriorityInherit,
-    PiChainEntry,
-    PiMutex,
-    PriorityInheritStats,
-    ThreadPriority,
-};
-pub use seq_lock::{CoopSeqLock, SeqLock, SeqLockStats};
-pub use ticket_lock::{CoopTicketLock, TicketLock, TicketLockStats};
-pub use wait_group::{
-    CoopWaitGroup,
-    WaitGroup,
-    WaitGroupState,
-    WaitGroupStats,
-};
-// Round 17 re-exports
-pub use async_barrier::{
-    AsyncBarrier,
-    AsyncBarrierPhase,
-    AsyncBarrierStats,
-    AsyncWaiter,
-    CoopAsyncBarrier,
-};
-pub use epoch_gc::{
-    CoopEpochGc,
-    DeferredItem,
-    EpochCollector,
-    EpochGcStats,
-    EpochState as EpochGcState,
-    ThreadEpochRecord,
-};
-pub use fair_sched::{
-    CoopFairSched,
-    FairSchedClass,
-    FairSchedStats,
-    FairTask,
-};
-pub use lock_free_list::{
-    CoopLockFreeList,
-    LfNode,
-    LfNodeState,
-    LockFreeList,
-    LockFreeListStats,
-};
-pub use phase_barrier::{
-    CoopPhaseBarrier,
-    PhaseBarrier,
-    PhaseBarrierStats,
-    PhaseParticipant,
-    PhaseState,
-};
-pub use rcu_sync::{
-    CoopRcuSync,
-    GracePeriodTracker,
-    RcuReader,
-    RcuReaderState,
-    RcuSyncCallback as RcuSyncCb,
-    RcuSyncStats,
-};
-// Round 18 re-exports
-pub use backoff::{
-    BackoffState,
-    BackoffStats,
-    BackoffStrategy as CoopBackoffStrategy,
-    CoopBackoff,
+// Round 11 re-exports
+pub use bloom_filter::{
+    BloomFilter, BloomFilterStats, CoopBloomFilter, CountingBloomFilter, ScalableBloomFilter,
 };
 pub use bounded_queue::{
-    BoundedQueue,
-    BoundedQueueState,
-    BoundedQueueStats,
-    CoopBoundedQueue,
+    BoundedQueue, BoundedQueueState, BoundedQueueStats, CoopBoundedQueue,
     QueueItem as BoundedQueueItem,
 };
-pub use countdown::{
-    CoopCountdown,
-    CountdownLatch as CoopCountdownLatch,
-    CountdownState,
-    CountdownStats,
+// Round 12 re-exports
+pub use broadcast::{
+    BroadcastMsg, BroadcastPriority, BroadcastStats, BroadcastTopic, CoopBroadcast,
+    Subscriber as BroadcastSubscriber,
 };
-pub use futex::{
-    CoopFutex,
-    CoopFutexBucket,
-    CoopFutexOp,
-    CoopFutexStats,
-    CoopFutexWaiter,
+// Round 16 re-exports
+pub use broadcast_chan::{
+    BroadcastChanStats, BroadcastChannel, BroadcastMsg as BroadcastChanMsg,
+    BroadcastState as BroadcastChanState, BroadcastSubscriber as BroadcastChanSubscriber,
+    CoopBroadcastChan,
 };
-pub use latch::{
-    CoopLatch,
-    Latch,
-    LatchState as CoopLatchState,
-    LatchStats,
+pub use broadcast_mgr::{
+    BcastGroup, BcastMessage, BcastMsgState, BcastSequencer, BcastStats, BroadcastReliability,
+    CoopBroadcastMgr, DeliveryQueue,
 };
-// Round 19 re-exports
-pub use async_oneshot::{
-    AsyncOneshot,
-    AsyncOneshotStats,
-    CoopAsyncOneshot,
-    OneshotState,
+pub use budget::{
+    BudgetForecast, BudgetGroup, BudgetLoan, BudgetManagerStats, BudgetResource, BudgetState,
+    CoopBudgetManager, ProcessBudget, ResourceBudgetEntry,
 };
-pub use bitlock::{
-    Bitlock,
-    BitlockArray,
-    BitlockState,
-    BitlockStats,
-    CoopBitlock,
+pub use buffer_pool_coop::{
+    BufferPoolCoopEvent, BufferPoolCoopRecord, BufferPoolCoopStats, CoopBufferPool,
 };
-pub use convoy::{
-    CoopConvoy,
-    ConvoyEntry,
-    ConvoySeverity,
-    ConvoyStats,
+pub use cap_exchange::{
+    CapExState, CapRight, CapScope, CapToken, CapTransfer, CoopCapExchange, CoopCapExchangeStats,
 };
-pub use fair_mutex::{
-    CoopFairMutex,
-    FairMutex,
-    FairMutexState,
-    FairMutexStats,
-    FairMutexWaiter,
+pub use capability_coop::{CapCoopEvent, CapCoopRecord, CapCoopStats};
+pub use capability_proto::{
+    CapObjectType, CapRight as CapProtoRight, CapabilityToken, CoopCapProtocol,
+    CoopCapProtocolStats, ProcessCapTable,
 };
-pub use intrusive_list::{
-    CoopIntrusiveList,
-    IntrusiveList,
-    IntrusiveListStats,
-    IntrusiveNode,
-    IntrusiveNodeState,
+// Round 10 re-exports
+pub use causal_order::{
+    CausalBarrier, CausalEvent, CausalOrderStats, CoopCausalOrder, DeliveryOrder, NodeCausalState,
 };
-pub use mpmc_channel::{
-    CoopMpmcChannel,
-    MpmcChannel,
-    MpmcChannelStats,
-    MpmcMsg,
-    MpmcState as MpmcChannelState,
+pub use channel::{
+    Channel, ChannelDirection, ChannelError, ChannelId, ChannelManager, ChannelMessage,
+    ChannelPriority, ChannelState, ChannelStats, InlinePayload, MessagePayload,
 };
-pub use park::{
-    CoopPark,
-    ParkState as CoopParkState,
-    ParkStats,
-    ParkedThread as CoopParkedThread,
+pub use checkpoint::{
+    CheckpointSchedule, CheckpointState, CheckpointType, CoopCheckpointManager,
+    CoopCheckpointStats, CoordinatedCheckpoint, ParticipantState, ProcessCheckpoint,
 };
-pub use spin_barrier::{
-    BarrierPhase,
-    CoopSpinBarrier,
-    SpinBarrier,
-    SpinBarrierStats,
+pub use circuit_breaker::{
+    Bulkhead, CircuitBreaker, CircuitBreakerStats, CircuitConfig, CoopCircuitBreaker,
+    FailureType as CircuitFailureType, WindowEntry,
 };
-// Round 20 re-exports
-pub use read_indicator::{
-    CoopReadIndicator,
-    ReadIndicatorInstance,
-    ReadIndicatorSlot,
-    ReadIndicatorState,
-    ReadIndicatorStats,
-};
-pub use rwlock::{
-    CoopRwLock,
-    RwLockFairness,
-    RwLockInstance,
-    RwLockState,
-    RwLockStats,
-    RwLockWaiter,
-};
-pub use sequence_lock::{SeqlockInstance};
+pub use claim_mgr::{Claim, ClaimMgrStats, ClaimState, ClaimType, CoopClaimMgr};
 // Round 21 re-exports
-pub use clh_lock::{
-    ClhLockInstance,
-    ClhLockStats,
-    ClhNode,
-    ClhNodeState,
-    CoopClhLock,
+pub use clh_lock::{ClhLockInstance, ClhLockStats, ClhNode, ClhNodeState, CoopClhLock};
+pub use clock_sync::{
+    ClockSample, ClockSyncStats, CoopClockSync, HlcTimestamp, PeerClockState, SkewAlert,
 };
-pub use lockdep::{
-    CoopLockdep,
-    LockdepClass,
-    LockdepHoldStack,
-    LockdepNode,
-    LockdepStats,
-    LockdepViolation,
-    LockdepViolationKind,
+// Re-exports from Round 29 — Process/thread cooperation
+pub use clone_coop::{CoopCloneManager, CoopCloneResult, CoopCloneSharingPolicy, CoopCloneStats};
+pub use coalition::{
+    Coalition, CoalitionMember, CoalitionPurpose, CoalitionState, CoopCoalitionManager,
+    CoopCoalitionStats, MemberRole,
 };
-pub use mcs_lock::{
-    CoopMcsLock,
-    McsLockInstance,
-    McsLockStats,
-    McsNode as McsLockNode,
-    McsNodeState as McsLockNodeState,
+pub use compliance::{
+    ComplianceLevel, ComplianceMonitor, ComplianceResult, GracePeriod, PenaltyAction,
+    PenaltySchedule, SlaBound, SlaMetric, Violation,
 };
-pub use rcu_reader::{
-    CoopRcuReader,
-    RcuCallback as RcuReaderCallback,
-    RcuCpuState,
-    RcuFlavor as RcuReaderFlavor,
-    RcuReaderState as RcuReaderCpuState,
-    RcuReaderStats,
+pub use condvar_mgr::{CondVar, CondWaitResult, CondWaiter, CondvarMgrStats, CoopCondvarMgr};
+pub use conflict_resolver::{
+    Conflict, ConflictParty, ConflictResource, ConflictSeverity, ConflictState,
+    CoopConflictResolver, ResolutionStrategy, ResolverStats,
 };
-pub use spinlock::{
-    CoopSpinlock,
-    SpinBackoff,
-    SpinlockInstance,
-    SpinlockState,
-    SpinlockStats,
+pub use congestion_coop::{
+    CongestionCoopEvent, CongestionCoopRecord, CongestionCoopStats, CoopCongestion,
+};
+pub use connection_coop::{
+    ConnectionCoopEvent, ConnectionCoopRecord, ConnectionCoopStats, CoopConnection,
+};
+pub use consensus::{
+    ConsensusAlgorithm, CoopConsensusManager, CoopConsensusStats, Proposal, ProposalState,
+    ProposalType, VoteRecord, VoteType,
+};
+pub use consensus_log::{
+    ConsensusLogStats, CoopConsensusLog, LogEntry, LogEntryState, LogEntryType,
+    ReplicationProgress, SnapshotMeta as ConsensusSnapshotMeta,
+};
+pub use consensus_mgr::{
+    ConsensusAlgorithm as ConsMgrAlgorithm, ConsensusMgrStats, CoopConsensusMgr,
+    Proposal as ConsMgrProposal, ProposalState as ConsMgrProposalState, Vote as ConsMgrVote,
+    VoterRecord,
+};
+pub use consistent_hash::{
+    ConsistentHashStats, CoopConsistentHash, ItemPlacement, RebalanceEvent, RebalanceReason,
+    VirtualNode,
+};
+pub use contract::{
+    BreachParty, BreachSeverity, Contract as CoopContract, ContractBreach, ContractManagerStats,
+    ContractState as CoopContractState, ContractTerm, ContractType, CoopContractManager,
+    NegotiationOffer, NegotiationResponse, TermMeasurement, TermType, TermUnit,
+};
+pub use convoy::{ConvoyEntry, ConvoySeverity, ConvoyStats, CoopConvoy};
+pub use coop_alloc::{
+    AllocClass, ClassBucket, CoopAlloc, CoopAllocRecord, CoopAllocStats, CoopPool, PoolPressure,
+    SubsystemBudget,
+};
+pub use countdown::{
+    CoopCountdown, CountdownLatch as CoopCountdownLatch, CountdownState, CountdownStats,
+};
+pub use counter_set::{
+    CoopCounterSet, Counter, CounterSet, CounterSetStats, CounterType,
+    OverflowPolicy as CounterOverflowPolicy, PerCpuCounter,
+};
+pub use crdt_engine::{
+    CoopCrdtEngine, CrdtEngineStats, CrdtType, GCounter, GSet, LWWRegister, ORSet, PNCounter,
+};
+pub use credential_coop::{CoopCredential, CredCoopEvent, CredCoopRecord, CredCoopStats};
+// Round 14 re-exports
+pub use credit_flow::{
+    CoopCreditFlow, CreditEndpoint, CreditFlowState, CreditFlowStats, CreditGrant, CreditType,
+};
+pub use crypto_coop::{
+    CoopCrypto, CryptoCoopEvent, CryptoCoopMode, CryptoCoopRecord, CryptoCoopStats,
+};
+pub use deadline::{
+    AdmissionRejection, AdmissionResult, CoopDeadlineManager, DeadlineClass, DeadlineManagerStats,
+    DeadlineMiss, DeadlineTask, DeadlineUrgency, MissCause, ReclaimableSlack,
+};
+pub use deadline_sched::{CoopDeadlineSched, DeadlineSchedStats, DlParams, DlTask, DlTaskState};
+pub use delegation::{
+    CoopDelegationManager, CoopDelegationStats, Delegation, DelegationChain, DelegationConstraint,
+    DelegationState, DelegationType,
+};
+pub use dentry_coop::{CoopDentry, CoopDentryEntry, CoopDentryState, CoopDentryStats};
+pub use dep_tracker::{
+    CoopDepEdge, CoopDepGraph, CoopDepState, CoopDepStrength, CoopDepTracker, CoopDepTrackerStats,
+    CoopDepType,
+};
+pub use dependency_graph::{
+    CoopDependencyGraph, CycleInfo, DepEdge, DepEdgeType, DepGraphStats, DepNode, DepNodeType,
+};
+pub use devmapper_coop::{
+    CoopDevMapper, CoopDmDevice, CoopDmState, CoopDmStats, CoopDmTarget, CoopThinPool,
+};
+// Round 5 re-exports
+pub use discovery::{
+    CoopDiscoveryManager, CoopDiscoveryStats, DiscoveryQuery, DiscoveryResult, LoadBalanceStrategy,
+    ServiceInstance, ServiceState as CoopServiceState, ServiceType,
+};
+// Round 8 re-exports
+pub use dlm::{
+    CoopDlm, DlmLockRequest, DlmLockState, DlmLockType, DlmResource, LockCompat, WaitForEdge,
+};
+pub use dns_coop::{
+    CoopDns, CoopDnsCacheState, CoopDnsStats, CoopDnsType, DnsQueryTracker, SharedDnsEntry,
+};
+pub use donation::{
+    CoopDonationManager, CoopDonationStats, DonationPriority, DonationPriorityState,
+    DonationReason, PriorityCeiling, PriorityDonation,
 };
 // Round 22 re-exports
 pub use dual_queue::{
-    CoopDualQueue,
-    DualQueueNodeState,
-    DualQueueNodeType,
-    DualQueueState,
+    CoopDualQueue, DualQueueNode, DualQueueNodeState, DualQueueNodeType, DualQueueState,
     DualQueueStats,
-    DualQueueNode,
+};
+pub use election::{
+    CoopElectionManager, CoopElectionStats, Election, ElectionAlgorithm, ElectionNode,
+    ElectionState, NodeRole,
 };
 pub use elim_stack::{
-    CoopElimStack,
-    ElimArrayConfig,
-    ElimOpType,
-    ElimSlot,
-    ElimSlotState,
-    ElimStackStats,
+    CoopElimStack, ElimArrayConfig, ElimOpType, ElimSlot, ElimSlotState, ElimStackStats,
+};
+pub use embargo::{
+    CoopEmbargoEngine, CoopEmbargoStats, Embargo, EmbargoCheckResult, EmbargoRequest,
+    EmbargoResponse, EmbargoTarget, EmbargoType,
+};
+pub use epoch_barrier::{
+    CoopEpochBarrier, DeferredDrop, Epoch as EpochVal, EpochBarrierStats,
+    EpochState as EpochBarrierState, ThreadEpoch,
+};
+pub use epoch_gc::{
+    CoopEpochGc, DeferredItem, EpochCollector, EpochGcStats, EpochState as EpochGcState,
+    ThreadEpochRecord,
+};
+pub use epoch_mgr::{
+    AdvanceResult, CleanupType, CoopEpochMgr, DeferredCleanup, EpochMgrStats, EpochParticipant,
+    ParticipantState as EpochParticipantState,
+};
+pub use epoll_coop::{CoopEpoll, EpollCoopEvent, EpollCoopRecord, EpollCoopStats};
+pub use escrow::{
+    CoopEscrowManager, CoopEscrowStats, DisputeResolution as EscrowDisputeResolution,
+    EscrowCondition, EscrowContract, EscrowResource, EscrowResourceType, EscrowState,
+};
+pub use event_bus::{
+    BusEvent, CoopEventBus, DeadLetter, DeliveryStatus, EventBusPriority, EventTopic,
+    Subscriber as EventBusSubscriber, SubscriberFilter,
+};
+pub use event_sink::{
+    CoopEventSink, EventCategory as SinkEventCategory, EventFilter as SinkEventFilter,
+    EventSeverity as SinkEventSeverity, EventSinkInstance, EventSinkStats, SinkEvent,
+    SinkSubscriber,
+};
+// Round 26 re-exports — IPC/signal cooperative coordination
+pub use eventfd_coop::{CoopEventfd, EventfdCoopEvent, EventfdCoopRecord, EventfdCoopStats};
+pub use events::{CoopEvent, EventCategory, EventFilter, EventType, SubscriptionId};
+pub use exchange::{
+    CoopExchangeManager, CoopExchangeStats, ExchangeOrder, ExchangeResource, MarketStats,
+    OrderBook, OrderSide, OrderState, Trade,
 };
 pub use exchanger::{
-    CoopExchanger,
-    ExchangeResult,
-    ExchangeSlot,
-    ExchangeSlotState,
-    ExchangerArena,
-    ExchangerStats,
+    CoopExchanger, ExchangeResult, ExchangeSlot, ExchangeSlotState, ExchangerArena, ExchangerStats,
+};
+pub use exec_coop::{CoopExecManager, CoopExecPhase, CoopExecRecord, CoopExecStats};
+pub use exit_coop::{CoopExitManager, CoopExitPhase, CoopExitRecord, CoopExitStats};
+// Round 28 re-exports
+pub use extent_coop::{CoopExtentEntry, CoopExtentManager, CoopExtentStats, CoopExtentType};
+pub use failure_detector::{
+    CoopFailureDetector, DetectionMethod, FailureDetectorStats, HealthAssessment, HeartbeatWindow,
+    NodeDetectorState, PartitionDetector,
+};
+pub use fair_lock::{
+    CoopFairLock, FairLock, FairLockStats, FairnessPolicy, HoldType, LockHolder as FairLockHolder,
+    LockWaiter as FairLockWaiter, WaiterState as FairWaiterState,
+};
+pub use fair_mutex::{CoopFairMutex, FairMutex, FairMutexState, FairMutexStats, FairMutexWaiter};
+pub use fair_sched::{CoopFairSched, FairSchedClass, FairSchedStats, FairTask};
+pub use fair_share::{
+    AllocationResult, CoopFairShare, ResourceDim, ShareEntity, ShareEntityState, ShareType,
+};
+pub use fairness_monitor::{
+    CoopFairnessMonitor, CoopFairnessStats, FairnessResource, FairnessVerdict, ResourceFairness,
+    StarvationAlert,
+};
+pub use fairshare::{
+    CoopFairShareScheduler, FairShareEntity, FairShareStats, FairnessMetrics, ShareWeight,
+    VirtualTime,
+};
+pub use feedback::{CoopFeedback, CoopMetrics, FeedbackCollector, FeedbackType};
+pub use fence_proto::{
+    BarrierGroup as FenceBarrierGroup, CoopFenceProtoStats, CoopFenceProtocol, EpochState,
+    FenceType, GracePeriod as FenceGracePeriod, ThreadEpochInfo,
+};
+pub use firewall_coop::{
+    CoopFirewall, CoopFwAction, CoopFwChain, CoopFwMatch, CoopFwRule, CoopFwStats, SharedRuleSet,
 };
 pub use flat_combine::{
-    CoopFlatCombine,
-    FlatCombineOpType,
-    FlatCombineRequest,
-    FlatCombineRound,
-    FlatCombineSlot,
-    FlatCombineState,
-    FlatCombineStats,
+    CoopFlatCombine, FlatCombineOpType, FlatCombineRequest, FlatCombineRound, FlatCombineSlot,
+    FlatCombineState, FlatCombineStats,
+};
+pub use flock_coop::{
+    CoopFileLock, CoopFlock, CoopFlockStats, CoopLockFairness, CoopLockState, CoopLockType,
+};
+pub use flow_control::{
+    CongestionSignal, CongestionWindow, CoopFlowControl, CreditCounter, FlowChannel,
+    FlowControlStats, FlowState,
+};
+pub use fork_coop::{CoopForkManager, CoopForkRecord, CoopForkStats, CoopForkStrategy};
+pub use futex::{CoopFutex, CoopFutexBucket, CoopFutexOp, CoopFutexStats, CoopFutexWaiter};
+pub use futex_coop::{CoopFutex as CoopFutexIpc, FutexCoopEvent, FutexCoopRecord, FutexCoopStats};
+pub use futex_mgr::{
+    CoopFutexMgr, FutexBucket, FutexMgrStats, FutexOp, FutexWaitState, FutexWaiter,
+};
+pub use gossip::{
+    CoopGossipManager, GossipConfig, GossipMessage, GossipMessageType, GossipNode, GossipStats,
+    NodeHealth, VectorClock,
+};
+pub use gossip_proto::{
+    CoopGossipProto, GossipMessage as GossipProtoMessage, GossipMsgType,
+    GossipNode as GossipProtoNode, GossipNodeState, GossipProtoStats, GossipStyle,
+};
+pub use governance::{
+    ConditionOp, CoopGovernanceEngine, CoopGovernanceStats, PolicyAction, PolicyCondition,
+    PolicyPriority, PolicyRule, PolicyScope, PolicySet, TenantBoundary,
+};
+pub use group_sched::{
+    CoopGroupSched, GroupMember, GroupMemberState, GroupSchedPolicyV2,
+    SchedGroupV2 as CoopSchedGroup,
+};
+pub use handshake::{
+    Capability, CapabilitySet, CoopHandshakeManager, HandshakeManagerStats, HandshakeSession,
+    HandshakeState, HelloMessage, HelloResponse, PerfHintType, PerformanceHint,
+    ProtocolVersion as HandshakeProtocolVersion,
+};
+pub use hazard_ptr::{
+    CoopHazardPtr, HazardDomain, HazardPtrStats, HazardSlot, HazardState, RetiredNode,
+    ThreadHazardCtx,
+};
+pub use health_monitor::{
+    CascadeDetector, CoopHealthMonitor, FailureDomain, HealthCheck as CoopHealthCheck,
+    HealthStatus as CoopHealthStatus, Heartbeat as CoopHeartbeat, MonitoredComponent,
+    RecoveryActionCoop,
+};
+pub use healthcheck::{
+    CascadeEvent, CoopHealthCheckManager, CoopHealthCheckStats, ProbeConfig, ProbeResult,
+    ProbeState, ProbeType, ProcessHealthState,
+};
+pub use heartbeat_mgr::{
+    CoopHeartbeatMgr, DetectorType, HeartbeatMgrStats, HeartbeatRecord, HeartbeatState,
+    MonitoredNode,
+};
+pub use hints::{AppHint, AppHintType, HintBus, KernelAdvisory, KernelAdvisoryType};
+pub use id_gen::{
+    CoopIdGen, IdFormat, IdGenStats, NamespaceGenerator, NodeRegistration as IdNodeRegistration,
+    SnowflakeId,
+};
+pub use inode_coop::{CoopInode, CoopInodeEntry, CoopInodeState, CoopInodeStats};
+pub use integrity_coop::{
+    CoopIntegrity, IntegrityCoopEvent, IntegrityCoopRecord, IntegrityCoopStats,
+};
+pub use intent::{
+    CoopIntentEngine, CoopIntentStats, IntentCategory, IntentConflict, IntentDeclaration,
+    IntentPriority, IntentRequirement, IntentState,
+};
+pub use intrusive_list::{
+    CoopIntrusiveList, IntrusiveList, IntrusiveListStats, IntrusiveNode, IntrusiveNodeState,
+};
+pub use iosched_coop::{CoopIoPrio, CoopIoRequest, CoopIoSched, CoopIoSchedStats};
+pub use join_handle::{
+    CoopJoinHandle, JoinGroup, JoinHandle, JoinHandleStats, JoinResult, JoinState,
+};
+pub use journal_coop::{CoopJournalManager, CoopJournalStats, CoopJournalTx, CoopJournalTxType};
+pub use keyring_coop::{
+    CoopKeyring, KeyringCoopEvent, KeyringCoopRecord, KeyringCoopScope, KeyringCoopStats,
+};
+pub use landlock_coop::{CoopLandlock, LandlockCoopEvent, LandlockCoopRecord, LandlockCoopStats};
+pub use latch::{CoopLatch, Latch, LatchState as CoopLatchState, LatchStats};
+pub use latch_mgr::{CoopLatchMgr, CountdownLatch, LatchMgrStats, LatchState};
+pub use leader_election::{CoopLeaderElection, ElectionRole, LeaderLease, VoteResponse};
+pub use learning::{
+    CoopLearningEngine, Feature, FeatureVector, LearningConfig, LearningStats, QTable,
+    RewardComponent, RewardSignal, SchedulingAction as LearningAction,
+};
+pub use lease::{
+    CoopLeaseManager, CoopLeaseStats, Lease, LeasePriority, LeaseRequest, LeaseResource, LeaseState,
+};
+pub use lease_mgr::{
+    CoopLeaseMgr, LeaseHolder, LeaseMgrStats, LeaseRequest as LeaseMgrRequest,
+    LeaseState as LeaseMgrV2State, LeaseType as LeaseMgrV2Type, ResourceLease, ResourceLeaseState,
+};
+pub use load_shed::{
+    ClassPolicy, CoopLoadShedder, RequestClass, ShedDecision, ShedLevel, SubsystemShedState,
+};
+pub use lock_free_list::{CoopLockFreeList, LfNode, LfNodeState, LockFreeList, LockFreeListStats};
+pub use lockdep::{
+    CoopLockdep, LockdepClass, LockdepHoldStack, LockdepNode, LockdepStats, LockdepViolation,
+    LockdepViolationKind,
+};
+pub use log_replicator::{
+    CompactionPolicy, CoopLogReplicator, FollowerInfo, FollowerState,
+    LogEntry as ReplicatorLogEntry, LogEntryKind as ReplicatorLogEntryKind, LogReplicatorStats,
+    SnapshotMeta as ReplicatorSnapshotMeta,
+};
+pub use lsm_coop::{CoopLsm, LsmCoopEvent, LsmCoopPolicy, LsmCoopRecord, LsmCoopStats};
+pub use mcs_lock::{
+    CoopMcsLock, McsLockInstance, McsLockStats, McsNode as McsLockNode,
+    McsNodeState as McsLockNodeState,
+};
+pub use mediation::{
+    CoopMediationManager, CoopMediationStats, FairnessRecord, MediationPolicy, ResolutionState,
+};
+pub use membership_mgr::{
+    CoopMembershipMgr, JoinRequest, MemberDesc, MemberStatus, MembershipEvent, MembershipEventKind,
+    MembershipStats, MembershipView,
+};
+pub use merge_sort::{CoopMergeSort, MergeSortStats, MergeTask, SortOrder, SortSession, SortState};
+pub use merkle_tree::{
+    CoopMerkleTree, DiffType as MerkleDiffType, MerkleDiff, MerkleNode as MerkleTreeNode,
+    MerkleProof, MerkleTreeStats, ProofStep,
 };
 pub use michael_scott_queue::{
-    CoopMichaelScottQueue,
-    MsQueueNode,
-    MsQueueOpResult,
-    MsQueueState,
-    MsQueueStats,
+    CoopMichaelScottQueue, MsQueueNode, MsQueueOpResult, MsQueueState, MsQueueStats,
 };
+pub use migration_coop::{
+    CoopMigrationCoordinator, CoopMigrationReason, CoopMigrationState, CoopMigrationStats,
+    MigrationPlan, MigrationTarget as CoopMigrationTarget, StateItemType, StateTransferItem,
+};
+pub use mount_coop::{CoopMount, CoopMountProp, CoopMountState, CoopMountStats, SharedMountPoint};
+pub use mpmc_channel::{
+    CoopMpmcChannel, MpmcChannel, MpmcChannelStats, MpmcMsg, MpmcState as MpmcChannelState,
+};
+pub use mpmc_queue::{CoopMpmcQueue, MpmcEntry, MpmcQueue, MpmcQueueStats, MpmcState};
+pub use mpsc_queue::{
+    Consumer as MpscConsumer, CoopMpscQueue, MpscInstance, MpscStats, MsgPriority, OverflowAction,
+    Producer as MpscProducer, QueueMsg,
+};
+pub use mqueue_coop::{CoopMqueue, MqueueCoopEvent, MqueueCoopRecord, MqueueCoopStats};
+pub use msgqueue_coop::{CoopMsgqueue, MsgqueueCoopEvent, MsgqueueCoopRecord, MsgqueueCoopStats};
+pub use negotiate::{
+    Contract, ContractId, ContractState, NegotiationEngine, ResourceDemand, ResourceOffer,
+};
+pub use netdev_coop::{
+    CoopNetdev, CoopNetdevInstance, CoopNetdevState, CoopNetdevStats, CoopNetdevType,
+    SharedNetQueue,
+};
+pub use netfilter_coop::{
+    CoopNetfilter, NetfilterCoopEvent, NetfilterCoopRecord, NetfilterCoopStats,
+};
+pub use netns_coop::{
+    CoopNetNamespace, CoopNetns, CoopNetnsState, CoopNetnsStats, CoopVethPair, CoopVethState,
+};
+pub use nice_coop::{CoopNiceEntry, CoopNiceManager, CoopNiceStats, CoopSchedClass};
+pub use notification::{
+    CoopNotificationManager, CoopNotificationStats, DeliveryGuarantee, Notification,
+    NotificationPriority, NotificationState, Subscription, SubscriptionFilter, Topic,
+};
+pub use notify_coop::{CoopNotify, NotifyCoopEvent, NotifyCoopRecord, NotifyCoopStats};
+pub use once_cell::{CoopOnceCell, OnceCell, OnceCellState, OnceCellStats};
+pub use packet_coop::{
+    CoopPacket, CoopPktProto, CoopPktStats, PktBufState, SharedBufPool, SharedPktBuf,
+};
+pub use page_cache_coop::{
+    CoopEvictionPolicy, CoopPageCacheManager, CoopPageCacheStats, CoopPageEntry, CoopPageState,
+};
+pub use park::{CoopPark, ParkState as CoopParkState, ParkStats, ParkedThread as CoopParkedThread};
+pub use park_mgr::{CoopParkMgr, ParkMgrStats, ParkState, ParkedThread};
+pub use partition::{
+    CoopPartitionManager, CoopPartitionStats, Partition, PartitionBorrow, PartitionOp,
+    PartitionResource,
+};
+pub use permit_pool::{
+    CoopPermitPool, Permit, PermitPool, PermitPoolStats, PermitState, PermitType, PoolWaiter,
+};
+pub use pgid_coop::{CoopPgidEntry, CoopPgidManager, CoopPgidState, CoopPgidStats};
+pub use phase_barrier::{
+    CoopPhaseBarrier, PhaseBarrier, PhaseBarrierStats, PhaseParticipant, PhaseState,
+};
+pub use pi_protocol::{
+    BoostReasonCoop, CoopPiProtocol, CoopPiProtocolStats, PiProtocol, PiResource,
+    PriorityBoost as CoopPriorityBoost, TaskPriorityState,
+};
+pub use pid_coop::{CoopPidManager, CoopPidMapping, CoopPidNsEntry, CoopPidNsLevel, CoopPidStats};
+pub use pipe_coop::{CoopPipe, PipeCoopEvent, PipeCoopRecord, PipeCoopStats};
+pub use pledge::{
+    CoopPledge, CoopPledgeManager, CoopPledgeStats, PledgeDirection, PledgeReliability,
+    PledgeResource, PledgeState,
+};
+pub use prctl_coop::{CoopPrctlEntry, CoopPrctlManager, CoopPrctlStats, CoopPrctlType};
+pub use prio_arbiter::{
+    ArbitrationPolicy, ArbitrationRequest, ArbitrationResult, Contender, CoopPrioArbiter,
+    PrioArbiterStats, ResourceArbContext,
+};
+pub use priority_coop::{
+    ActiveBoost, CoopBoostReason, CoopPriorityClass, CoopPriorityEngine, CoopPriorityStats,
+    NegotiationAction, NegotiationRequest, NegotiationResult, ProcessPriority,
+};
+pub use priority_inherit::{
+    CoopPriorityInherit, PiChainEntry, PiMutex, PriorityInheritStats, ThreadPriority,
+};
+pub use priority_queue::{
+    CoopPriorityQueue, NodePartition, PriorityBucket, PriorityQueueStats, QueueItem,
+    QueueItemState, TaskUrgency,
+};
+pub use protocol::{
+    CoopCapability, CoopMessage, CoopMessageType, CoopSession, CoopSessionState, ProtocolVersion,
+};
+pub use qos_coop::{
+    BwAllocation, CoopQos, CoopQosClass, CoopQosSched, CoopQosStats,
+    CoopTokenBucket as QosTokenBucket, SharedQosPolicy,
+};
+pub use quorum::{
+    CoopQuorumProtocol, CoopQuorumStats, Proposal as QuorumProposal, QuorumGroup, QuorumMember,
+    QuorumPolicy, QuorumState, Vote as QuorumVote, VoteValue as QuorumVoteValue,
+};
+pub use quorum_mgr::{CoopQuorumMgr, QuorumMgrStats, QuorumType, VoteResult};
+pub use quorum_tracker::{Ballot, CoopQuorumTracker, JointQuorum, QuorumStats, VoteValue};
+pub use quota_coop::{
+    CoopQuotaManager, CoopQuotaPool, CoopQuotaResource, CoopQuotaState, CoopQuotaStats, QuotaEntry,
+    QuotaLoan,
+};
+pub use raft_engine::{CoopRaftEngine, CoopRaftStats, RaftLogEntry, RaftNode, RaftPeer, RaftRole};
+pub use raid_coop::{CoopRaid, CoopRaidLevel, CoopRaidState, CoopRaidStats, CoopRebuildTask};
+pub use rate_limiter::{
+    ConsumerRateState, CoopRateLimiter, RateDecision, RateLimitAlgorithm, SlidingWindowCounter,
+    TokenBucket,
+};
+pub use ratelimit_coop::{
+    CoopRateLimitManager, CoopRateLimitStats, CoopSlidingWindow,
+    CoopTokenBucket as RateLimitTokenBucket, ProcessRateState, RateLimitConfig, RateLimitDecision,
+    RateLimitGroup, RateLimitScope,
+};
+pub use rcu_reader::{
+    CoopRcuReader, RcuCallback as RcuReaderCallback, RcuCpuState, RcuFlavor as RcuReaderFlavor,
+    RcuReaderState as RcuReaderCpuState, RcuReaderStats,
+};
+pub use rcu_sync::{
+    CoopRcuSync, GracePeriodTracker, RcuReader, RcuReaderState, RcuSyncCallback as RcuSyncCb,
+    RcuSyncStats,
+};
+// Round 20 re-exports
+pub use read_indicator::{
+    CoopReadIndicator, ReadIndicatorInstance, ReadIndicatorSlot, ReadIndicatorState,
+    ReadIndicatorStats,
+};
+pub use registry::{
+    CapabilityCategory, CapabilityRegistry, CapabilityStatus, RegisteredCapability,
+    ServiceDescriptor, ServiceDirectory,
+};
+pub use rendezvous::{
+    CoopRendezvous, ExchangeMode, RendezvousParticipant, RendezvousPoint, RendezvousState,
+    RendezvousStats,
+};
+pub use reputation::{
+    CoopReputationManager, CoopReputationStats, DimensionScore, ProcessReputation,
+    ReputationDimension, ReputationLevel,
+};
+pub use reservation::{
+    CoopReservationManager, CoopReservationStats, GrantedAllocation, ReservableResource,
+    Reservation, ReservationPriority, ReservationState as CoopReservationState, ResourceCapacity,
+    ResourceRequest,
+};
+pub use retry_policy::{
+    BackoffStrategy, CircuitBreaker as RetryCircuitBreaker, CircuitState as RetryCircuitState,
+    CoopRetryPolicy, RetryOutcome, RetryPolicy, RetryPolicyStats, RetryState, StormDetector,
+};
+pub use rewards::{
+    CoopLevel, PenaltyReason, RewardConfig, RewardEngine, RewardReason, ScoreEvent, ScoreSnapshot,
+};
+pub use ring_buffer::{
+    Consumer as RingConsumer, CoopRingBuffer, OverflowPolicy, Producer as RingProducer,
+    RingBufferStats, RingChannel, WatermarkEvent,
+};
+pub use route_coop::{
+    CoopRoute, CoopRouteEntry, CoopRouteProto, CoopRouteScope, CoopRouteStats, SharedRouteTable,
+};
+pub use routing_coop::{CoopRouting, RoutingCoopEvent, RoutingCoopRecord, RoutingCoopStats};
+pub use rwlock::{
+    CoopRwLock, RwLockFairness, RwLockInstance, RwLockState, RwLockStats, RwLockWaiter,
+};
+pub use saga_coord::{
+    CoopSagaCoord, RecoveryMode, Saga, SagaLogEntry, SagaLogEvent, SagaStats, SagaStatus, SagaStep,
+    StepStatus,
+};
+pub use seccomp_coop::{
+    CoopSeccomp, SeccompCoopEvent, SeccompCoopRecord, SeccompCoopStats, SeccompCoopStrategy,
+};
+pub use selinux_coop::{CoopSelinux, SelinuxCoopEvent, SelinuxCoopRecord, SelinuxCoopStats};
+pub use semaphore_coop::{CoopSemaphore, SemCoopEvent, SemCoopRecord, SemCoopStats};
+pub use seq_lock::{CoopSeqLock, SeqLock, SeqLockStats};
+pub use seqlock::{CoopSeqlock, ReadOutcome, Seqcount, Seqlock, SeqlockState, SeqlockStats};
+pub use sequence_lock::SeqlockInstance;
+pub use service_mesh::{
+    CircuitState, CoopServiceMesh, CoopServiceMeshStats, LoadBalanceStrategy as MeshLoadBalance,
+    Service, ServiceInstance as MeshServiceInstance, ServiceState as MeshServiceState,
+};
+pub use service_registry::{
+    CoopServiceRegistry, DependencyStatus, LookupResult, ServiceCapability, ServiceEndpoint,
+    ServiceEvent, ServiceEventType, ServiceHealth,
+};
+pub use session::{
+    Session, SessionCapabilities, SessionGroup, SessionId, SessionManager, SessionState,
+};
+pub use session_coop::{CoopSessionEntry, CoopSessionManager, CoopSessionStats};
+pub use sharding::{
+    CoopSharding, HotShardConfig, Shard, ShardMigration, ShardNode, ShardState, ShardStrategy,
+    ShardingStats, VirtualNode as ShardVirtualNode,
+};
+pub use shm_coop::{CoopShm, ShmCoopEvent, ShmCoopRecord, ShmCoopStats};
+pub use sighand_coop::{CoopSighand, SighandCoopEvent, SighandCoopRecord, SighandCoopStats};
+pub use signal_coop::{CoopSignal, SignalCoopEvent, SignalCoopRecord, SignalCoopStats};
+pub use skip_list::{CoopSkipList, SkipList, SkipListStats, SkipNode};
 pub use skiplist::{
-    CoopSkiplist,
-    SkiplistConfig,
-    SkiplistLevel,
-    SkiplistNode,
-    SkiplistOp,
-    SkiplistStats,
+    CoopSkiplist, SkiplistConfig, SkiplistLevel, SkiplistNode, SkiplistOp, SkiplistStats,
 };
-pub use treiber_stack::{
-    CoopTreiberStack,
-    TreiberNode,
-    TreiberOpResult,
-    TreiberStackState,
-    TreiberStackStats,
+pub use sla::{
+    CoopSlaEngine, CoopSlaStats, ErrorBudget, SlaContract, SlaTier, SloDefinition, SloMetric,
+    SloStatus,
 };
-pub use wait_free::{
-    CoopWaitFree,
-    WaitFreeAnnouncement,
-    WaitFreeOpType,
-    WaitFreeProgress,
-    WaitFreeRegister,
-    WaitFreeStats,
-    WaitFreeThreadState,
+pub use slot_alloc::{
+    CoopSlotAllocator, NodeAllocation, SlotAllocStats, SlotFrame, SlotPriority, SlotState,
+};
+pub use snapshot_coop::{
+    CoopSnapshot, CoopSnapshotManager, CoopSnapshotStats, CoordinatedSnapshot, DiffType,
+    SnapshotDataType, SnapshotDiff, SnapshotEntry, SnapshotState as CoopSnapshotState,
+};
+pub use snapshot_sync::{
+    ChannelRecording, ChannelTracker, ComponentSnapshot, ConsistentSnapshot, CoopSnapshotSync,
+    RecordedMessage, SnapshotStateCoop, SnapshotType,
+};
+pub use socket_coop::{
+    CoopLbMode, CoopSocket, CoopSocketGroup, CoopSocketInstance, CoopSocketState, CoopSocketStats,
+    CoopSocketType,
+};
+pub use spin_barrier::{BarrierPhase, CoopSpinBarrier, SpinBarrier, SpinBarrierStats};
+pub use spinlock::{CoopSpinlock, SpinBackoff, SpinlockInstance, SpinlockState, SpinlockStats};
+pub use split_lock::{
+    AlignmentIssue, CoopSplitLock, SplitLockAction, SplitLockEvent, SplitLockPolicy,
+    SplitLockStats, ThreadSplitLockState,
+};
+pub use state_transfer::{
+    CoopStateTransfer, SnapshotDesc, TransferChunk, TransferMode, TransferSession, TransferState,
+    TransferStats,
+};
+pub use superblock_coop::{CoopSbState, CoopSuperblock, CoopSuperblockEntry, CoopSuperblockStats};
+pub use svc_discovery::{
+    CoopServiceDiscovery, LbStrategy, ServiceDepEdge, ServiceDiscoveryStats,
+    ServiceState as SvcState,
+};
+pub use task_graph::{
+    CoopTaskGraph, CriticalPathSegment, ExecLevel, FailurePolicy, GraphStats, GraphTask,
+    GraphTaskPriority, GraphTaskStatus,
+};
+pub use task_steal::{
+    CoopTaskSteal, StealPolicy, StealPriority, StealResult, StealTask, StealTaskState,
+    TaskStealStats, WorkQueue,
 };
 // Round 23 re-exports
 pub use tcp_coop::{
-    CoopTcp,
-    CoopTcpCongestion,
-    CoopTcpConnection,
-    CoopTcpState,
-    CoopTcpStats,
-    SharedCwndState,
+    CoopTcp, CoopTcpCongestion, CoopTcpConnection, CoopTcpState, CoopTcpStats, SharedCwndState,
+};
+pub use thread_coop::{CoopThreadGroup, CoopThreadLevel, CoopThreadManager, CoopThreadStats};
+pub use throttle_coop::{
+    BackpressureSignal, CoopThrottleManager, CoopThrottleStats, CoopTokenBucket,
+    ProcessThrottleState, ThrottleConfig, ThrottleResource, ThrottleState,
+};
+pub use throttle_gate::{
+    CoopThrottleGate, GateState, SlidingWindowState, ThrottleAlgorithm, ThrottleGateInstance,
+    ThrottleGateStats, TokenBucketState as ThrottleTokenBucket,
+};
+pub use ticket_lock::{CoopTicketLock, TicketLock, TicketLockStats};
+pub use timeline::{
+    CoopTimelineManager, CoopTimelineStats, ReservationState as TimelineReservationState,
+    ReservationType, ResourceTimeline, TimeSlot, TimelineConflict, TimelineReservation,
+    TimelineResource,
+};
+pub use timerfd_coop::{CoopTimerfd, TimerfdCoopEvent, TimerfdCoopRecord, TimerfdCoopStats};
+pub use token_ring::{
+    CoopTokenRing, CoopTokenRingStats, RingNode, RingNodeState, Token, TokenState,
+};
+pub use treiber_stack::{
+    CoopTreiberStack, TreiberNode, TreiberOpResult, TreiberStackState, TreiberStackStats,
+};
+pub use trust::{TrustDimension, TrustEvidence, TrustLevel, TrustManager, TrustSnapshot};
+pub use txn_log::{
+    CoopTxnLog, GroupCommitBatch, LogRecord, LogRecordType, LogSegment, RecoveryAction,
+    RecoveryActionType, TxnCheckpoint, TxnLogStats, TxnMeta, TxnState,
 };
 pub use udp_coop::{
-    CoopUdp,
-    CoopUdpShareMode,
-    CoopUdpSocket,
-    CoopUdpState,
-    CoopUdpStats,
-    SharedUdpPort,
+    CoopUdp, CoopUdpShareMode, CoopUdpSocket, CoopUdpState, CoopUdpStats, SharedUdpPort,
 };
-pub use route_coop::{
-    CoopRoute,
-    CoopRouteEntry,
-    CoopRouteProto,
-    CoopRouteScope,
-    CoopRouteStats,
-    SharedRouteTable,
+pub use vector_clock::{
+    CausalEvent as VClockCausalEvent, CausalHistory, CausalOrder, CoopVectorClock,
+    VectorClock as VClockImpl, VectorClockStats, VersionVector,
 };
-pub use arp_coop::{
-    CoopArp,
-    CoopArpEntry,
-    CoopArpState,
-    CoopArpStats,
-    SharedArpCache,
+pub use versioned_state::{
+    CoopVersionedState, MvccStats, MvccTransaction, MvccTxnState, Snapshot as MvccSnapshot,
+    VersionChain, VersionRecord, VersionVisibility,
 };
-pub use firewall_coop::{
-    CoopFirewall,
-    CoopFwAction,
-    CoopFwChain,
-    CoopFwMatch,
-    CoopFwRule,
-    CoopFwStats,
-    SharedRuleSet,
+pub use vfs_coop::{CoopVfs, CoopVfsOp, CoopVfsState, CoopVfsStats, SharedPathEntry};
+pub use voting::{BallotState, CoopVotingManager, CoopVotingStats, VoteType as CoopVoteType};
+pub use wait_coop::{CoopWaitEntry, CoopWaitManager, CoopWaitMode, CoopWaitStats};
+pub use wait_free::{
+    CoopWaitFree, WaitFreeAnnouncement, WaitFreeOpType, WaitFreeProgress, WaitFreeRegister,
+    WaitFreeStats, WaitFreeThreadState,
 };
-pub use socket_coop::{
-    CoopLbMode,
-    CoopSocket,
-    CoopSocketGroup,
-    CoopSocketInstance,
-    CoopSocketState,
-    CoopSocketStats,
-    CoopSocketType,
+pub use wait_group::{CoopWaitGroup, WaitGroup, WaitGroupState, WaitGroupStats};
+pub use watchdog_proto::{
+    CoopWatchdogProtoStats, CoopWatchdogProtocol, EscalationLevel, LivenessState, PhiDetector,
+    WatchdogRecovery, WatchedProcess,
 };
-pub use netdev_coop::{
-    CoopNetdev,
-    CoopNetdevInstance,
-    CoopNetdevState,
-    CoopNetdevStats,
-    CoopNetdevType,
-    SharedNetQueue,
+pub use witness::{
+    AgreementRecord, Attestation, AttestationType, CoopWitnessManager, CoopWitnessStats, Witness,
+    WitnessRole, WitnessStatus,
 };
-pub use qos_coop::{
-    BwAllocation,
-    CoopQos,
-    CoopQosClass,
-    CoopQosSched,
-    CoopQosStats,
-    CoopTokenBucket as QosTokenBucket,
-    SharedQosPolicy,
+pub use work_steal::{
+    CoopWorkStealer, StealStrategyCoop, StealWorker, WorkItem, WorkerDeque, WorkerStateCoop,
+    WorkerStats as StealWorkerStats,
 };
-pub use packet_coop::{
-    CoopPacket,
-    CoopPktProto,
-    CoopPktStats,
-    PktBufState,
-    SharedBufPool,
-    SharedPktBuf,
+pub use work_stealing::{
+    CoopWorkStealing, WorkStealingStats, WorkerQueue, WsTask, WsTaskPriority, WsTaskState,
 };
-pub use dns_coop::{
-    CoopDns,
-    CoopDnsCacheState,
-    CoopDnsStats,
-    CoopDnsType,
-    DnsQueryTracker,
-    SharedDnsEntry,
-};
-pub use netns_coop::{
-    CoopNetNamespace,
-    CoopNetns,
-    CoopNetnsState,
-    CoopNetnsStats,
-    CoopVethPair,
-    CoopVethState,
-};
-pub use bio_coop::{
-    CoopBio,
-    CoopBioRequest,
-    CoopBioState,
-    CoopBioStats,
-    CoopBioType,
-};
-pub use blkdev_coop::{
-    CoopBlkdev,
-    CoopBlkdevInstance,
-    CoopBlkdevState,
-    CoopBlkdevStats,
-    CoopBwAlloc,
-};
-pub use dentry_coop::{
-    CoopDentry,
-    CoopDentryEntry,
-    CoopDentryState,
-    CoopDentryStats,
-};
-pub use devmapper_coop::{
-    CoopDevMapper,
-    CoopDmDevice,
-    CoopDmState,
-    CoopDmStats,
-    CoopDmTarget,
-    CoopThinPool,
-};
-pub use flock_coop::{
-    CoopFileLock,
-    CoopFlock,
-    CoopFlockStats,
-    CoopLockFairness,
-    CoopLockState,
-    CoopLockType,
-};
-pub use inode_coop::{
-    CoopInode,
-    CoopInodeEntry,
-    CoopInodeState,
-    CoopInodeStats,
-};
-pub use iosched_coop::{
-    CoopIoRequest,
-    CoopIoPrio,
-    CoopIoSched,
-    CoopIoSchedStats,
-};
-pub use mount_coop::{
-    CoopMount,
-    CoopMountProp,
-    CoopMountState,
-    CoopMountStats,
-    SharedMountPoint,
-};
-pub use raid_coop::{
-    CoopRaid,
-    CoopRaidLevel,
-    CoopRaidState,
-    CoopRaidStats,
-    CoopRebuildTask,
-};
-pub use superblock_coop::{
-    CoopSbState,
-    CoopSuperblock,
-    CoopSuperblockEntry,
-    CoopSuperblockStats,
-};
-pub use vfs_coop::{
-    CoopVfs,
-    CoopVfsOp,
-    CoopVfsState,
-    CoopVfsStats,
-    SharedPathEntry,
-};
-// Re-exports from Round 25 — Security cooperation
-pub use apparmor_coop::{
-    AppArmorCoopEvent,
-    AppArmorCoopRecord,
-    AppArmorCoopStats,
-    CoopAppArmor,
-};
-pub use audit_coop::{
-    AuditCoopEvent,
-    AuditCoopRecord,
-    AuditCoopStats,
-    CoopAudit,
-};
-pub use capability_coop::{CapCoopEvent, CapCoopRecord, CapCoopStats};
-pub use credential_coop::{
-    CoopCredential,
-    CredCoopEvent,
-    CredCoopRecord,
-    CredCoopStats,
-};
-pub use crypto_coop::{
-    CoopCrypto,
-    CryptoCoopEvent,
-    CryptoCoopMode,
-    CryptoCoopRecord,
-    CryptoCoopStats,
-};
-pub use integrity_coop::{
-    CoopIntegrity,
-    IntegrityCoopEvent,
-    IntegrityCoopRecord,
-    IntegrityCoopStats,
-};
-pub use keyring_coop::{
-    CoopKeyring,
-    KeyringCoopEvent,
-    KeyringCoopRecord,
-    KeyringCoopScope,
-    KeyringCoopStats,
-};
-pub use landlock_coop::{
-    CoopLandlock,
-    LandlockCoopEvent,
-    LandlockCoopRecord,
-    LandlockCoopStats,
-};
-pub use lsm_coop::{
-    CoopLsm,
-    LsmCoopEvent,
-    LsmCoopPolicy,
-    LsmCoopRecord,
-    LsmCoopStats,
-};
-pub use seccomp_coop::{
-    CoopSeccomp,
-    SeccompCoopEvent,
-    SeccompCoopRecord,
-    SeccompCoopStats,
-    SeccompCoopStrategy,
-};
-pub use selinux_coop::{
-    CoopSelinux,
-    SelinuxCoopEvent,
-    SelinuxCoopRecord,
-    SelinuxCoopStats,
-};
-
-// Round 26 re-exports — IPC/signal cooperative coordination
-pub use eventfd_coop::{
-    CoopEventfd,
-    EventfdCoopEvent,
-    EventfdCoopRecord,
-    EventfdCoopStats,
-};
-pub use futex_coop::{
-    CoopFutex as CoopFutexIpc,
-    FutexCoopEvent,
-    FutexCoopRecord,
-    FutexCoopStats,
-};
-pub use mqueue_coop::{
-    CoopMqueue,
-    MqueueCoopEvent,
-    MqueueCoopRecord,
-    MqueueCoopStats,
-};
-pub use msgqueue_coop::{
-    CoopMsgqueue,
-    MsgqueueCoopEvent,
-    MsgqueueCoopRecord,
-    MsgqueueCoopStats,
-};
-pub use notify_coop::{
-    CoopNotify,
-    NotifyCoopEvent,
-    NotifyCoopRecord,
-    NotifyCoopStats,
-};
-pub use pipe_coop::{
-    CoopPipe,
-    PipeCoopEvent,
-    PipeCoopRecord,
-    PipeCoopStats,
-};
-pub use semaphore_coop::{
-    CoopSemaphore,
-    SemCoopEvent,
-    SemCoopRecord,
-    SemCoopStats,
-};
-pub use shm_coop::{
-    CoopShm,
-    ShmCoopEvent,
-    ShmCoopRecord,
-    ShmCoopStats,
-};
-pub use sighand_coop::{
-    CoopSighand,
-    SighandCoopEvent,
-    SighandCoopRecord,
-    SighandCoopStats,
-};
-pub use signal_coop::{
-    CoopSignal,
-    SignalCoopEvent,
-    SignalCoopRecord,
-    SignalCoopStats,
-};
-pub use timerfd_coop::{
-    CoopTimerfd,
-    TimerfdCoopEvent,
-    TimerfdCoopRecord,
-    TimerfdCoopStats,
-};
-
-// Round 27 re-exports — Networking/socket cooperative coordination
-pub use backlog_coop::{
-    BacklogCoopEvent,
-    BacklogCoopRecord,
-    BacklogCoopStats,
-    CoopBacklog,
-};
-pub use buffer_pool_coop::{
-    BufferPoolCoopEvent,
-    BufferPoolCoopRecord,
-    BufferPoolCoopStats,
-    CoopBufferPool,
-};
-pub use congestion_coop::{
-    CongestionCoopEvent,
-    CongestionCoopRecord,
-    CongestionCoopStats,
-    CoopCongestion,
-};
-pub use connection_coop::{
-    ConnectionCoopEvent,
-    ConnectionCoopRecord,
-    ConnectionCoopStats,
-    CoopConnection,
-};
-pub use epoll_coop::{
-    CoopEpoll,
-    EpollCoopEvent,
-    EpollCoopRecord,
-    EpollCoopStats,
-};
-pub use netfilter_coop::{
-    CoopNetfilter,
-    NetfilterCoopEvent,
-    NetfilterCoopRecord,
-    NetfilterCoopStats,
-};
-pub use routing_coop::{
-    CoopRouting,
-    RoutingCoopEvent,
-    RoutingCoopRecord,
-    RoutingCoopStats,
-};
-pub use zerocopy_coop::{
-    CoopZerocopy,
-    ZerocopyCoopEvent,
-    ZerocopyCoopRecord,
-    ZerocopyCoopStats,
-};
-
-// Round 28 re-exports
-pub use extent_coop::{
-    CoopExtentEntry,
-    CoopExtentManager,
-    CoopExtentStats,
-    CoopExtentType,
-};
-pub use journal_coop::{
-    CoopJournalManager,
-    CoopJournalStats,
-    CoopJournalTx,
-    CoopJournalTxType,
-};
-pub use page_cache_coop::{
-    CoopEvictionPolicy,
-    CoopPageCacheManager,
-    CoopPageCacheStats,
-    CoopPageEntry,
-    CoopPageState,
+pub use write_ahead_log::{
+    ActiveTransaction, CoopWriteAheadLog, WalCheckpoint, WalEntry, WalEntryType, WalSegment,
+    WalStats,
 };
 pub use writeback_coop::{
-    CoopWritebackEntry,
-    CoopWritebackManager,
-    CoopWritebackReason,
-    CoopWritebackStats,
+    CoopWritebackEntry, CoopWritebackManager, CoopWritebackReason, CoopWritebackStats,
 };
-
-// Re-exports from Round 29 — Process/thread cooperation
-pub use clone_coop::{
-    CoopCloneManager,
-    CoopCloneResult,
-    CoopCloneSharingPolicy,
-    CoopCloneStats,
-};
-pub use exec_coop::{
-    CoopExecManager,
-    CoopExecPhase,
-    CoopExecRecord,
-    CoopExecStats,
-};
-pub use exit_coop::{
-    CoopExitManager,
-    CoopExitPhase,
-    CoopExitRecord,
-    CoopExitStats,
-};
-pub use fork_coop::{
-    CoopForkManager,
-    CoopForkRecord,
-    CoopForkStats,
-    CoopForkStrategy,
-};
-pub use nice_coop::{
-    CoopNiceEntry,
-    CoopNiceManager,
-    CoopNiceStats,
-    CoopSchedClass,
-};
-pub use pgid_coop::{
-    CoopPgidEntry,
-    CoopPgidManager,
-    CoopPgidState,
-    CoopPgidStats,
-};
-pub use pid_coop::{
-    CoopPidManager,
-    CoopPidMapping,
-    CoopPidNsEntry,
-    CoopPidNsLevel,
-    CoopPidStats,
-};
-pub use prctl_coop::{
-    CoopPrctlEntry,
-    CoopPrctlManager,
-    CoopPrctlStats,
-    CoopPrctlType,
-};
-pub use session_coop::{CoopSessionEntry, CoopSessionManager, CoopSessionStats};
-pub use thread_coop::{
-    CoopThreadGroup,
-    CoopThreadLevel,
-    CoopThreadManager,
-    CoopThreadStats,
-};
-pub use wait_coop::{
-    CoopWaitEntry,
-    CoopWaitManager,
-    CoopWaitMode,
-    CoopWaitStats,
-};
+pub use zerocopy_coop::{CoopZerocopy, ZerocopyCoopEvent, ZerocopyCoopRecord, ZerocopyCoopStats};
 
 // ============================================================================
 // TESTS
@@ -2443,26 +1148,26 @@ mod tests {
     use hints::PressureLevel;
 }
 pub mod anti_entropy;
+pub mod dist_lock;
 pub mod heartbeat;
 pub mod rcu;
 pub mod resource_pool;
 pub mod semaphore;
 pub mod telemetry;
 pub mod wait_queue;
-pub mod dist_lock;
 // R30 — Memory Management
-pub mod mmap_coop;
-pub mod shmem_coop;
 pub mod hugepage_coop;
+pub mod mlock_coop;
+pub mod mmap_coop;
 pub mod mprotect_coop;
 pub mod mremap_coop;
 pub mod msync_coop;
 pub mod munmap_coop;
-pub mod vma_coop;
-pub mod page_fault_coop;
 pub mod oom_coop;
+pub mod page_fault_coop;
+pub mod shmem_coop;
 pub mod swap_coop;
-pub mod mlock_coop;
+pub mod vma_coop;
 // Consciousness — Cooperation Self-Awareness
 pub mod conscious;
 

@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-
 /// Coop superblock state
 use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,20 +29,51 @@ pub struct CoopSuperblockEntry {
 impl CoopSuperblockEntry {
     pub fn new(dev_id: u64, fs_type: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in fs_type { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { dev_id, fs_type_hash: h, state: CoopSbState::Active, total_blocks: 0, free_blocks: 0, shared_count: 1, sync_count: 0 }
+        for b in fs_type {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            dev_id,
+            fs_type_hash: h,
+            state: CoopSbState::Active,
+            total_blocks: 0,
+            free_blocks: 0,
+            shared_count: 1,
+            sync_count: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn share(&mut self) { self.shared_count += 1; self.state = CoopSbState::Shared; }
+    pub fn share(&mut self) {
+        self.shared_count += 1;
+        self.state = CoopSbState::Shared;
+    }
     #[inline(always)]
-    pub fn sync(&mut self) { self.sync_count += 1; self.state = CoopSbState::Syncing; }
+    pub fn sync(&mut self) {
+        self.sync_count += 1;
+        self.state = CoopSbState::Syncing;
+    }
     #[inline(always)]
-    pub fn freeze(&mut self) { self.state = CoopSbState::Frozen; }
+    pub fn freeze(&mut self) {
+        self.state = CoopSbState::Frozen;
+    }
     #[inline(always)]
-    pub fn thaw(&mut self) { self.state = if self.shared_count > 1 { CoopSbState::Shared } else { CoopSbState::Active }; }
+    pub fn thaw(&mut self) {
+        self.state = if self.shared_count > 1 {
+            CoopSbState::Shared
+        } else {
+            CoopSbState::Active
+        };
+    }
     #[inline(always)]
-    pub fn usage_pct(&self) -> f64 { if self.total_blocks == 0 { 0.0 } else { (self.total_blocks - self.free_blocks) as f64 / self.total_blocks as f64 } }
+    pub fn usage_pct(&self) -> f64 {
+        if self.total_blocks == 0 {
+            0.0
+        } else {
+            (self.total_blocks - self.free_blocks) as f64 / self.total_blocks as f64
+        }
+    }
 }
 
 /// Coop superblock stats
@@ -65,23 +95,38 @@ pub struct CoopSuperblock {
 
 impl CoopSuperblock {
     pub fn new() -> Self {
-        Self { sbs: BTreeMap::new(), stats: CoopSuperblockStats { total_superblocks: 0, shared: 0, syncs: 0, freezes: 0 } }
+        Self {
+            sbs: BTreeMap::new(),
+            stats: CoopSuperblockStats {
+                total_superblocks: 0,
+                shared: 0,
+                syncs: 0,
+                freezes: 0,
+            },
+        }
     }
 
     #[inline(always)]
     pub fn register(&mut self, dev_id: u64, fs_type: &[u8]) {
         self.stats.total_superblocks += 1;
-        self.sbs.insert(dev_id, CoopSuperblockEntry::new(dev_id, fs_type));
+        self.sbs
+            .insert(dev_id, CoopSuperblockEntry::new(dev_id, fs_type));
     }
 
     #[inline(always)]
     pub fn share(&mut self, dev_id: u64) {
-        if let Some(sb) = self.sbs.get_mut(&dev_id) { sb.share(); self.stats.shared += 1; }
+        if let Some(sb) = self.sbs.get_mut(&dev_id) {
+            sb.share();
+            self.stats.shared += 1;
+        }
     }
 
     #[inline(always)]
     pub fn sync(&mut self, dev_id: u64) {
-        if let Some(sb) = self.sbs.get_mut(&dev_id) { sb.sync(); self.stats.syncs += 1; }
+        if let Some(sb) = self.sbs.get_mut(&dev_id) {
+            sb.sync();
+            self.stats.syncs += 1;
+        }
     }
 }
 
@@ -143,7 +188,13 @@ impl CoopSuperblockV2Manager {
         }
     }
 
-    pub fn register(&mut self, fs_type: &str, block_size: u32, total_blocks: u64, total_inodes: u64) -> u64 {
+    pub fn register(
+        &mut self,
+        fs_type: &str,
+        block_size: u32,
+        total_blocks: u64,
+        total_inodes: u64,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let entry = CoopSuperblockV2Entry {

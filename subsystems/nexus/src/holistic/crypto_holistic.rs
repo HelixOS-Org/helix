@@ -26,7 +26,14 @@ pub struct CryptoHolisticFinding {
 
 impl CryptoHolisticFinding {
     pub fn new(metric: CryptoHolisticMetric) -> Self {
-        Self { metric, score: 0, alg_hash: 0, key_size: 0, usage_count: 0, entropy_bits: 0 }
+        Self {
+            metric,
+            score: 0,
+            alg_hash: 0,
+            key_size: 0,
+            usage_count: 0,
+            entropy_bits: 0,
+        }
     }
 }
 
@@ -48,7 +55,14 @@ pub struct HolisticCrypto {
 
 impl HolisticCrypto {
     pub fn new() -> Self {
-        Self { stats: CryptoHolisticStats { total_analyses: 0, weak_algorithms: 0, key_reuses: 0, low_entropy: 0 } }
+        Self {
+            stats: CryptoHolisticStats {
+                total_analyses: 0,
+                weak_algorithms: 0,
+                key_reuses: 0,
+                low_entropy: 0,
+            },
+        }
     }
 
     #[inline]
@@ -58,9 +72,11 @@ impl HolisticCrypto {
             CryptoHolisticMetric::WeakAlgorithm => self.stats.weak_algorithms += 1,
             CryptoHolisticMetric::KeyReuse => self.stats.key_reuses += 1,
             CryptoHolisticMetric::EntropyQuality => {
-                if finding.entropy_bits < 128 { self.stats.low_entropy += 1; }
-            }
-            _ => {}
+                if finding.entropy_bits < 128 {
+                    self.stats.low_entropy += 1;
+                }
+            },
+            _ => {},
         }
     }
 }

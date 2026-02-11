@@ -115,30 +115,30 @@ impl DebounceEntry {
     /// Adapt interval based on strategy
     fn adapt_interval(&mut self) {
         match self.strategy {
-            DebounceStrategy::Fixed => {}
+            DebounceStrategy::Fixed => {},
             DebounceStrategy::Adaptive => {
                 // Increase interval when lots of suppression
                 if self.suppressed > 5 {
                     self.interval_ns = (self.interval_ns * 3 / 2).min(self.max_interval_ns);
                 }
-            }
+            },
             DebounceStrategy::Exponential => {
                 self.interval_ns = (self.interval_ns * 2).min(self.max_interval_ns);
-            }
+            },
         }
     }
 
     /// Reset interval after allow
     fn reset_interval(&mut self) {
         match self.strategy {
-            DebounceStrategy::Fixed => {}
+            DebounceStrategy::Fixed => {},
             DebounceStrategy::Adaptive => {
                 // Slowly decrease
                 self.interval_ns = (self.interval_ns * 3 / 4).max(self.base_interval_ns);
-            }
+            },
             DebounceStrategy::Exponential => {
                 self.interval_ns = self.base_interval_ns;
-            }
+            },
         }
     }
 
@@ -183,9 +183,10 @@ impl ProcessDebounce {
     /// Check syscall
     #[inline]
     pub fn check(&mut self, syscall_nr: u32, now: u64, value_hash: u64) -> DebounceResult {
-        let entry = self.entries.entry(syscall_nr).or_insert_with(|| {
-            DebounceEntry::new(self.default_interval_ns, self.default_strategy)
-        });
+        let entry = self
+            .entries
+            .entry(syscall_nr)
+            .or_insert_with(|| DebounceEntry::new(self.default_interval_ns, self.default_strategy));
         entry.check(now, value_hash)
     }
 
@@ -249,18 +250,25 @@ impl BridgeDebounceManager {
     }
 
     /// Check syscall
-    pub fn check(&mut self, pid: u64, syscall_nr: u32, now: u64, value_hash: u64) -> DebounceResult {
+    pub fn check(
+        &mut self,
+        pid: u64,
+        syscall_nr: u32,
+        now: u64,
+        value_hash: u64,
+    ) -> DebounceResult {
         let interval = self.default_interval_ns;
         let strategy = self.default_strategy;
-        let tracker = self.processes.entry(pid).or_insert_with(|| {
-            ProcessDebounce::new(pid, interval, strategy)
-        });
+        let tracker = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessDebounce::new(pid, interval, strategy));
         let result = tracker.check(syscall_nr, now, value_hash);
         self.stats.total_checks += 1;
         match result {
             DebounceResult::Suppress => self.stats.total_suppressed += 1,
             DebounceResult::Coalesce => self.stats.total_coalesced += 1,
-            DebounceResult::Allow => {}
+            DebounceResult::Allow => {},
         }
         self.stats.tracked_processes = self.processes.len();
         result

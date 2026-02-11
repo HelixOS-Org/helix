@@ -106,8 +106,14 @@ impl WorkloadFeatures {
         let d_cache = self.cache_miss_rate - other.cache_miss_rate;
         let d_ipc = (self.ipc - other.ipc) / 4.0;
 
-        let sum = d_cpu * d_cpu + d_io * d_io + d_net * d_net + d_ctx * d_ctx
-            + d_sys * d_sys + d_wait * d_wait + d_cache * d_cache + d_ipc * d_ipc;
+        let sum = d_cpu * d_cpu
+            + d_io * d_io
+            + d_net * d_net
+            + d_ctx * d_ctx
+            + d_sys * d_sys
+            + d_wait * d_wait
+            + d_cache * d_cache
+            + d_ipc * d_ipc;
         libm::sqrt(sum)
     }
 }
@@ -123,7 +129,12 @@ pub struct WorkloadArchetype {
 
 impl WorkloadArchetype {
     pub fn new(class: WorkloadClass, name: String, centroid: WorkloadFeatures) -> Self {
-        Self { class, name, centroid, match_count: 0 }
+        Self {
+            class,
+            name,
+            centroid,
+            match_count: 0,
+        }
     }
 }
 
@@ -172,20 +183,21 @@ impl ProcessClassification {
     /// Update features with EMA
     pub fn update_features(&mut self, new_features: &WorkloadFeatures) {
         let alpha = 0.1;
-        self.feature_ema.cpu_util = (1.0 - alpha) * self.feature_ema.cpu_util
-            + alpha * new_features.cpu_util;
-        self.feature_ema.io_ops_per_sec = (1.0 - alpha) * self.feature_ema.io_ops_per_sec
-            + alpha * new_features.io_ops_per_sec;
+        self.feature_ema.cpu_util =
+            (1.0 - alpha) * self.feature_ema.cpu_util + alpha * new_features.cpu_util;
+        self.feature_ema.io_ops_per_sec =
+            (1.0 - alpha) * self.feature_ema.io_ops_per_sec + alpha * new_features.io_ops_per_sec;
         self.feature_ema.net_bytes_per_sec = (1.0 - alpha) * self.feature_ema.net_bytes_per_sec
             + alpha * new_features.net_bytes_per_sec;
-        self.feature_ema.ctx_switch_rate = (1.0 - alpha) * self.feature_ema.ctx_switch_rate
-            + alpha * new_features.ctx_switch_rate;
-        self.feature_ema.syscall_rate = (1.0 - alpha) * self.feature_ema.syscall_rate
-            + alpha * new_features.syscall_rate;
-        self.feature_ema.voluntary_wait_ratio = (1.0 - alpha) * self.feature_ema.voluntary_wait_ratio
+        self.feature_ema.ctx_switch_rate =
+            (1.0 - alpha) * self.feature_ema.ctx_switch_rate + alpha * new_features.ctx_switch_rate;
+        self.feature_ema.syscall_rate =
+            (1.0 - alpha) * self.feature_ema.syscall_rate + alpha * new_features.syscall_rate;
+        self.feature_ema.voluntary_wait_ratio = (1.0 - alpha)
+            * self.feature_ema.voluntary_wait_ratio
             + alpha * new_features.voluntary_wait_ratio;
-        self.feature_ema.cache_miss_rate = (1.0 - alpha) * self.feature_ema.cache_miss_rate
-            + alpha * new_features.cache_miss_rate;
+        self.feature_ema.cache_miss_rate =
+            (1.0 - alpha) * self.feature_ema.cache_miss_rate + alpha * new_features.cache_miss_rate;
         self.feature_ema.ipc = (1.0 - alpha) * self.feature_ema.ipc + alpha * new_features.ipc;
         self.feature_ema.memory_wss = new_features.memory_wss;
         self.feature_ema.thread_count = new_features.thread_count;
@@ -235,7 +247,9 @@ impl ProcessClassification {
         if self.class_history.len() < 2 {
             return 1.0;
         }
-        let same_count = self.class_history.windows(2)
+        let same_count = self
+            .class_history
+            .windows(2)
             .filter(|w| w[0] == w[1])
             .count();
         same_count as f64 / (self.class_history.len() - 1) as f64
@@ -336,20 +350,26 @@ impl AppWorkloadClassifier {
 
     /// Classify a process
     pub fn classify(&mut self, pid: u64, features: &WorkloadFeatures) -> ClassificationResult {
-        let proc = self.processes.entry(pid)
+        let proc = self
+            .processes
+            .entry(pid)
             .or_insert_with(|| ProcessClassification::new(pid));
         proc.update_features(features);
 
         // Find nearest archetype
-        let mut distances: Vec<(WorkloadClass, f64)> = self.archetypes.iter()
+        let mut distances: Vec<(WorkloadClass, f64)> = self
+            .archetypes
+            .iter()
             .map(|a| (a.class, proc.feature_ema.distance(&a.centroid)))
             .collect();
         distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(core::cmp::Ordering::Equal));
 
-        let (best_class, best_dist) = distances.first()
+        let (best_class, best_dist) = distances
+            .first()
             .copied()
             .unwrap_or((WorkloadClass::Unknown, f64::MAX));
-        let (second_class, second_dist) = distances.get(1)
+        let (second_class, second_dist) = distances
+            .get(1)
             .copied()
             .unwrap_or((WorkloadClass::Unknown, f64::MAX));
 
@@ -381,14 +401,19 @@ impl AppWorkloadClassifier {
         self.stats.tracked_processes = self.processes.len();
         self.stats.class_distribution.clear();
         for proc in self.processes.values() {
-            *self.stats.class_distribution.entry(proc.current_class as u8).or_insert(0) += 1;
+            *self
+                .stats
+                .class_distribution
+                .entry(proc.current_class as u8)
+                .or_insert(0) += 1;
         }
         if !self.processes.is_empty() {
-            self.stats.avg_confidence = self.processes.values()
-                .map(|p| p.confidence)
-                .sum::<f64>() / self.processes.len() as f64;
+            self.stats.avg_confidence = self.processes.values().map(|p| p.confidence).sum::<f64>()
+                / self.processes.len() as f64;
         }
-        self.stats.unstable_count = self.processes.values()
+        self.stats.unstable_count = self
+            .processes
+            .values()
             .filter(|p| p.class_stability() < 0.5)
             .count();
     }

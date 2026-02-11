@@ -15,8 +15,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -331,12 +330,8 @@ impl HolisticCreativity {
 
     fn add_fragment(&mut self, subsystem: &str, desc: &str) -> u64 {
         let eff = 3_000_u64.wrapping_add(self.rng.next() % 7_001);
-        let frag = StrategyFragment::new(
-            String::from(subsystem),
-            String::from(desc),
-            eff,
-            self.tick,
-        );
+        let frag =
+            StrategyFragment::new(String::from(subsystem), String::from(desc), eff, self.tick);
         let h = frag.frag_hash;
         if self.fragments.len() < MAX_STRATEGIES {
             self.fragments.insert(h, frag);

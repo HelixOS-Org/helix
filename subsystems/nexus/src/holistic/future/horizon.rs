@@ -12,12 +12,12 @@
 
 extern crate alloc;
 
-use crate::fast::fast_hash::FastHasher;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::fast_hash::FastHasher;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -245,7 +245,11 @@ impl HolisticHorizonPredictor {
             weight_sum += w;
             count += 1;
 
-            let key = FastHasher::new().feed_u64(fc.source as u64).feed_str("-").feed_u64(fc.horizon as u64).finish();
+            let key = FastHasher::new()
+                .feed_u64(fc.source as u64)
+                .feed_str("-")
+                .feed_u64(fc.horizon as u64)
+                .finish();
             self.forecasts.insert(key, fc.clone());
         }
 
@@ -256,7 +260,11 @@ impl HolisticHorizonPredictor {
             0.0
         };
 
-        let id = FastHasher::new().feed_u64(horizon as u64).feed_str("-").feed_u64(self.tick as u64).finish()
+        let id = FastHasher::new()
+            .feed_u64(horizon as u64)
+            .feed_str("-")
+            .feed_u64(self.tick as u64)
+            .finish()
             ^ xorshift64(&mut self.rng_state);
 
         let prediction = SystemStatePrediction {
@@ -388,7 +396,11 @@ impl HolisticHorizonPredictor {
                     HorizonScale::OneHour => CONFIDENCE_DECAY.powi(3),
                 };
 
-                let key = FastHasher::new().feed_str(dim).feed_str("-").feed_u64(h as u64).finish();
+                let key = FastHasher::new()
+                    .feed_str(dim)
+                    .feed_str("-")
+                    .feed_u64(h as u64)
+                    .finish();
                 let entry = ConfidenceEntry {
                     dimension: String::from(*dim),
                     horizon: h,
@@ -462,7 +474,10 @@ impl HolisticHorizonPredictor {
                 (next.mem_pressure - curr.mem_pressure) - (curr.mem_pressure - prev.mem_pressure);
 
             if cpu_accel.abs() > INFLECTION_SENSITIVITY * 100.0 {
-                let id = FastHasher::new().feed_str("cpu-inflect-").feed_u64(i as u64).finish();
+                let id = FastHasher::new()
+                    .feed_str("cpu-inflect-")
+                    .feed_u64(i as u64)
+                    .finish();
                 events.push(InflectionEvent {
                     id,
                     estimated_tick: curr.tick_offset,
@@ -474,7 +489,10 @@ impl HolisticHorizonPredictor {
             }
 
             if mem_accel.abs() > INFLECTION_SENSITIVITY {
-                let id = FastHasher::new().feed_str("mem-inflect-").feed_u64(i as u64).finish();
+                let id = FastHasher::new()
+                    .feed_str("mem-inflect-")
+                    .feed_u64(i as u64)
+                    .finish();
                 events.push(InflectionEvent {
                     id,
                     estimated_tick: curr.tick_offset,

@@ -11,8 +11,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -260,7 +259,9 @@ impl AppsReplication {
 
         // Compute match quality
         let diff = abs_f32(original_effect - replicated_effect);
-        let max_mag = abs_f32(original_effect).max(abs_f32(replicated_effect)).max(0.01);
+        let max_mag = abs_f32(original_effect)
+            .max(abs_f32(replicated_effect))
+            .max(0.01);
         let match_score = 1.0 - (diff / max_mag).min(1.0);
 
         let match_quality = if match_score >= 0.90 {
@@ -317,7 +318,11 @@ impl AppsReplication {
     }
 
     /// Generate varied conditions for a replication.
-    pub fn replication_conditions(&mut self, finding_id: u64, description: &str) -> Option<ReplicationConditions> {
+    pub fn replication_conditions(
+        &mut self,
+        finding_id: u64,
+        description: &str,
+    ) -> Option<ReplicationConditions> {
         if !self.findings.contains_key(&finding_id) {
             return None;
         }
@@ -407,7 +412,7 @@ impl AppsReplication {
                 ReplicationStatus::Succeeded => success += 1,
                 ReplicationStatus::Failed => fail += 1,
                 ReplicationStatus::Inconclusive => inconclusive += 1,
-                _ => {}
+                _ => {},
             }
             match_sum += attempt.match_score;
         }

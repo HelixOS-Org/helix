@@ -135,7 +135,8 @@ impl ErrorPattern {
             self.recovery_successes += 1;
         }
         if self.recovery_attempts > 0 {
-            self.recovery_success_rate = self.recovery_successes as f64 / self.recovery_attempts as f64;
+            self.recovery_success_rate =
+                self.recovery_successes as f64 / self.recovery_attempts as f64;
         }
     }
 
@@ -208,24 +209,30 @@ impl BridgeErrorRecovery {
     /// Classify error code to category
     pub fn classify(error_code: i32) -> SyscallErrorCategory {
         match error_code {
-            -1 => SyscallErrorCategory::Permission,      // EPERM
-            -2 => SyscallErrorCategory::NotFound,         // ENOENT
-            -11 => SyscallErrorCategory::Busy,            // EAGAIN
-            -12 => SyscallErrorCategory::Resource,        // ENOMEM
-            -13 => SyscallErrorCategory::Permission,      // EACCES
-            -14 => SyscallErrorCategory::Invalid,         // EFAULT
-            -16 => SyscallErrorCategory::Busy,            // EBUSY
-            -22 => SyscallErrorCategory::Invalid,         // EINVAL
-            -28 => SyscallErrorCategory::Resource,        // ENOSPC
-            -110 => SyscallErrorCategory::Timeout,        // ETIMEDOUT
-            -4 => SyscallErrorCategory::Interrupted,      // EINTR
-            -38 => SyscallErrorCategory::NotSupported,    // ENOSYS
+            -1 => SyscallErrorCategory::Permission,    // EPERM
+            -2 => SyscallErrorCategory::NotFound,      // ENOENT
+            -11 => SyscallErrorCategory::Busy,         // EAGAIN
+            -12 => SyscallErrorCategory::Resource,     // ENOMEM
+            -13 => SyscallErrorCategory::Permission,   // EACCES
+            -14 => SyscallErrorCategory::Invalid,      // EFAULT
+            -16 => SyscallErrorCategory::Busy,         // EBUSY
+            -22 => SyscallErrorCategory::Invalid,      // EINVAL
+            -28 => SyscallErrorCategory::Resource,     // ENOSPC
+            -110 => SyscallErrorCategory::Timeout,     // ETIMEDOUT
+            -4 => SyscallErrorCategory::Interrupted,   // EINTR
+            -38 => SyscallErrorCategory::NotSupported, // ENOSYS
             _ => SyscallErrorCategory::Internal,
         }
     }
 
     /// Record error and get recovery strategy
-    pub fn record_error(&mut self, syscall_nr: u32, error_code: i32, pid: u64, now_ns: u64) -> RecoveryStrategy {
+    pub fn record_error(
+        &mut self,
+        syscall_nr: u32,
+        error_code: i32,
+        pid: u64,
+        now_ns: u64,
+    ) -> RecoveryStrategy {
         let category = Self::classify(error_code);
         self.total_errors += 1;
 
@@ -239,7 +246,9 @@ impl BridgeErrorRecovery {
             hash
         };
 
-        let pattern = self.patterns.entry(pattern_key)
+        let pattern = self
+            .patterns
+            .entry(pattern_key)
             .or_insert_with(|| ErrorPattern::new(syscall_nr, category, now_ns));
         pattern.record(now_ns);
         // Drop the mutable borrow on self.patterns before select_strategy
@@ -247,7 +256,10 @@ impl BridgeErrorRecovery {
 
         // Store in recent
         let entry = SyscallError {
-            syscall_nr, error_code, category, pid,
+            syscall_nr,
+            error_code,
+            category,
+            pid,
             timestamp_ns: now_ns,
             recovery_attempted: false,
             recovery_succeeded: false,
@@ -266,7 +278,11 @@ impl BridgeErrorRecovery {
         strategy
     }
 
-    fn select_strategy(&self, category: SyscallErrorCategory, pattern: &ErrorPattern) -> RecoveryStrategy {
+    fn select_strategy(
+        &self,
+        category: SyscallErrorCategory,
+        pattern: &ErrorPattern,
+    ) -> RecoveryStrategy {
         // If pattern has good recovery rate, use its best strategy
         if pattern.recovery_attempts > 5 && pattern.recovery_success_rate > 0.7 {
             return pattern.best_strategy;
@@ -280,7 +296,7 @@ impl BridgeErrorRecovery {
                 } else {
                     RecoveryStrategy::RetryBackoff
                 }
-            }
+            },
             SyscallErrorCategory::Resource => RecoveryStrategy::DeferRetry,
             SyscallErrorCategory::Timeout => RecoveryStrategy::RetryBackoff,
             SyscallErrorCategory::Permission => RecoveryStrategy::PropagateError,
@@ -293,7 +309,12 @@ impl BridgeErrorRecovery {
     }
 
     /// Record recovery result
-    pub fn record_recovery(&mut self, syscall_nr: u32, category: SyscallErrorCategory, succeeded: bool) {
+    pub fn record_recovery(
+        &mut self,
+        syscall_nr: u32,
+        category: SyscallErrorCategory,
+        succeeded: bool,
+    ) {
         self.recovery_attempts += 1;
         if succeeded {
             self.recovery_successes += 1;

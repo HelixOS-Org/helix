@@ -14,9 +14,13 @@ impl MremapFlags {
     pub const MAYMOVE: u32 = 1;
     pub const FIXED: u32 = 2;
     pub const DONTUNMAP: u32 = 4;
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u32) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Remap operation
@@ -35,11 +39,17 @@ pub struct RemapOp {
 
 impl RemapOp {
     #[inline(always)]
-    pub fn grew(&self) -> bool { self.new_size > self.old_size }
+    pub fn grew(&self) -> bool {
+        self.new_size > self.old_size
+    }
     #[inline(always)]
-    pub fn shrank(&self) -> bool { self.new_size < self.old_size }
+    pub fn shrank(&self) -> bool {
+        self.new_size < self.old_size
+    }
     #[inline(always)]
-    pub fn delta(&self) -> i64 { self.new_size as i64 - self.old_size as i64 }
+    pub fn delta(&self) -> i64 {
+        self.new_size as i64 - self.old_size as i64
+    }
 }
 
 /// Process remap stats
@@ -55,14 +65,32 @@ pub struct ProcessRemapInfo {
 }
 
 impl ProcessRemapInfo {
-    pub fn new(pid: u64) -> Self { Self { pid, remap_count: 0, move_count: 0, grow_count: 0, shrink_count: 0, total_grown_bytes: 0, total_shrunk_bytes: 0 } }
+    pub fn new(pid: u64) -> Self {
+        Self {
+            pid,
+            remap_count: 0,
+            move_count: 0,
+            grow_count: 0,
+            shrink_count: 0,
+            total_grown_bytes: 0,
+            total_shrunk_bytes: 0,
+        }
+    }
 
     #[inline]
     pub fn record(&mut self, op: &RemapOp) {
         self.remap_count += 1;
-        if op.moved { self.move_count += 1; }
-        if op.grew() { self.grow_count += 1; self.total_grown_bytes += op.new_size - op.old_size; }
-        if op.shrank() { self.shrink_count += 1; self.total_shrunk_bytes += op.old_size - op.new_size; }
+        if op.moved {
+            self.move_count += 1;
+        }
+        if op.grew() {
+            self.grow_count += 1;
+            self.total_grown_bytes += op.new_size - op.old_size;
+        }
+        if op.shrank() {
+            self.shrink_count += 1;
+            self.total_shrunk_bytes += op.old_size - op.new_size;
+        }
     }
 }
 
@@ -85,14 +113,26 @@ pub struct AppMremap {
 }
 
 impl AppMremap {
-    pub fn new() -> Self { Self { processes: BTreeMap::new(), history: Vec::new(), max_history: 4096 } }
+    pub fn new() -> Self {
+        Self {
+            processes: BTreeMap::new(),
+            history: Vec::new(),
+            max_history: 4096,
+        }
+    }
     #[inline(always)]
-    pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessRemapInfo::new(pid)); }
+    pub fn register(&mut self, pid: u64) {
+        self.processes.insert(pid, ProcessRemapInfo::new(pid));
+    }
 
     #[inline]
     pub fn remap(&mut self, op: RemapOp) {
-        if let Some(p) = self.processes.get_mut(&op.pid) { p.record(&op); }
-        if self.history.len() >= self.max_history { self.history.drain(..self.max_history / 2); }
+        if let Some(p) = self.processes.get_mut(&op.pid) {
+            p.record(&op);
+        }
+        if self.history.len() >= self.max_history {
+            self.history.drain(..self.max_history / 2);
+        }
         self.history.push(op);
     }
 
@@ -102,6 +142,12 @@ impl AppMremap {
         let moves: u64 = self.processes.values().map(|p| p.move_count).sum();
         let grows: u64 = self.processes.values().map(|p| p.grow_count).sum();
         let shrinks: u64 = self.processes.values().map(|p| p.shrink_count).sum();
-        MremapAppStats { tracked_processes: self.processes.len() as u32, total_remaps: remaps, total_moves: moves, total_grows: grows, total_shrinks: shrinks }
+        MremapAppStats {
+            tracked_processes: self.processes.len() as u32,
+            total_remaps: remaps,
+            total_moves: moves,
+            total_grows: grows,
+            total_shrinks: shrinks,
+        }
     }
 }

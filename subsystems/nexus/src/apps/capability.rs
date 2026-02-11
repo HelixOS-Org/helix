@@ -84,14 +84,14 @@ impl AppCapability {
         match self {
             Self::FileRead | Self::FileWrite | Self::FileExec | Self::FileCreate => {
                 CapabilityCategory::FileSystem
-            }
+            },
             Self::NetListen | Self::NetConnect | Self::NetRaw => CapabilityCategory::Network,
             Self::Fork | Self::Signal => CapabilityCategory::ProcessMgmt,
             Self::Mmap | Self::Mlock => CapabilityCategory::MemoryMgmt,
             Self::DeviceAccess => CapabilityCategory::Device,
             Self::Mount | Self::Chown | Self::ModuleLoad | Self::Reboot => {
                 CapabilityCategory::SysAdmin
-            }
+            },
             Self::SetCap | Self::Ptrace => CapabilityCategory::Security,
         }
     }
@@ -257,24 +257,30 @@ impl ProcessCapProfile {
     #[inline]
     pub fn record_use(&mut self, cap: AppCapability, now: u64) {
         self.used.grant(cap);
-        let record = self.usage.entry(cap as u8).or_insert_with(|| CapUsageRecord {
-            capability: cap,
-            use_count: 0,
-            last_used: 0,
-            denied_count: 0,
-        });
+        let record = self
+            .usage
+            .entry(cap as u8)
+            .or_insert_with(|| CapUsageRecord {
+                capability: cap,
+                use_count: 0,
+                last_used: 0,
+                denied_count: 0,
+            });
         record.use_count += 1;
         record.last_used = now;
     }
 
     /// Record denial
     pub fn record_denial(&mut self, cap: AppCapability, now: u64) {
-        let record = self.usage.entry(cap as u8).or_insert_with(|| CapUsageRecord {
-            capability: cap,
-            use_count: 0,
-            last_used: 0,
-            denied_count: 0,
-        });
+        let record = self
+            .usage
+            .entry(cap as u8)
+            .or_insert_with(|| CapUsageRecord {
+                capability: cap,
+                use_count: 0,
+                last_used: 0,
+                denied_count: 0,
+            });
         record.denied_count += 1;
         record.last_used = now;
 

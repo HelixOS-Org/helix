@@ -83,17 +83,22 @@ impl HolisticFlockManager {
 
     pub fn analyze(&mut self) -> &HolisticFlockHealth {
         self.stats.analyses += 1;
-        let contention: Vec<&HolisticFlockSample> = self.samples.iter()
+        let contention: Vec<&HolisticFlockSample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticFlockMetric::ContentionRate))
             .collect();
         if !contention.is_empty() {
-            let avg: u64 = contention.iter().map(|s| s.value).sum::<u64>() / contention.len() as u64;
+            let avg: u64 =
+                contention.iter().map(|s| s.value).sum::<u64>() / contention.len() as u64;
             self.health.contention_score = avg.min(100);
             if avg > 60 {
                 self.stats.contention_alerts += 1;
             }
         }
-        let deadlock: Vec<&HolisticFlockSample> = self.samples.iter()
+        let deadlock: Vec<&HolisticFlockSample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticFlockMetric::DeadlockFrequency))
             .collect();
         if !deadlock.is_empty() {
@@ -103,7 +108,10 @@ impl HolisticFlockManager {
                 self.stats.deadlock_warnings += 1;
             }
         }
-        self.health.overall = (self.health.fairness_score + (100 - self.health.contention_score) + (100 - self.health.deadlock_risk)) / 3;
+        self.health.overall = (self.health.fairness_score
+            + (100 - self.health.contention_score)
+            + (100 - self.health.deadlock_risk))
+            / 3;
         &self.health
     }
 

@@ -53,17 +53,24 @@ pub struct ShareEntity {
 impl ShareEntity {
     pub fn new(id: u64, weight: u32) -> Self {
         Self {
-            id, weight: weight.max(1), state: ShareEntityState::Active,
-            vruntime: 0, actual_runtime: 0,
-            allocated: BTreeMap::new(), demand: BTreeMap::new(),
-            min_share: BTreeMap::new(), max_share: BTreeMap::new(),
+            id,
+            weight: weight.max(1),
+            state: ShareEntityState::Active,
+            vruntime: 0,
+            actual_runtime: 0,
+            allocated: BTreeMap::new(),
+            demand: BTreeMap::new(),
+            min_share: BTreeMap::new(),
+            max_share: BTreeMap::new(),
             starvation_ns: 0,
         }
     }
 
     #[inline]
     pub fn update_vruntime(&mut self, delta_ns: u64) {
-        let weighted = if self.weight == 0 { delta_ns } else {
+        let weighted = if self.weight == 0 {
+            delta_ns
+        } else {
             (delta_ns * 1024) / self.weight as u64
         };
         self.vruntime += weighted;
@@ -72,7 +79,9 @@ impl ShareEntity {
 
     #[inline(always)]
     pub fn fair_ratio(&self, total_weight: u32) -> f64 {
-        if total_weight == 0 { return 0.0; }
+        if total_weight == 0 {
+            return 0.0;
+        }
         self.weight as f64 / total_weight as f64
     }
 
@@ -80,7 +89,9 @@ impl ShareEntity {
     pub fn satisfaction(&self, dim: u8) -> f64 {
         let demand = self.demand.get(&dim).copied().unwrap_or(0);
         let alloc = self.allocated.get(&dim).copied().unwrap_or(0);
-        if demand == 0 { return 1.0; }
+        if demand == 0 {
+            return 1.0;
+        }
         alloc as f64 / demand as f64
     }
 }
@@ -115,7 +126,12 @@ pub struct CoopFairShare {
 
 impl CoopFairShare {
     pub fn new(share_type: ShareType) -> Self {
-        Self { entities: BTreeMap::new(), total_resources: BTreeMap::new(), share_type, next_id: 1 }
+        Self {
+            entities: BTreeMap::new(),
+            total_resources: BTreeMap::new(),
+            share_type,
+            next_id: 1,
+        }
     }
 
     #[inline]
@@ -128,7 +144,9 @@ impl CoopFairShare {
 
     #[inline(always)]
     pub fn set_demand(&mut self, entity: u64, dim: u8, amount: u64) {
-        if let Some(e) = self.entities.get_mut(&entity) { e.demand.insert(dim, amount); }
+        if let Some(e) = self.entities.get_mut(&entity) {
+            e.demand.insert(dim, amount);
+        }
     }
 
     #[inline(always)]
@@ -138,12 +156,21 @@ impl CoopFairShare {
 
     pub fn allocate(&mut self, dim: u8) -> Vec<AllocationResult> {
         let total = self.total_resources.get(&dim).unwrap_or(&0);
-        let total_weight: u32 = self.entities.values().filter(|e| e.state == ShareEntityState::Active).map(|e| e.weight).sum();
+        let total_weight: u32 = self
+            .entities
+            .values()
+            .filter(|e| e.state == ShareEntityState::Active)
+            .map(|e| e.weight)
+            .sum();
         let mut results = Vec::new();
 
         for entity in self.entities.values_mut() {
-            if entity.state != ShareEntityState::Active { continue; }
-            let fair = if total_weight == 0 { 0 } else {
+            if entity.state != ShareEntityState::Active {
+                continue;
+            }
+            let fair = if total_weight == 0 {
+                0
+            } else {
                 (total * entity.weight as u64) / total_weight as u64
             };
             let demand = entity.demand.get(&dim).unwrap_or(&0);
@@ -163,27 +190,49 @@ impl CoopFairShare {
     }
 
     pub fn stats(&self) -> FairShareStats {
-        let active = self.entities.values().filter(|e| e.state == ShareEntityState::Active).count() as u32;
-        let starved = self.entities.values().filter(|e| e.state == ShareEntityState::Starved).count() as u32;
+        let active = self
+            .entities
+            .values()
+            .filter(|e| e.state == ShareEntityState::Active)
+            .count() as u32;
+        let starved = self
+            .entities
+            .values()
+            .filter(|e| e.state == ShareEntityState::Starved)
+            .count() as u32;
         let total_weight: u32 = self.entities.values().map(|e| e.weight).sum();
 
         // Jain's fairness index: (sum(xi))^2 / (n * sum(xi^2))
-        let satisfactions: Vec<f64> = self.entities.values()
+        let satisfactions: Vec<f64> = self
+            .entities
+            .values()
             .filter(|e| e.state == ShareEntityState::Active)
             .map(|e| {
                 let dims: Vec<f64> = e.demand.keys().map(|d| e.satisfaction(*d)).collect();
-                if dims.is_empty() { 1.0 } else { dims.iter().sum::<f64>() / dims.len() as f64 }
-            }).collect();
+                if dims.is_empty() {
+                    1.0
+                } else {
+                    dims.iter().sum::<f64>() / dims.len() as f64
+                }
+            })
+            .collect();
         let n = satisfactions.len() as f64;
         let sum: f64 = satisfactions.iter().sum();
         let sum_sq: f64 = satisfactions.iter().map(|x| x * x).sum();
-        let jains = if n == 0.0 || sum_sq == 0.0 { 1.0 } else { (sum * sum) / (n * sum_sq) };
+        let jains = if n == 0.0 || sum_sq == 0.0 {
+            1.0
+        } else {
+            (sum * sum) / (n * sum_sq)
+        };
         let avg_sat = if n == 0.0 { 1.0 } else { sum / n };
 
         FairShareStats {
-            total_entities: self.entities.len() as u32, active_entities: active,
-            starved_entities: starved, total_weight,
-            avg_satisfaction: avg_sat, jains_fairness: jains,
+            total_entities: self.entities.len() as u32,
+            active_entities: active,
+            starved_entities: starved,
+            total_weight,
+            avg_satisfaction: avg_sat,
+            jains_fairness: jains,
         }
     }
 }

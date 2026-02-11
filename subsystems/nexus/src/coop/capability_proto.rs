@@ -112,7 +112,12 @@ impl CapabilityToken {
     }
 
     /// Create an attenuated delegation
-    pub fn delegate(&self, new_owner: u64, attenuated_rights: u32, now_ns: u64) -> Option<CapabilityToken> {
+    pub fn delegate(
+        &self,
+        new_owner: u64,
+        attenuated_rights: u32,
+        now_ns: u64,
+    ) -> Option<CapabilityToken> {
         if self.delegation_depth == 0 || self.revoked {
             return None;
         }
@@ -190,7 +195,13 @@ impl ProcessCapTable {
         self.grants_received += 1;
     }
 
-    pub fn check_access(&mut self, object_type: CapObjectType, object_id: u64, right: CapRight, now_ns: u64) -> bool {
+    pub fn check_access(
+        &mut self,
+        object_type: CapObjectType,
+        object_id: u64,
+        right: CapRight,
+        now_ns: u64,
+    ) -> bool {
         self.access_checks += 1;
         let has = self.caps.values().any(|c| {
             c.object_type == object_type
@@ -227,7 +238,9 @@ impl ProcessCapTable {
 
     #[inline]
     pub fn denial_rate(&self) -> f64 {
-        if self.access_checks == 0 { 0.0 } else {
+        if self.access_checks == 0 {
+            0.0
+        } else {
             self.access_denials as f64 / self.access_checks as f64
         }
     }
@@ -262,13 +275,21 @@ impl CoopCapProtocol {
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64) {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessCapTable::new(pid));
     }
 
     /// Grant a new root capability
     #[inline]
-    pub fn grant_root(&mut self, pid: u64, obj_type: CapObjectType, obj_id: u64, rights: u32, now_ns: u64) -> u64 {
+    pub fn grant_root(
+        &mut self,
+        pid: u64,
+        obj_type: CapObjectType,
+        obj_id: u64,
+        rights: u32,
+        now_ns: u64,
+    ) -> u64 {
         let cap_id = self.next_cap_id;
         self.next_cap_id += 1;
         let cap = CapabilityToken::new(cap_id, obj_type, obj_id, rights, pid, now_ns);
@@ -313,7 +334,9 @@ impl CoopCapProtocol {
         for proc in self.processes.values_mut() {
             proc.revoke(cap_id);
             // Also revoke children
-            let children: Vec<u64> = proc.caps.iter()
+            let children: Vec<u64> = proc
+                .caps
+                .iter()
                 .filter(|(_, c)| c.parent_cap == Some(cap_id))
                 .map(|(&id, _)| id)
                 .collect();
@@ -325,7 +348,14 @@ impl CoopCapProtocol {
     }
 
     #[inline]
-    pub fn check_access(&mut self, pid: u64, obj_type: CapObjectType, obj_id: u64, right: CapRight, now_ns: u64) -> bool {
+    pub fn check_access(
+        &mut self,
+        pid: u64,
+        obj_type: CapObjectType,
+        obj_id: u64,
+        right: CapRight,
+        now_ns: u64,
+    ) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             proc.check_access(obj_type, obj_id, right, now_ns)
         } else {
@@ -335,16 +365,16 @@ impl CoopCapProtocol {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.total_capabilities = self.processes.values()
-            .map(|p| p.cap_count()).sum();
-        self.stats.total_delegations = self.processes.values()
-            .map(|p| p.grants_given).sum();
-        self.stats.total_revocations = self.processes.values()
-            .map(|p| p.revocations).sum();
+        self.stats.total_capabilities = self.processes.values().map(|p| p.cap_count()).sum();
+        self.stats.total_delegations = self.processes.values().map(|p| p.grants_given).sum();
+        self.stats.total_revocations = self.processes.values().map(|p| p.revocations).sum();
         if !self.processes.is_empty() {
-            self.stats.avg_denial_rate = self.processes.values()
+            self.stats.avg_denial_rate = self
+                .processes
+                .values()
                 .map(|p| p.denial_rate())
-                .sum::<f64>() / self.processes.len() as f64;
+                .sum::<f64>()
+                / self.processes.len() as f64;
         }
     }
 

@@ -23,7 +23,8 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -179,14 +180,7 @@ impl EmpathyProfile {
     }
 
     #[inline]
-    fn update_needs(
-        &mut self,
-        latency: f32,
-        throughput: f32,
-        memory: f32,
-        io: f32,
-        network: f32,
-    ) {
+    fn update_needs(&mut self, latency: f32, throughput: f32, memory: f32, io: f32, network: f32) {
         let old = self.inferred_needs.clone();
 
         self.inferred_needs.latency_need =
@@ -210,8 +204,7 @@ impl EmpathyProfile {
         self.need_delta.memory_need = EMA_ALPHA
             * (self.inferred_needs.memory_need - old.memory_need)
             + (1.0 - EMA_ALPHA) * self.need_delta.memory_need;
-        self.need_delta.io_need = EMA_ALPHA
-            * (self.inferred_needs.io_need - old.io_need)
+        self.need_delta.io_need = EMA_ALPHA * (self.inferred_needs.io_need - old.io_need)
             + (1.0 - EMA_ALPHA) * self.need_delta.io_need;
         self.need_delta.network_need = EMA_ALPHA
             * (self.inferred_needs.network_need - old.network_need)
@@ -226,8 +219,7 @@ impl EmpathyProfile {
 
     #[inline]
     fn update_satisfaction(&mut self, actual_satisfaction: f32) {
-        self.satisfaction =
-            EMA_ALPHA * actual_satisfaction + (1.0 - EMA_ALPHA) * self.satisfaction;
+        self.satisfaction = EMA_ALPHA * actual_satisfaction + (1.0 - EMA_ALPHA) * self.satisfaction;
 
         if self.satisfaction_history.len() < MAX_NEED_HISTORY {
             self.satisfaction_history.push(actual_satisfaction);
@@ -244,34 +236,28 @@ impl EmpathyProfile {
     fn update_confidence(&mut self) {
         // Confidence grows with observations and prediction accuracy
         let obs_factor = 1.0 - 1.0 / (1.0 + self.observations as f32 * 0.05);
-        self.confidence =
-            EMA_ALPHA * (obs_factor * self.prediction_accuracy)
-                + (1.0 - EMA_ALPHA) * self.confidence;
+        self.confidence = EMA_ALPHA * (obs_factor * self.prediction_accuracy)
+            + (1.0 - EMA_ALPHA) * self.confidence;
         self.confidence = self.confidence.clamp(0.0, 1.0);
     }
 
     #[inline]
     fn evaluate_prediction_accuracy(&mut self) {
         let sim = self.prev_prediction.cosine_similarity(&self.inferred_needs);
-        self.prediction_accuracy =
-            EMA_ALPHA * sim + (1.0 - EMA_ALPHA) * self.prediction_accuracy;
+        self.prediction_accuracy = EMA_ALPHA * sim + (1.0 - EMA_ALPHA) * self.prediction_accuracy;
     }
 
     fn predict_next_needs(&mut self) -> NeedVector {
         let predicted = NeedVector {
-            latency_need: (self.inferred_needs.latency_need
-                + self.need_delta.latency_need)
+            latency_need: (self.inferred_needs.latency_need + self.need_delta.latency_need)
                 .clamp(0.0, 1.0),
             throughput_need: (self.inferred_needs.throughput_need
                 + self.need_delta.throughput_need)
                 .clamp(0.0, 1.0),
-            memory_need: (self.inferred_needs.memory_need
-                + self.need_delta.memory_need)
+            memory_need: (self.inferred_needs.memory_need + self.need_delta.memory_need)
                 .clamp(0.0, 1.0),
-            io_need: (self.inferred_needs.io_need + self.need_delta.io_need)
-                .clamp(0.0, 1.0),
-            network_need: (self.inferred_needs.network_need
-                + self.need_delta.network_need)
+            io_need: (self.inferred_needs.io_need + self.need_delta.io_need).clamp(0.0, 1.0),
+            network_need: (self.inferred_needs.network_need + self.need_delta.network_need)
                 .clamp(0.0, 1.0),
         };
         self.prev_prediction = predicted.clone();
@@ -284,10 +270,8 @@ impl EmpathyProfile {
         }
         let len = self.satisfaction_history.len();
         let mid = len / 2;
-        let first: f32 =
-            self.satisfaction_history[..mid].iter().sum::<f32>() / mid as f32;
-        let second: f32 =
-            self.satisfaction_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
+        let first: f32 = self.satisfaction_history[..mid].iter().sum::<f32>() / mid as f32;
+        let second: f32 = self.satisfaction_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
         second - first
     }
 }
@@ -329,7 +313,11 @@ impl AppsEmpathyEngine {
             profiles: BTreeMap::new(),
             tick: 0,
             total_observations: 0,
-            rng_state: if seed == 0 { 0xE3AA_CAFE_1234_0000 } else { seed },
+            rng_state: if seed == 0 {
+                0xE3AA_CAFE_1234_0000
+            } else {
+                seed
+            },
         }
     }
 

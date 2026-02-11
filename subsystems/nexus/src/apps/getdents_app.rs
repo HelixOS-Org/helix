@@ -41,7 +41,15 @@ pub struct DirReadSession {
 
 impl DirReadSession {
     pub fn new(fd: u64, pid: u64) -> Self {
-        Self { fd, pid, entries_read: 0, bytes_read: 0, calls: 0, position: 0, eof: false }
+        Self {
+            fd,
+            pid,
+            entries_read: 0,
+            bytes_read: 0,
+            calls: 0,
+            position: 0,
+            eof: false,
+        }
     }
 
     #[inline]
@@ -69,26 +77,46 @@ pub struct AppGetdents {
 }
 
 impl AppGetdents {
-    pub fn new() -> Self { Self { sessions: BTreeMap::new() } }
-
-    #[inline(always)]
-    pub fn open(&mut self, fd: u64, pid: u64) { self.sessions.insert(fd, DirReadSession::new(fd, pid)); }
-
-    #[inline(always)]
-    pub fn read(&mut self, fd: u64, count: u64, bytes: u64) {
-        if let Some(s) = self.sessions.get_mut(&fd) { s.read(count, bytes); }
+    pub fn new() -> Self {
+        Self {
+            sessions: BTreeMap::new(),
+        }
     }
 
     #[inline(always)]
-    pub fn close(&mut self, fd: u64) { self.sessions.remove(&fd); }
+    pub fn open(&mut self, fd: u64, pid: u64) {
+        self.sessions.insert(fd, DirReadSession::new(fd, pid));
+    }
+
+    #[inline(always)]
+    pub fn read(&mut self, fd: u64, count: u64, bytes: u64) {
+        if let Some(s) = self.sessions.get_mut(&fd) {
+            s.read(count, bytes);
+        }
+    }
+
+    #[inline(always)]
+    pub fn close(&mut self, fd: u64) {
+        self.sessions.remove(&fd);
+    }
 
     #[inline]
     pub fn stats(&self) -> GetdentsAppStats {
         let entries: u64 = self.sessions.values().map(|s| s.entries_read).sum();
         let bytes: u64 = self.sessions.values().map(|s| s.bytes_read).sum();
         let calls: u64 = self.sessions.values().map(|s| s.calls).sum();
-        let avg = if calls == 0 { 0.0 } else { entries as f64 / calls as f64 };
-        GetdentsAppStats { total_sessions: self.sessions.len() as u32, total_entries_read: entries, total_bytes_read: bytes, total_calls: calls, avg_entries_per_call: avg }
+        let avg = if calls == 0 {
+            0.0
+        } else {
+            entries as f64 / calls as f64
+        };
+        GetdentsAppStats {
+            total_sessions: self.sessions.len() as u32,
+            total_entries_read: entries,
+            total_bytes_read: bytes,
+            total_calls: calls,
+            avg_entries_per_call: avg,
+        }
     }
 }
 
@@ -131,14 +159,23 @@ pub struct DirSessionV2 {
 
 impl DirSessionV2 {
     pub fn new(fd: u64, inode: u64) -> Self {
-        Self { fd, dir_inode: inode, position: 0, entries_read: 0, bytes_read: 0, completed: false }
+        Self {
+            fd,
+            dir_inode: inode,
+            position: 0,
+            entries_read: 0,
+            bytes_read: 0,
+            completed: false,
+        }
     }
 
     #[inline]
     pub fn read_entries(&mut self, count: u32, bytes: u64) {
         self.entries_read += count as u64;
         self.bytes_read += bytes;
-        if bytes == 0 { self.completed = true; }
+        if bytes == 0 {
+            self.completed = true;
+        }
     }
 }
 
@@ -158,7 +195,11 @@ pub struct AppGetdentsV2 {
 }
 
 impl AppGetdentsV2 {
-    pub fn new() -> Self { Self { sessions: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            sessions: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn open_dir(&mut self, fd: u64, inode: u64) {
@@ -167,17 +208,26 @@ impl AppGetdentsV2 {
 
     #[inline(always)]
     pub fn read(&mut self, fd: u64, count: u32, bytes: u64) {
-        if let Some(s) = self.sessions.get_mut(&fd) { s.read_entries(count, bytes); }
+        if let Some(s) = self.sessions.get_mut(&fd) {
+            s.read_entries(count, bytes);
+        }
     }
 
     #[inline(always)]
-    pub fn close_dir(&mut self, fd: u64) { self.sessions.remove(&fd); }
+    pub fn close_dir(&mut self, fd: u64) {
+        self.sessions.remove(&fd);
+    }
 
     #[inline]
     pub fn stats(&self) -> GetdentsV2AppStats {
         let entries: u64 = self.sessions.values().map(|s| s.entries_read).sum();
         let bytes: u64 = self.sessions.values().map(|s| s.bytes_read).sum();
         let completed = self.sessions.values().filter(|s| s.completed).count() as u32;
-        GetdentsV2AppStats { active_sessions: self.sessions.len() as u32, total_entries_read: entries, total_bytes: bytes, completed_scans: completed }
+        GetdentsV2AppStats {
+            active_sessions: self.sessions.len() as u32,
+            total_entries_read: entries,
+            total_bytes: bytes,
+            completed_scans: completed,
+        }
     }
 }

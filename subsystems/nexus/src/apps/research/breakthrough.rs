@@ -12,8 +12,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -419,15 +418,16 @@ impl AppsBreakthroughDetector {
     fn confirm_breakthrough(&mut self, candidate: &BreakthroughCandidate) {
         self.stats.breakthroughs_confirmed += 1;
 
-        let mag_class = if candidate.magnitude >= MAGNITUDE_LARGE && candidate.novelty >= MAGNITUDE_LARGE {
-            BreakthroughMagnitude::Transformative
-        } else if candidate.magnitude >= MAGNITUDE_LARGE {
-            BreakthroughMagnitude::Major
-        } else if candidate.magnitude >= MAGNITUDE_SMALL {
-            BreakthroughMagnitude::Significant
-        } else {
-            BreakthroughMagnitude::Incremental
-        };
+        let mag_class =
+            if candidate.magnitude >= MAGNITUDE_LARGE && candidate.novelty >= MAGNITUDE_LARGE {
+                BreakthroughMagnitude::Transformative
+            } else if candidate.magnitude >= MAGNITUDE_LARGE {
+                BreakthroughMagnitude::Major
+            } else if candidate.magnitude >= MAGNITUDE_SMALL {
+                BreakthroughMagnitude::Significant
+            } else {
+                BreakthroughMagnitude::Incremental
+            };
 
         let entry = BreakthroughEntry {
             breakthrough_id: candidate.candidate_id,

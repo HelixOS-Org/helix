@@ -58,7 +58,14 @@ impl HolisticSessionManager {
         }
     }
 
-    pub fn analyze_session(&mut self, sid: u64, groups: u32, procs: u32, tty: bool, leader_alive: bool) -> HolisticSessionHealth {
+    pub fn analyze_session(
+        &mut self,
+        sid: u64,
+        groups: u32,
+        procs: u32,
+        tty: bool,
+        leader_alive: bool,
+    ) -> HolisticSessionHealth {
         let health = if !leader_alive {
             self.stats.leader_dead += 1;
             HolisticSessionHealth::LeaderDead

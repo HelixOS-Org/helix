@@ -12,11 +12,11 @@
 
 extern crate alloc;
 
-use crate::fast::fast_hash::FastHasher;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::fast_hash::FastHasher;
 
 // ============================================================================
 // CONSTANTS
@@ -325,7 +325,14 @@ impl HolisticProactive {
         self.total_balances += 1;
 
         let improvement = (load_fraction * 0.8).clamp(0.0, 1.0);
-        let id = FastHasher::new().feed_str("bal-").feed_u64(from as u64).feed_str("-").feed_u64(to as u64).feed_str("-").feed_u64(self.tick as u64).finish()
+        let id = FastHasher::new()
+            .feed_str("bal-")
+            .feed_u64(from as u64)
+            .feed_str("-")
+            .feed_u64(to as u64)
+            .feed_str("-")
+            .feed_u64(self.tick as u64)
+            .finish()
             ^ xorshift64(&mut self.rng_state);
 
         let record = BalanceRecord {
@@ -356,7 +363,12 @@ impl HolisticProactive {
         let frag_after = (fragmentation_level * (1.0 - 0.7)).clamp(0.0, 1.0);
         let contiguous = pages_to_move * 3 / 4;
 
-        let id = FastHasher::new().feed_str("defrag-").feed_u64(domain as u64).feed_str("-").feed_u64(self.tick as u64).finish()
+        let id = FastHasher::new()
+            .feed_str("defrag-")
+            .feed_u64(domain as u64)
+            .feed_str("-")
+            .feed_u64(self.tick as u64)
+            .finish()
             ^ xorshift64(&mut self.rng_state);
 
         let record = DefragRecord {
@@ -397,7 +409,12 @@ impl HolisticProactive {
         let mitigation = actions_taken.len() as f32 * 0.2;
         let risk_after = (current_risk - mitigation).clamp(0.0, 1.0);
 
-        let id = FastHasher::new().feed_str("cascade-").feed_u64(trigger_domain as u64).feed_str("-").feed_u64(self.tick as u64).finish()
+        let id = FastHasher::new()
+            .feed_str("cascade-")
+            .feed_u64(trigger_domain as u64)
+            .feed_str("-")
+            .feed_u64(self.tick as u64)
+            .finish()
             ^ xorshift64(&mut self.rng_state);
 
         let record = CascadePreventionRecord {

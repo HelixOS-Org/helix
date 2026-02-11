@@ -214,20 +214,17 @@ impl BridgeReplication {
             stored_conditions.push((name.clone(), *val));
         }
 
-        self.findings.insert(
+        self.findings.insert(id, OriginalFinding {
             id,
-            OriginalFinding {
-                id,
-                description: String::from(description),
-                original_effect,
-                conditions: stored_conditions,
-                sample_size,
-                tick: self.tick,
-                attempts: Vec::new(),
-                replication_rate: 0.0,
-                robust: false,
-            },
-        );
+            description: String::from(description),
+            original_effect,
+            conditions: stored_conditions,
+            sample_size,
+            tick: self.tick,
+            attempts: Vec::new(),
+            replication_rate: 0.0,
+            robust: false,
+        });
         self.stats.total_findings_tracked += 1;
         id
     }
@@ -244,7 +241,11 @@ impl BridgeReplication {
 
         let (original_effect, original_conditions, description) =
             match self.findings.get(&finding_id) {
-                Some(f) => (f.original_effect, f.conditions.clone(), f.description.clone()),
+                Some(f) => (
+                    f.original_effect,
+                    f.conditions.clone(),
+                    f.description.clone(),
+                ),
                 None => {
                     return ReplicationAttempt {
                         original_finding: finding_id,
@@ -255,7 +256,7 @@ impl BridgeReplication {
                         replicated_effect,
                         effect_deviation: 1.0,
                     };
-                }
+                },
             };
 
         // Check condition matching
@@ -273,7 +274,8 @@ impl BridgeReplication {
         let replicated = match_score >= MATCH_THRESHOLD;
 
         // Record attempt
-        let attempt_id = fnv1a_hash(description.as_bytes()) ^ self.tick ^ (self.stats.total_attempts as u64);
+        let attempt_id =
+            fnv1a_hash(description.as_bytes()) ^ self.tick ^ (self.stats.total_attempts as u64);
         if let Some(finding) = self.findings.get_mut(&finding_id) {
             if finding.attempts.len() < MAX_ATTEMPTS_PER_FINDING {
                 finding.attempts.push(ReplicationAttemptInternal {
@@ -467,7 +469,7 @@ impl BridgeReplication {
                     best_match_score: best,
                     worst_match_score: if total > 0 { worst } else { 0.0 },
                 }
-            }
+            },
             None => ReplicationReport {
                 finding_id,
                 description: String::from("not_found"),
@@ -540,9 +542,10 @@ impl BridgeReplication {
         }
 
         let presence_score = matched as f32 / total.max(1) as f32;
-        let deviation_score =
-            (1.0 - total_deviation / total.max(1) as f32).max(0.0);
-        (presence_score * 0.6 + deviation_score * 0.4).max(0.0).min(1.0)
+        let deviation_score = (1.0 - total_deviation / total.max(1) as f32).max(0.0);
+        (presence_score * 0.6 + deviation_score * 0.4)
+            .max(0.0)
+            .min(1.0)
     }
 
     fn update_robustness_counts(&mut self) {

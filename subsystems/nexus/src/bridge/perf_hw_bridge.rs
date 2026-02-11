@@ -76,17 +76,29 @@ pub struct PerfCounter {
 impl PerfCounter {
     pub fn new(id: u64, event: PmuEventType, scope: EventScope) -> Self {
         Self {
-            id, event_type: event, scope, state: CounterState::Disabled,
-            sampling: SamplingMode::CountOnly, sample_period: 0,
-            count: 0, time_enabled_ns: 0, time_running_ns: 0,
-            cpu_id: None, pid: None, overflows: 0,
+            id,
+            event_type: event,
+            scope,
+            state: CounterState::Disabled,
+            sampling: SamplingMode::CountOnly,
+            sample_period: 0,
+            count: 0,
+            time_enabled_ns: 0,
+            time_running_ns: 0,
+            cpu_id: None,
+            pid: None,
+            overflows: 0,
         }
     }
 
     #[inline(always)]
-    pub fn enable(&mut self) { self.state = CounterState::Enabled; }
+    pub fn enable(&mut self) {
+        self.state = CounterState::Enabled;
+    }
     #[inline(always)]
-    pub fn disable(&mut self) { self.state = CounterState::Disabled; }
+    pub fn disable(&mut self) {
+        self.state = CounterState::Disabled;
+    }
 
     #[inline]
     pub fn increment(&mut self, delta: u64) {
@@ -99,14 +111,18 @@ impl PerfCounter {
 
     #[inline(always)]
     pub fn multiplexing_ratio(&self) -> f64 {
-        if self.time_enabled_ns == 0 { return 0.0; }
+        if self.time_enabled_ns == 0 {
+            return 0.0;
+        }
         self.time_running_ns as f64 / self.time_enabled_ns as f64
     }
 
     #[inline]
     pub fn scaled_count(&self) -> u64 {
         let ratio = self.multiplexing_ratio();
-        if ratio == 0.0 { return self.count; }
+        if ratio == 0.0 {
+            return self.count;
+        }
         (self.count as f64 / ratio) as u64
     }
 }
@@ -122,11 +138,18 @@ pub struct PerfEventGroup {
 
 impl PerfEventGroup {
     pub fn new(leader: u64) -> Self {
-        Self { leader_id: leader, members: alloc::vec![leader], pinned: false, exclusive: false }
+        Self {
+            leader_id: leader,
+            members: alloc::vec![leader],
+            pinned: false,
+            exclusive: false,
+        }
     }
 
     #[inline(always)]
-    pub fn add_member(&mut self, counter_id: u64) { self.members.push(counter_id); }
+    pub fn add_member(&mut self, counter_id: u64) {
+        self.members.push(counter_id);
+    }
 }
 
 /// Sample record
@@ -165,7 +188,13 @@ pub struct BridgePerfHw {
 
 impl BridgePerfHw {
     pub fn new() -> Self {
-        Self { counters: BTreeMap::new(), groups: Vec::new(), samples: Vec::new(), next_id: 1, max_samples: 8192 }
+        Self {
+            counters: BTreeMap::new(),
+            groups: Vec::new(),
+            samples: Vec::new(),
+            next_id: 1,
+            max_samples: 8192,
+        }
     }
 
     #[inline]
@@ -183,17 +212,23 @@ impl BridgePerfHw {
 
     #[inline(always)]
     pub fn enable(&mut self, id: u64) {
-        if let Some(c) = self.counters.get_mut(&id) { c.enable(); }
+        if let Some(c) = self.counters.get_mut(&id) {
+            c.enable();
+        }
     }
 
     #[inline(always)]
     pub fn disable(&mut self, id: u64) {
-        if let Some(c) = self.counters.get_mut(&id) { c.disable(); }
+        if let Some(c) = self.counters.get_mut(&id) {
+            c.disable();
+        }
     }
 
     #[inline(always)]
     pub fn record_sample(&mut self, sample: PerfSample) {
-        if self.samples.len() >= self.max_samples { self.samples.drain(..self.max_samples / 4); }
+        if self.samples.len() >= self.max_samples {
+            self.samples.drain(..self.max_samples / 4);
+        }
         self.samples.push(sample);
     }
 
@@ -203,15 +238,35 @@ impl BridgePerfHw {
     }
 
     pub fn stats(&self) -> PerfHwBridgeStats {
-        let active = self.counters.values().filter(|c| c.state == CounterState::Running || c.state == CounterState::Enabled).count() as u32;
-        let mux = self.counters.values().filter(|c| c.state == CounterState::Multiplexed).count() as u32;
+        let active = self
+            .counters
+            .values()
+            .filter(|c| c.state == CounterState::Running || c.state == CounterState::Enabled)
+            .count() as u32;
+        let mux = self
+            .counters
+            .values()
+            .filter(|c| c.state == CounterState::Multiplexed)
+            .count() as u32;
         let overflows: u64 = self.counters.values().map(|c| c.overflows).sum();
-        let ratios: Vec<f64> = self.counters.values().filter(|c| c.time_enabled_ns > 0).map(|c| c.multiplexing_ratio()).collect();
-        let avg_mux = if ratios.is_empty() { 1.0 } else { ratios.iter().sum::<f64>() / ratios.len() as f64 };
+        let ratios: Vec<f64> = self
+            .counters
+            .values()
+            .filter(|c| c.time_enabled_ns > 0)
+            .map(|c| c.multiplexing_ratio())
+            .collect();
+        let avg_mux = if ratios.is_empty() {
+            1.0
+        } else {
+            ratios.iter().sum::<f64>() / ratios.len() as f64
+        };
         PerfHwBridgeStats {
-            total_counters: self.counters.len() as u32, active_counters: active,
-            total_samples: self.samples.len() as u64, total_overflows: overflows,
-            multiplexed_counters: mux, avg_mux_ratio: avg_mux,
+            total_counters: self.counters.len() as u32,
+            active_counters: active,
+            total_samples: self.samples.len() as u64,
+            total_overflows: overflows,
+            multiplexed_counters: mux,
+            avg_mux_ratio: avg_mux,
         }
     }
 }

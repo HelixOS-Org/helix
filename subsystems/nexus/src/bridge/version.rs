@@ -412,7 +412,10 @@ impl BridgeVersionManager {
     /// Get deprecated syscalls
     #[inline(always)]
     pub fn deprecated_syscalls(&self) -> Vec<&SyscallDefinition> {
-        self.syscalls.values().filter(|s| s.is_deprecated()).collect()
+        self.syscalls
+            .values()
+            .filter(|s| s.is_deprecated())
+            .collect()
     }
 
     fn update_stats(&mut self) {

@@ -174,7 +174,10 @@ impl CoopPledge {
     pub fn is_complete(&self) -> bool {
         matches!(
             self.state,
-            PledgeState::Fulfilled | PledgeState::Broken | PledgeState::Expired | PledgeState::Cancelled
+            PledgeState::Fulfilled
+                | PledgeState::Broken
+                | PledgeState::Expired
+                | PledgeState::Cancelled
         )
     }
 }
@@ -238,7 +241,8 @@ impl PledgeReliability {
         }
         let fulfill_rate = self.fulfilled as f64 / self.total_pledges as f64;
         let penalty_factor = 1.0 / (1.0 + self.penalty_points as f64 / 100.0);
-        self.reliability_score = fulfill_rate * 0.6 + self.avg_fulfillment * 0.3 + penalty_factor * 0.1;
+        self.reliability_score =
+            fulfill_rate * 0.6 + self.avg_fulfillment * 0.3 + penalty_factor * 0.1;
         if self.reliability_score > 1.0 {
             self.reliability_score = 1.0;
         }
@@ -304,7 +308,16 @@ impl CoopPledgeManager {
     ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        let pledge = CoopPledge::new(id, pledger, beneficiary, resource, direction, amount, duration_ns, now);
+        let pledge = CoopPledge::new(
+            id,
+            pledger,
+            beneficiary,
+            resource,
+            direction,
+            amount,
+            duration_ns,
+            now,
+        );
         self.pledges.insert(id, pledge);
         self.stats.total_pledges += 1;
         id

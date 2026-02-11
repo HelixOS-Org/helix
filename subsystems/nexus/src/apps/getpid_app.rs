@@ -72,11 +72,20 @@ impl AppGetpidManager {
         if let Some(id) = self.identities.get(&pid) {
             self.stats.cache_hits += 1;
             match query {
-                AppIdQuery::Pid => { self.stats.pid_queries += 1; Some(id.pid) }
-                AppIdQuery::Ppid => { self.stats.ppid_queries += 1; Some(id.ppid) }
+                AppIdQuery::Pid => {
+                    self.stats.pid_queries += 1;
+                    Some(id.pid)
+                },
+                AppIdQuery::Ppid => {
+                    self.stats.ppid_queries += 1;
+                    Some(id.ppid)
+                },
                 AppIdQuery::Pgid => Some(id.pgid),
                 AppIdQuery::Sid => Some(id.sid),
-                AppIdQuery::Uid => { self.stats.uid_queries += 1; Some(id.uid as u64) }
+                AppIdQuery::Uid => {
+                    self.stats.uid_queries += 1;
+                    Some(id.uid as u64)
+                },
                 AppIdQuery::Gid => Some(id.gid as u64),
                 AppIdQuery::Euid => Some(id.euid as u64),
                 AppIdQuery::Egid => Some(id.egid as u64),

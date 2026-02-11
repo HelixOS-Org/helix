@@ -179,8 +179,7 @@ impl ExperientialDimension {
         let len = self.history.len();
         let mid = len / 2;
         let first: f32 = self.history[..mid].iter().sum::<f32>() / mid as f32;
-        let second: f32 =
-            self.history[mid..].iter().sum::<f32>() / (len - mid) as f32;
+        let second: f32 = self.history[mid..].iter().sum::<f32>() / (len - mid) as f32;
         self.trend = second - first;
     }
 }
@@ -260,7 +259,11 @@ impl AppsQualiaEngine {
             flow_ticks: 0,
             quality_variance: 0.0,
             mean_quality: 0.5,
-            rng_state: if seed == 0 { 0xA4A1_CAFE_1234_5678 } else { seed },
+            rng_state: if seed == 0 {
+                0xA4A1_CAFE_1234_5678
+            } else {
+                seed
+            },
         }
     }
 
@@ -286,8 +289,7 @@ impl AppsQualiaEngine {
             EMA_ALPHA * confidence + (1.0 - EMA_ALPHA) * self.state.prediction_confidence;
         self.state.cognitive_load =
             EMA_ALPHA * load + (1.0 - EMA_ALPHA) * self.state.cognitive_load;
-        self.state.dissonance =
-            EMA_ALPHA * dissonance + (1.0 - EMA_ALPHA) * self.state.dissonance;
+        self.state.dissonance = EMA_ALPHA * dissonance + (1.0 - EMA_ALPHA) * self.state.dissonance;
 
         // Compute flow state
         let flow_raw = if self.state.workload_harmony > 0.6
@@ -298,8 +300,7 @@ impl AppsQualiaEngine {
         } else {
             self.state.flow_state * 0.9
         };
-        self.state.flow_state =
-            EMA_ALPHA * flow_raw + (1.0 - EMA_ALPHA) * self.state.flow_state;
+        self.state.flow_state = EMA_ALPHA * flow_raw + (1.0 - EMA_ALPHA) * self.state.flow_state;
 
         self.state.recompute_quality();
 
@@ -327,8 +328,7 @@ impl AppsQualiaEngine {
         // Running quality mean and variance
         let diff = q - self.mean_quality;
         self.mean_quality = EMA_ALPHA * q + (1.0 - EMA_ALPHA) * self.mean_quality;
-        self.quality_variance =
-            EMA_ALPHA * diff * diff + (1.0 - EMA_ALPHA) * self.quality_variance;
+        self.quality_variance = EMA_ALPHA * diff * diff + (1.0 - EMA_ALPHA) * self.quality_variance;
 
         q
     }
@@ -420,8 +420,7 @@ impl AppsQualiaEngine {
         let len = self.quality_history.len();
         let mid = len / 2;
         let first: f32 = self.quality_history[..mid].iter().sum::<f32>() / mid as f32;
-        let second: f32 =
-            self.quality_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
+        let second: f32 = self.quality_history[mid..].iter().sum::<f32>() / (len - mid) as f32;
         second - first
     }
 

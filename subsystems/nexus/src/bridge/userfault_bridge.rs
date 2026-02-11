@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Userfaultfd feature flags
@@ -139,7 +138,9 @@ impl RegisteredRange {
 
     #[inline(always)]
     pub fn resolution_rate(&self) -> f64 {
-        if self.fault_count == 0 { return 1.0; }
+        if self.fault_count == 0 {
+            return 1.0;
+        }
         self.resolved_count as f64 / self.fault_count as f64
     }
 }
@@ -185,7 +186,8 @@ impl UffdInstance {
                 return false;
             }
         }
-        self.ranges.push(RegisteredRange::new(aligned_start, aligned_end, mode));
+        self.ranges
+            .push(RegisteredRange::new(aligned_start, aligned_end, mode));
         true
     }
 
@@ -335,7 +337,8 @@ impl BridgeUserfault {
         let granted = UffdFeatures(requested_features.0 & self.supported_features.0);
         let fd = self.next_fd;
         self.next_fd += 1;
-        self.instances.insert(fd, UffdInstance::new(fd, pid, granted));
+        self.instances
+            .insert(fd, UffdInstance::new(fd, pid, granted));
         self.stats.instances_created += 1;
         Some(fd)
     }
@@ -346,13 +349,7 @@ impl BridgeUserfault {
     }
 
     #[inline]
-    pub fn register_range(
-        &mut self,
-        fd: i32,
-        start: u64,
-        size: u64,
-        mode: RegisterMode,
-    ) -> bool {
+    pub fn register_range(&mut self, fd: i32, start: u64, size: u64, mode: RegisterMode) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             if inst.register_range(start, size, mode) {
                 self.stats.ranges_registered += 1;
@@ -409,15 +406,15 @@ impl BridgeUserfault {
                     ResolveOp::Copy => {
                         range.pages_copied += pages;
                         self.stats.pages_copied += pages;
-                    }
+                    },
                     ResolveOp::ZeroPage => {
                         range.pages_zeroed += pages;
                         self.stats.pages_zeroed += pages;
-                    }
+                    },
                     ResolveOp::Poison => {
                         self.stats.pages_poisoned += pages;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
                 range.resolved_count += 1;
                 range.pending_faults = range.pending_faults.saturating_sub(1);
@@ -431,7 +428,12 @@ impl BridgeUserfault {
     #[inline]
     pub fn instance_info(&self, fd: i32) -> Option<(u64, usize, usize, u64)> {
         self.instances.get(&fd).map(|inst| {
-            (inst.pid, inst.ranges.len(), inst.pending_count(), inst.total_registered_pages())
+            (
+                inst.pid,
+                inst.ranges.len(),
+                inst.pending_count(),
+                inst.total_registered_pages(),
+            )
         })
     }
 
@@ -637,7 +639,14 @@ impl BridgeUserfaultV2 {
     }
 
     #[inline]
-    pub fn report_fault(&mut self, fd: u64, fault_type: UffdV2FaultType, addr: u64, tid: u64, tick: u64) -> bool {
+    pub fn report_fault(
+        &mut self,
+        fd: u64,
+        fault_type: UffdV2FaultType,
+        addr: u64,
+        tid: u64,
+        tick: u64,
+    ) -> bool {
         if let Some(inst) = self.instances.get_mut(&fd) {
             inst.report_fault(fault_type, addr, tid, tick);
             self.stats.faults_reported += 1;

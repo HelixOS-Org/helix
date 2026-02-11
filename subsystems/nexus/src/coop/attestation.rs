@@ -174,7 +174,10 @@ impl ProcessAttestation {
     }
 
     pub fn verify(&mut self, expected_pcrs: &[[u8; 32]], now_ns: u64) -> bool {
-        let matches = self.pcrs.iter().zip(expected_pcrs.iter())
+        let matches = self
+            .pcrs
+            .iter()
+            .zip(expected_pcrs.iter())
             .all(|(pcr, expected)| pcr.value == *expected);
         if matches {
             self.state = AttestationState::Verified;
@@ -231,7 +234,8 @@ impl CoopAttestationProtocol {
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64) {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessAttestation::new(pid, self.default_pcr_count));
     }
 
@@ -243,8 +247,16 @@ impl CoopAttestationProtocol {
     }
 
     #[inline(always)]
-    pub fn generate_quote(&mut self, pid: u64, nonce: u64, pcr_mask: u32, now_ns: u64) -> Option<AttestationQuote> {
-        self.processes.get_mut(&pid).map(|p| p.generate_quote(nonce, pcr_mask, now_ns))
+    pub fn generate_quote(
+        &mut self,
+        pid: u64,
+        nonce: u64,
+        pcr_mask: u32,
+        now_ns: u64,
+    ) -> Option<AttestationQuote> {
+        self.processes
+            .get_mut(&pid)
+            .map(|p| p.generate_quote(nonce, pcr_mask, now_ns))
     }
 
     #[inline]
@@ -268,16 +280,24 @@ impl CoopAttestationProtocol {
 
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
-        self.stats.verified_count = self.processes.values()
-            .filter(|p| p.state == AttestationState::Verified).count();
-        self.stats.failed_count = self.processes.values()
-            .filter(|p| p.state == AttestationState::Failed).count();
-        self.stats.expired_count = self.processes.values()
-            .filter(|p| p.state == AttestationState::Expired).count();
-        self.stats.total_verifications = self.processes.values()
-            .map(|p| p.verification_count).sum();
-        self.stats.total_failures = self.processes.values()
-            .map(|p| p.failure_count).sum();
+        self.stats.verified_count = self
+            .processes
+            .values()
+            .filter(|p| p.state == AttestationState::Verified)
+            .count();
+        self.stats.failed_count = self
+            .processes
+            .values()
+            .filter(|p| p.state == AttestationState::Failed)
+            .count();
+        self.stats.expired_count = self
+            .processes
+            .values()
+            .filter(|p| p.state == AttestationState::Expired)
+            .count();
+        self.stats.total_verifications =
+            self.processes.values().map(|p| p.verification_count).sum();
+        self.stats.total_failures = self.processes.values().map(|p| p.failure_count).sum();
     }
 
     #[inline(always)]

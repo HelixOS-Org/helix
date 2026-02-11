@@ -26,12 +26,23 @@ pub struct SeccompFinding {
 
 impl SeccompFinding {
     pub fn new(metric: SeccompHolisticMetric) -> Self {
-        Self { metric, score: 0, pid: 0, filter_count: 0, covered_syscalls: 0, total_syscalls: 0 }
+        Self {
+            metric,
+            score: 0,
+            pid: 0,
+            filter_count: 0,
+            covered_syscalls: 0,
+            total_syscalls: 0,
+        }
     }
 
     #[inline(always)]
     pub fn coverage_ratio(&self) -> f64 {
-        if self.total_syscalls == 0 { 0.0 } else { self.covered_syscalls as f64 / self.total_syscalls as f64 }
+        if self.total_syscalls == 0 {
+            0.0
+        } else {
+            self.covered_syscalls as f64 / self.total_syscalls as f64
+        }
     }
 }
 
@@ -53,15 +64,27 @@ pub struct HolisticSeccomp {
 
 impl HolisticSeccomp {
     pub fn new() -> Self {
-        Self { stats: SeccompHolisticStats { total_analyses: 0, high_complexity: 0, low_coverage: 0, avg_filter_count: 0.0 } }
+        Self {
+            stats: SeccompHolisticStats {
+                total_analyses: 0,
+                high_complexity: 0,
+                low_coverage: 0,
+                avg_filter_count: 0.0,
+            },
+        }
     }
 
     #[inline]
     pub fn analyze(&mut self, finding: &SeccompFinding) {
         self.stats.total_analyses += 1;
-        if finding.filter_count > 16 { self.stats.high_complexity += 1; }
-        if finding.coverage_ratio() < 0.5 { self.stats.low_coverage += 1; }
+        if finding.filter_count > 16 {
+            self.stats.high_complexity += 1;
+        }
+        if finding.coverage_ratio() < 0.5 {
+            self.stats.low_coverage += 1;
+        }
         let n = self.stats.total_analyses as f64;
-        self.stats.avg_filter_count = self.stats.avg_filter_count * ((n - 1.0) / n) + finding.filter_count as f64 / n;
+        self.stats.avg_filter_count =
+            self.stats.avg_filter_count * ((n - 1.0) / n) + finding.filter_count as f64 / n;
     }
 }

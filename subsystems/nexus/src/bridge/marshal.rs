@@ -43,7 +43,11 @@ pub enum MarshalledValue {
     /// Integer
     Int(u64),
     /// Buffer reference
-    Buffer { addr: u64, len: usize, writable: bool },
+    Buffer {
+        addr: u64,
+        len: usize,
+        writable: bool,
+    },
     /// File descriptor
     Fd(i32),
     /// String
@@ -250,7 +254,9 @@ impl PointerValidator {
         if size > self.max_buffer_size {
             return Err(ValidationError::BufferTooLarge);
         }
-        let end = addr.checked_add(size as u64).ok_or(ValidationError::BufferTooLarge)?;
+        let end = addr
+            .checked_add(size as u64)
+            .ok_or(ValidationError::BufferTooLarge)?;
         if end > self.user_end {
             return Err(ValidationError::BufferTooLarge);
         }
@@ -322,7 +328,7 @@ impl BridgeMarshalEngine {
             None => {
                 // Unknown syscall, treat all as integers
                 return raw_args.iter().map(|&v| MarshalledValue::Int(v)).collect();
-            }
+            },
         };
 
         let mut result = Vec::with_capacity(sig.args.len());
@@ -338,9 +344,7 @@ impl BridgeMarshalEngine {
             };
 
             let value = match desc.arg_type {
-                ArgType::Integer | ArgType::Size | ArgType::ProcessId => {
-                    MarshalledValue::Int(raw)
-                }
+                ArgType::Integer | ArgType::Size | ArgType::ProcessId => MarshalledValue::Int(raw),
                 ArgType::UserPointer | ArgType::StructPointer => {
                     if raw == 0 {
                         MarshalledValue::Null
@@ -351,7 +355,7 @@ impl BridgeMarshalEngine {
                             writable: false,
                         }
                     }
-                }
+                },
                 ArgType::FileDescriptor => MarshalledValue::Fd(raw as i32),
                 ArgType::Flags => MarshalledValue::Int(raw),
                 ArgType::StringPointer => {
@@ -363,7 +367,7 @@ impl BridgeMarshalEngine {
                             max_len: 4096,
                         }
                     }
-                }
+                },
             };
             result.push(value);
         }
@@ -372,11 +376,7 @@ impl BridgeMarshalEngine {
     }
 
     /// Validate arguments
-    pub fn validate(
-        &mut self,
-        syscall_nr: u32,
-        raw_args: &[u64],
-    ) -> Vec<ValidationResult> {
+    pub fn validate(&mut self, syscall_nr: u32, raw_args: &[u64]) -> Vec<ValidationResult> {
         self.stats.validations += 1;
 
         let sig = match self.signatures.get(&syscall_nr) {
@@ -408,7 +408,7 @@ impl BridgeMarshalEngine {
                     } else {
                         ValidationResult::Valid
                     }
-                }
+                },
                 ArgType::UserPointer | ArgType::StringPointer | ArgType::StructPointer => {
                     if raw == 0 && !desc.optional {
                         self.stats.validation_failures += 1;
@@ -425,12 +425,12 @@ impl BridgeMarshalEngine {
                                     index: desc.index,
                                     reason: e,
                                 }
-                            }
+                            },
                         }
                     } else {
                         ValidationResult::Valid
                     }
-                }
+                },
                 _ => ValidationResult::Valid,
             };
             results.push(result);

@@ -182,8 +182,14 @@ impl BridgeDeferredEngine {
     }
 
     /// Defer a syscall
-    pub fn defer(&mut self, syscall_nr: u32, pid: u64, args: [u64; 6],
-                 reason: DeferralReason, now_ns: u64) -> Option<u64> {
+    pub fn defer(
+        &mut self,
+        syscall_nr: u32,
+        pid: u64,
+        args: [u64; 6],
+        reason: DeferralReason,
+        now_ns: u64,
+    ) -> Option<u64> {
         if self.queue.len() >= self.max_queue {
             return None;
         }
@@ -216,7 +222,11 @@ impl BridgeDeferredEngine {
     /// Cancel a deferred syscall
     #[inline]
     pub fn cancel(&mut self, id: u64) -> bool {
-        if let Some(entry) = self.queue.iter_mut().find(|e| e.id == id && e.state == DeferredState::Queued) {
+        if let Some(entry) = self
+            .queue
+            .iter_mut()
+            .find(|e| e.id == id && e.state == DeferredState::Queued)
+        {
             entry.state = DeferredState::Cancelled;
             return true;
         }
@@ -264,7 +274,12 @@ impl BridgeDeferredEngine {
         } else {
             self.total_failed += 1;
         }
-        self.completions.push(DeferredCompletion { id, pid, result, success });
+        self.completions.push(DeferredCompletion {
+            id,
+            pid,
+            result,
+            success,
+        });
         self.update_stats();
     }
 
@@ -277,13 +292,22 @@ impl BridgeDeferredEngine {
     /// Clean up finished entries
     #[inline(always)]
     pub fn cleanup(&mut self) {
-        self.queue.retain(|e| matches!(e.state, DeferredState::Queued | DeferredState::Executing));
+        self.queue
+            .retain(|e| matches!(e.state, DeferredState::Queued | DeferredState::Executing));
         self.update_stats();
     }
 
     fn update_stats(&mut self) {
-        self.stats.queued = self.queue.iter().filter(|e| e.state == DeferredState::Queued).count();
-        self.stats.executing = self.queue.iter().filter(|e| e.state == DeferredState::Executing).count();
+        self.stats.queued = self
+            .queue
+            .iter()
+            .filter(|e| e.state == DeferredState::Queued)
+            .count();
+        self.stats.executing = self
+            .queue
+            .iter()
+            .filter(|e| e.state == DeferredState::Executing)
+            .count();
         self.stats.completed = self.total_completed;
         self.stats.failed = self.total_failed;
         self.stats.expired = self.total_expired;

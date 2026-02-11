@@ -180,7 +180,11 @@ pub struct CrashReserveRegion {
 
 impl CrashReserveRegion {
     pub fn new(start: u64, size: u64) -> Self {
-        Self { start, size, in_use: false }
+        Self {
+            start,
+            size,
+            in_use: false,
+        }
     }
 
     #[inline(always)]
@@ -291,7 +295,7 @@ impl BridgeKexec {
                 } else {
                     false
                 }
-            }
+            },
             _ => {
                 if self.normal_image.is_some() {
                     self.normal_image = None;
@@ -299,7 +303,7 @@ impl BridgeKexec {
                 } else {
                     false
                 }
-            }
+            },
         }
     }
 
@@ -343,7 +347,8 @@ impl BridgeKexec {
                 return false;
             }
         }
-        self.crash_regions.push(CrashReserveRegion::new(start, size));
+        self.crash_regions
+            .push(CrashReserveRegion::new(start, size));
         true
     }
 
@@ -355,7 +360,8 @@ impl BridgeKexec {
             notified: false,
             timeout_ns,
         });
-        self.shutdown_notifiers.sort_by(|a, b| b.priority.cmp(&a.priority));
+        self.shutdown_notifiers
+            .sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
     #[inline(always)]

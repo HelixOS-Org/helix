@@ -393,11 +393,7 @@ impl CoopWitnessManager {
 
     fn update_counts(&mut self) {
         self.stats.witness_count = self.witnesses.len();
-        self.stats.available_count = self
-            .witnesses
-            .values()
-            .filter(|w| w.can_accept())
-            .count();
+        self.stats.available_count = self.witnesses.values().filter(|w| w.can_accept()).count();
         self.stats.active_agreements = self
             .agreements
             .values()

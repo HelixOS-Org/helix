@@ -9,8 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -272,9 +271,7 @@ impl OomKiller {
     /// Select victim
     #[inline]
     pub fn select_victim(&self, candidates: &[OomCandidate]) -> Option<u64> {
-        candidates.iter()
-            .max_by_key(|c| c.score)
-            .map(|c| c.pid)
+        candidates.iter().max_by_key(|c| c.score).map(|c| c.pid)
     }
 
     /// Can kill now?
@@ -405,7 +402,9 @@ impl HolisticReclaimEngine {
 
     /// Get OOM candidates (sorted by score)
     pub fn oom_candidates(&self) -> Vec<OomCandidate> {
-        let mut candidates: Vec<OomCandidate> = self.processes.values()
+        let mut candidates: Vec<OomCandidate> = self
+            .processes
+            .values()
             .filter(|p| !p.oom_exempt)
             .map(|p| OomCandidate {
                 pid: p.pid,
@@ -421,7 +420,8 @@ impl HolisticReclaimEngine {
     /// System urgency (max across zones)
     #[inline]
     pub fn system_urgency(&self) -> ReclaimUrgency {
-        self.zones.iter()
+        self.zones
+            .iter()
             .map(|z| z.urgency())
             .max()
             .unwrap_or(ReclaimUrgency::Background)
@@ -429,8 +429,11 @@ impl HolisticReclaimEngine {
 
     fn update_stats(&mut self) {
         self.stats.total_zones = self.zones.len();
-        self.stats.pressured_zones = self.zones.iter()
-            .filter(|z| z.urgency() > ReclaimUrgency::Low).count();
+        self.stats.pressured_zones = self
+            .zones
+            .iter()
+            .filter(|z| z.urgency() > ReclaimUrgency::Low)
+            .count();
         self.stats.total_reclaimed = self.total_reclaimed;
         self.stats.oom_kills = self.oom.total_kills;
         self.stats.max_urgency = self.system_urgency() as u8;
@@ -541,7 +544,9 @@ impl CgroupMemPressure {
 
     #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
-        if self.memory_limit == 0 { return 0.0; }
+        if self.memory_limit == 0 {
+            return 0.0;
+        }
         self.memory_usage as f64 / self.memory_limit as f64
     }
 
@@ -581,10 +586,15 @@ impl WorkingSetEstimatorV2 {
         self.accessed_pages = accessed;
 
         // EWMA update
-        let ratio = if total_pages > 0 { accessed as f64 / total_pages as f64 } else { 0.0 };
+        let ratio = if total_pages > 0 {
+            accessed as f64 / total_pages as f64
+        } else {
+            0.0
+        };
         let estimated = (total_pages as f64 * ratio) as u64;
         self.working_set_pages = ((self.working_set_pages as f64 * self.decay_factor)
-            + (estimated as f64 * (1.0 - self.decay_factor))) as u64;
+            + (estimated as f64 * (1.0 - self.decay_factor)))
+            as u64;
 
         self.samples.push_back((ts, accessed));
         if self.samples.len() > 64 {
@@ -595,14 +605,22 @@ impl WorkingSetEstimatorV2 {
         if self.samples.len() >= 2 {
             let first = self.samples[0].1 as f64;
             let last = self.samples[self.samples.len() - 1].1 as f64;
-            self.growth_rate = if first > 0.0 { (last - first) / first } else { 0.0 };
+            self.growth_rate = if first > 0.0 {
+                (last - first) / first
+            } else {
+                0.0
+            };
         }
     }
 
     #[inline(always)]
-    pub fn is_growing(&self) -> bool { self.growth_rate > 0.05 }
+    pub fn is_growing(&self) -> bool {
+        self.growth_rate > 0.05
+    }
     #[inline(always)]
-    pub fn is_shrinking(&self) -> bool { self.growth_rate < -0.05 }
+    pub fn is_shrinking(&self) -> bool {
+        self.growth_rate < -0.05
+    }
 }
 
 /// Reclaim event record
@@ -662,14 +680,16 @@ impl HolisticReclaimV2 {
 
     #[inline]
     pub fn update_working_set(&mut self, pid: u64, ts: u64, total: u64, accessed: u64) {
-        self.working_sets.entry(pid)
+        self.working_sets
+            .entry(pid)
             .or_insert_with(|| WorkingSetEstimatorV2::new(pid))
             .record_sample(ts, total, accessed);
     }
 
     #[inline]
     pub fn global_urgency(&self) -> ReclaimUrgency {
-        self.zones.values()
+        self.zones
+            .values()
             .map(|z| z.urgency())
             .max()
             .unwrap_or(ReclaimUrgency::None)
@@ -678,7 +698,8 @@ impl HolisticReclaimV2 {
     /// Determine which cgroups need reclaim
     #[inline]
     pub fn cgroups_needing_reclaim(&self) -> Vec<u64> {
-        self.cgroups.values()
+        self.cgroups
+            .values()
             .filter(|cg| cg.is_near_limit())
             .map(|cg| cg.cgroup_id)
             .collect()
@@ -692,7 +713,9 @@ impl HolisticReclaimV2 {
 
         let eff = if event.pages_scanned > 0 {
             event.pages_reclaimed as f64 / event.pages_scanned as f64
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         self.stats.avg_efficiency = self.stats.avg_efficiency * 0.9 + eff * 0.1;
         self.stats.current_urgency = self.global_urgency() as u8;
 
@@ -713,5 +736,7 @@ impl HolisticReclaimV2 {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &HolisticReclaimV2Stats { &self.stats }
+    pub fn stats(&self) -> &HolisticReclaimV2Stats {
+        &self.stats
+    }
 }

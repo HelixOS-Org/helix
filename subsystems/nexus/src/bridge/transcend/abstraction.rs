@@ -15,7 +15,8 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -136,7 +137,10 @@ struct PatternTracker {
 
 impl PatternTracker {
     fn new() -> Self {
-        Self { patterns: BTreeMap::new(), tick: 0 }
+        Self {
+            patterns: BTreeMap::new(),
+            tick: 0,
+        }
     }
 
     fn observe(&mut self, elements: &[String], tick: u64) -> u64 {
@@ -151,7 +155,8 @@ impl PatternTracker {
         if let Some(p) = self.patterns.get_mut(&pid) {
             p.occurrence_count += 1;
             p.last_seen_tick = tick;
-            p.confidence = (p.occurrence_count as f32 / (p.occurrence_count as f32 + 10.0)).min(1.0);
+            p.confidence =
+                (p.occurrence_count as f32 / (p.occurrence_count as f32 + 10.0)).min(1.0);
         } else if self.patterns.len() < MAX_PATTERNS {
             self.patterns.insert(pid, CoOccurrencePattern {
                 pattern_id: pid,
@@ -273,8 +278,8 @@ impl BridgeAbstraction {
                     let mut s = String::from("auto_abs_");
                     for b in &name_seed[..4] {
                         let hex_chars = [
-                            b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7',
-                            b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
+                            b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b',
+                            b'c', b'd', b'e', b'f',
                         ];
                         s.push(hex_chars[(*b >> 4) as usize] as char);
                         s.push(hex_chars[(*b & 0x0F) as usize] as char);
@@ -418,7 +423,8 @@ impl BridgeAbstraction {
     #[inline]
     pub fn prune_dead(&mut self) -> usize {
         let before = self.abstractions.len();
-        self.abstractions.retain(|_, a| a.utility > 0.001 || a.usage_count > 0);
+        self.abstractions
+            .retain(|_, a| a.utility > 0.001 || a.usage_count > 0);
         before - self.abstractions.len()
     }
 

@@ -31,7 +31,15 @@ pub struct FallocateOp {
 
 impl FallocateOp {
     pub fn new(id: u64, fd: u64, mode: FallocateMode, offset: u64, length: u64, now: u64) -> Self {
-        Self { id, fd, mode, offset, length, timestamp: now, success: false }
+        Self {
+            id,
+            fd,
+            mode,
+            offset,
+            length,
+            timestamp: now,
+            success: false,
+        }
     }
 }
 
@@ -53,27 +61,59 @@ pub struct AppFallocate {
 }
 
 impl AppFallocate {
-    pub fn new() -> Self { Self { ops: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            ops: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
-    pub fn fallocate(&mut self, fd: u64, mode: FallocateMode, offset: u64, length: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.ops.insert(id, FallocateOp::new(id, fd, mode, offset, length, now));
+    pub fn fallocate(
+        &mut self,
+        fd: u64,
+        mode: FallocateMode,
+        offset: u64,
+        length: u64,
+        now: u64,
+    ) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.ops
+            .insert(id, FallocateOp::new(id, fd, mode, offset, length, now));
         id
     }
 
     #[inline(always)]
     pub fn complete(&mut self, id: u64) {
-        if let Some(op) = self.ops.get_mut(&id) { op.success = true; }
+        if let Some(op) = self.ops.get_mut(&id) {
+            op.success = true;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> FallocateAppStats {
         let ok = self.ops.values().filter(|o| o.success).count() as u32;
         let fail = self.ops.len() as u32 - ok;
-        let allocated: u64 = self.ops.values().filter(|o| o.success && o.mode == FallocateMode::Default).map(|o| o.length).sum();
-        let punched: u64 = self.ops.values().filter(|o| o.success && o.mode == FallocateMode::PunchHole).map(|o| o.length).sum();
-        FallocateAppStats { total_ops: self.ops.len() as u32, successful: ok, failed: fail, total_bytes_allocated: allocated, total_bytes_punched: punched }
+        let allocated: u64 = self
+            .ops
+            .values()
+            .filter(|o| o.success && o.mode == FallocateMode::Default)
+            .map(|o| o.length)
+            .sum();
+        let punched: u64 = self
+            .ops
+            .values()
+            .filter(|o| o.success && o.mode == FallocateMode::PunchHole)
+            .map(|o| o.length)
+            .sum();
+        FallocateAppStats {
+            total_ops: self.ops.len() as u32,
+            successful: ok,
+            failed: fail,
+            total_bytes_allocated: allocated,
+            total_bytes_punched: punched,
+        }
     }
 }
 
@@ -118,17 +158,30 @@ pub struct FallocateV2Record {
 
 impl FallocateV2Record {
     pub fn new(fd: i32, mode: FallocateV2Mode, offset: u64, length: u64) -> Self {
-        Self { fd, mode, result: FallocateV2Result::Success, offset, length, latency_ns: 0 }
+        Self {
+            fd,
+            mode,
+            result: FallocateV2Result::Success,
+            offset,
+            length,
+            latency_ns: 0,
+        }
     }
 
     #[inline(always)]
     pub fn is_deallocating(&self) -> bool {
-        matches!(self.mode, FallocateV2Mode::PunchHole | FallocateV2Mode::CollapseRange)
+        matches!(
+            self.mode,
+            FallocateV2Mode::PunchHole | FallocateV2Mode::CollapseRange
+        )
     }
 
     #[inline(always)]
     pub fn is_allocating(&self) -> bool {
-        matches!(self.mode, FallocateV2Mode::Default | FallocateV2Mode::InsertRange)
+        matches!(
+            self.mode,
+            FallocateV2Mode::Default | FallocateV2Mode::InsertRange
+        )
     }
 }
 
@@ -151,16 +204,33 @@ pub struct AppFallocateV2 {
 
 impl AppFallocateV2 {
     pub fn new() -> Self {
-        Self { stats: FallocateV2AppStats { total_calls: 0, allocated_bytes: 0, deallocated_bytes: 0, punch_holes: 0, errors: 0 } }
+        Self {
+            stats: FallocateV2AppStats {
+                total_calls: 0,
+                allocated_bytes: 0,
+                deallocated_bytes: 0,
+                punch_holes: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn record(&mut self, rec: &FallocateV2Record) {
         self.stats.total_calls += 1;
-        if rec.result != FallocateV2Result::Success { self.stats.errors += 1; return; }
-        if rec.is_allocating() { self.stats.allocated_bytes += rec.length; }
-        if rec.is_deallocating() { self.stats.deallocated_bytes += rec.length; }
-        if rec.mode == FallocateV2Mode::PunchHole { self.stats.punch_holes += 1; }
+        if rec.result != FallocateV2Result::Success {
+            self.stats.errors += 1;
+            return;
+        }
+        if rec.is_allocating() {
+            self.stats.allocated_bytes += rec.length;
+        }
+        if rec.is_deallocating() {
+            self.stats.deallocated_bytes += rec.length;
+        }
+        if rec.mode == FallocateV2Mode::PunchHole {
+            self.stats.punch_holes += 1;
+        }
     }
 
     #[inline(always)]

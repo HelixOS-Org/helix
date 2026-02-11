@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Memory protection flags
@@ -28,11 +27,17 @@ impl ProtFlags {
     pub const RWX: Self = Self(7);
 
     #[inline(always)]
-    pub fn is_writable(self) -> bool { self.0 & 2 != 0 }
+    pub fn is_writable(self) -> bool {
+        self.0 & 2 != 0
+    }
     #[inline(always)]
-    pub fn is_executable(self) -> bool { self.0 & 4 != 0 }
+    pub fn is_executable(self) -> bool {
+        self.0 & 4 != 0
+    }
     #[inline(always)]
-    pub fn is_wx(self) -> bool { self.is_writable() && self.is_executable() }
+    pub fn is_wx(self) -> bool {
+        self.is_writable() && self.is_executable()
+    }
 }
 
 /// A protection change event
@@ -102,7 +107,9 @@ impl AslrEntropy {
     }
 
     fn estimate_entropy(samples: &[u64]) -> u8 {
-        if samples.len() < 2 { return 0; }
+        if samples.len() < 2 {
+            return 0;
+        }
         let mut xor_acc = 0u64;
         for i in 1..samples.len() {
             xor_acc |= samples[i] ^ samples[i - 1];
@@ -185,14 +192,22 @@ impl MprotectAppManager {
         }
 
         // Track JIT regions (write → exec transitions)
-        if old_prot.is_writable() && !old_prot.is_executable()
-            && new_prot.is_executable() && !new_prot.is_writable()
+        if old_prot.is_writable()
+            && !old_prot.is_executable()
+            && new_prot.is_executable()
+            && !new_prot.is_writable()
         {
             profile.jit_regions += 1;
             self.stats.jit_regions_tracked += 1;
         }
 
-        let change = ProtChange { vma_start, vma_end, old_prot, new_prot, timestamp: now };
+        let change = ProtChange {
+            vma_start,
+            vma_end,
+            old_prot,
+            new_prot,
+            timestamp: now,
+        };
         profile.prot_changes.push_back(change);
         if profile.prot_changes.len() > self.max_history {
             profile.prot_changes.remove(0).unwrap();
@@ -218,7 +233,10 @@ impl MprotectAppManager {
 
     #[inline(always)]
     pub fn wx_violations(&self, app_id: u64) -> &[WxViolation] {
-        self.apps.get(&app_id).map(|p| p.wx_violations.as_slice()).unwrap_or(&[])
+        self.apps
+            .get(&app_id)
+            .map(|p| p.wx_violations.as_slice())
+            .unwrap_or(&[])
     }
 
     #[inline(always)]

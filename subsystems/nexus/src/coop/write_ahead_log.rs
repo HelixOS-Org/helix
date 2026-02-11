@@ -43,31 +43,70 @@ pub struct WalEntry {
 
 impl WalEntry {
     pub fn new(
-        lsn: u64, entry_type: WalEntryType, tx_id: Option<u64>,
-        table_id: u32, key: String, data_size: usize, prev_lsn: Option<u64>, ts: u64,
+        lsn: u64,
+        entry_type: WalEntryType,
+        tx_id: Option<u64>,
+        table_id: u32,
+        key: String,
+        data_size: usize,
+        prev_lsn: Option<u64>,
+        ts: u64,
     ) -> Self {
         let checksum = Self::compute_checksum(lsn, entry_type as u8, table_id, &key, data_size);
-        Self { lsn, entry_type, tx_id, table_id, key, data_size, prev_lsn, checksum, timestamp_ns: ts }
+        Self {
+            lsn,
+            entry_type,
+            tx_id,
+            table_id,
+            key,
+            data_size,
+            prev_lsn,
+            checksum,
+            timestamp_ns: ts,
+        }
     }
 
     fn compute_checksum(lsn: u64, etype: u8, table_id: u32, key: &str, data_size: usize) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
-        for b in lsn.to_le_bytes() { hash ^= b as u64; hash = hash.wrapping_mul(0x100000001b3); }
-        hash ^= etype as u64; hash = hash.wrapping_mul(0x100000001b3);
-        for b in table_id.to_le_bytes() { hash ^= b as u64; hash = hash.wrapping_mul(0x100000001b3); }
-        for b in key.bytes() { hash ^= b as u64; hash = hash.wrapping_mul(0x100000001b3); }
-        for b in (data_size as u64).to_le_bytes() { hash ^= b as u64; hash = hash.wrapping_mul(0x100000001b3); }
+        for b in lsn.to_le_bytes() {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
+        hash ^= etype as u64;
+        hash = hash.wrapping_mul(0x100000001b3);
+        for b in table_id.to_le_bytes() {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
+        for b in key.bytes() {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
+        for b in (data_size as u64).to_le_bytes() {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
         hash
     }
 
     #[inline(always)]
     pub fn verify(&self) -> bool {
-        self.checksum == Self::compute_checksum(self.lsn, self.entry_type as u8, self.table_id, &self.key, self.data_size)
+        self.checksum
+            == Self::compute_checksum(
+                self.lsn,
+                self.entry_type as u8,
+                self.table_id,
+                &self.key,
+                self.data_size,
+            )
     }
 
     #[inline(always)]
     pub fn is_tx_boundary(&self) -> bool {
-        matches!(self.entry_type, WalEntryType::BeginTx | WalEntryType::CommitTx | WalEntryType::AbortTx)
+        matches!(
+            self.entry_type,
+            WalEntryType::BeginTx | WalEntryType::CommitTx | WalEntryType::AbortTx
+        )
     }
 }
 
@@ -88,9 +127,15 @@ pub struct WalSegment {
 impl WalSegment {
     pub fn new(id: u64, first_lsn: u64, max_size: usize, ts: u64) -> Self {
         Self {
-            segment_id: id, first_lsn, last_lsn: first_lsn,
-            entry_count: 0, byte_size: 0, max_byte_size: max_size,
-            created_ts: ts, sealed: false, entries: Vec::new(),
+            segment_id: id,
+            first_lsn,
+            last_lsn: first_lsn,
+            entry_count: 0,
+            byte_size: 0,
+            max_byte_size: max_size,
+            created_ts: ts,
+            sealed: false,
+            entries: Vec::new(),
         }
     }
 
@@ -109,10 +154,14 @@ impl WalSegment {
     }
 
     #[inline(always)]
-    pub fn seal(&mut self) { self.sealed = true; }
+    pub fn seal(&mut self) {
+        self.sealed = true;
+    }
 
     #[inline(always)]
-    pub fn entries(&self) -> &[WalEntry] { &self.entries }
+    pub fn entries(&self) -> &[WalEntry] {
+        &self.entries
+    }
 
     #[inline(always)]
     pub fn entries_from(&self, lsn: u64) -> Vec<&WalEntry> {
@@ -121,7 +170,9 @@ impl WalSegment {
 
     #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
-        if self.max_byte_size == 0 { return 0.0; }
+        if self.max_byte_size == 0 {
+            return 0.0;
+        }
         self.byte_size as f64 / self.max_byte_size as f64
     }
 }
@@ -178,10 +229,14 @@ pub struct CoopWriteAheadLog {
 impl CoopWriteAheadLog {
     pub fn new(segment_max_size: usize) -> Self {
         Self {
-            segments: BTreeMap::new(), checkpoints: Vec::new(),
-            active_txs: BTreeMap::new(), current_lsn: 0,
-            current_segment_id: 0, segment_max_size,
-            checksum_failures: 0, truncated_segments: 0,
+            segments: BTreeMap::new(),
+            checkpoints: Vec::new(),
+            active_txs: BTreeMap::new(),
+            current_lsn: 0,
+            current_segment_id: 0,
+            segment_max_size,
+            checksum_failures: 0,
+            truncated_segments: 0,
             stats: WalStats::default(),
         }
     }
@@ -193,18 +248,35 @@ impl CoopWriteAheadLog {
         };
         if needs_new {
             // Seal current
-            if let Some(seg) = self.segments.get_mut(&self.current_segment_id) { seg.seal(); }
+            if let Some(seg) = self.segments.get_mut(&self.current_segment_id) {
+                seg.seal();
+            }
             self.current_segment_id += 1;
-            let seg = WalSegment::new(self.current_segment_id, self.current_lsn + 1, self.segment_max_size, ts);
+            let seg = WalSegment::new(
+                self.current_segment_id,
+                self.current_lsn + 1,
+                self.segment_max_size,
+                ts,
+            );
             self.segments.insert(self.current_segment_id, seg);
         }
     }
 
-    pub fn append(&mut self, entry_type: WalEntryType, tx_id: Option<u64>, table_id: u32, key: String, data_size: usize, ts: u64) -> u64 {
+    pub fn append(
+        &mut self,
+        entry_type: WalEntryType,
+        tx_id: Option<u64>,
+        table_id: u32,
+        key: String,
+        data_size: usize,
+        ts: u64,
+    ) -> u64 {
         self.current_lsn += 1;
         let lsn = self.current_lsn;
         let prev_lsn = tx_id.and_then(|tid| self.active_txs.get(&tid).map(|t| t.last_lsn));
-        let entry = WalEntry::new(lsn, entry_type, tx_id, table_id, key, data_size, prev_lsn, ts);
+        let entry = WalEntry::new(
+            lsn, entry_type, tx_id, table_id, key, data_size, prev_lsn, ts,
+        );
 
         self.ensure_segment(ts);
         if let Some(seg) = self.segments.get_mut(&self.current_segment_id) {
@@ -216,19 +288,23 @@ impl CoopWriteAheadLog {
             match entry_type {
                 WalEntryType::BeginTx => {
                     self.active_txs.insert(tid, ActiveTransaction {
-                        tx_id: tid, begin_lsn: lsn, last_lsn: lsn, entry_count: 1, bytes_written: data_size,
+                        tx_id: tid,
+                        begin_lsn: lsn,
+                        last_lsn: lsn,
+                        entry_count: 1,
+                        bytes_written: data_size,
                     });
-                }
+                },
                 WalEntryType::CommitTx | WalEntryType::AbortTx => {
                     self.active_txs.remove(&tid);
-                }
+                },
                 _ => {
                     if let Some(tx) = self.active_txs.get_mut(&tid) {
                         tx.last_lsn = lsn;
                         tx.entry_count += 1;
                         tx.bytes_written += data_size;
                     }
-                }
+                },
             }
         }
 
@@ -240,15 +316,20 @@ impl CoopWriteAheadLog {
         let cp_id = self.checkpoints.len() as u64 + 1;
         let active: Vec<u64> = self.active_txs.keys().copied().collect();
         self.checkpoints.push(WalCheckpoint {
-            checkpoint_id: cp_id, lsn: self.current_lsn,
-            active_txs: active, timestamp_ns: ts, dirty_pages: 0,
+            checkpoint_id: cp_id,
+            lsn: self.current_lsn,
+            active_txs: active,
+            timestamp_ns: ts,
+            dirty_pages: 0,
         });
         cp_id
     }
 
     #[inline]
     pub fn truncate_before(&mut self, lsn: u64) {
-        let to_remove: Vec<u64> = self.segments.iter()
+        let to_remove: Vec<u64> = self
+            .segments
+            .iter()
             .filter(|(_, s)| s.last_lsn < lsn && s.sealed)
             .map(|(&id, _)| id)
             .collect();
@@ -262,7 +343,9 @@ impl CoopWriteAheadLog {
     pub fn replay_from(&self, lsn: u64) -> Vec<&WalEntry> {
         let mut entries: Vec<&WalEntry> = Vec::new();
         for seg in self.segments.values() {
-            if seg.last_lsn < lsn { continue; }
+            if seg.last_lsn < lsn {
+                continue;
+            }
             entries.extend(seg.entries_from(lsn));
         }
         entries.sort_by_key(|e| e.lsn);
@@ -274,7 +357,9 @@ impl CoopWriteAheadLog {
         let mut failures = 0;
         for seg in self.segments.values() {
             for entry in seg.entries() {
-                if !entry.verify() { failures += 1; }
+                if !entry.verify() {
+                    failures += 1;
+                }
             }
         }
         self.checksum_failures += failures as u64;
@@ -300,5 +385,7 @@ impl CoopWriteAheadLog {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &WalStats { &self.stats }
+    pub fn stats(&self) -> &WalStats {
+        &self.stats
+    }
 }

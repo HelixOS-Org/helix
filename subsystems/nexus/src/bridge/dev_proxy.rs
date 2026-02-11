@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -172,17 +171,29 @@ impl DevPermission {
 
     #[inline]
     pub fn can_read(&self, uid: u32, gid: u32) -> bool {
-        if uid == 0 { return true; }
-        if uid == self.uid { return (self.mode & 0o400) != 0; }
-        if gid == self.gid { return (self.mode & 0o040) != 0; }
+        if uid == 0 {
+            return true;
+        }
+        if uid == self.uid {
+            return (self.mode & 0o400) != 0;
+        }
+        if gid == self.gid {
+            return (self.mode & 0o040) != 0;
+        }
         (self.mode & 0o004) != 0
     }
 
     #[inline]
     pub fn can_write(&self, uid: u32, gid: u32) -> bool {
-        if uid == 0 { return true; }
-        if uid == self.uid { return (self.mode & 0o200) != 0; }
-        if gid == self.gid { return (self.mode & 0o020) != 0; }
+        if uid == 0 {
+            return true;
+        }
+        if uid == self.uid {
+            return (self.mode & 0o200) != 0;
+        }
+        if gid == self.gid {
+            return (self.mode & 0o020) != 0;
+        }
         (self.mode & 0o002) != 0
     }
 }
@@ -358,12 +369,12 @@ impl BridgeDevProxy {
                 IoOp::Read => {
                     dev.io_reads += 1;
                     dev.io_bytes_read = dev.io_bytes_read.saturating_add(size);
-                }
+                },
                 IoOp::Write => {
                     dev.io_writes += 1;
                     dev.io_bytes_written = dev.io_bytes_written.saturating_add(size);
-                }
-                _ => {}
+                },
+                _ => {},
             }
             let req = IoRequest {
                 dev_id,

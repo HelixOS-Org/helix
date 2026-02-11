@@ -37,7 +37,7 @@ pub enum CongestionLevel {
 /// Token bucket rate limiter
 #[derive(Debug, Clone)]
 pub struct TokenBucket {
-    pub rate_bps: u64,       // bytes per second,
+    pub rate_bps: u64, // bytes per second,
     pub burst_bytes: u64,
     pub tokens: u64,
     pub last_fill_ns: u64,
@@ -89,7 +89,9 @@ impl TokenBucket {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.burst_bytes == 0 { return 0.0; }
+        if self.burst_bytes == 0 {
+            return 0.0;
+        }
         1.0 - (self.tokens as f64 / self.burst_bytes as f64)
     }
 }
@@ -126,18 +128,26 @@ impl DeviceBandwidth {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.max_bps == 0 { return 0.0; }
+        if self.max_bps == 0 {
+            return 0.0;
+        }
         self.current_bps as f64 / self.max_bps as f64
     }
 
     #[inline]
     pub fn update_congestion(&mut self) {
         let util = self.utilization();
-        self.congestion = if util < 0.5 { CongestionLevel::None }
-            else if util < 0.7 { CongestionLevel::Light }
-            else if util < 0.85 { CongestionLevel::Moderate }
-            else if util < 0.95 { CongestionLevel::Heavy }
-            else { CongestionLevel::Critical };
+        self.congestion = if util < 0.5 {
+            CongestionLevel::None
+        } else if util < 0.7 {
+            CongestionLevel::Light
+        } else if util < 0.85 {
+            CongestionLevel::Moderate
+        } else if util < 0.95 {
+            CongestionLevel::Heavy
+        } else {
+            CongestionLevel::Critical
+        };
     }
 
     #[inline(always)]
@@ -165,7 +175,9 @@ impl BwReservation {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.reserved_bps == 0 { return 0.0; }
+        if self.reserved_bps == 0 {
+            return 0.0;
+        }
         self.used_bps as f64 / self.reserved_bps as f64
     }
 }
@@ -244,9 +256,18 @@ impl HolisticBandwidthMgr {
     }
 
     /// Reserve bandwidth on a device
-    pub fn reserve(&mut self, device_id: u32, owner_pid: u64, bps: u64, duration_ns: u64, now_ns: u64) -> Option<u64> {
+    pub fn reserve(
+        &mut self,
+        device_id: u32,
+        owner_pid: u64,
+        bps: u64,
+        duration_ns: u64,
+        now_ns: u64,
+    ) -> Option<u64> {
         let device = self.devices.get_mut(&device_id)?;
-        if device.available_bps() < bps { return None; }
+        if device.available_bps() < bps {
+            return None;
+        }
 
         device.reserved_bps += bps;
 
@@ -259,7 +280,11 @@ impl HolisticBandwidthMgr {
             owner_pid,
             reserved_bps: bps,
             used_bps: 0,
-            expiry_ns: if duration_ns > 0 { now_ns + duration_ns } else { 0 },
+            expiry_ns: if duration_ns > 0 {
+                now_ns + duration_ns
+            } else {
+                0
+            },
         });
 
         self.recompute();
@@ -275,13 +300,17 @@ impl HolisticBandwidthMgr {
             }
             self.recompute();
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     /// Expire old reservations
     #[inline]
     pub fn expire_reservations(&mut self, now_ns: u64) {
-        let expired: Vec<u64> = self.reservations.iter()
+        let expired: Vec<u64> = self
+            .reservations
+            .iter()
             .filter(|(_, r)| r.is_expired(now_ns))
             .map(|(&id, _)| id)
             .collect();
@@ -303,14 +332,18 @@ impl HolisticBandwidthMgr {
         if let Some(share) = self.shares.get_mut(&entity_id) {
             share.bucket.refill(now_ns);
             share.bucket.consume(bytes)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     /// Recompute proportional shares based on weights
     #[inline]
     pub fn rebalance_shares(&mut self, total_available_bps: u64) {
         let total_weight: u32 = self.shares.values().map(|s| s.weight).sum();
-        if total_weight == 0 { return; }
+        if total_weight == 0 {
+            return;
+        }
 
         for share in self.shares.values_mut() {
             let proportion = share.weight as f64 / total_weight as f64;
@@ -323,8 +356,14 @@ impl HolisticBandwidthMgr {
     /// Get congested devices
     #[inline]
     pub fn congested_devices(&self) -> Vec<u32> {
-        self.devices.values()
-            .filter(|d| matches!(d.congestion, CongestionLevel::Heavy | CongestionLevel::Critical))
+        self.devices
+            .values()
+            .filter(|d| {
+                matches!(
+                    d.congestion,
+                    CongestionLevel::Heavy | CongestionLevel::Critical
+                )
+            })
             .map(|d| d.device_id)
             .collect()
     }
@@ -332,7 +371,9 @@ impl HolisticBandwidthMgr {
     fn recompute(&mut self) {
         let total_bw: u64 = self.devices.values().map(|d| d.max_bps).sum();
         let used_bw: u64 = self.devices.values().map(|d| d.current_bps).sum();
-        let congested = self.devices.values()
+        let congested = self
+            .devices
+            .values()
             .filter(|d| !matches!(d.congestion, CongestionLevel::None | CongestionLevel::Light))
             .count();
         let throttled: u64 = self.shares.values().map(|s| s.bucket.total_throttled).sum();

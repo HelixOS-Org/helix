@@ -15,8 +15,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -362,7 +361,11 @@ impl AppsTemporalFusion {
 
         for pred in predictions {
             let idx = pred.horizon.index();
-            let w = if idx < NUM_HORIZONS { state.trackers[idx].weight } else { 0.1 };
+            let w = if idx < NUM_HORIZONS {
+                state.trackers[idx].weight
+            } else {
+                0.1
+            };
             fused += pred.predicted_value * w;
             w_sum += w;
             contributions.push((pred.horizon, pred.predicted_value, w));
@@ -382,13 +385,15 @@ impl AppsTemporalFusion {
         state.consistency_history.push_back(consistency);
         state.last_fused_value = fused;
 
-        self.ema_consistency_global = ema_update(self.ema_consistency_global, consistency, EMA_ALPHA);
+        self.ema_consistency_global =
+            ema_update(self.ema_consistency_global, consistency, EMA_ALPHA);
         self.stats.average_consistency = self.ema_consistency_global;
 
         let confidence = if predictions.is_empty() {
             0.0
         } else {
-            let mean_conf: f64 = predictions.iter().map(|p| p.confidence).sum::<f64>() / predictions.len() as f64;
+            let mean_conf: f64 =
+                predictions.iter().map(|p| p.confidence).sum::<f64>() / predictions.len() as f64;
             mean_conf * consistency
         };
 
@@ -413,7 +418,9 @@ impl AppsTemporalFusion {
             for j in (i + 1)..predictions.len() {
                 total_pairs += 1;
                 let diff = abs_f64(predictions[i].predicted_value - predictions[j].predicted_value);
-                let scale = abs_f64(predictions[i].predicted_value).max(abs_f64(predictions[j].predicted_value)).max(0.001);
+                let scale = abs_f64(predictions[i].predicted_value)
+                    .max(abs_f64(predictions[j].predicted_value))
+                    .max(0.001);
                 let relative_diff = diff / scale;
                 if relative_diff <= CONSISTENCY_TOLERANCE {
                     consistent_pairs += 1;
@@ -510,7 +517,11 @@ impl AppsTemporalFusion {
             .fold(0.0_f64, |a, b| if b > a { b } else { a });
 
         // Approximate fusion accuracy as consistency-weighted mean
-        let mean_acc: f64 = state.trackers.iter().map(|t| t.ema_accuracy * t.weight).sum();
+        let mean_acc: f64 = state
+            .trackers
+            .iter()
+            .map(|t| t.ema_accuracy * t.weight)
+            .sum();
         let fusion_acc = mean_acc * state.ema_consistency;
 
         (fusion_acc, best_horizon)

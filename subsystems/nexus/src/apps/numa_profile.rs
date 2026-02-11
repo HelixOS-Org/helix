@@ -148,7 +148,9 @@ impl ProcessNumaProfile {
     /// Record page placement on a node
     #[inline]
     pub fn record_placement(&mut self, node_id: u32, pages: u64) {
-        let info = self.nodes.entry(node_id)
+        let info = self
+            .nodes
+            .entry(node_id)
             .or_insert_with(|| NodeMemInfo::new(node_id));
         info.pages_resident += pages;
         self.total_pages += pages;
@@ -157,7 +159,9 @@ impl ProcessNumaProfile {
     /// Record an access
     #[inline]
     pub fn record_access(&mut self, cpu_node: u32, mem_node: u32, timestamp_ns: u64) {
-        let info = self.nodes.entry(mem_node)
+        let info = self
+            .nodes
+            .entry(mem_node)
             .or_insert_with(|| NodeMemInfo::new(mem_node));
         if cpu_node == mem_node {
             info.local_accesses += 1;
@@ -175,7 +179,9 @@ impl ProcessNumaProfile {
                 from.pages_resident -= event.page_count;
             }
         }
-        let to = self.nodes.entry(event.to_node)
+        let to = self
+            .nodes
+            .entry(event.to_node)
             .or_insert_with(|| NodeMemInfo::new(event.to_node));
         to.pages_migrated_in += event.page_count;
         to.pages_resident += event.page_count;
@@ -199,7 +205,11 @@ impl ProcessNumaProfile {
             local += info.local_accesses;
             total += info.local_accesses + info.remote_accesses;
         }
-        if total == 0 { 1.0 } else { local as f64 / total as f64 }
+        if total == 0 {
+            1.0
+        } else {
+            local as f64 / total as f64
+        }
     }
 
     /// Page distribution across nodes (node_id, fraction)
@@ -208,7 +218,8 @@ impl ProcessNumaProfile {
         if self.total_pages == 0 {
             return Vec::new();
         }
-        self.nodes.iter()
+        self.nodes
+            .iter()
             .map(|(&id, info)| (id, info.pages_resident as f64 / self.total_pages as f64))
             .collect()
     }
@@ -219,12 +230,15 @@ impl ProcessNumaProfile {
             return false;
         }
         let avg = self.total_pages as f64 / self.nodes.len() as f64;
-        let variance: f64 = self.nodes.values()
+        let variance: f64 = self
+            .nodes
+            .values()
             .map(|info| {
                 let diff = info.pages_resident as f64 - avg;
                 diff * diff
             })
-            .sum::<f64>() / self.nodes.len() as f64;
+            .sum::<f64>()
+            / self.nodes.len() as f64;
         let cv = libm::sqrt(variance) / avg;
         cv < 0.15 // Low coefficient of variation → interleaved
     }
@@ -232,11 +246,14 @@ impl ProcessNumaProfile {
     /// Suggest optimal node
     #[inline]
     pub fn suggest_optimal_node(&self) -> Option<u32> {
-        self.nodes.iter()
+        self.nodes
+            .iter()
             .max_by(|a, b| {
                 let score_a = a.1.locality_ratio() * a.1.pages_resident as f64;
                 let score_b = b.1.locality_ratio() * b.1.pages_resident as f64;
-                score_a.partial_cmp(&score_b).unwrap_or(core::cmp::Ordering::Equal)
+                score_a
+                    .partial_cmp(&score_b)
+                    .unwrap_or(core::cmp::Ordering::Equal)
             })
             .map(|(&id, _)| id)
     }
@@ -244,7 +261,9 @@ impl ProcessNumaProfile {
     /// Migration rate (migrations per 1000 accesses)
     #[inline]
     pub fn migration_rate(&self) -> f64 {
-        let total_accesses: u64 = self.nodes.values()
+        let total_accesses: u64 = self
+            .nodes
+            .values()
             .map(|info| info.local_accesses + info.remote_accesses)
             .sum();
         if total_accesses == 0 {
@@ -281,13 +300,15 @@ impl AppNumaProfiler {
 
     #[inline(always)]
     pub fn get_or_create(&mut self, pid: u64) -> &mut ProcessNumaProfile {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessNumaProfile::new(pid))
     }
 
     #[inline(always)]
     pub fn record_access(&mut self, pid: u64, cpu_node: u32, mem_node: u32, ts: u64) {
-        self.get_or_create(pid).record_access(cpu_node, mem_node, ts);
+        self.get_or_create(pid)
+            .record_access(cpu_node, mem_node, ts);
         self.update_stats();
     }
 
@@ -300,17 +321,22 @@ impl AppNumaProfiler {
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.processes.len();
         if !self.processes.is_empty() {
-            self.stats.avg_locality = self.processes.values()
+            self.stats.avg_locality = self
+                .processes
+                .values()
                 .map(|p| p.overall_locality())
-                .sum::<f64>() / self.processes.len() as f64;
+                .sum::<f64>()
+                / self.processes.len() as f64;
         }
-        self.stats.interleaved_count = self.processes.values()
+        self.stats.interleaved_count = self
+            .processes
+            .values()
             .filter(|p| p.is_interleaved())
             .count();
-        self.stats.total_migrations = self.processes.values()
-            .map(|p| p.total_migrations)
-            .sum();
-        self.stats.poor_locality_count = self.processes.values()
+        self.stats.total_migrations = self.processes.values().map(|p| p.total_migrations).sum();
+        self.stats.poor_locality_count = self
+            .processes
+            .values()
             .filter(|p| p.overall_locality() < 0.5)
             .count();
     }
@@ -323,7 +349,8 @@ impl AppNumaProfiler {
     /// Processes needing NUMA rebalancing
     #[inline]
     pub fn rebalance_candidates(&self) -> Vec<u64> {
-        self.processes.iter()
+        self.processes
+            .iter()
             .filter(|(_, p)| p.overall_locality() < 0.5 && p.total_pages > 256)
             .map(|(&pid, _)| pid)
             .collect()

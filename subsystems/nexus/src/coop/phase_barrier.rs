@@ -27,11 +27,19 @@ pub struct PhaseParticipant {
 
 impl PhaseParticipant {
     pub fn new(id: u64) -> Self {
-        Self { id, current_phase: 0, arrived: false, phases_completed: 0, total_wait_ns: 0 }
+        Self {
+            id,
+            current_phase: 0,
+            arrived: false,
+            phases_completed: 0,
+            total_wait_ns: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn arrive(&mut self) { self.arrived = true; }
+    pub fn arrive(&mut self) {
+        self.arrived = true;
+    }
 
     #[inline]
     pub fn advance(&mut self, wait_ns: u64) {
@@ -54,18 +62,31 @@ pub struct PhaseBarrier {
 
 impl PhaseBarrier {
     pub fn new() -> Self {
-        Self { current_phase: 0, state: PhaseState::Registration, participants: BTreeMap::new(), phase_durations: Vec::new(), phase_start_time: 0 }
+        Self {
+            current_phase: 0,
+            state: PhaseState::Registration,
+            participants: BTreeMap::new(),
+            phase_durations: Vec::new(),
+            phase_start_time: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn register(&mut self, id: u64) { self.participants.insert(id, PhaseParticipant::new(id)); }
+    pub fn register(&mut self, id: u64) {
+        self.participants.insert(id, PhaseParticipant::new(id));
+    }
 
     #[inline(always)]
-    pub fn start(&mut self, now: u64) { self.state = PhaseState::Active; self.phase_start_time = now; }
+    pub fn start(&mut self, now: u64) {
+        self.state = PhaseState::Active;
+        self.phase_start_time = now;
+    }
 
     #[inline(always)]
     pub fn arrive(&mut self, id: u64) -> bool {
-        if let Some(p) = self.participants.get_mut(&id) { p.arrive(); }
+        if let Some(p) = self.participants.get_mut(&id) {
+            p.arrive();
+        }
         self.participants.values().all(|p| p.arrived)
     }
 
@@ -73,13 +94,17 @@ impl PhaseBarrier {
     pub fn advance(&mut self, now: u64) {
         let duration = now.saturating_sub(self.phase_start_time);
         self.phase_durations.push(duration);
-        for p in self.participants.values_mut() { p.advance(duration); }
+        for p in self.participants.values_mut() {
+            p.advance(duration);
+        }
         self.current_phase += 1;
         self.phase_start_time = now;
     }
 
     #[inline(always)]
-    pub fn deregister(&mut self, id: u64) { self.participants.remove(&id); }
+    pub fn deregister(&mut self, id: u64) {
+        self.participants.remove(&id);
+    }
 }
 
 /// Stats
@@ -98,23 +123,45 @@ pub struct CoopPhaseBarrier {
 }
 
 impl CoopPhaseBarrier {
-    pub fn new() -> Self { Self { barriers: Vec::new() } }
+    pub fn new() -> Self {
+        Self {
+            barriers: Vec::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn create(&mut self) -> usize { let idx = self.barriers.len(); self.barriers.push(PhaseBarrier::new()); idx }
+    pub fn create(&mut self) -> usize {
+        let idx = self.barriers.len();
+        self.barriers.push(PhaseBarrier::new());
+        idx
+    }
 
     #[inline(always)]
     pub fn register(&mut self, idx: usize, id: u64) {
-        if let Some(b) = self.barriers.get_mut(idx) { b.register(id); }
+        if let Some(b) = self.barriers.get_mut(idx) {
+            b.register(id);
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> Vec<PhaseBarrierStats> {
-        self.barriers.iter().map(|b| {
-            let arrived = b.participants.values().filter(|p| p.arrived).count() as u32;
-            let avg = if b.phase_durations.is_empty() { 0 } else { b.phase_durations.iter().sum::<u64>() / b.phase_durations.len() as u64 };
-            PhaseBarrierStats { current_phase: b.current_phase, participant_count: b.participants.len() as u32, arrived_count: arrived, avg_phase_duration_ns: avg }
-        }).collect()
+        self.barriers
+            .iter()
+            .map(|b| {
+                let arrived = b.participants.values().filter(|p| p.arrived).count() as u32;
+                let avg = if b.phase_durations.is_empty() {
+                    0
+                } else {
+                    b.phase_durations.iter().sum::<u64>() / b.phase_durations.len() as u64
+                };
+                PhaseBarrierStats {
+                    current_phase: b.current_phase,
+                    participant_count: b.participants.len() as u32,
+                    arrived_count: arrived,
+                    avg_phase_duration_ns: avg,
+                }
+            })
+            .collect()
     }
 }
 
@@ -154,10 +201,12 @@ pub struct PhaseBarrierV2Instance {
 impl PhaseBarrierV2Instance {
     pub fn new(id: u64) -> Self {
         Self {
-            id, current_phase: 0,
+            id,
+            current_phase: 0,
             state: PhaseV2State::Arriving,
             participants: Vec::new(),
-            arrived_count: 0, total_advances: 0,
+            arrived_count: 0,
+            total_advances: 0,
             on_advance_action: 0,
         }
     }
@@ -166,8 +215,10 @@ impl PhaseBarrierV2Instance {
     pub fn register(&mut self, pid: u64) -> u64 {
         let idx = self.participants.len() as u64;
         self.participants.push(PhaseV2Participant {
-            id: pid, current_phase: self.current_phase,
-            arrived: false, phases_completed: 0,
+            id: pid,
+            current_phase: self.current_phase,
+            arrived: false,
+            phases_completed: 0,
             deregistered: false,
         });
         idx
@@ -208,7 +259,9 @@ impl PhaseBarrierV2Instance {
         for p in self.participants.iter_mut() {
             if p.id == pid {
                 p.deregistered = true;
-                if p.arrived { self.arrived_count -= 1; }
+                if p.arrived {
+                    self.arrived_count -= 1;
+                }
                 break;
             }
         }
@@ -240,8 +293,10 @@ impl CoopPhaseBarrierV2 {
             barriers: BTreeMap::new(),
             next_id: 1,
             stats: PhaseBarrierV2Stats {
-                barriers_created: 0, total_phases: 0,
-                total_arrivals: 0, registrations: 0,
+                barriers_created: 0,
+                total_phases: 0,
+                total_arrivals: 0,
+                registrations: 0,
                 deregistrations: 0,
             },
         }
@@ -262,7 +317,9 @@ impl CoopPhaseBarrierV2 {
             b.register(pid);
             self.stats.registrations += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]

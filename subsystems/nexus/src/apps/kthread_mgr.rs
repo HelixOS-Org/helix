@@ -46,13 +46,21 @@ impl KthreadFlags {
     pub const NICE: u32 = 16;
     pub const NOFREEZE: u32 = 32;
 
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u32) -> bool {
+        self.bits & flag != 0
+    }
     #[inline(always)]
-    pub fn should_stop(&self) -> bool { self.has(Self::SHOULD_STOP) }
+    pub fn should_stop(&self) -> bool {
+        self.has(Self::SHOULD_STOP)
+    }
     #[inline(always)]
-    pub fn should_park(&self) -> bool { self.has(Self::SHOULD_PARK) }
+    pub fn should_park(&self) -> bool {
+        self.has(Self::SHOULD_PARK)
+    }
 }
 
 /// Kernel thread descriptor
@@ -76,11 +84,19 @@ pub struct KthreadInfo {
 impl KthreadInfo {
     pub fn new(tid: u64, name: String, ktype: KthreadType, now: u64) -> Self {
         Self {
-            tid, name, ktype, state: KthreadState::Created,
-            flags: KthreadFlags::new(0), cpu_affinity: None,
-            priority: 0, nice: 0, wakeups: 0,
-            runtime_ns: 0, sleeptime_ns: 0,
-            created_at: now, last_run: 0,
+            tid,
+            name,
+            ktype,
+            state: KthreadState::Created,
+            flags: KthreadFlags::new(0),
+            cpu_affinity: None,
+            priority: 0,
+            nice: 0,
+            wakeups: 0,
+            runtime_ns: 0,
+            sleeptime_ns: 0,
+            created_at: now,
+            last_run: 0,
         }
     }
 
@@ -98,16 +114,24 @@ impl KthreadInfo {
     }
 
     #[inline(always)]
-    pub fn park(&mut self) { self.state = KthreadState::Parked; }
+    pub fn park(&mut self) {
+        self.state = KthreadState::Parked;
+    }
     #[inline(always)]
-    pub fn stop(&mut self) { self.state = KthreadState::Stopped; }
+    pub fn stop(&mut self) {
+        self.state = KthreadState::Stopped;
+    }
     #[inline(always)]
-    pub fn exit(&mut self) { self.state = KthreadState::Exited; }
+    pub fn exit(&mut self) {
+        self.state = KthreadState::Exited;
+    }
 
     #[inline]
     pub fn utilization(&self, now: u64) -> f64 {
         let total = now.saturating_sub(self.created_at);
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.runtime_ns as f64 / total as f64
     }
 }
@@ -132,41 +156,74 @@ pub struct AppKthreadMgr {
 }
 
 impl AppKthreadMgr {
-    pub fn new() -> Self { Self { threads: BTreeMap::new(), next_tid: 1 } }
+    pub fn new() -> Self {
+        Self {
+            threads: BTreeMap::new(),
+            next_tid: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, name: String, ktype: KthreadType, now: u64) -> u64 {
         let tid = self.next_tid;
         self.next_tid += 1;
-        self.threads.insert(tid, KthreadInfo::new(tid, name, ktype, now));
+        self.threads
+            .insert(tid, KthreadInfo::new(tid, name, ktype, now));
         tid
     }
 
     #[inline(always)]
     pub fn wake(&mut self, tid: u64, now: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.run(now); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.run(now);
+        }
     }
 
     #[inline(always)]
     pub fn park(&mut self, tid: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.park(); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.park();
+        }
     }
 
     #[inline(always)]
     pub fn stop(&mut self, tid: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.stop(); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.stop();
+        }
     }
 
     pub fn stats(&self) -> KthreadMgrStats {
-        let running = self.threads.values().filter(|t| t.state == KthreadState::Running).count() as u32;
-        let sleeping = self.threads.values().filter(|t| t.state == KthreadState::Sleeping).count() as u32;
-        let parked = self.threads.values().filter(|t| t.state == KthreadState::Parked).count() as u32;
-        let exited = self.threads.values().filter(|t| t.state == KthreadState::Exited).count() as u32;
+        let running = self
+            .threads
+            .values()
+            .filter(|t| t.state == KthreadState::Running)
+            .count() as u32;
+        let sleeping = self
+            .threads
+            .values()
+            .filter(|t| t.state == KthreadState::Sleeping)
+            .count() as u32;
+        let parked = self
+            .threads
+            .values()
+            .filter(|t| t.state == KthreadState::Parked)
+            .count() as u32;
+        let exited = self
+            .threads
+            .values()
+            .filter(|t| t.state == KthreadState::Exited)
+            .count() as u32;
         let wakeups: u64 = self.threads.values().map(|t| t.wakeups).sum();
         let runtime: u64 = self.threads.values().map(|t| t.runtime_ns).sum();
         KthreadMgrStats {
-            total_kthreads: self.threads.len() as u32, running, sleeping, parked,
-            exited, total_wakeups: wakeups, total_runtime_ns: runtime,
+            total_kthreads: self.threads.len() as u32,
+            running,
+            sleeping,
+            parked,
+            exited,
+            total_wakeups: wakeups,
+            total_runtime_ns: runtime,
         }
     }
 }

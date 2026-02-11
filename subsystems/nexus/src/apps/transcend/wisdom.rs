@@ -170,10 +170,8 @@ impl AppsWisdom {
             Some(v) => v,
             None => return Vec::new(),
         };
-        let mut result: Vec<&WisdomEntry> = ids
-            .iter()
-            .filter_map(|id| self.entries.get(id))
-            .collect();
+        let mut result: Vec<&WisdomEntry> =
+            ids.iter().filter_map(|id| self.entries.get(id)).collect();
         result.sort_by(|a, b| b.success_rate.cmp(&a.success_rate));
         result
     }
@@ -345,8 +343,7 @@ impl AppsWisdom {
                 continue;
             }
             let avg_success = total_success / count;
-            let insight_id = fnv1a(&ctx_hash.to_le_bytes())
-                ^ fnv1a(&count.to_le_bytes());
+            let insight_id = fnv1a(&ctx_hash.to_le_bytes()) ^ fnv1a(&count.to_le_bytes());
 
             let insight = SageInsight {
                 insight_id,
@@ -441,9 +438,7 @@ impl AppsWisdom {
     fn matching_wisdom_entries(&self, topic_hash: u64) -> Vec<&WisdomEntry> {
         self.entries
             .values()
-            .filter(|e| {
-                e.context_hash == topic_hash || e.advice_hash == topic_hash
-            })
+            .filter(|e| e.context_hash == topic_hash || e.advice_hash == topic_hash)
             .collect()
     }
 
@@ -529,12 +524,7 @@ mod tests {
     fn test_sage_insight_generation() {
         let mut w = AppsWisdom::new(42);
         for i in 0..10 {
-            w.intervention_wisdom(
-                i,
-                &alloc::format!("action_{}", i),
-                "busy_context",
-                60 + i,
-            );
+            w.intervention_wisdom(i, &alloc::format!("action_{}", i), "busy_context", 60 + i);
         }
         let insights = w.sage_insight();
         assert!(insights.len() >= 1);

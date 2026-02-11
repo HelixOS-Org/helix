@@ -1,11 +1,11 @@
 //! Memory security monitoring and protection.
 
-use crate::fast::linear_map::LinearMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use super::types::ThreatSeverity;
 use crate::core::NexusTimestamp;
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // MEMORY SECURITY MONITOR

@@ -216,13 +216,11 @@ impl FaultTree {
                 } else {
                     node.children.iter().all(|&c| self.evaluate_node(c))
                 }
-            }
-            FaultNodeType::Or => {
-                node.children.iter().any(|&c| self.evaluate_node(c))
-            }
+            },
+            FaultNodeType::Or => node.children.iter().any(|&c| self.evaluate_node(c)),
             FaultNodeType::Intermediate => {
                 node.is_active || node.children.iter().any(|&c| self.evaluate_node(c))
-            }
+            },
         };
 
         if let Some(n) = self.nodes.get_mut(&id) {
@@ -368,7 +366,8 @@ impl HolisticDiagnosticEngine {
         let mut by_category: BTreeMap<u8, Vec<&Symptom>> = BTreeMap::new();
         for sym in self.symptoms.values() {
             if sym.is_anomalous() {
-                by_category.entry(sym.category as u8)
+                by_category
+                    .entry(sym.category as u8)
                     .or_insert_with(Vec::new)
                     .push(sym);
             }
@@ -384,7 +383,8 @@ impl HolisticDiagnosticEngine {
             }
 
             let category = symptoms[0].category;
-            let max_sev = symptoms.iter()
+            let max_sev = symptoms
+                .iter()
                 .map(|s| s.severity)
                 .max()
                 .unwrap_or(SymptomSeverity::Info);
@@ -452,8 +452,7 @@ impl HolisticDiagnosticEngine {
     }
 
     fn update_stats(&mut self) {
-        self.stats.active_symptoms = self.symptoms.values()
-            .filter(|s| s.is_anomalous()).count();
+        self.stats.active_symptoms = self.symptoms.values().filter(|s| s.is_anomalous()).count();
     }
 
     /// Stats

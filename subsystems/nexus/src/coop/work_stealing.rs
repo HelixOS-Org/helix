@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Task priority
@@ -42,17 +41,43 @@ pub struct WsTask {
 
 impl WsTask {
     pub fn new(id: u64, prio: WsTaskPriority, worker: u64, now: u64) -> Self {
-        Self { id, priority: prio, state: WsTaskState::Queued, origin_worker: worker, current_worker: worker, stolen: false, queued_at: now, started_at: 0, completed_at: 0 }
+        Self {
+            id,
+            priority: prio,
+            state: WsTaskState::Queued,
+            origin_worker: worker,
+            current_worker: worker,
+            stolen: false,
+            queued_at: now,
+            started_at: 0,
+            completed_at: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn start(&mut self, now: u64) { self.state = WsTaskState::Running; self.started_at = now; }
+    pub fn start(&mut self, now: u64) {
+        self.state = WsTaskState::Running;
+        self.started_at = now;
+    }
     #[inline(always)]
-    pub fn complete(&mut self, now: u64) { self.state = WsTaskState::Completed; self.completed_at = now; }
+    pub fn complete(&mut self, now: u64) {
+        self.state = WsTaskState::Completed;
+        self.completed_at = now;
+    }
     #[inline(always)]
-    pub fn steal(&mut self, thief: u64) { self.stolen = true; self.current_worker = thief; self.state = WsTaskState::Stolen; }
+    pub fn steal(&mut self, thief: u64) {
+        self.stolen = true;
+        self.current_worker = thief;
+        self.state = WsTaskState::Stolen;
+    }
     #[inline(always)]
-    pub fn latency_ns(&self) -> u64 { if self.completed_at > 0 { self.completed_at - self.queued_at } else { 0 } }
+    pub fn latency_ns(&self) -> u64 {
+        if self.completed_at > 0 {
+            self.completed_at - self.queued_at
+        } else {
+            0
+        }
+    }
 }
 
 /// Worker queue
@@ -69,22 +94,37 @@ pub struct WorkerQueue {
 
 impl WorkerQueue {
     pub fn new(id: u64) -> Self {
-        Self { id, tasks: VecDeque::new(), total_processed: 0, total_stolen_from: 0, total_stolen_to: 0, idle_ns: 0 }
+        Self {
+            id,
+            tasks: VecDeque::new(),
+            total_processed: 0,
+            total_stolen_from: 0,
+            total_stolen_to: 0,
+            idle_ns: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn push(&mut self, task: WsTask) { self.tasks.push_back(task); }
+    pub fn push(&mut self, task: WsTask) {
+        self.tasks.push_back(task);
+    }
     #[inline(always)]
-    pub fn pop(&mut self) -> Option<WsTask> { self.tasks.pop_back() }
+    pub fn pop(&mut self) -> Option<WsTask> {
+        self.tasks.pop_back()
+    }
     #[inline]
     pub fn steal(&mut self) -> Option<WsTask> {
-        if self.tasks.is_empty() { return None; }
+        if self.tasks.is_empty() {
+            return None;
+        }
         self.total_stolen_from += 1;
         self.tasks.remove(0)
     }
 
     #[inline(always)]
-    pub fn len(&self) -> usize { self.tasks.len() }
+    pub fn len(&self) -> usize {
+        self.tasks.len()
+    }
 }
 
 /// Stats
@@ -108,16 +148,28 @@ pub struct CoopWorkStealing {
 }
 
 impl CoopWorkStealing {
-    pub fn new() -> Self { Self { workers: BTreeMap::new(), next_task_id: 1, total_steals: 0, seed: 0xabcdef0123456789 } }
+    pub fn new() -> Self {
+        Self {
+            workers: BTreeMap::new(),
+            next_task_id: 1,
+            total_steals: 0,
+            seed: 0xabcdef0123456789,
+        }
+    }
 
     #[inline(always)]
-    pub fn add_worker(&mut self, id: u64) { self.workers.insert(id, WorkerQueue::new(id)); }
+    pub fn add_worker(&mut self, id: u64) {
+        self.workers.insert(id, WorkerQueue::new(id));
+    }
 
     #[inline]
     pub fn submit(&mut self, worker: u64, prio: WsTaskPriority, now: u64) -> u64 {
-        let id = self.next_task_id; self.next_task_id += 1;
+        let id = self.next_task_id;
+        self.next_task_id += 1;
         let task = WsTask::new(id, prio, worker, now);
-        if let Some(w) = self.workers.get_mut(&worker) { w.push(task); }
+        if let Some(w) = self.workers.get_mut(&worker) {
+            w.push(task);
+        }
         id
     }
 
@@ -125,8 +177,15 @@ impl CoopWorkStealing {
         self.seed ^= self.seed << 13;
         self.seed ^= self.seed >> 7;
         self.seed ^= self.seed << 17;
-        let victims: Vec<u64> = self.workers.keys().filter(|&&id| id != thief_id).copied().collect();
-        if victims.is_empty() { return false; }
+        let victims: Vec<u64> = self
+            .workers
+            .keys()
+            .filter(|&&id| id != thief_id)
+            .copied()
+            .collect();
+        if victims.is_empty() {
+            return false;
+        }
         let victim_id = victims[self.seed as usize % victims.len()];
         if let Some(victim) = self.workers.get_mut(&victim_id) {
             if let Some(mut task) = victim.steal() {
@@ -146,9 +205,24 @@ impl CoopWorkStealing {
     pub fn stats(&self) -> WorkStealingStats {
         let processed: u64 = self.workers.values().map(|w| w.total_processed).sum();
         let depths: Vec<f64> = self.workers.values().map(|w| w.len() as f64).collect();
-        let avg = if depths.is_empty() { 0.0 } else { depths.iter().sum::<f64>() / depths.len() as f64 };
-        let rate = if processed == 0 { 0.0 } else { self.total_steals as f64 / processed as f64 };
-        WorkStealingStats { total_workers: self.workers.len() as u32, total_tasks: self.next_task_id - 1, total_steals: self.total_steals, total_processed: processed, avg_queue_depth: avg, steal_rate: rate }
+        let avg = if depths.is_empty() {
+            0.0
+        } else {
+            depths.iter().sum::<f64>() / depths.len() as f64
+        };
+        let rate = if processed == 0 {
+            0.0
+        } else {
+            self.total_steals as f64 / processed as f64
+        };
+        WorkStealingStats {
+            total_workers: self.workers.len() as u32,
+            total_tasks: self.next_task_id - 1,
+            total_steals: self.total_steals,
+            total_processed: processed,
+            avg_queue_depth: avg,
+            steal_rate: rate,
+        }
     }
 }
 
@@ -177,7 +251,14 @@ pub struct StealTask {
 
 impl StealTask {
     pub fn new(id: u64, prio: StealPriority, cost: u64, now: u64) -> Self {
-        Self { id, priority: prio, cost_estimate: cost, created_at: now, stolen: false, steal_count: 0 }
+        Self {
+            id,
+            priority: prio,
+            cost_estimate: cost,
+            created_at: now,
+            stolen: false,
+            steal_count: 0,
+        }
     }
 }
 
@@ -194,18 +275,33 @@ pub struct WorkerDeque {
 
 impl WorkerDeque {
     pub fn new(id: u64) -> Self {
-        Self { worker_id: id, tasks: VecDeque::new(), total_pushed: 0, total_popped: 0, total_stolen_from: 0, total_stolen_to: 0 }
+        Self {
+            worker_id: id,
+            tasks: VecDeque::new(),
+            total_pushed: 0,
+            total_popped: 0,
+            total_stolen_from: 0,
+            total_stolen_to: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn push(&mut self, task: StealTask) { self.total_pushed += 1; self.tasks.push_back(task); }
+    pub fn push(&mut self, task: StealTask) {
+        self.total_pushed += 1;
+        self.tasks.push_back(task);
+    }
 
     #[inline(always)]
-    pub fn pop(&mut self) -> Option<StealTask> { self.total_popped += 1; self.tasks.pop_back() }
+    pub fn pop(&mut self) -> Option<StealTask> {
+        self.total_popped += 1;
+        self.tasks.pop_back()
+    }
 
     #[inline]
     pub fn steal(&mut self) -> Option<StealTask> {
-        if self.tasks.is_empty() { return None; }
+        if self.tasks.is_empty() {
+            return None;
+        }
         self.total_stolen_from += 1;
         let mut task = self.tasks.remove(0).unwrap();
         task.stolen = true;
@@ -214,7 +310,9 @@ impl WorkerDeque {
     }
 
     #[inline(always)]
-    pub fn load(&self) -> u64 { self.tasks.iter().map(|t| t.cost_estimate).sum() }
+    pub fn load(&self) -> u64 {
+        self.tasks.iter().map(|t| t.cost_estimate).sum()
+    }
 }
 
 /// Stats
@@ -234,14 +332,22 @@ pub struct CoopWorkStealingV2 {
 }
 
 impl CoopWorkStealingV2 {
-    pub fn new() -> Self { Self { workers: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            workers: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn add_worker(&mut self, id: u64) { self.workers.insert(id, WorkerDeque::new(id)); }
+    pub fn add_worker(&mut self, id: u64) {
+        self.workers.insert(id, WorkerDeque::new(id));
+    }
 
     #[inline(always)]
     pub fn push(&mut self, worker: u64, task: StealTask) {
-        if let Some(w) = self.workers.get_mut(&worker) { w.push(task); }
+        if let Some(w) = self.workers.get_mut(&worker) {
+            w.push(task);
+        }
     }
 
     #[inline(always)]
@@ -251,14 +357,17 @@ impl CoopWorkStealingV2 {
 
     pub fn try_steal(&mut self, thief: u64) -> Option<StealTask> {
         let victim = {
-            self.workers.iter()
+            self.workers
+                .iter()
                 .filter(|&(&id, _)| id != thief)
                 .max_by_key(|(_, w)| w.tasks.len())
                 .map(|(&id, _)| id)
         };
         if let Some(vid) = victim {
             if let Some(task) = self.workers.get_mut(&vid).and_then(|w| w.steal()) {
-                if let Some(tw) = self.workers.get_mut(&thief) { tw.total_stolen_to += 1; }
+                if let Some(tw) = self.workers.get_mut(&thief) {
+                    tw.total_stolen_to += 1;
+                }
                 return Some(task);
             }
         }
@@ -270,10 +379,28 @@ impl CoopWorkStealingV2 {
         let loads: Vec<u64> = self.workers.values().map(|w| w.load()).collect();
         let total_tasks: u32 = self.workers.values().map(|w| w.tasks.len() as u32).sum();
         let steals: u64 = self.workers.values().map(|w| w.total_stolen_from).sum();
-        let avg_load = if loads.is_empty() { 0.0 } else { loads.iter().sum::<u64>() as f64 / loads.len() as f64 };
+        let avg_load = if loads.is_empty() {
+            0.0
+        } else {
+            loads.iter().sum::<u64>() as f64 / loads.len() as f64
+        };
         let max_load = loads.iter().copied().max().unwrap_or(0) as f64;
-        let imbalance = if avg_load < 1.0 { 0.0 } else { (max_load - avg_load) / avg_load };
-        let avg_len = if self.workers.is_empty() { 0.0 } else { total_tasks as f64 / self.workers.len() as f64 };
-        WorkStealingV2Stats { total_workers: self.workers.len() as u32, total_tasks, total_steals: steals, load_imbalance: imbalance, avg_deque_len: avg_len }
+        let imbalance = if avg_load < 1.0 {
+            0.0
+        } else {
+            (max_load - avg_load) / avg_load
+        };
+        let avg_len = if self.workers.is_empty() {
+            0.0
+        } else {
+            total_tasks as f64 / self.workers.len() as f64
+        };
+        WorkStealingV2Stats {
+            total_workers: self.workers.len() as u32,
+            total_tasks,
+            total_steals: steals,
+            load_imbalance: imbalance,
+            avg_deque_len: avg_len,
+        }
     }
 }

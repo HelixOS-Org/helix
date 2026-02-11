@@ -44,18 +44,27 @@ pub struct SwapCluster {
 
 impl SwapCluster {
     pub fn new(offset: u64, count: u32) -> Self {
-        Self { start_offset: offset, count, free: count, sequential_alloc: 0 }
+        Self {
+            start_offset: offset,
+            count,
+            free: count,
+            sequential_alloc: 0,
+        }
     }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.count == 0 { return 0.0; }
+        if self.count == 0 {
+            return 0.0;
+        }
         1.0 - (self.free as f64 / self.count as f64)
     }
 
     #[inline]
     pub fn try_allocate(&mut self) -> Option<u64> {
-        if self.free == 0 { return None; }
+        if self.free == 0 {
+            return None;
+        }
         self.free -= 1;
         self.sequential_alloc += 1;
         Some(self.start_offset + (self.count - self.free - 1) as u64)
@@ -63,7 +72,9 @@ impl SwapCluster {
 
     #[inline(always)]
     pub fn release(&mut self) {
-        if self.free < self.count { self.free += 1; }
+        if self.free < self.count {
+            self.free += 1;
+        }
     }
 }
 
@@ -86,30 +97,55 @@ pub struct SwapArea {
 }
 
 impl SwapArea {
-    pub fn new(id: u64, area_type: SwapAreaType, path: String, priority: i16, total: u64, ts: u64) -> Self {
+    pub fn new(
+        id: u64,
+        area_type: SwapAreaType,
+        path: String,
+        priority: i16,
+        total: u64,
+        ts: u64,
+    ) -> Self {
         let cluster_size = 256u32;
         let n_clusters = (total / cluster_size as u64).max(1);
         let mut clusters = Vec::new();
         for i in 0..n_clusters {
-            let count = if i == n_clusters - 1 { (total - i * cluster_size as u64) as u32 } else { cluster_size };
+            let count = if i == n_clusters - 1 {
+                (total - i * cluster_size as u64) as u32
+            } else {
+                cluster_size
+            };
             clusters.push(SwapCluster::new(i * cluster_size as u64, count));
         }
         Self {
-            id, area_type, state: SwapAreaState::Active, path, priority,
-            total_slots: total, used_slots: 0, bad_slots: 0,
-            clusters, pages_in: 0, pages_out: 0, io_errors: 0,
+            id,
+            area_type,
+            state: SwapAreaState::Active,
+            path,
+            priority,
+            total_slots: total,
+            used_slots: 0,
+            bad_slots: 0,
+            clusters,
+            pages_in: 0,
+            pages_out: 0,
+            io_errors: 0,
             activated_ts: ts,
         }
     }
 
     #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
-        if self.total_slots == 0 { return 0.0; }
+        if self.total_slots == 0 {
+            return 0.0;
+        }
         self.used_slots as f64 / self.total_slots as f64
     }
 
     #[inline(always)]
-    pub fn free_slots(&self) -> u64 { self.total_slots.saturating_sub(self.used_slots + self.bad_slots) }
+    pub fn free_slots(&self) -> u64 {
+        self.total_slots
+            .saturating_sub(self.used_slots + self.bad_slots)
+    }
 
     #[inline]
     pub fn allocate_slot(&mut self) -> Option<u64> {
@@ -148,14 +184,23 @@ pub struct ProcessSwapInfo {
 
 impl ProcessSwapInfo {
     pub fn new(pid: u64) -> Self {
-        Self { pid, swapped_pages: 0, swap_in_faults: 0, swap_out_events: 0, peak_swapped: 0, last_swap_ts: 0 }
+        Self {
+            pid,
+            swapped_pages: 0,
+            swap_in_faults: 0,
+            swap_out_events: 0,
+            peak_swapped: 0,
+            last_swap_ts: 0,
+        }
     }
 
     #[inline]
     pub fn record_swap_out(&mut self, pages: u64, ts: u64) {
         self.swapped_pages += pages;
         self.swap_out_events += 1;
-        if self.swapped_pages > self.peak_swapped { self.peak_swapped = self.swapped_pages; }
+        if self.swapped_pages > self.peak_swapped {
+            self.peak_swapped = self.swapped_pages;
+        }
         self.last_swap_ts = ts;
     }
 
@@ -195,17 +240,27 @@ pub struct BridgeSwapBridge {
 impl BridgeSwapBridge {
     pub fn new() -> Self {
         Self {
-            areas: BTreeMap::new(), proc_swap: BTreeMap::new(),
-            priority_order: Vec::new(), next_area_id: 1,
+            areas: BTreeMap::new(),
+            proc_swap: BTreeMap::new(),
+            priority_order: Vec::new(),
+            next_area_id: 1,
             stats: SwapBridgeStats::default(),
         }
     }
 
     #[inline]
-    pub fn swapon(&mut self, area_type: SwapAreaType, path: String, priority: i16, total: u64, ts: u64) -> u64 {
+    pub fn swapon(
+        &mut self,
+        area_type: SwapAreaType,
+        path: String,
+        priority: i16,
+        total: u64,
+        ts: u64,
+    ) -> u64 {
         let id = self.next_area_id;
         self.next_area_id += 1;
-        self.areas.insert(id, SwapArea::new(id, area_type, path, priority, total, ts));
+        self.areas
+            .insert(id, SwapArea::new(id, area_type, path, priority, total, ts));
         self.rebuild_priority();
         id
     }
@@ -220,7 +275,9 @@ impl BridgeSwapBridge {
                 self.rebuild_priority();
                 true
             }
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn allocate(&mut self, pid: u64, ts: u64) -> Option<(u64, u64)> {
@@ -228,7 +285,10 @@ impl BridgeSwapBridge {
             if let Some(area) = self.areas.get_mut(&area_id) {
                 if area.state == SwapAreaState::Active {
                     if let Some(offset) = area.allocate_slot() {
-                        let info = self.proc_swap.entry(pid).or_insert_with(|| ProcessSwapInfo::new(pid));
+                        let info = self
+                            .proc_swap
+                            .entry(pid)
+                            .or_insert_with(|| ProcessSwapInfo::new(pid));
                         info.record_swap_out(1, ts);
                         return Some((area_id, offset));
                     }
@@ -249,7 +309,9 @@ impl BridgeSwapBridge {
     }
 
     fn rebuild_priority(&mut self) {
-        let mut ids: Vec<(i16, u64)> = self.areas.iter()
+        let mut ids: Vec<(i16, u64)> = self
+            .areas
+            .iter()
             .filter(|(_, a)| a.state == SwapAreaState::Active)
             .map(|(&id, a)| (a.priority, id))
             .collect();
@@ -259,7 +321,11 @@ impl BridgeSwapBridge {
 
     pub fn recompute(&mut self) {
         self.stats.total_areas = self.areas.len();
-        self.stats.active_areas = self.areas.values().filter(|a| a.state == SwapAreaState::Active).count();
+        self.stats.active_areas = self
+            .areas
+            .values()
+            .filter(|a| a.state == SwapAreaState::Active)
+            .count();
         self.stats.total_capacity = self.areas.values().map(|a| a.total_slots).sum();
         self.stats.total_used = self.areas.values().map(|a| a.used_slots).sum();
         self.stats.total_pages_in = self.areas.values().map(|a| a.pages_in).sum();
@@ -267,14 +333,21 @@ impl BridgeSwapBridge {
         self.stats.total_io_errors = self.areas.values().map(|a| a.io_errors).sum();
         self.stats.tracked_processes = self.proc_swap.len();
         if self.stats.total_capacity > 0 {
-            self.stats.pressure_percent = (self.stats.total_used as f64 / self.stats.total_capacity as f64) * 100.0;
+            self.stats.pressure_percent =
+                (self.stats.total_used as f64 / self.stats.total_capacity as f64) * 100.0;
         }
     }
 
     #[inline(always)]
-    pub fn area(&self, id: u64) -> Option<&SwapArea> { self.areas.get(&id) }
+    pub fn area(&self, id: u64) -> Option<&SwapArea> {
+        self.areas.get(&id)
+    }
     #[inline(always)]
-    pub fn process_swap(&self, pid: u64) -> Option<&ProcessSwapInfo> { self.proc_swap.get(&pid) }
+    pub fn process_swap(&self, pid: u64) -> Option<&ProcessSwapInfo> {
+        self.proc_swap.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &SwapBridgeStats { &self.stats }
+    pub fn stats(&self) -> &SwapBridgeStats {
+        &self.stats
+    }
 }

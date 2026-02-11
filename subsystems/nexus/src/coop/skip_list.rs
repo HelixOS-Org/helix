@@ -138,7 +138,7 @@ impl SkipList {
             Ok(idx) => {
                 self.nodes[idx].access_count += 1;
                 Some(&self.nodes[idx])
-            }
+            },
             Err(_) => None,
         }
     }
@@ -146,7 +146,8 @@ impl SkipList {
     #[inline]
     pub fn range_scan(&mut self, start: u64, end: u64) -> Vec<&SkipNode> {
         self.total_scans += 1;
-        self.nodes.iter()
+        self.nodes
+            .iter()
             .filter(|n| n.key >= start && n.key <= end)
             .collect()
     }
@@ -164,7 +165,11 @@ impl SkipList {
     #[inline(always)]
     pub fn floor(&self, key: u64) -> Option<&SkipNode> {
         let pos = self.nodes.partition_point(|n| n.key <= key);
-        if pos > 0 { Some(&self.nodes[pos - 1]) } else { None }
+        if pos > 0 {
+            Some(&self.nodes[pos - 1])
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
@@ -180,13 +185,17 @@ impl SkipList {
 
     #[inline(always)]
     pub fn avg_comparisons_per_lookup(&self) -> f64 {
-        if self.total_lookups == 0 { return 0.0; }
+        if self.total_lookups == 0 {
+            return 0.0;
+        }
         self.lookup_comparisons as f64 / self.total_lookups as f64
     }
 
     #[inline(always)]
     pub fn avg_value_size(&self) -> f64 {
-        if self.node_count == 0 { return 0.0; }
+        if self.node_count == 0 {
+            return 0.0;
+        }
         self.total_bytes as f64 / self.node_count as f64
     }
 
@@ -202,9 +211,7 @@ impl SkipList {
 
     #[inline]
     pub fn hottest_keys(&self, top: usize) -> Vec<(u64, u64)> {
-        let mut v: Vec<(u64, u64)> = self.nodes.iter()
-            .map(|n| (n.key, n.access_count))
-            .collect();
+        let mut v: Vec<(u64, u64)> = self.nodes.iter().map(|n| (n.key, n.access_count)).collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
         v.truncate(top);
         v
@@ -294,7 +301,9 @@ impl CoopSkipList {
 
     #[inline]
     pub fn largest_lists(&self, top: usize) -> Vec<(u64, u64)> {
-        let mut v: Vec<(u64, u64)> = self.lists.iter()
+        let mut v: Vec<(u64, u64)> = self
+            .lists
+            .iter()
             .map(|(&id, l)| (id, l.node_count))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));

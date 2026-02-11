@@ -11,12 +11,11 @@
 
 extern crate alloc;
 
-use crate::fast::fast_hash::FastHasher;
-
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::fast_hash::FastHasher;
 
 // ============================================================================
 // CONSTANTS
@@ -484,7 +483,12 @@ impl HolisticTimeline {
                     CorrectionReason::IoDivergence
                 };
 
-            let id = FastHasher::new().feed_str("corr-").feed_u64(cmp.tick as u64).feed_str("-").feed_u64(reason as u64).finish();
+            let id = FastHasher::new()
+                .feed_str("corr-")
+                .feed_u64(cmp.tick as u64)
+                .feed_str("-")
+                .feed_u64(reason as u64)
+                .finish();
 
             if self.corrections.contains_key(&id) {
                 continue;

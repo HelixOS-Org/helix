@@ -41,26 +41,49 @@ pub struct CoopVethPair {
 impl CoopVethPair {
     pub fn new(pair_id: u64, ns_a: u64, ns_b: u64) -> Self {
         Self {
-            pair_id, ns_a, ns_b, state: CoopVethState::Down,
-            tx_bytes: 0, rx_bytes: 0, tx_packets: 0, rx_packets: 0, drops: 0,
+            pair_id,
+            ns_a,
+            ns_b,
+            state: CoopVethState::Down,
+            tx_bytes: 0,
+            rx_bytes: 0,
+            tx_packets: 0,
+            rx_packets: 0,
+            drops: 0,
         }
     }
 
     #[inline(always)]
-    pub fn bring_up(&mut self) { self.state = CoopVethState::Up; }
+    pub fn bring_up(&mut self) {
+        self.state = CoopVethState::Up;
+    }
     #[inline(always)]
-    pub fn transmit(&mut self, bytes: u64) { self.tx_bytes += bytes; self.tx_packets += 1; }
+    pub fn transmit(&mut self, bytes: u64) {
+        self.tx_bytes += bytes;
+        self.tx_packets += 1;
+    }
     #[inline(always)]
-    pub fn receive(&mut self, bytes: u64) { self.rx_bytes += bytes; self.rx_packets += 1; }
+    pub fn receive(&mut self, bytes: u64) {
+        self.rx_bytes += bytes;
+        self.rx_packets += 1;
+    }
     #[inline(always)]
-    pub fn drop_pkt(&mut self) { self.drops += 1; }
+    pub fn drop_pkt(&mut self) {
+        self.drops += 1;
+    }
 
     #[inline(always)]
-    pub fn total_throughput(&self) -> u64 { self.tx_bytes + self.rx_bytes }
+    pub fn total_throughput(&self) -> u64 {
+        self.tx_bytes + self.rx_bytes
+    }
     #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
         let total = self.tx_packets + self.rx_packets + self.drops;
-        if total == 0 { 0.0 } else { self.drops as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.drops as f64 / total as f64
+        }
     }
 }
 
@@ -79,16 +102,26 @@ pub struct CoopNetNamespace {
 impl CoopNetNamespace {
     pub fn new(ns_id: u64, name: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in name { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in name {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            ns_id, name_hash: h, state: CoopNetnsState::Active,
-            interfaces: Vec::new(), veth_pairs: Vec::new(), shared_with: Vec::new(), process_count: 0,
+            ns_id,
+            name_hash: h,
+            state: CoopNetnsState::Active,
+            interfaces: Vec::new(),
+            veth_pairs: Vec::new(),
+            shared_with: Vec::new(),
+            process_count: 0,
         }
     }
 
     #[inline(always)]
     pub fn add_interface(&mut self, if_id: u64) {
-        if !self.interfaces.contains(&if_id) { self.interfaces.push(if_id); }
+        if !self.interfaces.contains(&if_id) {
+            self.interfaces.push(if_id);
+        }
     }
 
     #[inline]
@@ -100,14 +133,22 @@ impl CoopNetNamespace {
     }
 
     #[inline(always)]
-    pub fn attach_process(&mut self) { self.process_count += 1; }
+    pub fn attach_process(&mut self) {
+        self.process_count += 1;
+    }
     #[inline(always)]
-    pub fn detach_process(&mut self) { self.process_count = self.process_count.saturating_sub(1); }
+    pub fn detach_process(&mut self) {
+        self.process_count = self.process_count.saturating_sub(1);
+    }
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.process_count == 0 }
+    pub fn is_empty(&self) -> bool {
+        self.process_count == 0
+    }
 
     #[inline(always)]
-    pub fn destroy(&mut self) { self.state = CoopNetnsState::Destroyed; }
+    pub fn destroy(&mut self) {
+        self.state = CoopNetnsState::Destroyed;
+    }
 }
 
 /// Coop netns stats
@@ -133,35 +174,57 @@ impl CoopNetns {
         Self {
             namespaces: BTreeMap::new(),
             veth_pairs: BTreeMap::new(),
-            stats: CoopNetnsStats { total_namespaces: 0, shared_namespaces: 0, total_veth_pairs: 0, total_migrations: 0 },
+            stats: CoopNetnsStats {
+                total_namespaces: 0,
+                shared_namespaces: 0,
+                total_veth_pairs: 0,
+                total_migrations: 0,
+            },
         }
     }
 
     #[inline(always)]
     pub fn create_namespace(&mut self, ns_id: u64, name: &[u8]) {
-        self.namespaces.insert(ns_id, CoopNetNamespace::new(ns_id, name));
+        self.namespaces
+            .insert(ns_id, CoopNetNamespace::new(ns_id, name));
         self.stats.total_namespaces += 1;
     }
 
     #[inline]
     pub fn create_veth_pair(&mut self, pair_id: u64, ns_a: u64, ns_b: u64) {
-        self.veth_pairs.insert(pair_id, CoopVethPair::new(pair_id, ns_a, ns_b));
-        if let Some(ns) = self.namespaces.get_mut(&ns_a) { ns.veth_pairs.push(pair_id); }
-        if let Some(ns) = self.namespaces.get_mut(&ns_b) { ns.veth_pairs.push(pair_id); }
+        self.veth_pairs
+            .insert(pair_id, CoopVethPair::new(pair_id, ns_a, ns_b));
+        if let Some(ns) = self.namespaces.get_mut(&ns_a) {
+            ns.veth_pairs.push(pair_id);
+        }
+        if let Some(ns) = self.namespaces.get_mut(&ns_b) {
+            ns.veth_pairs.push(pair_id);
+        }
         self.stats.total_veth_pairs += 1;
     }
 
     #[inline]
     pub fn share_namespaces(&mut self, ns_a: u64, ns_b: u64) {
-        if let Some(ns) = self.namespaces.get_mut(&ns_a) { ns.share_with(ns_b); }
-        if let Some(ns) = self.namespaces.get_mut(&ns_b) { ns.share_with(ns_a); }
+        if let Some(ns) = self.namespaces.get_mut(&ns_a) {
+            ns.share_with(ns_b);
+        }
+        if let Some(ns) = self.namespaces.get_mut(&ns_b) {
+            ns.share_with(ns_a);
+        }
         self.stats.shared_namespaces += 1;
     }
 
     #[inline]
     pub fn destroy_namespace(&mut self, ns_id: u64) -> bool {
         if let Some(ns) = self.namespaces.get_mut(&ns_id) {
-            if ns.is_empty() { ns.destroy(); true } else { false }
-        } else { false }
+            if ns.is_empty() {
+                ns.destroy();
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 }

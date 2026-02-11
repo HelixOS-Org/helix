@@ -39,7 +39,17 @@ pub struct ReclaimZone {
 
 impl ReclaimZone {
     pub fn new(id: u32) -> Self {
-        Self { zone_id: id, inactive_anon: 0, active_anon: 0, inactive_file: 0, active_file: 0, unevictable: 0, pages_scanned: 0, pages_reclaimed: 0, scan_priority: 12 }
+        Self {
+            zone_id: id,
+            inactive_anon: 0,
+            active_anon: 0,
+            inactive_file: 0,
+            active_file: 0,
+            unevictable: 0,
+            pages_scanned: 0,
+            pages_reclaimed: 0,
+            scan_priority: 12,
+        }
     }
 
     #[inline(always)]
@@ -70,9 +80,15 @@ pub struct HolisticPageReclaim {
 }
 
 impl HolisticPageReclaim {
-    pub fn new() -> Self { Self { zones: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            zones: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn add_zone(&mut self, id: u32) { self.zones.insert(id, ReclaimZone::new(id)); }
+    pub fn add_zone(&mut self, id: u32) {
+        self.zones.insert(id, ReclaimZone::new(id));
+    }
 
     #[inline]
     pub fn update_lru(&mut self, zone: u32, lru: LruListType, count: u64) {
@@ -89,7 +105,9 @@ impl HolisticPageReclaim {
 
     #[inline(always)]
     pub fn reclaim(&mut self, zone: u32, scanned: u64, reclaimed: u64) {
-        if let Some(z) = self.zones.get_mut(&zone) { z.reclaim(scanned, reclaimed); }
+        if let Some(z) = self.zones.get_mut(&zone) {
+            z.reclaim(scanned, reclaimed);
+        }
     }
 
     #[inline]
@@ -97,6 +115,11 @@ impl HolisticPageReclaim {
         let scanned: u64 = self.zones.values().map(|z| z.pages_scanned).sum();
         let reclaimed: u64 = self.zones.values().map(|z| z.pages_reclaimed).sum();
         let reclaimable: u64 = self.zones.values().map(|z| z.total_reclaimable()).sum();
-        PageReclaimStats { total_zones: self.zones.len() as u32, total_scanned: scanned, total_reclaimed: reclaimed, total_reclaimable: reclaimable }
+        PageReclaimStats {
+            total_zones: self.zones.len() as u32,
+            total_scanned: scanned,
+            total_reclaimed: reclaimed,
+            total_reclaimable: reclaimable,
+        }
     }
 }

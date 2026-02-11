@@ -54,9 +54,13 @@ pub struct SocketShutdownState {
 impl SocketShutdownState {
     pub fn new(fd: u64) -> Self {
         Self {
-            fd, read_shut: false, write_shut: false,
-            linger_timeout_sec: 0, bytes_drained: 0,
-            time_in_linger_ns: 0, graceful: true,
+            fd,
+            read_shut: false,
+            write_shut: false,
+            linger_timeout_sec: 0,
+            bytes_drained: 0,
+            time_in_linger_ns: 0,
+            graceful: true,
         }
     }
 
@@ -68,14 +72,18 @@ impl SocketShutdownState {
             ShutdownHow::Both => {
                 self.read_shut = true;
                 self.write_shut = true;
-            }
+            },
         }
     }
 
     #[inline(always)]
-    pub fn is_fully_shut(&self) -> bool { self.read_shut && self.write_shut }
+    pub fn is_fully_shut(&self) -> bool {
+        self.read_shut && self.write_shut
+    }
     #[inline(always)]
-    pub fn is_half_shut(&self) -> bool { self.read_shut ^ self.write_shut }
+    pub fn is_half_shut(&self) -> bool {
+        self.read_shut ^ self.write_shut
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -101,9 +109,12 @@ impl AppShutdown {
             sockets: BTreeMap::new(),
             records: Vec::new(),
             stats: ShutdownAppStats {
-                total_shutdowns: 0, read_shutdowns: 0,
-                write_shutdowns: 0, both_shutdowns: 0,
-                graceful_count: 0, linger_timeouts: 0,
+                total_shutdowns: 0,
+                read_shutdowns: 0,
+                write_shutdowns: 0,
+                both_shutdowns: 0,
+                graceful_count: 0,
+                linger_timeouts: 0,
             },
         }
     }
@@ -123,8 +134,11 @@ impl AppShutdown {
                 ShutdownHow::Both => self.stats.both_shutdowns += 1,
             }
             self.records.push(ShutdownRecord {
-                fd, how, result: ShutdownResult::Success,
-                pending_send_bytes: 0, pending_recv_bytes: 0,
+                fd,
+                how,
+                result: ShutdownResult::Success,
+                pending_send_bytes: 0,
+                pending_recv_bytes: 0,
                 linger_state: ShutdownLingerState::Disabled,
                 timestamp: ts,
             });
@@ -135,7 +149,9 @@ impl AppShutdown {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &ShutdownAppStats { &self.stats }
+    pub fn stats(&self) -> &ShutdownAppStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -143,7 +159,11 @@ impl AppShutdown {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ShutdownV2How { Read, Write, Both }
+pub enum ShutdownV2How {
+    Read,
+    Write,
+    Both,
+}
 
 /// Shutdown v2 request
 #[derive(Debug, Clone)]
@@ -154,20 +174,42 @@ pub struct ShutdownV2Request {
 }
 
 impl ShutdownV2Request {
-    pub fn new(fd: i32, how: ShutdownV2How) -> Self { Self { fd, how, linger_ms: 0 } }
+    pub fn new(fd: i32, how: ShutdownV2How) -> Self {
+        Self {
+            fd,
+            how,
+            linger_ms: 0,
+        }
+    }
 }
 
 /// Shutdown v2 app stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct ShutdownV2AppStats { pub total_shutdowns: u64, pub reads_shut: u64, pub writes_shut: u64, pub both_shut: u64 }
+pub struct ShutdownV2AppStats {
+    pub total_shutdowns: u64,
+    pub reads_shut: u64,
+    pub writes_shut: u64,
+    pub both_shut: u64,
+}
 
 /// Main app shutdown v2
 #[derive(Debug)]
-pub struct AppShutdownV2 { pub stats: ShutdownV2AppStats }
+pub struct AppShutdownV2 {
+    pub stats: ShutdownV2AppStats,
+}
 
 impl AppShutdownV2 {
-    pub fn new() -> Self { Self { stats: ShutdownV2AppStats { total_shutdowns: 0, reads_shut: 0, writes_shut: 0, both_shut: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: ShutdownV2AppStats {
+                total_shutdowns: 0,
+                reads_shut: 0,
+                writes_shut: 0,
+                both_shut: 0,
+            },
+        }
+    }
     #[inline]
     pub fn shutdown(&mut self, req: &ShutdownV2Request) {
         self.stats.total_shutdowns += 1;

@@ -360,8 +360,7 @@ impl CoopFairShareScheduler {
         let total_wall: u64 = self.entities.values().map(|e| e.actual_us).sum();
         for entity in self.entities.values_mut() {
             if entity.active && !entity.is_group && tw > 0 {
-                entity.ideal_us =
-                    (total_wall as f64 * entity.weight.proportion(tw)) as u64;
+                entity.ideal_us = (total_wall as f64 * entity.weight.proportion(tw)) as u64;
                 entity.lag_us = entity.ideal_us as i64 - entity.actual_us as i64;
             }
         }
@@ -387,9 +386,7 @@ impl CoopFairShareScheduler {
         let threshold = self.starvation_threshold_us;
         self.entities
             .iter()
-            .filter(|(_, e)| {
-                e.active && !e.is_group && e.actual_us == 0 && e.ideal_us > threshold
-            })
+            .filter(|(_, e)| e.active && !e.is_group && e.actual_us == 0 && e.ideal_us > threshold)
             .map(|(id, _)| *id)
             .collect()
     }
@@ -439,7 +436,11 @@ impl CoopFairShareScheduler {
 
     fn update_stats(&mut self) {
         self.stats.total_entities = self.entities.len();
-        self.stats.active_entities = self.entities.values().filter(|e| e.active && !e.is_group).count();
+        self.stats.active_entities = self
+            .entities
+            .values()
+            .filter(|e| e.active && !e.is_group)
+            .count();
         self.stats.groups = self.entities.values().filter(|e| e.is_group).count();
 
         let metrics = self.fairness_metrics();

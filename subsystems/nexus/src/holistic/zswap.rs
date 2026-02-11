@@ -30,7 +30,16 @@ pub struct ZswapPool {
 
 impl ZswapPool {
     pub fn new(comp: ZswapCompressor, max_pct: u32) -> Self {
-        Self { compressor: comp, max_pool_percent: max_pct, current_size: 0, stored_pages: 0, written_back_pages: 0, rejected_pages: 0, duplicate_pages: 0, same_filled_pages: 0 }
+        Self {
+            compressor: comp,
+            max_pool_percent: max_pct,
+            current_size: 0,
+            stored_pages: 0,
+            written_back_pages: 0,
+            rejected_pages: 0,
+            duplicate_pages: 0,
+            same_filled_pages: 0,
+        }
     }
 }
 
@@ -47,7 +56,9 @@ pub struct ZswapEntry {
 impl ZswapEntry {
     #[inline(always)]
     pub fn compression_ratio(&self) -> f64 {
-        if self.compressed_size == 0 { return 0.0; }
+        if self.compressed_size == 0 {
+            return 0.0;
+        }
         self.original_size as f64 / self.compressed_size as f64
     }
 }
@@ -74,21 +85,43 @@ pub struct HolisticZswap {
 
 impl HolisticZswap {
     pub fn new(comp: ZswapCompressor, max_pct: u32) -> Self {
-        Self { pool: ZswapPool::new(comp, max_pct), entries: BTreeMap::new(), total_original: 0, total_compressed: 0 }
+        Self {
+            pool: ZswapPool::new(comp, max_pct),
+            entries: BTreeMap::new(),
+            total_original: 0,
+            total_compressed: 0,
+        }
     }
 
     #[inline]
-    pub fn store(&mut self, offset: u64, original: u32, compressed: u32, checksum: u64, same: bool) {
-        if same { self.pool.same_filled_pages += 1; }
+    pub fn store(
+        &mut self,
+        offset: u64,
+        original: u32,
+        compressed: u32,
+        checksum: u64,
+        same: bool,
+    ) {
+        if same {
+            self.pool.same_filled_pages += 1;
+        }
         self.pool.stored_pages += 1;
         self.pool.current_size += compressed as u64;
         self.total_original += original as u64;
         self.total_compressed += compressed as u64;
-        self.entries.insert(offset, ZswapEntry { offset, compressed_size: compressed, original_size: original, checksum, same_filled: same });
+        self.entries.insert(offset, ZswapEntry {
+            offset,
+            compressed_size: compressed,
+            original_size: original,
+            checksum,
+            same_filled: same,
+        });
     }
 
     #[inline(always)]
-    pub fn load(&mut self, offset: u64) -> Option<&ZswapEntry> { self.entries.get(&offset) }
+    pub fn load(&mut self, offset: u64) -> Option<&ZswapEntry> {
+        self.entries.get(&offset)
+    }
 
     #[inline]
     pub fn invalidate(&mut self, offset: u64) {
@@ -107,7 +140,18 @@ impl HolisticZswap {
 
     #[inline(always)]
     pub fn stats(&self) -> ZswapStats {
-        let ratio = if self.total_compressed == 0 { 0.0 } else { self.total_original as f64 / self.total_compressed as f64 };
-        ZswapStats { stored_pages: self.pool.stored_pages, pool_size_bytes: self.pool.current_size, written_back: self.pool.written_back_pages, rejected: self.pool.rejected_pages, same_filled: self.pool.same_filled_pages, avg_compression_ratio: ratio }
+        let ratio = if self.total_compressed == 0 {
+            0.0
+        } else {
+            self.total_original as f64 / self.total_compressed as f64
+        };
+        ZswapStats {
+            stored_pages: self.pool.stored_pages,
+            pool_size_bytes: self.pool.current_size,
+            written_back: self.pool.written_back_pages,
+            rejected: self.pool.rejected_pages,
+            same_filled: self.pool.same_filled_pages,
+            avg_compression_ratio: ratio,
+        }
     }
 }

@@ -2,8 +2,7 @@
 //! NEXUS Apps — Link App (hard and symbolic link management)
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 
 /// Link type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,9 +87,12 @@ impl AppLink {
             unlink_history: VecDeque::new(),
             max_history,
             stats: LinkAppStats {
-                hard_links_created: 0, symlinks_created: 0,
-                unlinks: 0, link_failures: 0,
-                unlink_failures: 0, readlink_calls: 0,
+                hard_links_created: 0,
+                symlinks_created: 0,
+                unlinks: 0,
+                link_failures: 0,
+                unlink_failures: 0,
+                readlink_calls: 0,
                 last_link_removals: 0,
             },
         }
@@ -105,7 +107,14 @@ impl AppLink {
         h
     }
 
-    pub fn link(&mut self, src: &str, dst: &str, link_type: LinkType, pid: u64, tick: u64) -> LinkResult {
+    pub fn link(
+        &mut self,
+        src: &str,
+        dst: &str,
+        link_type: LinkType,
+        pid: u64,
+        tick: u64,
+    ) -> LinkResult {
         match link_type {
             LinkType::Hard => self.stats.hard_links_created += 1,
             LinkType::Symbolic => self.stats.symlinks_created += 1,
@@ -113,7 +122,10 @@ impl AppLink {
         let record = LinkRecord {
             src_hash: Self::hash_path(src),
             dst_hash: Self::hash_path(dst),
-            link_type, pid, result: LinkResult::Success, tick,
+            link_type,
+            pid,
+            result: LinkResult::Success,
+            tick,
         };
         if self.link_history.len() >= self.max_history {
             self.link_history.remove(0);
@@ -124,10 +136,15 @@ impl AppLink {
 
     pub fn unlink(&mut self, path: &str, pid: u64, was_last: bool, tick: u64) -> UnlinkResult {
         self.stats.unlinks += 1;
-        if was_last { self.stats.last_link_removals += 1; }
+        if was_last {
+            self.stats.last_link_removals += 1;
+        }
         let record = UnlinkRecord {
             path_hash: Self::hash_path(path),
-            pid, result: UnlinkResult::Success, was_last_link: was_last, tick,
+            pid,
+            result: UnlinkResult::Success,
+            was_last_link: was_last,
+            tick,
         };
         if self.unlink_history.len() >= self.max_history {
             self.unlink_history.remove(0).unwrap();
@@ -198,7 +215,10 @@ impl LinkV2Record {
     pub fn new(old_path: &[u8], new_path: &[u8], link_type: LinkV2Type) -> Self {
         let hash = |path: &[u8]| -> u64 {
             let mut h: u64 = 0xcbf29ce484222325;
-            for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+            for b in path {
+                h ^= *b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
             h
         };
         Self {
@@ -232,7 +252,13 @@ pub struct InodeLinkTracker {
 
 impl InodeLinkTracker {
     pub fn new(inode: u64) -> Self {
-        Self { inode, current_nlink: 1, max_nlink: 1, link_ops: 0, unlink_ops: 0 }
+        Self {
+            inode,
+            current_nlink: 1,
+            max_nlink: 1,
+            link_ops: 0,
+            unlink_ops: 0,
+        }
     }
 
     #[inline]
@@ -288,19 +314,30 @@ impl AppLinkV2 {
         match record.result {
             LinkV2Result::Success => {
                 self.stats.hard_links_created += 1;
-                let tracker = self.inode_trackers.entry(record.inode)
+                let tracker = self
+                    .inode_trackers
+                    .entry(record.inode)
                     .or_insert_with(|| InodeLinkTracker::new(record.inode));
                 tracker.link();
-            }
-            LinkV2Result::CrossDevice => { self.stats.cross_device_failures += 1; self.stats.failures += 1; }
-            LinkV2Result::TooManyLinks => { self.stats.too_many_links += 1; self.stats.failures += 1; }
+            },
+            LinkV2Result::CrossDevice => {
+                self.stats.cross_device_failures += 1;
+                self.stats.failures += 1;
+            },
+            LinkV2Result::TooManyLinks => {
+                self.stats.too_many_links += 1;
+                self.stats.failures += 1;
+            },
             _ => self.stats.failures += 1,
         }
     }
 
     #[inline(always)]
     pub fn success_rate(&self) -> f64 {
-        if self.stats.total_ops == 0 { 0.0 }
-        else { self.stats.hard_links_created as f64 / self.stats.total_ops as f64 }
+        if self.stats.total_ops == 0 {
+            0.0
+        } else {
+            self.stats.hard_links_created as f64 / self.stats.total_ops as f64
+        }
     }
 }

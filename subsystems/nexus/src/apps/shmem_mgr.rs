@@ -137,14 +137,18 @@ impl ShmemSegment {
     #[inline]
     pub fn resident_ratio(&self) -> f64 {
         let total = self.size_bytes / 4096;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.resident_pages as f64 / total as f64
     }
 
     #[inline]
     pub fn swap_ratio(&self) -> f64 {
         let total = self.resident_pages + self.swap_pages;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.swap_pages as f64 / total as f64
     }
 
@@ -270,7 +274,13 @@ impl AppShmemMgr {
         self.profiles.insert(pid, AppShmemProfile::new(pid));
     }
 
-    pub fn create_segment(&mut self, creator: u64, shm_type: ShmemType, size: u64, name: Option<String>) -> u64 {
+    pub fn create_segment(
+        &mut self,
+        creator: u64,
+        shm_type: ShmemType,
+        size: u64,
+        name: Option<String>,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let mut seg = ShmemSegment::new(id, shm_type, size, creator);
@@ -290,9 +300,18 @@ impl AppShmemMgr {
         id
     }
 
-    pub fn attach(&mut self, seg_id: u64, pid: u64, writable: bool, addr: u64, timestamp_ns: u64) -> bool {
+    pub fn attach(
+        &mut self,
+        seg_id: u64,
+        pid: u64,
+        writable: bool,
+        addr: u64,
+        timestamp_ns: u64,
+    ) -> bool {
         if let Some(seg) = self.segments.get_mut(&seg_id) {
-            if seg.sealed && writable { return false; }
+            if seg.sealed && writable {
+                return false;
+            }
             seg.attach(pid, writable, addr, timestamp_ns);
             self.stats.total_attachments += 1;
             if let Some(prof) = self.profiles.get_mut(&pid) {
@@ -364,7 +383,11 @@ impl AppShmemMgr {
 
     #[inline]
     pub fn largest_segments(&self, top: usize) -> Vec<(u64, u64)> {
-        let mut v: Vec<(u64, u64)> = self.segments.iter().map(|(&id, s)| (id, s.size_bytes)).collect();
+        let mut v: Vec<(u64, u64)> = self
+            .segments
+            .iter()
+            .map(|(&id, s)| (id, s.size_bytes))
+            .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
         v.truncate(top);
         v
@@ -372,7 +395,8 @@ impl AppShmemMgr {
 
     #[inline]
     pub fn orphan_segments(&self) -> Vec<u64> {
-        self.segments.iter()
+        self.segments
+            .iter()
             .filter(|(_, s)| s.is_orphan())
             .map(|(&id, _)| id)
             .collect()
@@ -380,7 +404,8 @@ impl AppShmemMgr {
 
     #[inline]
     pub fn security_risks(&self) -> Vec<u64> {
-        self.segments.iter()
+        self.segments
+            .iter()
             .filter(|(_, s)| s.perms.security_risk())
             .map(|(&id, _)| id)
             .collect()

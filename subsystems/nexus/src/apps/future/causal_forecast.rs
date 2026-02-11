@@ -15,8 +15,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -177,7 +176,12 @@ pub struct CausalRelation {
 
 impl CausalRelation {
     fn new(action: AppActionType, effect: SystemEffect, tick: u64) -> Self {
-        let key_bytes = [action.as_str().as_bytes(), b"->", effect.as_str().as_bytes()].concat();
+        let key_bytes = [
+            action.as_str().as_bytes(),
+            b"->",
+            effect.as_str().as_bytes(),
+        ]
+        .concat();
         let hash_key = fnv1a_hash(&key_bytes);
         Self {
             app_action: action,
@@ -271,7 +275,10 @@ impl AppCausalState {
             self.recent_effects.remove(0);
         }
         // Check for causal linkage: any recent action within 10 ticks
-        let actions: Vec<_> = self.recent_actions.iter().rev()
+        let actions: Vec<_> = self
+            .recent_actions
+            .iter()
+            .rev()
             .take_while(|&&(_, a_tick)| tick.saturating_sub(a_tick) <= 10)
             .copied()
             .collect();
@@ -281,7 +288,12 @@ impl AppCausalState {
     }
 
     fn link_or_reinforce(&mut self, action: AppActionType, effect: SystemEffect, tick: u64) {
-        let key_bytes = [action.as_str().as_bytes(), b"->", effect.as_str().as_bytes()].concat();
+        let key_bytes = [
+            action.as_str().as_bytes(),
+            b"->",
+            effect.as_str().as_bytes(),
+        ]
+        .concat();
         let hash_key = fnv1a_hash(&key_bytes);
 
         for rel in &mut self.relations {
@@ -292,7 +304,8 @@ impl AppCausalState {
         }
 
         if self.relations.len() < MAX_RELATIONS {
-            self.relations.push(CausalRelation::new(action, effect, tick));
+            self.relations
+                .push(CausalRelation::new(action, effect, tick));
         }
     }
 
@@ -300,7 +313,11 @@ impl AppCausalState {
         self.relations
             .iter()
             .filter(|r| r.app_action as u8 == action as u8)
-            .max_by(|a, b| a.strength.partial_cmp(&b.strength).unwrap_or(core::cmp::Ordering::Equal))
+            .max_by(|a, b| {
+                a.strength
+                    .partial_cmp(&b.strength)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            })
     }
 
     fn decay_all(&mut self) {
@@ -380,7 +397,10 @@ impl AppsCausalForecast {
         if self.app_states.len() >= MAX_APPS && !self.app_states.contains_key(&app_id) {
             return;
         }
-        let state = self.app_states.entry(app_id).or_insert_with(|| AppCausalState::new(app_id));
+        let state = self
+            .app_states
+            .entry(app_id)
+            .or_insert_with(|| AppCausalState::new(app_id));
         state.record_action(action, self.tick);
     }
 
@@ -392,7 +412,10 @@ impl AppsCausalForecast {
         if self.app_states.len() >= MAX_APPS && !self.app_states.contains_key(&app_id) {
             return;
         }
-        let state = self.app_states.entry(app_id).or_insert_with(|| AppCausalState::new(app_id));
+        let state = self
+            .app_states
+            .entry(app_id)
+            .or_insert_with(|| AppCausalState::new(app_id));
         state.record_effect(effect, self.tick);
 
         let new_rel_count: usize = self.app_states.values().map(|s| s.relations.len()).sum();
@@ -403,7 +426,11 @@ impl AppsCausalForecast {
 
     /// Predict the most likely system effect given an application action.
     #[inline]
-    pub fn causal_app_predict(&mut self, app_id: u64, action: AppActionType) -> Option<(SystemEffect, f64)> {
+    pub fn causal_app_predict(
+        &mut self,
+        app_id: u64,
+        action: AppActionType,
+    ) -> Option<(SystemEffect, f64)> {
         self.stats.total_predictions += 1;
         let state = self.app_states.get(&app_id)?;
         let rel = state.strongest_effect_for(action)?;
@@ -413,7 +440,11 @@ impl AppsCausalForecast {
     /// Trace the root cause of an observed system effect for an application.
     ///
     /// Returns the most likely originating action and its causal strength.
-    pub fn root_cause(&mut self, app_id: u64, effect: SystemEffect) -> Option<(AppActionType, f64)> {
+    pub fn root_cause(
+        &mut self,
+        app_id: u64,
+        effect: SystemEffect,
+    ) -> Option<(AppActionType, f64)> {
         self.stats.root_cause_queries += 1;
         let state = self.app_states.get(&app_id)?;
 
@@ -421,7 +452,11 @@ impl AppsCausalForecast {
             .relations
             .iter()
             .filter(|r| r.system_effect as u8 == effect as u8)
-            .max_by(|a, b| a.strength.partial_cmp(&b.strength).unwrap_or(core::cmp::Ordering::Equal))?;
+            .max_by(|a, b| {
+                a.strength
+                    .partial_cmp(&b.strength)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            })?;
 
         Some((best.app_action, best.strength))
     }
@@ -495,21 +530,34 @@ impl AppsCausalForecast {
         let mut sorted_indices: Vec<usize> = (0..state.relations.len()).collect();
         for i in 1..sorted_indices.len() {
             let mut j = i;
-            while j > 0 && state.relations[sorted_indices[j]].strength > state.relations[sorted_indices[j - 1]].strength {
+            while j > 0
+                && state.relations[sorted_indices[j]].strength
+                    > state.relations[sorted_indices[j - 1]].strength
+            {
                 sorted_indices.swap(j, j - 1);
                 j -= 1;
             }
         }
 
-        let top_n = if sorted_indices.len() > 5 { 5 } else { sorted_indices.len() };
+        let top_n = if sorted_indices.len() > 5 {
+            5
+        } else {
+            sorted_indices.len()
+        };
         for &idx in &sorted_indices[..top_n] {
             let rel = &state.relations[idx];
             chain.push((rel.app_action, rel.system_effect, rel.strength));
             total_strength += rel.strength;
         }
 
-        let root_action = chain.first().map(|c| c.0).unwrap_or(AppActionType::CpuBurst);
-        let terminal = chain.last().map(|c| c.1).unwrap_or(SystemEffect::MemoryPressure);
+        let root_action = chain
+            .first()
+            .map(|c| c.0)
+            .unwrap_or(AppActionType::CpuBurst);
+        let terminal = chain
+            .last()
+            .map(|c| c.1)
+            .unwrap_or(SystemEffect::MemoryPressure);
 
         Some(CausalExplanation {
             app_id,
@@ -521,7 +569,11 @@ impl AppsCausalForecast {
     }
 
     /// Forecast an effect from an observed cause with confidence-weighted strength.
-    pub fn forecast_from_cause(&mut self, app_id: u64, cause: AppActionType) -> Vec<(SystemEffect, f64)> {
+    pub fn forecast_from_cause(
+        &mut self,
+        app_id: u64,
+        cause: AppActionType,
+    ) -> Vec<(SystemEffect, f64)> {
         let state = match self.app_states.get(&app_id) {
             Some(s) => s,
             None => return Vec::new(),

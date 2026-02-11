@@ -4,13 +4,13 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
 
 use super::edge::CausalEdgeType;
 use super::graph::CausalGraph;
 use super::node::{CausalNode, CausalNodeType};
 use crate::core::ComponentId;
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CAUSAL TRACKER

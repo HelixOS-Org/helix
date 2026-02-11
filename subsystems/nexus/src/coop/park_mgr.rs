@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-
 /// Park state
 use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,11 +28,23 @@ pub struct ParkedThread {
 
 impl ParkedThread {
     pub fn new(tid: u64) -> Self {
-        Self { tid, state: ParkState::Running, park_count: 0, unpark_count: 0, total_parked_ns: 0, last_park_start: 0, timeout_count: 0 }
+        Self {
+            tid,
+            state: ParkState::Running,
+            park_count: 0,
+            unpark_count: 0,
+            total_parked_ns: 0,
+            last_park_start: 0,
+            timeout_count: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn park(&mut self, now: u64) { self.state = ParkState::Parked; self.park_count += 1; self.last_park_start = now; }
+    pub fn park(&mut self, now: u64) {
+        self.state = ParkState::Parked;
+        self.park_count += 1;
+        self.last_park_start = now;
+    }
 
     #[inline]
     pub fn unpark(&mut self, now: u64) {
@@ -45,7 +56,13 @@ impl ParkedThread {
     }
 
     #[inline(always)]
-    pub fn avg_park_time(&self) -> u64 { if self.unpark_count == 0 { 0 } else { self.total_parked_ns / self.unpark_count } }
+    pub fn avg_park_time(&self) -> u64 {
+        if self.unpark_count == 0 {
+            0
+        } else {
+            self.total_parked_ns / self.unpark_count
+        }
+    }
 }
 
 /// Stats
@@ -65,29 +82,60 @@ pub struct CoopParkMgr {
 }
 
 impl CoopParkMgr {
-    pub fn new() -> Self { Self { threads: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            threads: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn register(&mut self, tid: u64) { self.threads.insert(tid, ParkedThread::new(tid)); }
+    pub fn register(&mut self, tid: u64) {
+        self.threads.insert(tid, ParkedThread::new(tid));
+    }
     #[inline(always)]
-    pub fn unregister(&mut self, tid: u64) { self.threads.remove(&tid); }
+    pub fn unregister(&mut self, tid: u64) {
+        self.threads.remove(&tid);
+    }
 
     #[inline(always)]
     pub fn park(&mut self, tid: u64, now: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.park(now); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.park(now);
+        }
     }
 
     #[inline(always)]
     pub fn unpark(&mut self, tid: u64, now: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.unpark(now); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.unpark(now);
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> ParkMgrStats {
-        let parked = self.threads.values().filter(|t| t.state == ParkState::Parked).count() as u32;
+        let parked = self
+            .threads
+            .values()
+            .filter(|t| t.state == ParkState::Parked)
+            .count() as u32;
         let parks: u64 = self.threads.values().map(|t| t.park_count).sum();
         let unparks: u64 = self.threads.values().map(|t| t.unpark_count).sum();
-        let times: Vec<u64> = self.threads.values().filter(|t| t.unpark_count > 0).map(|t| t.avg_park_time()).collect();
-        let avg = if times.is_empty() { 0 } else { times.iter().sum::<u64>() / times.len() as u64 };
-        ParkMgrStats { total_threads: self.threads.len() as u32, currently_parked: parked, total_parks: parks, total_unparks: unparks, avg_park_time_ns: avg }
+        let times: Vec<u64> = self
+            .threads
+            .values()
+            .filter(|t| t.unpark_count > 0)
+            .map(|t| t.avg_park_time())
+            .collect();
+        let avg = if times.is_empty() {
+            0
+        } else {
+            times.iter().sum::<u64>() / times.len() as u64
+        };
+        ParkMgrStats {
+            total_threads: self.threads.len() as u32,
+            currently_parked: parked,
+            total_parks: parks,
+            total_unparks: unparks,
+            avg_park_time_ns: avg,
+        }
     }
 }

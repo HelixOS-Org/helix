@@ -210,17 +210,17 @@ pub struct Proximity {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ProximityLevel {
     /// Same core (SMT sibling)
-    SameCore = 0,
+    SameCore     = 0,
     /// Same L2 cache
-    SameL2 = 1,
+    SameL2       = 1,
     /// Same L3 cache / package
-    SamePackage = 2,
+    SamePackage  = 2,
     /// Same NUMA node
     SameNumaNode = 3,
     /// Adjacent NUMA node
     AdjacentNode = 4,
     /// Remote NUMA node
-    RemoteNode = 5,
+    RemoteNode   = 5,
 }
 
 impl ProximityLevel {
@@ -409,10 +409,7 @@ impl TopologyManager {
     /// Find best NUMA node for allocation
     #[inline]
     pub fn best_numa_node_for_cpu(&self, cpu_id: u32) -> u32 {
-        self.cpus
-            .get(&cpu_id)
-            .map(|c| c.numa_node)
-            .unwrap_or(0)
+        self.cpus.get(&cpu_id).map(|c| c.numa_node).unwrap_or(0)
     }
 
     /// Get NUMA node with most free memory
@@ -438,7 +435,7 @@ impl TopologyManager {
             match best {
                 None => best = Some((device.id, dist)),
                 Some((_, d)) if dist < d => best = Some((device.id, dist)),
-                _ => {}
+                _ => {},
             }
         }
 
@@ -447,10 +444,7 @@ impl TopologyManager {
 
     /// Get topology summary
     pub fn summary(&self) -> TopologySummary {
-        let smt_enabled = self
-            .cpus
-            .values()
-            .any(|c| c.smt_sibling.is_some());
+        let smt_enabled = self.cpus.values().any(|c| c.smt_sibling.is_some());
 
         let total_l3_cache: u64 = self
             .caches

@@ -64,7 +64,15 @@ pub struct FdFlagsTracker {
 
 impl FdFlagsTracker {
     pub fn new(fd: u64) -> Self {
-        Self { fd, close_on_exec: false, status_flags: 0, seals: 0, lease_type: -1, owner_pid: 0, sig_num: 0 }
+        Self {
+            fd,
+            close_on_exec: false,
+            status_flags: 0,
+            seals: 0,
+            lease_type: -1,
+            owner_pid: 0,
+            sig_num: 0,
+        }
     }
 }
 
@@ -86,34 +94,81 @@ pub struct AppFcntl {
 }
 
 impl AppFcntl {
-    pub fn new() -> Self { Self { trackers: BTreeMap::new(), ops: Vec::new() } }
+    pub fn new() -> Self {
+        Self {
+            trackers: BTreeMap::new(),
+            ops: Vec::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn track_fd(&mut self, fd: u64) { self.trackers.insert(fd, FdFlagsTracker::new(fd)); }
+    pub fn track_fd(&mut self, fd: u64) {
+        self.trackers.insert(fd, FdFlagsTracker::new(fd));
+    }
 
     pub fn record_op(&mut self, op: FcntlOp) {
         let fd = op.fd;
         let cmd = op.cmd;
         match cmd {
-            FcntlCmd::SetFd => { if let Some(t) = self.trackers.get_mut(&fd) { t.close_on_exec = op.arg != 0; } }
-            FcntlCmd::SetFl => { if let Some(t) = self.trackers.get_mut(&fd) { t.status_flags = op.arg as u32; } }
-            FcntlCmd::SetOwn => { if let Some(t) = self.trackers.get_mut(&fd) { t.owner_pid = op.arg as i64; } }
-            FcntlCmd::SetSig => { if let Some(t) = self.trackers.get_mut(&fd) { t.sig_num = op.arg as i32; } }
-            FcntlCmd::AddSeals => { if let Some(t) = self.trackers.get_mut(&fd) { t.seals |= op.arg as u32; } }
-            _ => {}
+            FcntlCmd::SetFd => {
+                if let Some(t) = self.trackers.get_mut(&fd) {
+                    t.close_on_exec = op.arg != 0;
+                }
+            },
+            FcntlCmd::SetFl => {
+                if let Some(t) = self.trackers.get_mut(&fd) {
+                    t.status_flags = op.arg as u32;
+                }
+            },
+            FcntlCmd::SetOwn => {
+                if let Some(t) = self.trackers.get_mut(&fd) {
+                    t.owner_pid = op.arg as i64;
+                }
+            },
+            FcntlCmd::SetSig => {
+                if let Some(t) = self.trackers.get_mut(&fd) {
+                    t.sig_num = op.arg as i32;
+                }
+            },
+            FcntlCmd::AddSeals => {
+                if let Some(t) = self.trackers.get_mut(&fd) {
+                    t.seals |= op.arg as u32;
+                }
+            },
+            _ => {},
         }
         self.ops.push(op);
     }
 
     #[inline(always)]
-    pub fn untrack(&mut self, fd: u64) { self.trackers.remove(&fd); }
+    pub fn untrack(&mut self, fd: u64) {
+        self.trackers.remove(&fd);
+    }
 
     #[inline]
     pub fn stats(&self) -> FcntlAppStats {
-        let dups = self.ops.iter().filter(|o| matches!(o.cmd, FcntlCmd::DupFd | FcntlCmd::DupFdCloseOnExec)).count() as u64;
-        let seals = self.ops.iter().filter(|o| matches!(o.cmd, FcntlCmd::AddSeals | FcntlCmd::GetSeals)).count() as u64;
-        let locks = self.ops.iter().filter(|o| matches!(o.cmd, FcntlCmd::GetLk | FcntlCmd::SetLk | FcntlCmd::SetLkW)).count() as u64;
-        FcntlAppStats { total_fds_tracked: self.trackers.len() as u32, total_operations: self.ops.len() as u64, dup_count: dups, seal_count: seals, lock_count: locks }
+        let dups = self
+            .ops
+            .iter()
+            .filter(|o| matches!(o.cmd, FcntlCmd::DupFd | FcntlCmd::DupFdCloseOnExec))
+            .count() as u64;
+        let seals = self
+            .ops
+            .iter()
+            .filter(|o| matches!(o.cmd, FcntlCmd::AddSeals | FcntlCmd::GetSeals))
+            .count() as u64;
+        let locks = self
+            .ops
+            .iter()
+            .filter(|o| matches!(o.cmd, FcntlCmd::GetLk | FcntlCmd::SetLk | FcntlCmd::SetLkW))
+            .count() as u64;
+        FcntlAppStats {
+            total_fds_tracked: self.trackers.len() as u32,
+            total_operations: self.ops.len() as u64,
+            dup_count: dups,
+            seal_count: seals,
+            lock_count: locks,
+        }
     }
 }
 
@@ -309,7 +364,10 @@ impl AppFcntlV2 {
         lock.start = start;
         lock.length = length;
         lock.is_ofd = is_ofd;
-        let state = self.processes.entry(pid).or_insert_with(|| ProcessFcntlV2State::new(pid));
+        let state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessFcntlV2State::new(pid));
         state.locks.push(lock);
         state.fcntl_calls += 1;
         self.stats.total_calls += 1;
@@ -321,13 +379,11 @@ impl AppFcntlV2 {
     }
 
     #[inline]
-    pub fn record_lease(
-        &mut self,
-        pid: u64,
-        fd: i32,
-        lease_type: FcntlV2LeaseType,
-    ) {
-        let state = self.processes.entry(pid).or_insert_with(|| ProcessFcntlV2State::new(pid));
+    pub fn record_lease(&mut self, pid: u64, fd: i32, lease_type: FcntlV2LeaseType) {
+        let state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessFcntlV2State::new(pid));
         let lease = FcntlV2Lease::new(fd, pid, lease_type);
         state.leases.push(lease);
         state.fcntl_calls += 1;

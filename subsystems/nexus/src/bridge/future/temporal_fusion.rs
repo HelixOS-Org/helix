@@ -11,8 +11,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -176,8 +175,7 @@ impl ConsistencyRecord {
         let diff = (pred_i - pred_j).abs();
         let signed_diff = pred_i - pred_j;
         self.diff_ema = self.diff_ema * (1.0 - EMA_ALPHA) + diff * EMA_ALPHA;
-        self.signed_diff_ema =
-            self.signed_diff_ema * (1.0 - EMA_ALPHA) + signed_diff * EMA_ALPHA;
+        self.signed_diff_ema = self.signed_diff_ema * (1.0 - EMA_ALPHA) + signed_diff * EMA_ALPHA;
         self.checks += 1;
     }
 }
@@ -349,23 +347,26 @@ impl BridgeTemporalFusion {
 
         // Compute consistency: 1 - normalized variance of predictions
         let mean = fused_value;
-        let variance: f32 = predictions.iter().map(|p| (p - mean) * (p - mean)).sum::<f32>()
+        let variance: f32 = predictions
+            .iter()
+            .map(|p| (p - mean) * (p - mean))
+            .sum::<f32>()
             / NUM_HORIZONS as f32;
         let consistency = 1.0 / (1.0 + variance * 10.0);
 
         // Incorporate consistency into confidence
-        let base_confidence: f32 = layers.iter().map(|l| l.confidence * l.weight).sum::<f32>()
-            / total_weight.max(0.001);
-        let confidence = base_confidence * (1.0 - CONSISTENCY_WEIGHT)
-            + consistency * CONSISTENCY_WEIGHT;
+        let base_confidence: f32 =
+            layers.iter().map(|l| l.confidence * l.weight).sum::<f32>() / total_weight.max(0.001);
+        let confidence =
+            base_confidence * (1.0 - CONSISTENCY_WEIGHT) + consistency * CONSISTENCY_WEIGHT;
 
         let quality = confidence * consistency;
 
         // Update stats
-        self.stats.avg_consistency = self.stats.avg_consistency * (1.0 - EMA_ALPHA)
-            + consistency * EMA_ALPHA;
-        self.stats.avg_fusion_quality = self.stats.avg_fusion_quality * (1.0 - EMA_ALPHA)
-            + quality * EMA_ALPHA;
+        self.stats.avg_consistency =
+            self.stats.avg_consistency * (1.0 - EMA_ALPHA) + consistency * EMA_ALPHA;
+        self.stats.avg_fusion_quality =
+            self.stats.avg_fusion_quality * (1.0 - EMA_ALPHA) + quality * EMA_ALPHA;
 
         for i in 0..NUM_HORIZONS {
             self.stats.horizon_accuracies[i] = self.horizons[i].accuracy_ema;
@@ -375,7 +376,13 @@ impl BridgeTemporalFusion {
         self.stats.short_term_bias = self.horizons[0].bias_ema;
         self.stats.long_term_bias = self.horizons[NUM_HORIZONS - 1].bias_ema;
 
-        FusedView { value: fused_value, confidence, layers, consistency, quality }
+        FusedView {
+            value: fused_value,
+            confidence,
+            layers,
+            consistency,
+            quality,
+        }
     }
 
     /// Get the short-term view (1ms and 10ms horizons only).
@@ -385,9 +392,8 @@ impl BridgeTemporalFusion {
         let total = w0 + w1;
         if total > 0.0 {
             let value = (predictions[0] * w0 + predictions[1] * w1) / total;
-            let confidence = (self.horizons[0].accuracy_ema * w0
-                + self.horizons[1].accuracy_ema * w1)
-                / total;
+            let confidence =
+                (self.horizons[0].accuracy_ema * w0 + self.horizons[1].accuracy_ema * w1) / total;
             (value, confidence)
         } else {
             ((predictions[0] + predictions[1]) / 2.0, 0.5)
@@ -401,9 +407,8 @@ impl BridgeTemporalFusion {
         let total = w3 + w4;
         if total > 0.0 {
             let value = (predictions[3] * w3 + predictions[4] * w4) / total;
-            let confidence = (self.horizons[3].accuracy_ema * w3
-                + self.horizons[4].accuracy_ema * w4)
-                / total;
+            let confidence =
+                (self.horizons[3].accuracy_ema * w3 + self.horizons[4].accuracy_ema * w4) / total;
             (value, confidence)
         } else {
             ((predictions[3] + predictions[4]) / 2.0, 0.3)

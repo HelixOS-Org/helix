@@ -48,24 +48,42 @@ pub struct QueueItem {
 }
 
 impl QueueItem {
-    pub fn new(id: u64, priority: QueuePriority, payload_size: usize, producer: u32, now: u64) -> Self {
+    pub fn new(
+        id: u64,
+        priority: QueuePriority,
+        payload_size: usize,
+        producer: u32,
+        now: u64,
+    ) -> Self {
         Self {
-            id, priority, state: ItemState::Queued, payload_size,
-            producer_id: producer, consumer_id: None,
-            enqueue_time: now, dequeue_time: 0, complete_time: 0,
+            id,
+            priority,
+            state: ItemState::Queued,
+            payload_size,
+            producer_id: producer,
+            consumer_id: None,
+            enqueue_time: now,
+            dequeue_time: 0,
+            complete_time: 0,
         }
     }
 
     #[inline(always)]
     pub fn wait_time(&self) -> u64 {
-        if self.dequeue_time > 0 { self.dequeue_time - self.enqueue_time } else { 0 }
+        if self.dequeue_time > 0 {
+            self.dequeue_time - self.enqueue_time
+        } else {
+            0
+        }
     }
 
     #[inline]
     pub fn process_time(&self) -> u64 {
         if self.complete_time > 0 && self.dequeue_time > 0 {
             self.complete_time - self.dequeue_time
-        } else { 0 }
+        } else {
+            0
+        }
     }
 }
 
@@ -91,11 +109,19 @@ pub struct AsyncQueueInstance {
 impl AsyncQueueInstance {
     pub fn new(id: u64, capacity: usize, order: QueueOrder) -> Self {
         Self {
-            id, order, items: Vec::new(), capacity,
-            producer_count: 0, consumer_count: 0,
-            total_enqueued: 0, total_dequeued: 0, total_dropped: 0,
-            total_wait_ns: 0, peak_depth: 0,
-            blocked_producers: Vec::new(), blocked_consumers: Vec::new(),
+            id,
+            order,
+            items: Vec::new(),
+            capacity,
+            producer_count: 0,
+            consumer_count: 0,
+            total_enqueued: 0,
+            total_dequeued: 0,
+            total_dropped: 0,
+            total_wait_ns: 0,
+            peak_depth: 0,
+            blocked_producers: Vec::new(),
+            blocked_consumers: Vec::new(),
         }
     }
 
@@ -106,7 +132,9 @@ impl AsyncQueueInstance {
         }
         self.total_enqueued += 1;
         self.items.push(item);
-        if self.items.len() > self.peak_depth { self.peak_depth = self.items.len(); }
+        if self.items.len() > self.peak_depth {
+            self.peak_depth = self.items.len();
+        }
 
         if self.order == QueueOrder::Priority {
             self.items.sort_by(|a, b| b.priority.cmp(&a.priority));
@@ -115,7 +143,9 @@ impl AsyncQueueInstance {
     }
 
     pub fn dequeue(&mut self, consumer_id: u32, now: u64) -> Option<QueueItem> {
-        if self.items.is_empty() { return None; }
+        if self.items.is_empty() {
+            return None;
+        }
         let idx = match self.order {
             QueueOrder::Fifo | QueueOrder::Priority => 0,
             QueueOrder::Lifo => self.items.len() - 1,
@@ -130,27 +160,41 @@ impl AsyncQueueInstance {
     }
 
     #[inline(always)]
-    pub fn depth(&self) -> usize { self.items.len() }
+    pub fn depth(&self) -> usize {
+        self.items.len()
+    }
     #[inline(always)]
-    pub fn is_full(&self) -> bool { self.items.len() >= self.capacity }
+    pub fn is_full(&self) -> bool {
+        self.items.len() >= self.capacity
+    }
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.items.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.capacity == 0 { return 0.0; }
+        if self.capacity == 0 {
+            return 0.0;
+        }
         self.items.len() as f64 / self.capacity as f64
     }
 
     #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
-        if self.total_dequeued == 0 { 0 } else { self.total_wait_ns / self.total_dequeued }
+        if self.total_dequeued == 0 {
+            0
+        } else {
+            self.total_wait_ns / self.total_dequeued
+        }
     }
 
     #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.total_enqueued + self.total_dropped;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.total_dropped as f64 / total as f64
     }
 }
@@ -175,20 +219,27 @@ pub struct CoopAsyncQueue {
 
 impl CoopAsyncQueue {
     pub fn new() -> Self {
-        Self { queues: BTreeMap::new(), next_id: 1 }
+        Self {
+            queues: BTreeMap::new(),
+            next_id: 1,
+        }
     }
 
     #[inline]
     pub fn create_queue(&mut self, capacity: usize, order: QueueOrder) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.queues.insert(id, AsyncQueueInstance::new(id, capacity, order));
+        self.queues
+            .insert(id, AsyncQueueInstance::new(id, capacity, order));
         id
     }
 
     #[inline(always)]
     pub fn enqueue(&mut self, queue_id: u64, item: QueueItem) -> bool {
-        self.queues.get_mut(&queue_id).map(|q| q.enqueue(item)).unwrap_or(false)
+        self.queues
+            .get_mut(&queue_id)
+            .map(|q| q.enqueue(item))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
@@ -203,9 +254,7 @@ impl CoopAsyncQueue {
 
     #[inline]
     pub fn busiest_queues(&self, n: usize) -> Vec<(u64, usize)> {
-        let mut v: Vec<_> = self.queues.iter()
-            .map(|(&id, q)| (id, q.depth()))
-            .collect();
+        let mut v: Vec<_> = self.queues.iter().map(|(&id, q)| (id, q.depth())).collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
         v.truncate(n);
         v

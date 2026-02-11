@@ -3,12 +3,11 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-
+use alloc::collections::{BTreeMap, VecDeque};
 /// Ioctl direction
 use alloc::string::String;
+
+use crate::fast::array_map::ArrayMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IoctlDir {
     None,
@@ -30,11 +29,22 @@ pub struct IoctlCmd {
 impl IoctlCmd {
     #[inline]
     pub fn from_raw(cmd: u32) -> Self {
-        let dir = match (cmd >> 30) & 3 { 0 => IoctlDir::None, 1 => IoctlDir::Write, 2 => IoctlDir::Read, _ => IoctlDir::ReadWrite };
+        let dir = match (cmd >> 30) & 3 {
+            0 => IoctlDir::None,
+            1 => IoctlDir::Write,
+            2 => IoctlDir::Read,
+            _ => IoctlDir::ReadWrite,
+        };
         let size = ((cmd >> 16) & 0x3FFF) as u32;
         let magic = ((cmd >> 8) & 0xFF) as u8;
         let number = (cmd & 0xFF) as u8;
-        Self { cmd, direction: dir, arg_size: size, magic, number }
+        Self {
+            cmd,
+            direction: dir,
+            arg_size: size,
+            magic,
+            number,
+        }
     }
 }
 
@@ -59,13 +69,22 @@ pub struct IoctlTracker {
 }
 
 impl IoctlTracker {
-    pub fn new() -> Self { Self { cmd_counts: ArrayMap::new(0), total_calls: 0, total_errors: 0, total_time_ns: 0 } }
+    pub fn new() -> Self {
+        Self {
+            cmd_counts: ArrayMap::new(0),
+            total_calls: 0,
+            total_errors: 0,
+            total_time_ns: 0,
+        }
+    }
 
     #[inline]
     pub fn record(&mut self, cmd: u32, success: bool, dur: u64) {
         self.cmd_counts.add(cmd as usize, 1);
         self.total_calls += 1;
-        if !success { self.total_errors += 1; }
+        if !success {
+            self.total_errors += 1;
+        }
         self.total_time_ns += dur;
     }
 }
@@ -86,15 +105,30 @@ pub struct AppIoctl {
 }
 
 impl AppIoctl {
-    pub fn new() -> Self { Self { tracker: IoctlTracker::new() } }
+    pub fn new() -> Self {
+        Self {
+            tracker: IoctlTracker::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn record(&mut self, cmd: u32, success: bool, dur: u64) { self.tracker.record(cmd, success, dur); }
+    pub fn record(&mut self, cmd: u32, success: bool, dur: u64) {
+        self.tracker.record(cmd, success, dur);
+    }
 
     #[inline(always)]
     pub fn stats(&self) -> IoctlAppStats {
-        let avg = if self.tracker.total_calls == 0 { 0 } else { self.tracker.total_time_ns / self.tracker.total_calls };
-        IoctlAppStats { total_calls: self.tracker.total_calls, unique_cmds: self.tracker.cmd_counts.len() as u32, total_errors: self.tracker.total_errors, avg_duration_ns: avg }
+        let avg = if self.tracker.total_calls == 0 {
+            0
+        } else {
+            self.tracker.total_time_ns / self.tracker.total_calls
+        };
+        IoctlAppStats {
+            total_calls: self.tracker.total_calls,
+            unique_cmds: self.tracker.cmd_counts.len() as u32,
+            total_errors: self.tracker.total_errors,
+            avg_duration_ns: avg,
+        }
     }
 }
 
@@ -279,7 +313,7 @@ impl AppIoctlV2 {
             IoctlV2Dir::Read => self.stats.read_ioctls += 1,
             IoctlV2Dir::Write => self.stats.write_ioctls += 1,
             IoctlV2Dir::ReadWrite => self.stats.rw_ioctls += 1,
-            _ => {}
+            _ => {},
         }
         if is_compat {
             self.stats.compat_calls += 1;

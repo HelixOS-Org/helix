@@ -62,14 +62,19 @@ impl NumaNode {
 
     #[inline(always)]
     pub fn utilization_pct(&self) -> u64 {
-        if self.total_pages == 0 { 0 }
-        else { ((self.total_pages - self.free_pages) * 100) / self.total_pages }
+        if self.total_pages == 0 {
+            0
+        } else {
+            ((self.total_pages - self.free_pages) * 100) / self.total_pages
+        }
     }
 
     #[inline]
     pub fn distance_to_node(&self, other: u32) -> u32 {
         for &(nid, dist) in &self.distance_to {
-            if nid == other { return dist; }
+            if nid == other {
+                return dist;
+            }
         }
         u32::MAX
     }
@@ -117,13 +122,20 @@ impl NumaProcessState {
     #[inline(always)]
     pub fn record_fault(&mut self, is_local: bool) {
         self.total_faults += 1;
-        if is_local { self.local_faults += 1; } else { self.remote_faults += 1; }
+        if is_local {
+            self.local_faults += 1;
+        } else {
+            self.remote_faults += 1;
+        }
     }
 
     #[inline(always)]
     pub fn locality_pct(&self) -> u64 {
-        if self.total_faults == 0 { 100 }
-        else { (self.local_faults * 100) / self.total_faults }
+        if self.total_faults == 0 {
+            100
+        } else {
+            (self.local_faults * 100) / self.total_faults
+        }
     }
 }
 
@@ -194,7 +206,9 @@ impl BridgeNuma {
         }
         if let Some(dst) = self.nodes.get_mut(&to_node) {
             dst.migration_in += pages;
-            if dst.free_pages >= pages { dst.free_pages -= pages; }
+            if dst.free_pages >= pages {
+                dst.free_pages -= pages;
+            }
         }
         if let Some(p) = self.processes.get_mut(&pid) {
             p.pages_migrated += pages;

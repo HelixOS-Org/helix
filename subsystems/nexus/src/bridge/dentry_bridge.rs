@@ -42,8 +42,18 @@ pub struct DentryBridgeRecord {
 impl DentryBridgeRecord {
     pub fn new(op: DentryBridgeOp, name: &[u8], parent_hash: u64) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in name { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { op, result: DentryBridgeResult::Found, name_hash: h, parent_hash, inode: 0, latency_ns: 0 }
+        for b in name {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            op,
+            result: DentryBridgeResult::Found,
+            name_hash: h,
+            parent_hash,
+            inode: 0,
+            latency_ns: 0,
+        }
     }
 }
 
@@ -66,7 +76,15 @@ pub struct BridgeDentry {
 
 impl BridgeDentry {
     pub fn new() -> Self {
-        Self { stats: DentryBridgeStats { total_ops: 0, lookups: 0, cache_hits: 0, negative_hits: 0, invalidations: 0 } }
+        Self {
+            stats: DentryBridgeStats {
+                total_ops: 0,
+                lookups: 0,
+                cache_hits: 0,
+                negative_hits: 0,
+                invalidations: 0,
+            },
+        }
     }
 
     pub fn record(&mut self, rec: &DentryBridgeRecord) {
@@ -77,17 +95,21 @@ impl BridgeDentry {
                 match rec.result {
                     DentryBridgeResult::Found => self.stats.cache_hits += 1,
                     DentryBridgeResult::NegativeHit => self.stats.negative_hits += 1,
-                    _ => {}
+                    _ => {},
                 }
-            }
+            },
             DentryBridgeOp::Invalidate => self.stats.invalidations += 1,
-            _ => {}
+            _ => {},
         }
     }
 
     #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
-        if self.stats.lookups == 0 { 0.0 } else { self.stats.cache_hits as f64 / self.stats.lookups as f64 }
+        if self.stats.lookups == 0 {
+            0.0
+        } else {
+            self.stats.cache_hits as f64 / self.stats.lookups as f64
+        }
     }
 }
 
@@ -96,7 +118,13 @@ impl BridgeDentry {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DentryV2Event { CacheHit, CacheMiss, Invalidate, Negative, Revalidate }
+pub enum DentryV2Event {
+    CacheHit,
+    CacheMiss,
+    Invalidate,
+    Negative,
+    Revalidate,
+}
 
 /// Dentry v2 record
 #[derive(Debug, Clone)]
@@ -108,20 +136,43 @@ pub struct DentryV2Record {
 }
 
 impl DentryV2Record {
-    pub fn new(event: DentryV2Event) -> Self { Self { event, name_hash: 0, parent_hash: 0, inode: 0 } }
+    pub fn new(event: DentryV2Event) -> Self {
+        Self {
+            event,
+            name_hash: 0,
+            parent_hash: 0,
+            inode: 0,
+        }
+    }
 }
 
 /// Dentry v2 bridge stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct DentryV2BridgeStats { pub total_events: u64, pub hits: u64, pub misses: u64, pub invalidations: u64 }
+pub struct DentryV2BridgeStats {
+    pub total_events: u64,
+    pub hits: u64,
+    pub misses: u64,
+    pub invalidations: u64,
+}
 
 /// Main bridge dentry v2
 #[derive(Debug)]
-pub struct BridgeDentryV2 { pub stats: DentryV2BridgeStats }
+pub struct BridgeDentryV2 {
+    pub stats: DentryV2BridgeStats,
+}
 
 impl BridgeDentryV2 {
-    pub fn new() -> Self { Self { stats: DentryV2BridgeStats { total_events: 0, hits: 0, misses: 0, invalidations: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: DentryV2BridgeStats {
+                total_events: 0,
+                hits: 0,
+                misses: 0,
+                invalidations: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &DentryV2Record) {
         self.stats.total_events += 1;

@@ -158,8 +158,7 @@ pub struct DecisionRecord {
 
 /// Decision types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DecisionType {
-}
+pub enum DecisionType {}
 
 /// Introspection engine
 #[derive(Debug, Clone, Default)]

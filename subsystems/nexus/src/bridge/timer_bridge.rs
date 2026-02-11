@@ -110,11 +110,11 @@ impl TimerEntry {
                     self.overrun_count += 1;
                 }
                 true
-            }
+            },
             _ => {
                 self.state = TimerState::Expired;
                 false
-            }
+            },
         }
     }
 }
@@ -209,7 +209,13 @@ impl BridgeTimerBridge {
     }
 
     #[inline]
-    pub fn create_timer(&mut self, pid: u64, timer_type: TimerType, clock: ClockSource, now: u64) -> u64 {
+    pub fn create_timer(
+        &mut self,
+        pid: u64,
+        timer_type: TimerType,
+        clock: ClockSource,
+        now: u64,
+    ) -> u64 {
         let id = self.next_timer_id;
         self.next_timer_id += 1;
 
@@ -230,7 +236,9 @@ impl BridgeTimerBridge {
 
             self.recompute();
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -239,13 +247,17 @@ impl BridgeTimerBridge {
             timer.disarm();
             self.recompute();
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn delete_timer(&mut self, timer_id: u64) -> bool {
         let removed = self.timers.remove(&timer_id).is_some();
-        if removed { self.recompute(); }
+        if removed {
+            self.recompute();
+        }
         removed
     }
 
@@ -268,7 +280,9 @@ impl BridgeTimerBridge {
             }
         }
 
-        if !fired.is_empty() { self.recompute(); }
+        if !fired.is_empty() {
+            self.recompute();
+        }
         fired
     }
 
@@ -276,7 +290,9 @@ impl BridgeTimerBridge {
     pub fn coalesce(&mut self) {
         self.coalesce_groups.clear();
 
-        let mut armed: Vec<(u64, u64)> = self.timers.iter()
+        let mut armed: Vec<(u64, u64)> = self
+            .timers
+            .iter()
             .filter(|(_, t)| t.state == TimerState::Armed && t.coalesce_window_ns > 0)
             .map(|(&id, t)| (id, t.expiry_ns))
             .collect();
@@ -306,15 +322,19 @@ impl BridgeTimerBridge {
         }
 
         self.stats.coalesced_groups = self.coalesce_groups.len();
-        self.stats.coalesced_timers = self.coalesce_groups.iter()
-            .map(|g| g.timer_ids.len())
-            .sum();
+        self.stats.coalesced_timers = self.coalesce_groups.iter().map(|g| g.timer_ids.len()).sum();
     }
 
     fn recompute(&mut self) {
         self.stats.total_timers = self.timers.len();
-        self.stats.armed_timers = self.timers.values().filter(|t| t.state == TimerState::Armed).count();
-        self.stats.periodic_timers = self.timers.values()
+        self.stats.armed_timers = self
+            .timers
+            .values()
+            .filter(|t| t.state == TimerState::Armed)
+            .count();
+        self.stats.periodic_timers = self
+            .timers
+            .values()
             .filter(|t| t.timer_type == TimerType::Periodic && t.state == TimerState::Armed)
             .count();
         self.stats.total_fires = self.timers.values().map(|t| t.fire_count).sum();

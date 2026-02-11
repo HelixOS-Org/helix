@@ -13,15 +13,25 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LockEfficiency { Excellent, Good, Marginal, Wasteful }
+pub enum LockEfficiency {
+    Excellent,
+    Good,
+    Marginal,
+    Wasteful,
+}
 
 impl LockEfficiency {
     #[inline]
     pub fn from_access_rate(rate: f64) -> Self {
-        if rate > 0.8 { Self::Excellent }
-        else if rate > 0.5 { Self::Good }
-        else if rate > 0.2 { Self::Marginal }
-        else { Self::Wasteful }
+        if rate > 0.8 {
+            Self::Excellent
+        } else if rate > 0.5 {
+            Self::Good
+        } else if rate > 0.2 {
+            Self::Marginal
+        } else {
+            Self::Wasteful
+        }
     }
 }
 
@@ -29,8 +39,8 @@ impl LockEfficiency {
 pub struct ProcessLockProfile {
     pub pid: u64,
     pub locked_pages: u64,
-    pub access_rate: f64,       // fraction of locked pages accessed recently,
-    pub lock_hold_time: u64,    // average ns held,
+    pub access_rate: f64,    // fraction of locked pages accessed recently,
+    pub lock_hold_time: u64, // average ns held,
     pub efficiency: LockEfficiency,
     pub denied_requests: u64,
 }
@@ -88,34 +98,35 @@ impl MlockHolisticManager {
     }
 
     fn recompute(&mut self) {
-        self.stats.total_locked_pages = self.profiles.values()
-            .map(|p| p.locked_pages).sum();
-        self.stats.wasted_locked_pages = self.profiles.values()
-            .map(|p| p.wasted_pages()).sum();
-        self.stats.lock_pressure = self.stats.total_locked_pages as f64
-            / self.system_budget.max(1) as f64;
+        self.stats.total_locked_pages = self.profiles.values().map(|p| p.locked_pages).sum();
+        self.stats.wasted_locked_pages = self.profiles.values().map(|p| p.wasted_pages()).sum();
+        self.stats.lock_pressure =
+            self.stats.total_locked_pages as f64 / self.system_budget.max(1) as f64;
         self.stats.fairness_score = self.compute_fairness().gini_coefficient;
     }
 
     /// Compute Gini coefficient for lock distribution fairness
     fn compute_fairness(&self) -> LockFairness {
-        let mut values: Vec<u64> = self.profiles.values()
-            .map(|p| p.locked_pages).collect();
+        let mut values: Vec<u64> = self.profiles.values().map(|p| p.locked_pages).collect();
         values.sort();
 
         let n = values.len();
         if n == 0 {
             return LockFairness {
-                gini_coefficient: 0.0, max_hog_pid: 0,
-                max_hog_pages: 0, median_locked: 0,
+                gini_coefficient: 0.0,
+                max_hog_pid: 0,
+                max_hog_pages: 0,
+                median_locked: 0,
             };
         }
 
         let sum: f64 = values.iter().map(|&v| v as f64).sum();
         if sum == 0.0 {
             return LockFairness {
-                gini_coefficient: 0.0, max_hog_pid: 0,
-                max_hog_pages: 0, median_locked: 0,
+                gini_coefficient: 0.0,
+                max_hog_pid: 0,
+                max_hog_pages: 0,
+                median_locked: 0,
             };
         }
 
@@ -125,7 +136,9 @@ impl MlockHolisticManager {
         }
         let gini = numerator / (n as f64 * sum);
 
-        let (max_pid, max_pages) = self.profiles.iter()
+        let (max_pid, max_pages) = self
+            .profiles
+            .iter()
             .max_by_key(|(_, p)| p.locked_pages)
             .map(|(&pid, p)| (pid, p.locked_pages))
             .unwrap_or((0, 0));
@@ -146,8 +159,15 @@ impl MlockHolisticManager {
         if self.stats.lock_pressure < self.pressure_threshold {
             return Vec::new();
         }
-        let mut candidates: Vec<_> = self.profiles.iter()
-            .filter(|(_, p)| matches!(p.efficiency, LockEfficiency::Wasteful | LockEfficiency::Marginal))
+        let mut candidates: Vec<_> = self
+            .profiles
+            .iter()
+            .filter(|(_, p)| {
+                matches!(
+                    p.efficiency,
+                    LockEfficiency::Wasteful | LockEfficiency::Marginal
+                )
+            })
             .map(|(&pid, p)| (pid, p.wasted_pages()))
             .collect();
         candidates.sort_by(|a, b| b.1.cmp(&a.1));
@@ -169,7 +189,11 @@ impl MlockHolisticManager {
     }
 
     #[inline(always)]
-    pub fn profile(&self, pid: u64) -> Option<&ProcessLockProfile> { self.profiles.get(&pid) }
+    pub fn profile(&self, pid: u64) -> Option<&ProcessLockProfile> {
+        self.profiles.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &MlockHolisticStats { &self.stats }
+    pub fn stats(&self) -> &MlockHolisticStats {
+        &self.stats
+    }
 }

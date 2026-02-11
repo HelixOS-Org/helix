@@ -175,7 +175,13 @@ impl CoopEmotionSignal {
     /// Record a new raw intensity observation and update EMA
     #[inline]
     pub fn observe(&mut self, raw: f32, tick: u64) {
-        let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
+        let clamped = if raw < 0.0 {
+            0.0
+        } else if raw > 1.0 {
+            1.0
+        } else {
+            raw
+        };
         self.raw_intensity = clamped;
         let delta = clamped - self.intensity;
         self.intensity += EMA_ALPHA * delta;
@@ -208,7 +214,11 @@ impl CoopEmotionSignal {
 
     /// Standard deviation estimate from variance accumulator
     pub fn std_dev(&self) -> f32 {
-        let v = if self.variance_accum < 0.0 { 0.0 } else { self.variance_accum };
+        let v = if self.variance_accum < 0.0 {
+            0.0
+        } else {
+            self.variance_accum
+        };
         let x = v;
         if x < 0.0001 {
             return 0.0;
@@ -408,7 +418,8 @@ impl CoopEmotionEngine {
             if self.profiles.len() >= MAX_PROCESSES {
                 return;
             }
-            self.profiles.insert(process_id, ProcessEmotionProfile::new(process_id));
+            self.profiles
+                .insert(process_id, ProcessEmotionProfile::new(process_id));
         }
 
         let tick = self.tick;
@@ -437,7 +448,11 @@ impl CoopEmotionEngine {
             profile.update_emotion(CoopEmotionKind::IsolationSadness, isolation_val, tick);
 
             // CompetitionExcitement: healthy competition
-            profile.update_emotion(CoopEmotionKind::CompetitionExcitement, competition_health, tick);
+            profile.update_emotion(
+                CoopEmotionKind::CompetitionExcitement,
+                competition_health,
+                tick,
+            );
 
             profile.compute_dominant();
             profile.last_evaluation_tick = tick;
@@ -484,10 +499,22 @@ impl CoopEmotionEngine {
         // Update stats
         self.stats.tracked_processes = count;
         self.stats.active_emotion_count = active_count;
-        self.stats.avg_trust_anxiety = *self.global_emotions.get(&(CoopEmotionKind::TrustAnxiety as u8)).unwrap_or(&0.0);
-        self.stats.avg_cooperation_joy = *self.global_emotions.get(&(CoopEmotionKind::CooperationJoy as u8)).unwrap_or(&0.0);
-        self.stats.avg_fairness_anger = *self.global_emotions.get(&(CoopEmotionKind::FairnessAnger as u8)).unwrap_or(&0.0);
-        self.stats.avg_solidarity_pride = *self.global_emotions.get(&(CoopEmotionKind::SolidarityPride as u8)).unwrap_or(&0.0);
+        self.stats.avg_trust_anxiety = *self
+            .global_emotions
+            .get(&(CoopEmotionKind::TrustAnxiety as u8))
+            .unwrap_or(&0.0);
+        self.stats.avg_cooperation_joy = *self
+            .global_emotions
+            .get(&(CoopEmotionKind::CooperationJoy as u8))
+            .unwrap_or(&0.0);
+        self.stats.avg_fairness_anger = *self
+            .global_emotions
+            .get(&(CoopEmotionKind::FairnessAnger as u8))
+            .unwrap_or(&0.0);
+        self.stats.avg_solidarity_pride = *self
+            .global_emotions
+            .get(&(CoopEmotionKind::SolidarityPride as u8))
+            .unwrap_or(&0.0);
     }
 
     // ========================================================================
@@ -560,7 +587,10 @@ impl CoopEmotionEngine {
     #[inline]
     pub fn cooperation_joy(&self, process_id: u64) -> f32 {
         if let Some(profile) = self.profiles.get(&process_id) {
-            if let Some(signal) = profile.signals.get(&(CoopEmotionKind::CooperationJoy as u8)) {
+            if let Some(signal) = profile
+                .signals
+                .get(&(CoopEmotionKind::CooperationJoy as u8))
+            {
                 return signal.intensity;
             }
         }
@@ -578,7 +608,10 @@ impl CoopEmotionEngine {
     pub fn joyful_processes(&self) -> Vec<u64> {
         let mut result = Vec::new();
         for (pid, profile) in self.profiles.iter() {
-            if let Some(signal) = profile.signals.get(&(CoopEmotionKind::CooperationJoy as u8)) {
+            if let Some(signal) = profile
+                .signals
+                .get(&(CoopEmotionKind::CooperationJoy as u8))
+            {
                 if signal.intensity >= JOY_THRESHOLD {
                     result.push(*pid);
                 }
@@ -601,16 +634,28 @@ impl CoopEmotionEngine {
         let solidarity = self.stats.avg_solidarity_pride;
         let anxiety = self.stats.avg_trust_anxiety;
         let anger = self.stats.avg_fairness_anger;
-        let isolation = *self.global_emotions.get(&(CoopEmotionKind::IsolationSadness as u8)).unwrap_or(&0.0);
+        let isolation = *self
+            .global_emotions
+            .get(&(CoopEmotionKind::IsolationSadness as u8))
+            .unwrap_or(&0.0);
 
         let positive = joy * 0.4 + solidarity * 0.35 + {
-            let excitement = *self.global_emotions.get(&(CoopEmotionKind::CompetitionExcitement as u8)).unwrap_or(&0.0);
+            let excitement = *self
+                .global_emotions
+                .get(&(CoopEmotionKind::CompetitionExcitement as u8))
+                .unwrap_or(&0.0);
             excitement * 0.25
         };
         let negative = anxiety * 0.35 + anger * 0.4 + isolation * 0.25;
 
         let climate = positive - negative;
-        let clamped = if climate < -1.0 { -1.0 } else if climate > 1.0 { 1.0 } else { climate };
+        let clamped = if climate < -1.0 {
+            -1.0
+        } else if climate > 1.0 {
+            1.0
+        } else {
+            climate
+        };
 
         self.climate_history[self.climate_write_idx] = clamped;
         self.climate_write_idx = (self.climate_write_idx + 1) % CLIMATE_WINDOW;
@@ -644,18 +689,26 @@ impl CoopEmotionEngine {
     /// High joy + high solidarity = relax policy constraints
     #[inline]
     pub fn emotion_influence_on_policy(&mut self) -> f32 {
-        let urgency_emotions = self.stats.avg_trust_anxiety * 0.4
-            + self.stats.avg_fairness_anger * 0.4
-            + {
-                let iso = *self.global_emotions.get(&(CoopEmotionKind::IsolationSadness as u8)).unwrap_or(&0.0);
+        let urgency_emotions =
+            self.stats.avg_trust_anxiety * 0.4 + self.stats.avg_fairness_anger * 0.4 + {
+                let iso = *self
+                    .global_emotions
+                    .get(&(CoopEmotionKind::IsolationSadness as u8))
+                    .unwrap_or(&0.0);
                 iso * 0.2
             };
 
-        let calming_emotions = self.stats.avg_cooperation_joy * 0.5
-            + self.stats.avg_solidarity_pride * 0.5;
+        let calming_emotions =
+            self.stats.avg_cooperation_joy * 0.5 + self.stats.avg_solidarity_pride * 0.5;
 
         let raw_influence = (urgency_emotions - calming_emotions * 0.5) * POLICY_INFLUENCE_SCALE;
-        let clamped = if raw_influence < 0.0 { 0.0 } else if raw_influence > 1.0 { 1.0 } else { raw_influence };
+        let clamped = if raw_influence < 0.0 {
+            0.0
+        } else if raw_influence > 1.0 {
+            1.0
+        } else {
+            raw_influence
+        };
 
         self.policy_ema += EMA_ALPHA * (clamped - self.policy_ema);
         self.stats.policy_influence = self.policy_ema;
@@ -670,11 +723,16 @@ impl CoopEmotionEngine {
         if self.stats.avg_trust_anxiety > TRUST_ANXIETY_THRESHOLD {
             return CoopPolicyAction::RebuildTrust;
         }
-        let iso = *self.global_emotions.get(&(CoopEmotionKind::IsolationSadness as u8)).unwrap_or(&0.0);
+        let iso = *self
+            .global_emotions
+            .get(&(CoopEmotionKind::IsolationSadness as u8))
+            .unwrap_or(&0.0);
         if iso > ISOLATION_THRESHOLD {
             return CoopPolicyAction::ReintegrateIsolated;
         }
-        if self.stats.avg_cooperation_joy > JOY_THRESHOLD && self.stats.avg_solidarity_pride > SOLIDARITY_THRESHOLD {
+        if self.stats.avg_cooperation_joy > JOY_THRESHOLD
+            && self.stats.avg_solidarity_pride > SOLIDARITY_THRESHOLD
+        {
             return CoopPolicyAction::RelaxConstraints;
         }
         CoopPolicyAction::Maintain
@@ -702,7 +760,9 @@ impl CoopEmotionEngine {
         } else {
             0
         };
-        let stale_keys: Vec<u64> = self.profiles.iter()
+        let stale_keys: Vec<u64> = self
+            .profiles
+            .iter()
             .filter(|(_, p)| p.last_evaluation_tick < cutoff)
             .map(|(k, _)| *k)
             .collect();

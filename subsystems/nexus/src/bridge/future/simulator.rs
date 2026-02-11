@@ -11,11 +11,12 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -131,8 +132,7 @@ impl ContentionModel {
         };
         let level = self.process_pairs.entry(pair_key).or_insert(0.0);
         *level = EMA_ALPHA * severity + (1.0 - EMA_ALPHA) * *level;
-        self.global_contention =
-            EMA_ALPHA * severity + (1.0 - EMA_ALPHA) * self.global_contention;
+        self.global_contention = EMA_ALPHA * severity + (1.0 - EMA_ALPHA) * self.global_contention;
     }
 }
 
@@ -238,12 +238,16 @@ impl BridgeSimulator {
     /// Update a process behavior model with a new observation
     pub fn observe_process(&mut self, process_id: u64, syscall_nr: u32, latency: f32) {
         self.tick += 1;
-        let model = self.process_models.entry(process_id)
+        let model = self
+            .process_models
+            .entry(process_id)
             .or_insert_with(|| ProcessBehaviorModel::new(process_id));
         model.observe_syscall(syscall_nr, latency);
 
         if self.process_models.len() > MAX_PROCESSES {
-            let oldest = self.process_models.iter()
+            let oldest = self
+                .process_models
+                .iter()
                 .min_by_key(|(_, m)| m.observation_count)
                 .map(|(&k, _)| k);
             if let Some(k) = oldest {
@@ -255,7 +259,8 @@ impl BridgeSimulator {
     /// Record contention between two processes
     #[inline(always)]
     pub fn record_contention(&mut self, pid_a: u64, pid_b: u64, severity: f32) {
-        self.contention.record_contention(pid_a, pid_b, severity.max(0.0).min(1.0));
+        self.contention
+            .record_contention(pid_a, pid_b, severity.max(0.0).min(1.0));
     }
 
     /// Update current resource availability
@@ -299,12 +304,14 @@ impl BridgeSimulator {
                 let effect = self.evaluate_action(action, &branch.resource_state);
                 let mut updated = branch.clone();
                 updated.actions.push(action.clone());
-                updated.resource_state.memory_available =
-                    (updated.resource_state.memory_available + action.resource_delta_memory)
-                        .max(0.0).min(1.0);
-                updated.resource_state.cpu_available =
-                    (updated.resource_state.cpu_available + action.resource_delta_cpu)
-                        .max(0.0).min(1.0);
+                updated.resource_state.memory_available = (updated.resource_state.memory_available
+                    + action.resource_delta_memory)
+                    .max(0.0)
+                    .min(1.0);
+                updated.resource_state.cpu_available = (updated.resource_state.cpu_available
+                    + action.resource_delta_cpu)
+                    .max(0.0)
+                    .min(1.0);
                 updated.score = EMA_ALPHA * effect + (1.0 - EMA_ALPHA) * updated.score;
 
                 if (effect - branch.score).abs() > DIVERGENCE_THRESHOLD
@@ -324,9 +331,15 @@ impl BridgeSimulator {
         let best = scores.iter().cloned().fold(0.0f32, f32::max);
         let worst = scores.iter().cloned().fold(1.0f32, f32::min);
         let avg = scores.iter().sum::<f32>() / scores.len().max(1) as f32;
-        let best_id = branches.iter().max_by(|a, b|
-            a.score.partial_cmp(&b.score).unwrap_or(core::cmp::Ordering::Equal)
-        ).map(|b| b.branch_id).unwrap_or(0);
+        let best_id = branches
+            .iter()
+            .max_by(|a, b| {
+                a.score
+                    .partial_cmp(&b.score)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            })
+            .map(|b| b.branch_id)
+            .unwrap_or(0);
 
         if best > self.best_score_ever {
             self.best_score_ever = best;
@@ -348,8 +361,7 @@ impl BridgeSimulator {
     /// Fork a simulation branch into an alternative timeline
     pub fn fork_state(&mut self, parent: &SimBranch) -> SimBranch {
         let noise = (xorshift64(&mut self.rng_state) % 100) as f32 / 1000.0;
-        let new_id = fnv1a_hash(&parent.branch_id.to_le_bytes())
-            ^ xorshift64(&mut self.rng_state);
+        let new_id = fnv1a_hash(&parent.branch_id.to_le_bytes()) ^ xorshift64(&mut self.rng_state);
 
         SimBranch {
             branch_id: new_id,
@@ -357,9 +369,11 @@ impl BridgeSimulator {
             actions: parent.actions.clone(),
             resource_state: ResourceProjection {
                 memory_available: (parent.resource_state.memory_available + noise - 0.05)
-                    .max(0.0).min(1.0),
+                    .max(0.0)
+                    .min(1.0),
                 cpu_available: (parent.resource_state.cpu_available + noise - 0.05)
-                    .max(0.0).min(1.0),
+                    .max(0.0)
+                    .min(1.0),
                 io_bandwidth: parent.resource_state.io_bandwidth,
                 fd_available: parent.resource_state.fd_available,
                 tick: self.tick,
@@ -372,16 +386,16 @@ impl BridgeSimulator {
 
     /// Apply a single action and return the score delta
     pub fn apply_action(&mut self, action: &SimAction) -> f32 {
-        let before = self.current_resources.memory_available
-            + self.current_resources.cpu_available;
-        self.current_resources.memory_available =
-            (self.current_resources.memory_available + action.resource_delta_memory)
-                .max(0.0).min(1.0);
-        self.current_resources.cpu_available =
-            (self.current_resources.cpu_available + action.resource_delta_cpu)
-                .max(0.0).min(1.0);
-        let after = self.current_resources.memory_available
-            + self.current_resources.cpu_available;
+        let before = self.current_resources.memory_available + self.current_resources.cpu_available;
+        self.current_resources.memory_available = (self.current_resources.memory_available
+            + action.resource_delta_memory)
+            .max(0.0)
+            .min(1.0);
+        self.current_resources.cpu_available = (self.current_resources.cpu_available
+            + action.resource_delta_cpu)
+            .max(0.0)
+            .min(1.0);
+        let after = self.current_resources.memory_available + self.current_resources.cpu_available;
         after - before
     }
 
@@ -402,7 +416,7 @@ impl BridgeSimulator {
                 } else {
                     None
                 }
-            }
+            },
             _ => None,
         }
     }
@@ -410,7 +424,8 @@ impl BridgeSimulator {
     /// Compute likelihood of a specific branch outcome
     #[inline]
     pub fn scenario_likelihood(&self, branch_id: u64) -> f32 {
-        self.branches.iter()
+        self.branches
+            .iter()
             .find(|b| b.branch_id == branch_id)
             .map(|b| b.likelihood)
             .unwrap_or(0.0)
@@ -428,23 +443,33 @@ impl BridgeSimulator {
             1.0
         };
         let contention_penalty = self.contention.global_contention * 0.3;
-        let process_fit = self.process_models.get(&action.target_process)
+        let process_fit = self
+            .process_models
+            .get(&action.target_process)
             .map(|m| 1.0 - m.contention_sensitivity * contention_penalty)
             .unwrap_or(0.5);
-        (resource_fit.min(1.0) * cpu_fit.min(1.0) * process_fit).max(0.0).min(1.0)
+        (resource_fit.min(1.0) * cpu_fit.min(1.0) * process_fit)
+            .max(0.0)
+            .min(1.0)
     }
 
     /// Aggregate simulation statistics
     pub fn stats(&self) -> SimulatorStats {
         let avg_branches = if self.total_simulations > 0 {
             self.total_branches as f32 / self.total_simulations as f32
-        } else { 0.0 };
-        let avg_actions = if self.branches.is_empty() { 0.0 } else {
-            self.branches.iter().map(|b| b.actions.len() as f32).sum::<f32>()
+        } else {
+            0.0
+        };
+        let avg_actions = if self.branches.is_empty() {
+            0.0
+        } else {
+            self.branches
+                .iter()
+                .map(|b| b.actions.len() as f32)
+                .sum::<f32>()
                 / self.branches.len() as f32
         };
-        let div_rate = self.branches.iter()
-            .filter(|b| b.parent_id != 0).count() as f32
+        let div_rate = self.branches.iter().filter(|b| b.parent_id != 0).count() as f32
             / self.branches.len().max(1) as f32;
 
         SimulatorStats {

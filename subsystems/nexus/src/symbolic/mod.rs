@@ -297,8 +297,7 @@ pub enum Formula {
 
 /// Comparison operators
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CompareOp {
-}
+pub enum CompareOp {}
 
 impl Formula {
     /// Create an atomic formula
@@ -1200,7 +1199,7 @@ impl KernelSymbolicReasoner {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     #[test]
     fn test_unification() {

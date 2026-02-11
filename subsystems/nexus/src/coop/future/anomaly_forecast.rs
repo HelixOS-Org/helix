@@ -7,10 +7,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
 fn fnv1a_hash(data: &[u8]) -> u64 {
@@ -226,22 +226,28 @@ impl CoopAnomalyForecast {
 
     /// Record resource acquisition.
     pub fn record_acquire(&mut self, process_id: u64, resource_id: u64) {
-        let holding = self.holdings.entry(resource_id).or_insert_with(|| ResourceHolding {
-            resource_id,
-            holder: 0,
-            waiters: Vec::new(),
-            hold_duration: 0,
-            contention_ema: 0,
-        });
+        let holding = self
+            .holdings
+            .entry(resource_id)
+            .or_insert_with(|| ResourceHolding {
+                resource_id,
+                holder: 0,
+                waiters: Vec::new(),
+                hold_duration: 0,
+                contention_ema: 0,
+            });
         holding.holder = process_id;
         holding.hold_duration = 0;
 
-        let priority = self.priorities.entry(process_id).or_insert_with(|| PriorityRecord {
-            process_id,
-            priority: 500,
-            held_resources: Vec::new(),
-            waiting_for: Vec::new(),
-        });
+        let priority = self
+            .priorities
+            .entry(process_id)
+            .or_insert_with(|| PriorityRecord {
+                process_id,
+                priority: 500,
+                held_resources: Vec::new(),
+                waiting_for: Vec::new(),
+            });
         if !priority.held_resources.contains(&resource_id) {
             priority.held_resources.push(resource_id);
         }
@@ -262,13 +268,16 @@ impl CoopAnomalyForecast {
             );
         }
 
-        let ws = self.wait_states.entry(process_id).or_insert_with(|| ProcessWaitState {
-            process_id,
-            state_changes: VecDeque::new(),
-            ema_change_interval: 100,
-            resources_attempted: Vec::new(),
-            wait_cycles: 0,
-        });
+        let ws = self
+            .wait_states
+            .entry(process_id)
+            .or_insert_with(|| ProcessWaitState {
+                process_id,
+                state_changes: VecDeque::new(),
+                ema_change_interval: 100,
+                resources_attempted: Vec::new(),
+                wait_cycles: 0,
+            });
         ws.state_changes.push_back(self.current_tick);
         ws.wait_cycles = ws.wait_cycles.saturating_add(1);
         if !ws.resources_attempted.contains(&resource_id) {
@@ -278,27 +287,36 @@ impl CoopAnomalyForecast {
             ws.state_changes.remove(0).unwrap();
         }
 
-        let priority = self.priorities.entry(process_id).or_insert_with(|| PriorityRecord {
-            process_id,
-            priority: 500,
-            held_resources: Vec::new(),
-            waiting_for: Vec::new(),
-        });
+        let priority = self
+            .priorities
+            .entry(process_id)
+            .or_insert_with(|| PriorityRecord {
+                process_id,
+                priority: 500,
+                held_resources: Vec::new(),
+                waiting_for: Vec::new(),
+            });
         if !priority.waiting_for.contains(&resource_id) {
             priority.waiting_for.push(resource_id);
         }
 
-        let tracker_key = fnv1a_hash(&[
-            process_id.to_le_bytes().as_slice(),
-            resource_id.to_le_bytes().as_slice(),
-        ].concat());
-        self.starvation_trackers.entry(tracker_key).or_insert_with(|| StarvationTracker {
-            process_id,
-            resource_id,
-            wait_start: self.current_tick,
-            denial_count: 0,
-            ema_wait: 0,
-        }).denial_count += 1;
+        let tracker_key = fnv1a_hash(
+            &[
+                process_id.to_le_bytes().as_slice(),
+                resource_id.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
+        self.starvation_trackers
+            .entry(tracker_key)
+            .or_insert_with(|| StarvationTracker {
+                process_id,
+                resource_id,
+                wait_start: self.current_tick,
+                denial_count: 0,
+                ema_wait: 0,
+            })
+            .denial_count += 1;
     }
 
     /// Record resource release.
@@ -319,12 +337,15 @@ impl CoopAnomalyForecast {
     /// Set priority for a process.
     #[inline]
     pub fn set_priority(&mut self, process_id: u64, priority: u64) {
-        let rec = self.priorities.entry(process_id).or_insert_with(|| PriorityRecord {
-            process_id,
-            priority,
-            held_resources: Vec::new(),
-            waiting_for: Vec::new(),
-        });
+        let rec = self
+            .priorities
+            .entry(process_id)
+            .or_insert_with(|| PriorityRecord {
+                process_id,
+                priority,
+                held_resources: Vec::new(),
+                waiting_for: Vec::new(),
+            });
         rec.priority = priority;
     }
 
@@ -337,16 +358,19 @@ impl CoopAnomalyForecast {
         for &pid in &process_ids {
             let cycle = self.detect_wait_cycle(pid);
             if cycle.len() >= 2 {
-                let resources: Vec<u64> = cycle.iter()
+                let resources: Vec<u64> = cycle
+                    .iter()
                     .filter_map(|&p| {
-                        self.priorities.get(&p)
+                        self.priorities
+                            .get(&p)
                             .and_then(|pr| pr.waiting_for.first().copied())
                     })
                     .collect();
 
                 let severity = (cycle.len() as u64).saturating_mul(200).min(1000);
 
-                let avg_contention: u64 = resources.iter()
+                let avg_contention: u64 = resources
+                    .iter()
                     .filter_map(|r| self.holdings.get(r).map(|h| h.contention_ema))
                     .sum::<u64>()
                     / resources.len().max(1) as u64;
@@ -354,10 +378,15 @@ impl CoopAnomalyForecast {
                 let probability = avg_contention.saturating_mul(severity) / 1000;
 
                 let noise = xorshift64(&mut self.rng_state) % 20;
-                let ticks_until = 100u64.saturating_sub(probability / 10).saturating_add(noise);
+                let ticks_until = 100u64
+                    .saturating_sub(probability / 10)
+                    .saturating_add(noise);
 
                 let forecast_id = fnv1a_hash(
-                    &cycle.iter().flat_map(|p| p.to_le_bytes()).collect::<Vec<u8>>(),
+                    &cycle
+                        .iter()
+                        .flat_map(|p| p.to_le_bytes())
+                        .collect::<Vec<u8>>(),
                 );
 
                 let preempt = cycle.last().copied().unwrap_or(0);
@@ -377,7 +406,9 @@ impl CoopAnomalyForecast {
             }
         }
 
-        self.stats.deadlocks_predicted = self.stats.deadlocks_predicted
+        self.stats.deadlocks_predicted = self
+            .stats
+            .deadlocks_predicted
             .saturating_add(forecasts.len() as u64);
         forecasts
     }
@@ -400,9 +431,14 @@ impl CoopAnomalyForecast {
 
             let avg_interval = intervals.iter().sum::<u64>() / intervals.len().max(1) as u64;
 
-            let variance: u64 = intervals.iter()
+            let variance: u64 = intervals
+                .iter()
                 .map(|&i| {
-                    let d = if i > avg_interval { i - avg_interval } else { avg_interval - i };
+                    let d = if i > avg_interval {
+                        i - avg_interval
+                    } else {
+                        avg_interval - i
+                    };
                     d.saturating_mul(d)
                 })
                 .sum::<u64>()
@@ -441,7 +477,9 @@ impl CoopAnomalyForecast {
             self.catalog_pattern(atype, pid, probability);
         }
 
-        self.stats.livelocks_detected = self.stats.livelocks_detected
+        self.stats.livelocks_detected = self
+            .stats
+            .livelocks_detected
             .saturating_add(precursors.len() as u64);
         precursors
     }
@@ -450,7 +488,9 @@ impl CoopAnomalyForecast {
     pub fn inversion_warning(&mut self) -> Vec<InversionWarning> {
         let mut warnings: Vec<InversionWarning> = Vec::new();
 
-        let prio_list: Vec<(u64, u64, Vec<u64>)> = self.priorities.values()
+        let prio_list: Vec<(u64, u64, Vec<u64>)> = self
+            .priorities
+            .values()
             .map(|p| (p.process_id, p.priority, p.waiting_for.clone()))
             .collect();
 
@@ -462,21 +502,25 @@ impl CoopAnomalyForecast {
                         continue;
                     }
 
-                    let blocker_prio = self.priorities.get(&blocker)
+                    let blocker_prio = self
+                        .priorities
+                        .get(&blocker)
                         .map(|p| p.priority)
                         .unwrap_or(500);
 
                     if *high_prio > blocker_prio {
                         let depth = self.compute_inversion_depth(blocker);
                         let delay = holding.hold_duration.saturating_mul(depth as u64 + 1);
-                        let severity = (*high_prio - blocker_prio)
-                            .saturating_mul(delay) / 1000;
+                        let severity = (*high_prio - blocker_prio).saturating_mul(delay) / 1000;
 
-                        let wid = fnv1a_hash(&[
-                            high_pid.to_le_bytes().as_slice(),
-                            blocker.to_le_bytes().as_slice(),
-                            resource_id.to_le_bytes().as_slice(),
-                        ].concat());
+                        let wid = fnv1a_hash(
+                            &[
+                                high_pid.to_le_bytes().as_slice(),
+                                blocker.to_le_bytes().as_slice(),
+                                resource_id.to_le_bytes().as_slice(),
+                            ]
+                            .concat(),
+                        );
 
                         warnings.push(InversionWarning {
                             warning_id: wid,
@@ -488,13 +532,19 @@ impl CoopAnomalyForecast {
                             severity: severity.min(1000),
                         });
 
-                        self.catalog_pattern(AnomalyType::PriorityInversion, wid, severity.min(1000));
+                        self.catalog_pattern(
+                            AnomalyType::PriorityInversion,
+                            wid,
+                            severity.min(1000),
+                        );
                     }
                 }
             }
         }
 
-        self.stats.inversions_warned = self.stats.inversions_warned
+        self.stats.inversions_warned = self
+            .stats
+            .inversions_warned
             .saturating_add(warnings.len() as u64);
         warnings
     }
@@ -503,8 +553,18 @@ impl CoopAnomalyForecast {
     pub fn starvation_prediction(&mut self) -> Vec<StarvationPrediction> {
         let mut predictions: Vec<StarvationPrediction> = Vec::new();
 
-        let trackers: Vec<(u64, u64, u64, u64, u64)> = self.starvation_trackers.values()
-            .map(|t| (t.process_id, t.resource_id, t.wait_start, t.denial_count, t.ema_wait))
+        let trackers: Vec<(u64, u64, u64, u64, u64)> = self
+            .starvation_trackers
+            .values()
+            .map(|t| {
+                (
+                    t.process_id,
+                    t.resource_id,
+                    t.wait_start,
+                    t.denial_count,
+                    t.ema_wait,
+                )
+            })
             .collect();
 
         for (pid, rid, start, denials, ema_wait) in trackers {
@@ -519,8 +579,7 @@ impl CoopAnomalyForecast {
                 denials.saturating_mul(50).min(500)
             };
 
-            let fairness_deficit = denials.saturating_mul(100)
-                .saturating_add(wait_ticks / 10);
+            let fairness_deficit = denials.saturating_mul(100).saturating_add(wait_ticks / 10);
 
             if probability > 200 {
                 predictions.push(StarvationPrediction {
@@ -532,15 +591,16 @@ impl CoopAnomalyForecast {
                     fairness_deficit: fairness_deficit.min(1000),
                 });
 
-                let pat_id = fnv1a_hash(&[
-                    pid.to_le_bytes().as_slice(),
-                    rid.to_le_bytes().as_slice(),
-                ].concat());
+                let pat_id = fnv1a_hash(
+                    &[pid.to_le_bytes().as_slice(), rid.to_le_bytes().as_slice()].concat(),
+                );
                 self.catalog_pattern(AnomalyType::Starvation, pat_id, probability.min(1000));
             }
         }
 
-        self.stats.starvations_predicted = self.stats.starvations_predicted
+        self.stats.starvations_predicted = self
+            .stats
+            .starvations_predicted
             .saturating_add(predictions.len() as u64);
         predictions
     }
@@ -568,10 +628,7 @@ impl CoopAnomalyForecast {
         let starvations = self.starvation_prediction();
         for st in &starvations {
             if st.starvation_probability > 600 {
-                let iid = fnv1a_hash(&[
-                    st.process_id.to_le_bytes().as_slice(),
-                    b"boost",
-                ].concat());
+                let iid = fnv1a_hash(&[st.process_id.to_le_bytes().as_slice(), b"boost"].concat());
                 interventions.push(EarlyIntervention {
                     intervention_id: iid,
                     anomaly_type: AnomalyType::Starvation,
@@ -584,14 +641,17 @@ impl CoopAnomalyForecast {
             }
         }
 
-        self.stats.interventions_issued = self.stats.interventions_issued
+        self.stats.interventions_issued = self
+            .stats
+            .interventions_issued
             .saturating_add(interventions.len() as u64);
 
         for i in &interventions {
             self.intervention_history.push(i.clone());
         }
         if self.intervention_history.len() > 256 {
-            self.intervention_history.drain(0..self.intervention_history.len() - 256);
+            self.intervention_history
+                .drain(0..self.intervention_history.len() - 256);
         }
 
         interventions
@@ -640,7 +700,9 @@ impl CoopAnomalyForecast {
             visited.insert(current, true);
             path.push(current);
 
-            let next = self.priorities.get(&current)
+            let next = self
+                .priorities
+                .get(&current)
                 .and_then(|p| p.waiting_for.first())
                 .and_then(|&r| self.holdings.get(&r))
                 .map(|h| h.holder)
@@ -666,7 +728,9 @@ impl CoopAnomalyForecast {
             }
             visited.insert(current, true);
 
-            let next = self.priorities.get(&current)
+            let next = self
+                .priorities
+                .get(&current)
                 .and_then(|p| p.waiting_for.first())
                 .and_then(|&r| self.holdings.get(&r))
                 .map(|h| h.holder)
@@ -683,20 +747,26 @@ impl CoopAnomalyForecast {
     }
 
     fn catalog_pattern(&mut self, anomaly_type: AnomalyType, instance_id: u64, severity: u64) {
-        let sig = fnv1a_hash(&[
-            (anomaly_type.clone() as u8 as u64).to_le_bytes().as_slice(),
-            instance_id.to_le_bytes().as_slice(),
-        ].concat());
+        let sig = fnv1a_hash(
+            &[
+                (anomaly_type.clone() as u8 as u64).to_le_bytes().as_slice(),
+                instance_id.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
 
-        let pattern = self.pattern_library.entry(sig).or_insert_with(|| AnomalyPattern {
-            pattern_id: sig,
-            anomaly_type: anomaly_type.clone(),
-            signature_hash: sig,
-            occurrence_count: 0,
-            avg_severity: severity,
-            avg_duration: 0,
-            known_mitigations: Vec::new(),
-        });
+        let pattern = self
+            .pattern_library
+            .entry(sig)
+            .or_insert_with(|| AnomalyPattern {
+                pattern_id: sig,
+                anomaly_type: anomaly_type.clone(),
+                signature_hash: sig,
+                occurrence_count: 0,
+                avg_severity: severity,
+                avg_duration: 0,
+                known_mitigations: Vec::new(),
+            });
         pattern.occurrence_count = pattern.occurrence_count.saturating_add(1);
         pattern.avg_severity = ema_update(pattern.avg_severity, severity, 200, 1000);
 

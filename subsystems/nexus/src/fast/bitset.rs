@@ -24,13 +24,11 @@ const MAX_BITMAP_WORDS: usize = 16;
 /// - Total memory: `ceil(N/64) * 8` bytes.
 #[derive(Clone, Copy)]
 #[repr(C)]
-pub struct BitSet<const N: usize>
-{
+pub struct BitSet<const N: usize> {
     words: [u64; MAX_BITMAP_WORDS],
 }
 
-impl<const N: usize> BitSet<N>
-{
+impl<const N: usize> BitSet<N> {
     /// Number of u64 words needed.
     /// Number of u64 words actually used (runtime, but const-evaluable in practice).
     #[inline(always)]
@@ -218,16 +216,14 @@ impl<const N: usize> BitSet<N>
     }
 }
 
-impl<const N: usize> Default for BitSet<N>
-{
+impl<const N: usize> Default for BitSet<N> {
     #[inline(always)]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<const N: usize> core::fmt::Debug for BitSet<N>
-{
+impl<const N: usize> core::fmt::Debug for BitSet<N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("BitSet")
             .field("capacity", &N)
@@ -237,15 +233,13 @@ impl<const N: usize> core::fmt::Debug for BitSet<N>
 }
 
 /// Iterator over set bit indices.
-pub struct BitSetIter<'a, const N: usize>
-{
+pub struct BitSetIter<'a, const N: usize> {
     bitset: &'a BitSet<N>,
     word_idx: usize,
     remaining: u64,
 }
 
-impl<'a, const N: usize> Iterator for BitSetIter<'a, N>
-{
+impl<'a, const N: usize> Iterator for BitSetIter<'a, N> {
     type Item = usize;
 
     #[inline]

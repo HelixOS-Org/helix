@@ -98,11 +98,11 @@ impl RetryPolicy {
         Self {
             strategy: RetryStrategy::ExponentialJitter,
             max_retries: 3,
-            base_delay_ns: 1_000_000,     // 1ms
-            max_delay_ns: 100_000_000,    // 100ms
+            base_delay_ns: 1_000_000,  // 1ms
+            max_delay_ns: 100_000_000, // 100ms
             multiplier: 2.0,
             budget_per_window: 100,
-            window_ns: 10_000_000_000,    // 10s
+            window_ns: 10_000_000_000, // 10s
         }
     }
 
@@ -136,14 +136,12 @@ impl RetryPolicy {
     pub fn delay_for_attempt(&self, attempt: u32) -> u64 {
         let raw = match self.strategy {
             RetryStrategy::Fixed => self.base_delay_ns,
-            RetryStrategy::Linear => {
-                self.base_delay_ns + (self.base_delay_ns * attempt as u64)
-            }
+            RetryStrategy::Linear => self.base_delay_ns + (self.base_delay_ns * attempt as u64),
             RetryStrategy::Exponential | RetryStrategy::ExponentialJitter => {
                 let factor = libm::pow(self.multiplier, attempt as f64);
                 let delay = self.base_delay_ns as f64 * factor;
                 delay as u64
-            }
+            },
             RetryStrategy::None => 0,
         };
 
@@ -201,9 +199,7 @@ impl RetryState {
     /// Should retry?
     #[inline]
     pub fn should_retry(&self) -> bool {
-        !self.completed
-            && self.attempt < self.policy.max_retries
-            && self.last_error.should_retry()
+        !self.completed && self.attempt < self.policy.max_retries && self.last_error.should_retry()
     }
 
     /// Next delay
@@ -217,7 +213,9 @@ impl RetryState {
     pub fn record_attempt(&mut self, error: RetryableCategory) {
         self.attempt += 1;
         self.last_error = error;
-        self.total_delay_ns += self.policy.delay_for_attempt(self.attempt.saturating_sub(1));
+        self.total_delay_ns += self
+            .policy
+            .delay_for_attempt(self.attempt.saturating_sub(1));
     }
 
     /// Mark success
@@ -352,12 +350,7 @@ impl BridgeRetryEngine {
     }
 
     /// Initiate retry
-    pub fn initiate(
-        &mut self,
-        syscall_nr: u32,
-        error: RetryableCategory,
-        now: u64,
-    ) -> Option<u64> {
+    pub fn initiate(&mut self, syscall_nr: u32, error: RetryableCategory, now: u64) -> Option<u64> {
         if !error.should_retry() {
             return None;
         }
@@ -395,12 +388,7 @@ impl BridgeRetryEngine {
     }
 
     /// Record retry result
-    pub fn record_result(
-        &mut self,
-        id: u64,
-        success: bool,
-        error: Option<RetryableCategory>,
-    ) {
+    pub fn record_result(&mut self, id: u64, success: bool, error: Option<RetryableCategory>) {
         if let Some(state) = self.active.get_mut(&id) {
             if success {
                 state.mark_success();

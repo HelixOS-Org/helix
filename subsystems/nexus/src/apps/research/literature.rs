@@ -350,8 +350,11 @@ impl AppsLiterature {
 
         let mut gaps: Vec<KnowledgeGap> = Vec::new();
         for &domain in &all_domains {
-            let domain_entries: Vec<&KnowledgeEntry> =
-                self.entries.values().filter(|e| e.domain == domain).collect();
+            let domain_entries: Vec<&KnowledgeEntry> = self
+                .entries
+                .values()
+                .filter(|e| e.domain == domain)
+                .collect();
             let total = domain_entries.len();
             let established = domain_entries
                 .iter()
@@ -423,14 +426,19 @@ impl AppsLiterature {
             }
         }
 
-        let avg_impact = if count > 0.0 { total_impact / count } else { 0.0 };
+        let avg_impact = if count > 0.0 {
+            total_impact / count
+        } else {
+            0.0
+        };
         let avg_conf = if count > 0.0 {
             total_conf_score / count
         } else {
             0.0
         };
         let total_domains = 7.0;
-        let overall = domains_covered as f32 / total_domains * (1.0 - gaps.len() as f32 / total_domains * 0.5);
+        let overall = domains_covered as f32 / total_domains
+            * (1.0 - gaps.len() as f32 / total_domains * 0.5);
 
         CoverageReport {
             total_entries: self.entries.len(),
@@ -456,8 +464,11 @@ impl AppsLiterature {
 
         let mut evolutions: Vec<KnowledgeEvolution> = Vec::new();
         for &domain in &all_domains {
-            let domain_entries: Vec<&KnowledgeEntry> =
-                self.entries.values().filter(|e| e.domain == domain).collect();
+            let domain_entries: Vec<&KnowledgeEntry> = self
+                .entries
+                .values()
+                .filter(|e| e.domain == domain)
+                .collect();
             let count = domain_entries.len();
             if count == 0 {
                 continue;

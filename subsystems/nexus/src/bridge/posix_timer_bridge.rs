@@ -49,9 +49,17 @@ pub struct PosixTimer {
 impl PosixTimer {
     pub fn new(id: u64, clock: PosixClockId, notify: TimerNotify, now: u64) -> Self {
         Self {
-            id, clock_id: clock, notify, interval_ns: 0, value_ns: 0,
-            armed: false, absolute: false, overrun_count: 0,
-            fire_count: 0, created_at: now, last_fire: 0,
+            id,
+            clock_id: clock,
+            notify,
+            interval_ns: 0,
+            value_ns: 0,
+            armed: false,
+            absolute: false,
+            overrun_count: 0,
+            fire_count: 0,
+            created_at: now,
+            last_fire: 0,
         }
     }
 
@@ -64,7 +72,9 @@ impl PosixTimer {
     }
 
     #[inline(always)]
-    pub fn disarm(&mut self) { self.armed = false; }
+    pub fn disarm(&mut self) {
+        self.armed = false;
+    }
 
     #[inline]
     pub fn fire(&mut self, now: u64) {
@@ -87,12 +97,16 @@ impl PosixTimer {
         if self.interval_ns > 0 && self.last_fire > 0 {
             let elapsed = now.saturating_sub(self.last_fire);
             let missed = elapsed / self.interval_ns;
-            if missed > 1 { self.overrun_count += missed - 1; }
+            if missed > 1 {
+                self.overrun_count += missed - 1;
+            }
         }
     }
 
     #[inline(always)]
-    pub fn is_periodic(&self) -> bool { self.interval_ns > 0 }
+    pub fn is_periodic(&self) -> bool {
+        self.interval_ns > 0
+    }
 }
 
 /// Stats
@@ -115,23 +129,34 @@ pub struct BridgePosixTimer {
 }
 
 impl BridgePosixTimer {
-    pub fn new() -> Self { Self { timers: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            timers: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, clock: PosixClockId, notify: TimerNotify, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.timers.insert(id, PosixTimer::new(id, clock, notify, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.timers
+            .insert(id, PosixTimer::new(id, clock, notify, now));
         id
     }
 
     #[inline(always)]
     pub fn arm(&mut self, id: u64, value: u64, interval: u64, absolute: bool) {
-        if let Some(t) = self.timers.get_mut(&id) { t.arm(value, interval, absolute); }
+        if let Some(t) = self.timers.get_mut(&id) {
+            t.arm(value, interval, absolute);
+        }
     }
 
     #[inline(always)]
     pub fn disarm(&mut self, id: u64) {
-        if let Some(t) = self.timers.get_mut(&id) { t.disarm(); }
+        if let Some(t) = self.timers.get_mut(&id) {
+            t.disarm();
+        }
     }
 
     #[inline]
@@ -147,18 +172,27 @@ impl BridgePosixTimer {
     }
 
     #[inline(always)]
-    pub fn delete(&mut self, id: u64) { self.timers.remove(&id); }
+    pub fn delete(&mut self, id: u64) {
+        self.timers.remove(&id);
+    }
 
     pub fn stats(&self) -> PosixTimerBridgeStats {
         let armed = self.timers.values().filter(|t| t.armed).count() as u32;
         let periodic = self.timers.values().filter(|t| t.is_periodic()).count() as u32;
         let fires: u64 = self.timers.values().map(|t| t.fire_count).sum();
         let overruns: u64 = self.timers.values().map(|t| t.overrun_count).sum();
-        let sig = self.timers.values().filter(|t| matches!(t.notify, TimerNotify::Signal(_))).count() as u32;
+        let sig = self
+            .timers
+            .values()
+            .filter(|t| matches!(t.notify, TimerNotify::Signal(_)))
+            .count() as u32;
         PosixTimerBridgeStats {
-            total_timers: self.timers.len() as u32, armed_timers: armed,
-            periodic_timers: periodic, total_fires: fires,
-            total_overruns: overruns, signal_timers: sig,
+            total_timers: self.timers.len() as u32,
+            armed_timers: armed,
+            periodic_timers: periodic,
+            total_fires: fires,
+            total_overruns: overruns,
+            signal_timers: sig,
         }
     }
 }

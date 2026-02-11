@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Clock type
@@ -33,10 +32,22 @@ pub struct HlcTimestamp {
 }
 
 impl HlcTimestamp {
-    pub fn new(wall: u64, node: u64) -> Self { Self { wall_ns: wall, logical: 0, node_id: node } }
+    pub fn new(wall: u64, node: u64) -> Self {
+        Self {
+            wall_ns: wall,
+            logical: 0,
+            node_id: node,
+        }
+    }
 
     #[inline(always)]
-    pub fn zero(node: u64) -> Self { Self { wall_ns: 0, logical: 0, node_id: node } }
+    pub fn zero(node: u64) -> Self {
+        Self {
+            wall_ns: 0,
+            logical: 0,
+            node_id: node,
+        }
+    }
 
     #[inline]
     pub fn advance(&mut self, physical_now: u64) {
@@ -64,11 +75,14 @@ impl HlcTimestamp {
 
     #[inline(always)]
     pub fn happens_before(&self, other: &HlcTimestamp) -> bool {
-        self.wall_ns < other.wall_ns || (self.wall_ns == other.wall_ns && self.logical < other.logical)
+        self.wall_ns < other.wall_ns
+            || (self.wall_ns == other.wall_ns && self.logical < other.logical)
     }
 
     #[inline(always)]
-    pub fn to_u128(&self) -> u128 { ((self.wall_ns as u128) << 64) | ((self.logical as u128) << 32) | self.node_id as u128 }
+    pub fn to_u128(&self) -> u128 {
+        ((self.wall_ns as u128) << 64) | ((self.logical as u128) << 32) | self.node_id as u128
+    }
 }
 
 /// Clock sample from a peer
@@ -87,7 +101,14 @@ impl ClockSample {
     pub fn compute(peer: u64, t1: u64, t2: u64, t3: u64, t4: u64) -> Self {
         let rtt = (t4.saturating_sub(t1)).saturating_sub(t3.saturating_sub(t2));
         let offset = ((t2 as i128 - t1 as i128) + (t3 as i128 - t4 as i128)) / 2;
-        Self { peer, send_ts: t1, recv_ts: t4, remote_ts: t2, rtt_ns: rtt, offset_ns: offset as i64 }
+        Self {
+            peer,
+            send_ts: t1,
+            recv_ts: t4,
+            remote_ts: t2,
+            rtt_ns: rtt,
+            offset_ns: offset as i64,
+        }
     }
 }
 
@@ -108,7 +129,17 @@ pub struct PeerClockState {
 
 impl PeerClockState {
     pub fn new(peer: u64, max_samples: usize) -> Self {
-        Self { peer_id: peer, samples: VecDeque::new(), avg_offset_ns: 0, avg_rtt_ns: 0, drift_ppb: 0, uncertainty_ns: u64::MAX, last_sync_ts: 0, sample_count: 0, max_samples }
+        Self {
+            peer_id: peer,
+            samples: VecDeque::new(),
+            avg_offset_ns: 0,
+            avg_rtt_ns: 0,
+            drift_ppb: 0,
+            uncertainty_ns: u64::MAX,
+            last_sync_ts: 0,
+            sample_count: 0,
+            max_samples,
+        }
     }
 
     #[inline]
@@ -116,12 +147,16 @@ impl PeerClockState {
         self.last_sync_ts = sample.recv_ts;
         self.sample_count += 1;
         self.samples.push_back(sample);
-        if self.samples.len() > self.max_samples { self.samples.remove(0); }
+        if self.samples.len() > self.max_samples {
+            self.samples.remove(0);
+        }
         self.recompute();
     }
 
     fn recompute(&mut self) {
-        if self.samples.is_empty() { return; }
+        if self.samples.is_empty() {
+            return;
+        }
         let n = self.samples.len() as i64;
         let sum_off: i64 = self.samples.iter().map(|s| s.offset_ns).sum();
         self.avg_offset_ns = sum_off / n;
@@ -183,15 +218,21 @@ pub struct CoopClockSync {
 impl CoopClockSync {
     pub fn new(node_id: u64, skew_threshold: u64, max_samples: usize) -> Self {
         Self {
-            node_id, hlc: HlcTimestamp::zero(node_id),
-            peers: BTreeMap::new(), alerts: Vec::new(),
-            stats: ClockSyncStats::default(), skew_threshold_ns: skew_threshold,
+            node_id,
+            hlc: HlcTimestamp::zero(node_id),
+            peers: BTreeMap::new(),
+            alerts: Vec::new(),
+            stats: ClockSyncStats::default(),
+            skew_threshold_ns: skew_threshold,
             max_samples,
         }
     }
 
     #[inline(always)]
-    pub fn tick(&mut self, physical_now: u64) -> HlcTimestamp { self.hlc.advance(physical_now); self.hlc }
+    pub fn tick(&mut self, physical_now: u64) -> HlcTimestamp {
+        self.hlc.advance(physical_now);
+        self.hlc
+    }
 
     #[inline(always)]
     pub fn receive(&mut self, remote: &HlcTimestamp, physical_now: u64) -> HlcTimestamp {
@@ -201,17 +242,27 @@ impl CoopClockSync {
 
     #[inline(always)]
     pub fn add_peer(&mut self, peer: u64) {
-        self.peers.entry(peer).or_insert_with(|| PeerClockState::new(peer, self.max_samples));
+        self.peers
+            .entry(peer)
+            .or_insert_with(|| PeerClockState::new(peer, self.max_samples));
     }
 
     #[inline]
     pub fn record_sample(&mut self, peer: u64, t1: u64, t2: u64, t3: u64, t4: u64) {
         let sample = ClockSample::compute(peer, t1, t2, t3, t4);
         let thresh = self.skew_threshold_ns;
-        let p = self.peers.entry(peer).or_insert_with(|| PeerClockState::new(peer, self.max_samples));
+        let p = self
+            .peers
+            .entry(peer)
+            .or_insert_with(|| PeerClockState::new(peer, self.max_samples));
         p.add_sample(sample);
         if (p.avg_offset_ns.unsigned_abs()) > thresh {
-            self.alerts.push(SkewAlert { peer, offset_ns: p.avg_offset_ns, threshold_ns: thresh, ts: t4 });
+            self.alerts.push(SkewAlert {
+                peer,
+                offset_ns: p.avg_offset_ns,
+                threshold_ns: thresh,
+                ts: t4,
+            });
         }
     }
 
@@ -224,20 +275,40 @@ impl CoopClockSync {
     pub fn recompute(&mut self) {
         self.stats.peers = self.peers.len();
         self.stats.total_samples = self.peers.values().map(|p| p.sample_count).sum();
-        self.stats.max_offset_ns = self.peers.values().map(|p| p.avg_offset_ns).max().unwrap_or(0);
-        self.stats.min_offset_ns = self.peers.values().map(|p| p.avg_offset_ns).min().unwrap_or(0);
+        self.stats.max_offset_ns = self
+            .peers
+            .values()
+            .map(|p| p.avg_offset_ns)
+            .max()
+            .unwrap_or(0);
+        self.stats.min_offset_ns = self
+            .peers
+            .values()
+            .map(|p| p.avg_offset_ns)
+            .min()
+            .unwrap_or(0);
         self.stats.max_rtt_ns = self.peers.values().map(|p| p.avg_rtt_ns).max().unwrap_or(0);
         self.stats.alerts = self.alerts.len();
     }
 
     #[inline(always)]
-    pub fn hlc(&self) -> &HlcTimestamp { &self.hlc }
+    pub fn hlc(&self) -> &HlcTimestamp {
+        &self.hlc
+    }
     #[inline(always)]
-    pub fn peer(&self, id: u64) -> Option<&PeerClockState> { self.peers.get(&id) }
+    pub fn peer(&self, id: u64) -> Option<&PeerClockState> {
+        self.peers.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &ClockSyncStats { &self.stats }
+    pub fn stats(&self) -> &ClockSyncStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn alerts(&self) -> &[SkewAlert] { &self.alerts }
+    pub fn alerts(&self) -> &[SkewAlert] {
+        &self.alerts
+    }
     #[inline(always)]
-    pub fn node_id(&self) -> u64 { self.node_id }
+    pub fn node_id(&self) -> u64 {
+        self.node_id
+    }
 }

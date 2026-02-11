@@ -5,7 +5,12 @@ extern crate alloc;
 
 /// Pipe coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PipeCoopEvent { BufferShare, SpliceForward, TeeClone, CapacityPool }
+pub enum PipeCoopEvent {
+    BufferShare,
+    SpliceForward,
+    TeeClone,
+    CapacityPool,
+}
 
 /// Pipe coop record
 #[derive(Debug, Clone)]
@@ -18,20 +23,44 @@ pub struct PipeCoopRecord {
 }
 
 impl PipeCoopRecord {
-    pub fn new(event: PipeCoopEvent) -> Self { Self { event, bytes: 0, source_fd: -1, target_fd: -1, participants: 0 } }
+    pub fn new(event: PipeCoopEvent) -> Self {
+        Self {
+            event,
+            bytes: 0,
+            source_fd: -1,
+            target_fd: -1,
+            participants: 0,
+        }
+    }
 }
 
 /// Pipe coop stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct PipeCoopStats { pub total_events: u64, pub shares: u64, pub splices: u64, pub bytes_saved: u64 }
+pub struct PipeCoopStats {
+    pub total_events: u64,
+    pub shares: u64,
+    pub splices: u64,
+    pub bytes_saved: u64,
+}
 
 /// Main coop pipe
 #[derive(Debug)]
-pub struct CoopPipe { pub stats: PipeCoopStats }
+pub struct CoopPipe {
+    pub stats: PipeCoopStats,
+}
 
 impl CoopPipe {
-    pub fn new() -> Self { Self { stats: PipeCoopStats { total_events: 0, shares: 0, splices: 0, bytes_saved: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: PipeCoopStats {
+                total_events: 0,
+                shares: 0,
+                splices: 0,
+                bytes_saved: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &PipeCoopRecord) {
         self.stats.total_events += 1;

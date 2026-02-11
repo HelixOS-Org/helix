@@ -54,24 +54,40 @@ pub struct PathWalkState {
 
 impl PathWalkState {
     pub fn new() -> Self {
-        Self { components_resolved: 0, symlinks_followed: 0, mounts_crossed: 0, total_lookups: 0, cache_hits: 0 }
+        Self {
+            components_resolved: 0,
+            symlinks_followed: 0,
+            mounts_crossed: 0,
+            total_lookups: 0,
+            cache_hits: 0,
+        }
     }
 
     #[inline]
     pub fn resolve_component(&mut self, cached: bool) {
         self.components_resolved += 1;
         self.total_lookups += 1;
-        if cached { self.cache_hits += 1; }
+        if cached {
+            self.cache_hits += 1;
+        }
     }
 
     #[inline(always)]
-    pub fn follow_symlink(&mut self) { self.symlinks_followed += 1; }
+    pub fn follow_symlink(&mut self) {
+        self.symlinks_followed += 1;
+    }
     #[inline(always)]
-    pub fn cross_mount(&mut self) { self.mounts_crossed += 1; }
+    pub fn cross_mount(&mut self) {
+        self.mounts_crossed += 1;
+    }
 
     #[inline(always)]
     pub fn cache_hit_rate(&self) -> f64 {
-        if self.total_lookups == 0 { 0.0 } else { self.cache_hits as f64 / self.total_lookups as f64 }
+        if self.total_lookups == 0 {
+            0.0
+        } else {
+            self.cache_hits as f64 / self.total_lookups as f64
+        }
     }
 }
 
@@ -90,8 +106,19 @@ pub struct VfsOpRecord {
 impl VfsOpRecord {
     pub fn new(op: VfsOpType, path: &[u8], fs_type: VfsFsType) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { op, path_hash: h, fs_type, inode: 0, latency_ns: 0, bytes_transferred: 0, walk: PathWalkState::new() }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            op,
+            path_hash: h,
+            fs_type,
+            inode: 0,
+            latency_ns: 0,
+            bytes_transferred: 0,
+            walk: PathWalkState::new(),
+        }
     }
 }
 
@@ -116,7 +143,11 @@ impl HolisticVfs {
     pub fn new() -> Self {
         Self {
             stats: HolisticVfsStats {
-                total_ops: 0, total_bytes: 0, path_walks: 0, symlinks_followed: 0, ops_by_type: BTreeMap::new(),
+                total_ops: 0,
+                total_bytes: 0,
+                path_walks: 0,
+                symlinks_followed: 0,
+                ops_by_type: BTreeMap::new(),
             },
         }
     }
@@ -215,7 +246,10 @@ impl HolisticVfsV2Manager {
             timestamp: id.wrapping_mul(31),
             weight: 1,
         };
-        self.samples.entry(dimension as u64).or_insert_with(Vec::new).push(sample);
+        self.samples
+            .entry(dimension as u64)
+            .or_insert_with(Vec::new)
+            .push(sample);
         self.stats.samples_collected += 1;
     }
 

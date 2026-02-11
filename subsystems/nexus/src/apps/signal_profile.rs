@@ -16,14 +16,14 @@ use alloc::vec::Vec;
 /// Signal category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SignalCategoryApps {
-    Terminal,    // SIGTERM, SIGKILL, SIGINT
-    Fault,       // SIGSEGV, SIGBUS, SIGFPE
-    Io,          // SIGIO, SIGPOLL, SIGURG
-    Timer,       // SIGALRM, SIGVTALRM, SIGPROF
-    Child,       // SIGCHLD
-    User,        // SIGUSR1, SIGUSR2
-    Control,     // SIGSTOP, SIGCONT, SIGTSTP
-    RealTime,    // SIGRTMIN..SIGRTMAX
+    Terminal, // SIGTERM, SIGKILL, SIGINT
+    Fault,    // SIGSEGV, SIGBUS, SIGFPE
+    Io,       // SIGIO, SIGPOLL, SIGURG
+    Timer,    // SIGALRM, SIGVTALRM, SIGPROF
+    Child,    // SIGCHLD
+    User,     // SIGUSR1, SIGUSR2
+    Control,  // SIGSTOP, SIGCONT, SIGTSTP
+    RealTime, // SIGRTMIN..SIGRTMAX
 }
 
 /// Signal delivery state
@@ -77,25 +77,33 @@ impl SignalNumStats {
 
     #[inline(always)]
     pub fn delivery_ratio(&self) -> f64 {
-        if self.generated == 0 { return 0.0; }
+        if self.generated == 0 {
+            return 0.0;
+        }
         self.delivered as f64 / self.generated as f64
     }
 
     #[inline(always)]
     pub fn avg_delivery_ns(&self) -> u64 {
-        if self.delivered == 0 { return 0; }
+        if self.delivered == 0 {
+            return 0;
+        }
         self.total_delivery_ns / self.delivered
     }
 
     #[inline(always)]
     pub fn avg_handler_ns(&self) -> u64 {
-        if self.delivered == 0 { return 0; }
+        if self.delivered == 0 {
+            return 0;
+        }
         self.total_handler_ns / self.delivered
     }
 
     #[inline(always)]
     pub fn coalesce_ratio(&self) -> f64 {
-        if self.generated == 0 { return 0.0; }
+        if self.generated == 0 {
+            return 0.0;
+        }
         self.coalesced as f64 / self.generated as f64
     }
 
@@ -108,9 +116,13 @@ impl SignalNumStats {
     pub fn record_delivery(&mut self, delivery_ns: u64, handler_ns: u64) {
         self.delivered += 1;
         self.total_delivery_ns += delivery_ns;
-        if delivery_ns > self.max_delivery_ns { self.max_delivery_ns = delivery_ns; }
+        if delivery_ns > self.max_delivery_ns {
+            self.max_delivery_ns = delivery_ns;
+        }
         self.total_handler_ns += handler_ns;
-        if handler_ns > self.max_handler_ns { self.max_handler_ns = handler_ns; }
+        if handler_ns > self.max_handler_ns {
+            self.max_handler_ns = handler_ns;
+        }
     }
 }
 
@@ -147,7 +159,8 @@ impl ProcessSignalProfile {
 
     fn get_or_create(&mut self, signum: u32) -> &mut SignalNumStats {
         let cat = Self::categorize(signum);
-        self.signal_stats.entry(signum)
+        self.signal_stats
+            .entry(signum)
             .or_insert_with(|| SignalNumStats::new(signum, cat))
     }
 
@@ -173,7 +186,8 @@ impl ProcessSignalProfile {
 
     #[inline(always)]
     pub fn record_delivery(&mut self, signum: u32, delivery_ns: u64, handler_ns: u64) {
-        self.get_or_create(signum).record_delivery(delivery_ns, handler_ns);
+        self.get_or_create(signum)
+            .record_delivery(delivery_ns, handler_ns);
         self.total_delivered += 1;
     }
 
@@ -203,14 +217,16 @@ impl ProcessSignalProfile {
 
     #[inline]
     pub fn most_frequent_signal(&self) -> Option<u32> {
-        self.signal_stats.values()
+        self.signal_stats
+            .values()
             .max_by_key(|s| s.generated)
             .map(|s| s.signum)
     }
 
     #[inline]
     pub fn signals_by_category(&self, cat: SignalCategoryApps) -> Vec<&SignalNumStats> {
-        self.signal_stats.values()
+        self.signal_stats
+            .values()
             .filter(|s| s.category == cat)
             .collect()
     }
@@ -244,7 +260,9 @@ impl AppSignalProfiler {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.profiles.entry(pid).or_insert_with(|| ProcessSignalProfile::new(pid));
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ProcessSignalProfile::new(pid));
     }
 
     #[inline]

@@ -119,7 +119,8 @@ impl AppSelect {
     pub fn begin_select(&mut self, nfds: u32, timeout_us: u64, tick: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.calls.insert(id, SelectCall::new(id, nfds, timeout_us, tick));
+        self.calls
+            .insert(id, SelectCall::new(id, nfds, timeout_us, tick));
         self.stats.total_calls += 1;
         if nfds > self.stats.max_nfds_seen {
             self.stats.max_nfds_seen = nfds;

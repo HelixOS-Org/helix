@@ -27,7 +27,9 @@ impl WaitIdOptions {
     pub const WCONTINUED: u32 = 8;
     pub const WNOWAIT: u32 = 16;
     #[inline(always)]
-    pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u32) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Child status
@@ -63,9 +65,20 @@ pub struct ProcessWaitState {
 }
 
 impl ProcessWaitState {
-    pub fn new(pid: u64) -> Self { Self { pid, children: Vec::new(), wait_count: 0, collected_count: 0, nohang_count: 0, zombie_children: 0 } }
+    pub fn new(pid: u64) -> Self {
+        Self {
+            pid,
+            children: Vec::new(),
+            wait_count: 0,
+            collected_count: 0,
+            nohang_count: 0,
+            zombie_children: 0,
+        }
+    }
     #[inline(always)]
-    pub fn add_child(&mut self, child: u64) { self.children.push(child); }
+    pub fn add_child(&mut self, child: u64) {
+        self.children.push(child);
+    }
 }
 
 /// Stats
@@ -87,22 +100,36 @@ pub struct AppWaitId {
 }
 
 impl AppWaitId {
-    pub fn new() -> Self { Self { processes: BTreeMap::new(), events: Vec::new(), max_events: 4096 } }
+    pub fn new() -> Self {
+        Self {
+            processes: BTreeMap::new(),
+            events: Vec::new(),
+            max_events: 4096,
+        }
+    }
     #[inline(always)]
-    pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessWaitState::new(pid)); }
+    pub fn register(&mut self, pid: u64) {
+        self.processes.insert(pid, ProcessWaitState::new(pid));
+    }
 
     #[inline]
     pub fn waitid(&mut self, pid: u64, _id_type: WaitIdType, options: WaitIdOptions) {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.wait_count += 1;
-            if options.has(WaitIdOptions::WNOHANG) { p.nohang_count += 1; }
+            if options.has(WaitIdOptions::WNOHANG) {
+                p.nohang_count += 1;
+            }
         }
     }
 
     #[inline]
     pub fn collect(&mut self, parent: u64, info: WaitIdSiginfo) {
-        if let Some(p) = self.processes.get_mut(&parent) { p.collected_count += 1; }
-        if self.events.len() >= self.max_events { self.events.drain(..self.max_events / 2); }
+        if let Some(p) = self.processes.get_mut(&parent) {
+            p.collected_count += 1;
+        }
+        if self.events.len() >= self.max_events {
+            self.events.drain(..self.max_events / 2);
+        }
         self.events.push(info);
     }
 
@@ -112,6 +139,12 @@ impl AppWaitId {
         let collected: u64 = self.processes.values().map(|p| p.collected_count).sum();
         let zombies: u32 = self.processes.values().map(|p| p.zombie_children).sum();
         let nohang: u64 = self.processes.values().map(|p| p.nohang_count).sum();
-        WaitIdAppStats { tracked_processes: self.processes.len() as u32, total_waits: waits, total_collected: collected, total_zombies: zombies, nohang_calls: nohang }
+        WaitIdAppStats {
+            tracked_processes: self.processes.len() as u32,
+            total_waits: waits,
+            total_collected: collected,
+            total_zombies: zombies,
+            nohang_calls: nohang,
+        }
     }
 }

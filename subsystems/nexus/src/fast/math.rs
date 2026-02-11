@@ -28,45 +28,75 @@ pub trait F32Ext {
 
 impl F32Ext for f32 {
     #[inline(always)]
-    fn sqrt(self) -> f32 { libm::sqrtf(self) }
+    fn sqrt(self) -> f32 {
+        libm::sqrtf(self)
+    }
     #[inline(always)]
     fn powi(self, n: i32) -> f32 {
         let mut result = 1.0f32;
         let mut base = self;
         let mut exp = if n < 0 { -n as u32 } else { n as u32 };
         while exp > 0 {
-            if exp & 1 == 1 { result *= base; }
+            if exp & 1 == 1 {
+                result *= base;
+            }
             base *= base;
             exp >>= 1;
         }
         if n < 0 { 1.0 / result } else { result }
     }
     #[inline(always)]
-    fn ln(self) -> f32 { libm::logf(self) }
+    fn ln(self) -> f32 {
+        libm::logf(self)
+    }
     #[inline(always)]
-    fn exp(self) -> f32 { libm::expf(self) }
+    fn exp(self) -> f32 {
+        libm::expf(self)
+    }
     #[inline(always)]
-    fn ceil(self) -> f32 { libm::ceilf(self) }
+    fn ceil(self) -> f32 {
+        libm::ceilf(self)
+    }
     #[inline(always)]
-    fn floor(self) -> f32 { libm::floorf(self) }
+    fn floor(self) -> f32 {
+        libm::floorf(self)
+    }
     #[inline(always)]
-    fn round(self) -> f32 { libm::roundf(self) }
+    fn round(self) -> f32 {
+        libm::roundf(self)
+    }
     #[inline(always)]
-    fn log2(self) -> f32 { libm::log2f(self) }
+    fn log2(self) -> f32 {
+        libm::log2f(self)
+    }
     #[inline(always)]
-    fn log10(self) -> f32 { libm::log10f(self) }
+    fn log10(self) -> f32 {
+        libm::log10f(self)
+    }
     #[inline(always)]
-    fn sin(self) -> f32 { libm::sinf(self) }
+    fn sin(self) -> f32 {
+        libm::sinf(self)
+    }
     #[inline(always)]
-    fn cos(self) -> f32 { libm::cosf(self) }
+    fn cos(self) -> f32 {
+        libm::cosf(self)
+    }
     #[inline(always)]
-    fn powf(self, n: f32) -> f32 { libm::powf(self, n) }
+    fn powf(self, n: f32) -> f32 {
+        libm::powf(self, n)
+    }
     #[inline(always)]
-    fn tan(self) -> f32 { libm::tanf(self) }
+    fn tan(self) -> f32 {
+        libm::tanf(self)
+    }
     #[inline(always)]
-    fn atan2(self, other: f32) -> f32 { libm::atan2f(self, other) }
+    fn atan2(self, other: f32) -> f32 {
+        libm::atan2f(self, other)
+    }
     #[inline(always)]
-    fn copied(self) -> f32 { self }
+    fn copied(self) -> f32 {
+        self
+    }
 }
 
 /// Extension trait providing math methods for `f64` in `no_std`.
@@ -90,43 +120,73 @@ pub trait F64Ext {
 
 impl F64Ext for f64 {
     #[inline(always)]
-    fn sqrt(self) -> f64 { libm::sqrt(self) }
+    fn sqrt(self) -> f64 {
+        libm::sqrt(self)
+    }
     #[inline(always)]
     fn powi(self, n: i32) -> f64 {
         let mut result = 1.0f64;
         let mut base = self;
         let mut exp = if n < 0 { -n as u32 } else { n as u32 };
         while exp > 0 {
-            if exp & 1 == 1 { result *= base; }
+            if exp & 1 == 1 {
+                result *= base;
+            }
             base *= base;
             exp >>= 1;
         }
         if n < 0 { 1.0 / result } else { result }
     }
     #[inline(always)]
-    fn ln(self) -> f64 { libm::log(self) }
+    fn ln(self) -> f64 {
+        libm::log(self)
+    }
     #[inline(always)]
-    fn exp(self) -> f64 { libm::exp(self) }
+    fn exp(self) -> f64 {
+        libm::exp(self)
+    }
     #[inline(always)]
-    fn ceil(self) -> f64 { libm::ceil(self) }
+    fn ceil(self) -> f64 {
+        libm::ceil(self)
+    }
     #[inline(always)]
-    fn floor(self) -> f64 { libm::floor(self) }
+    fn floor(self) -> f64 {
+        libm::floor(self)
+    }
     #[inline(always)]
-    fn round(self) -> f64 { libm::round(self) }
+    fn round(self) -> f64 {
+        libm::round(self)
+    }
     #[inline(always)]
-    fn log2(self) -> f64 { libm::log2(self) }
+    fn log2(self) -> f64 {
+        libm::log2(self)
+    }
     #[inline(always)]
-    fn log10(self) -> f64 { libm::log10(self) }
+    fn log10(self) -> f64 {
+        libm::log10(self)
+    }
     #[inline(always)]
-    fn sin(self) -> f64 { libm::sin(self) }
+    fn sin(self) -> f64 {
+        libm::sin(self)
+    }
     #[inline(always)]
-    fn cos(self) -> f64 { libm::cos(self) }
+    fn cos(self) -> f64 {
+        libm::cos(self)
+    }
     #[inline(always)]
-    fn powf(self, n: f64) -> f64 { libm::pow(self, n) }
+    fn powf(self, n: f64) -> f64 {
+        libm::pow(self, n)
+    }
     #[inline(always)]
-    fn tan(self) -> f64 { libm::tan(self) }
+    fn tan(self) -> f64 {
+        libm::tan(self)
+    }
     #[inline(always)]
-    fn atan2(self, other: f64) -> f64 { libm::atan2(self, other) }
+    fn atan2(self, other: f64) -> f64 {
+        libm::atan2(self, other)
+    }
     #[inline(always)]
-    fn copied(self) -> f64 { self }
+    fn copied(self) -> f64 {
+        self
+    }
 }

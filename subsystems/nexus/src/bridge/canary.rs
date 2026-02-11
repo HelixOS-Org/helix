@@ -260,7 +260,7 @@ impl CanaryDeployment {
                 } else {
                     ComparisonResult::NoChange
                 }
-            }
+            },
             _ => {
                 if diff_pct > *threshold {
                     ComparisonResult::Worse
@@ -269,7 +269,7 @@ impl CanaryDeployment {
                 } else {
                     ComparisonResult::NoChange
                 }
-            }
+            },
         }
     }
 
@@ -392,10 +392,16 @@ impl BridgeCanaryManager {
     }
 
     fn update_stats(&mut self) {
-        self.stats.active_canaries = self.deployments.values()
-            .filter(|d| d.state == CanaryState::Active).count();
-        self.stats.successful = self.deployments.values()
-            .filter(|d| d.state == CanaryState::Completed).count() as u64;
+        self.stats.active_canaries = self
+            .deployments
+            .values()
+            .filter(|d| d.state == CanaryState::Active)
+            .count();
+        self.stats.successful = self
+            .deployments
+            .values()
+            .filter(|d| d.state == CanaryState::Completed)
+            .count() as u64;
     }
 
     /// Stats

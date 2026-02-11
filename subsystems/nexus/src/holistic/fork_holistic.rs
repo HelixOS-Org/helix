@@ -2,8 +2,9 @@
 //! NEXUS Holistic — Fork (holistic fork analysis)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Fork pattern classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

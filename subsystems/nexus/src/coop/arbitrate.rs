@@ -194,8 +194,8 @@ impl ArbitrationPolicy {
         Self {
             default_strategy: ResolutionType::ProportionalSplit,
             auto_resolve_severity: DisputeSeverity::Low,
-            max_resolution_ns: 5_000_000_000,     // 5 seconds
-            escalation_ns: 10_000_000_000,         // 10 seconds
+            max_resolution_ns: 5_000_000_000, // 5 seconds
+            escalation_ns: 10_000_000_000,    // 10 seconds
             penalties_enabled: true,
         }
     }
@@ -275,21 +275,18 @@ impl CoopArbitrationManager {
             DisputeState::Filed
         };
 
-        self.disputes.insert(
+        self.disputes.insert(id, Dispute {
             id,
-            Dispute {
-                id,
-                complainant,
-                respondent,
-                category,
-                severity,
-                state,
-                filed_at: now,
-                resolved_at: None,
-                evidence: Vec::new(),
-                resolution: None,
-            },
-        );
+            complainant,
+            respondent,
+            category,
+            severity,
+            state,
+            filed_at: now,
+            resolved_at: None,
+            evidence: Vec::new(),
+            resolution: None,
+        });
 
         self.stats.total_disputes += 1;
         self.update_active_count();
@@ -315,12 +312,7 @@ impl CoopArbitrationManager {
     }
 
     /// Resolve dispute
-    pub fn resolve(
-        &mut self,
-        dispute_id: u64,
-        resolution: Resolution,
-        now: u64,
-    ) {
+    pub fn resolve(&mut self, dispute_id: u64, resolution: Resolution, now: u64) {
         if let Some(dispute) = self.disputes.get_mut(&dispute_id) {
             let duration = now.saturating_sub(dispute.filed_at);
             dispute.state = DisputeState::Resolved;

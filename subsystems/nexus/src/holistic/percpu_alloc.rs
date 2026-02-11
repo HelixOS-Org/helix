@@ -38,14 +38,30 @@ pub struct PercpuChunk {
 
 impl PercpuChunk {
     pub fn new(id: u64, base: u64, size: u32, cpus: u32) -> Self {
-        Self { id, base_addr: base, total_size: size, used_size: 0, nr_allocs: 0, state: PercpuChunkState::Free, allocs: Vec::new(), nr_cpus: cpus }
+        Self {
+            id,
+            base_addr: base,
+            total_size: size,
+            used_size: 0,
+            nr_allocs: 0,
+            state: PercpuChunkState::Free,
+            allocs: Vec::new(),
+            nr_cpus: cpus,
+        }
     }
 
     #[inline]
     pub fn allocate(&mut self, size: u32, owner: u64, now: u64) -> Option<u32> {
-        if self.used_size + size > self.total_size { return None; }
+        if self.used_size + size > self.total_size {
+            return None;
+        }
         let offset = self.used_size;
-        self.allocs.push(PercpuAlloc { offset, size, owner_hash: owner, allocated_at: now });
+        self.allocs.push(PercpuAlloc {
+            offset,
+            size,
+            owner_hash: owner,
+            allocated_at: now,
+        });
         self.used_size += size;
         self.nr_allocs += 1;
         self.update_state();
@@ -64,14 +80,22 @@ impl PercpuChunk {
     }
 
     fn update_state(&mut self) {
-        if self.nr_allocs == 0 { self.state = PercpuChunkState::Free; }
-        else if self.used_size >= self.total_size * 9 / 10 { self.state = PercpuChunkState::Full; }
-        else { self.state = PercpuChunkState::Partial; }
+        if self.nr_allocs == 0 {
+            self.state = PercpuChunkState::Free;
+        } else if self.used_size >= self.total_size * 9 / 10 {
+            self.state = PercpuChunkState::Full;
+        } else {
+            self.state = PercpuChunkState::Partial;
+        }
     }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.total_size == 0 { 0.0 } else { self.used_size as f64 / self.total_size as f64 }
+        if self.total_size == 0 {
+            0.0
+        } else {
+            self.used_size as f64 / self.total_size as f64
+        }
     }
 }
 
@@ -94,37 +118,61 @@ pub struct HolisticPercpuAlloc {
 }
 
 impl HolisticPercpuAlloc {
-    pub fn new(cpus: u32) -> Self { Self { chunks: BTreeMap::new(), next_id: 1, nr_cpus: cpus } }
+    pub fn new(cpus: u32) -> Self {
+        Self {
+            chunks: BTreeMap::new(),
+            next_id: 1,
+            nr_cpus: cpus,
+        }
+    }
 
     #[inline]
     pub fn create_chunk(&mut self, base: u64, size: u32) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.chunks.insert(id, PercpuChunk::new(id, base, size, self.nr_cpus));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.chunks
+            .insert(id, PercpuChunk::new(id, base, size, self.nr_cpus));
         id
     }
 
     #[inline(always)]
     pub fn allocate(&mut self, chunk_id: u64, size: u32, owner: u64, now: u64) -> Option<u32> {
-        if let Some(c) = self.chunks.get_mut(&chunk_id) { c.allocate(size, owner, now) }
-        else { None }
+        if let Some(c) = self.chunks.get_mut(&chunk_id) {
+            c.allocate(size, owner, now)
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
     pub fn free(&mut self, chunk_id: u64, offset: u32) {
-        if let Some(c) = self.chunks.get_mut(&chunk_id) { c.free(offset); }
+        if let Some(c) = self.chunks.get_mut(&chunk_id) {
+            c.free(offset);
+        }
     }
 
     #[inline(always)]
-    pub fn destroy_chunk(&mut self, id: u64) { self.chunks.remove(&id); }
+    pub fn destroy_chunk(&mut self, id: u64) {
+        self.chunks.remove(&id);
+    }
 
     #[inline]
     pub fn stats(&self) -> PercpuAllocStats {
         let allocs: u32 = self.chunks.values().map(|c| c.nr_allocs).sum();
         let used: u64 = self.chunks.values().map(|c| c.used_size as u64).sum();
         let cap: u64 = self.chunks.values().map(|c| c.total_size as u64).sum();
-        let avg = if self.chunks.is_empty() { 0.0 }
-            else { self.chunks.values().map(|c| c.utilization()).sum::<f64>() / self.chunks.len() as f64 };
-        PercpuAllocStats { total_chunks: self.chunks.len() as u32, total_allocs: allocs, total_used_bytes: used, total_capacity_bytes: cap, avg_utilization: avg }
+        let avg = if self.chunks.is_empty() {
+            0.0
+        } else {
+            self.chunks.values().map(|c| c.utilization()).sum::<f64>() / self.chunks.len() as f64
+        };
+        PercpuAllocStats {
+            total_chunks: self.chunks.len() as u32,
+            total_allocs: allocs,
+            total_used_bytes: used,
+            total_capacity_bytes: cap,
+            avg_utilization: avg,
+        }
     }
 }
 
@@ -336,7 +384,8 @@ impl HolisticPercpuAllocV2 {
         for chunk in self.chunks.values_mut() {
             if let Some(addr) = chunk.try_alloc(size) {
                 self.stats.alloc_success += 1;
-                self.stats.free_memory_bytes = self.stats.free_memory_bytes.saturating_sub(size as u64);
+                self.stats.free_memory_bytes =
+                    self.stats.free_memory_bytes.saturating_sub(size as u64);
                 return Some(addr);
             }
         }

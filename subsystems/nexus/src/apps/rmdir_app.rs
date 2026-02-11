@@ -100,18 +100,21 @@ impl AppRmdir {
         self.stats.total_files_removed += record.files_removed as u64;
         self.stats.total_bytes_freed += record.bytes_freed;
         match record.result {
-            RmdirResult::Success => {}
+            RmdirResult::Success => {},
             RmdirResult::NotEmpty => {
                 self.stats.failures += 1;
                 self.stats.not_empty_errors += 1;
-            }
+            },
             _ => self.stats.failures += 1,
         }
     }
 
     #[inline(always)]
     pub fn success_rate(&self) -> f64 {
-        if self.stats.total_ops == 0 { 0.0 }
-        else { (self.stats.total_ops - self.stats.failures) as f64 / self.stats.total_ops as f64 }
+        if self.stats.total_ops == 0 {
+            0.0
+        } else {
+            (self.stats.total_ops - self.stats.failures) as f64 / self.stats.total_ops as f64
+        }
     }
 }

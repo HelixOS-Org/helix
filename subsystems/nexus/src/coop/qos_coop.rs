@@ -40,12 +40,23 @@ pub struct BwAllocation {
 
 impl BwAllocation {
     pub fn new(class: CoopQosClass, rate_bps: u64, ceil_bps: u64) -> Self {
-        Self { class, rate_bps, ceil_bps, burst_bytes: 4096, used_bps: 0, priority: 4 }
+        Self {
+            class,
+            rate_bps,
+            ceil_bps,
+            burst_bytes: 4096,
+            used_bps: 0,
+            priority: 4,
+        }
     }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.rate_bps == 0 { 0.0 } else { self.used_bps as f64 / self.rate_bps as f64 }
+        if self.rate_bps == 0 {
+            0.0
+        } else {
+            self.used_bps as f64 / self.rate_bps as f64
+        }
     }
 
     #[inline(always)]
@@ -75,7 +86,12 @@ pub struct SharedQosPolicy {
 
 impl SharedQosPolicy {
     pub fn new(policy_id: u64, total_bw: u64) -> Self {
-        Self { policy_id, allocations: Vec::new(), total_bandwidth_bps: total_bw, subscribers: Vec::new() }
+        Self {
+            policy_id,
+            allocations: Vec::new(),
+            total_bandwidth_bps: total_bw,
+            subscribers: Vec::new(),
+        }
     }
 
     #[inline(always)]
@@ -90,12 +106,15 @@ impl SharedQosPolicy {
 
     #[inline(always)]
     pub fn remaining_bps(&self) -> u64 {
-        self.total_bandwidth_bps.saturating_sub(self.allocated_bps())
+        self.total_bandwidth_bps
+            .saturating_sub(self.allocated_bps())
     }
 
     #[inline(always)]
     pub fn subscribe(&mut self, ns_id: u64) {
-        if !self.subscribers.contains(&ns_id) { self.subscribers.push(ns_id); }
+        if !self.subscribers.contains(&ns_id) {
+            self.subscribers.push(ns_id);
+        }
     }
 }
 
@@ -110,7 +129,12 @@ pub struct CoopTokenBucket {
 
 impl CoopTokenBucket {
     pub fn new(max_tokens: u64, rate: u64) -> Self {
-        Self { tokens: max_tokens, max_tokens, rate, last_refill_ns: 0 }
+        Self {
+            tokens: max_tokens,
+            max_tokens,
+            rate,
+            last_refill_ns: 0,
+        }
     }
 
     #[inline]
@@ -123,7 +147,12 @@ impl CoopTokenBucket {
 
     #[inline(always)]
     pub fn consume(&mut self, tokens: u64) -> bool {
-        if self.tokens >= tokens { self.tokens -= tokens; true } else { false }
+        if self.tokens >= tokens {
+            self.tokens -= tokens;
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -150,13 +179,19 @@ impl CoopQos {
         Self {
             policies: BTreeMap::new(),
             buckets: BTreeMap::new(),
-            stats: CoopQosStats { total_policies: 0, total_classes: 0, total_bytes_shaped: 0, total_drops: 0 },
+            stats: CoopQosStats {
+                total_policies: 0,
+                total_classes: 0,
+                total_bytes_shaped: 0,
+                total_drops: 0,
+            },
         }
     }
 
     #[inline(always)]
     pub fn create_policy(&mut self, policy_id: u64, total_bw: u64) {
-        self.policies.insert(policy_id, SharedQosPolicy::new(policy_id, total_bw));
+        self.policies
+            .insert(policy_id, SharedQosPolicy::new(policy_id, total_bw));
         self.stats.total_policies += 1;
     }
 
@@ -166,6 +201,8 @@ impl CoopQos {
             policy.add_class(alloc);
             self.stats.total_classes += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }

@@ -72,18 +72,27 @@ pub struct ClassifyMatch {
 impl ClassifyMatch {
     pub fn new() -> Self {
         Self {
-            src_port: None, dst_port: None, protocol: None,
-            cgroup_id: None, pid: None, mark: None, dscp: None,
+            src_port: None,
+            dst_port: None,
+            protocol: None,
+            cgroup_id: None,
+            pid: None,
+            mark: None,
+            dscp: None,
         }
     }
 
     #[inline]
     pub fn matches_port(&self, src: u16, dst: u16) -> bool {
         if let Some((lo, hi)) = self.src_port {
-            if src < lo || src > hi { return false; }
+            if src < lo || src > hi {
+                return false;
+            }
         }
         if let Some((lo, hi)) = self.dst_port {
-            if dst < lo || dst > hi { return false; }
+            if dst < lo || dst > hi {
+                return false;
+            }
         }
         true
     }
@@ -107,7 +116,9 @@ pub struct ClassifyRule {
 impl ClassifyRule {
     pub fn new(id: u32, name: String, tc: TrafficClass) -> Self {
         Self {
-            id, name, priority: 100,
+            id,
+            name,
+            priority: 100,
             match_criteria: ClassifyMatch::new(),
             traffic_class: tc,
             rate_limit_bps: None,
@@ -120,7 +131,9 @@ impl ClassifyRule {
 
     #[inline(always)]
     pub fn avg_packet_size(&self) -> u64 {
-        if self.hit_count == 0 { return 0; }
+        if self.hit_count == 0 {
+            return 0;
+        }
         self.bytes_matched / self.hit_count
     }
 }
@@ -142,21 +155,28 @@ impl ClassStats {
     pub fn new(tc: TrafficClass) -> Self {
         Self {
             traffic_class: tc,
-            packets: 0, bytes: 0, drops: 0,
-            rate_limited: 0, current_rate_bps: 0,
+            packets: 0,
+            bytes: 0,
+            drops: 0,
+            rate_limited: 0,
+            current_rate_bps: 0,
             avg_latency_us: 0,
         }
     }
 
     #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
-        if self.packets == 0 { return 0.0; }
+        if self.packets == 0 {
+            return 0.0;
+        }
         self.drops as f64 / self.packets as f64
     }
 
     #[inline(always)]
     pub fn avg_packet_size(&self) -> u64 {
-        if self.packets == 0 { return 0; }
+        if self.packets == 0 {
+            return 0;
+        }
         self.bytes / self.packets
     }
 }
@@ -184,7 +204,9 @@ impl FlowEntry {
     #[inline]
     pub fn rate_bps(&self) -> u64 {
         let dur_s = self.duration() / 1_000_000;
-        if dur_s == 0 { return self.bytes * 8; }
+        if dur_s == 0 {
+            return self.bytes * 8;
+        }
         (self.bytes * 8) / dur_s
     }
 
@@ -225,9 +247,12 @@ impl HolisticNetClassifier {
             max_flows: 16384,
             next_rule_id: 1,
             stats: NetClassifierStats {
-                total_rules: 0, active_rules: 0,
-                total_packets: 0, total_bytes: 0,
-                unclassified: 0, active_flows: 0,
+                total_rules: 0,
+                active_rules: 0,
+                total_packets: 0,
+                total_bytes: 0,
+                unclassified: 0,
+                active_flows: 0,
             },
         }
     }
@@ -238,7 +263,9 @@ impl HolisticNetClassifier {
         self.next_rule_id += 1;
         rule.id = id;
         self.stats.total_rules += 1;
-        if rule.enabled { self.stats.active_rules += 1; }
+        if rule.enabled {
+            self.stats.active_rules += 1;
+        }
         self.rules.insert(id, rule);
         id
     }
@@ -247,14 +274,22 @@ impl HolisticNetClassifier {
     pub fn remove_rule(&mut self, id: u32) -> bool {
         if let Some(rule) = self.rules.remove(&id) {
             self.stats.total_rules -= 1;
-            if rule.enabled { self.stats.active_rules -= 1; }
+            if rule.enabled {
+                self.stats.active_rules -= 1;
+            }
             true
         } else {
             false
         }
     }
 
-    pub fn classify(&mut self, src_port: u16, dst_port: u16, protocol: Protocol, bytes: u64) -> TrafficClass {
+    pub fn classify(
+        &mut self,
+        src_port: u16,
+        dst_port: u16,
+        protocol: Protocol,
+        bytes: u64,
+    ) -> TrafficClass {
         self.stats.total_packets += 1;
         self.stats.total_bytes += bytes;
 
@@ -264,12 +299,20 @@ impl HolisticNetClassifier {
         let mut best_prio = u32::MAX;
 
         for (&id, rule) in &self.rules {
-            if !rule.enabled { continue; }
-            if rule.priority >= best_prio { continue; }
-            if let Some(p) = rule.match_criteria.protocol {
-                if p != protocol { continue; }
+            if !rule.enabled {
+                continue;
             }
-            if !rule.match_criteria.matches_port(src_port, dst_port) { continue; }
+            if rule.priority >= best_prio {
+                continue;
+            }
+            if let Some(p) = rule.match_criteria.protocol {
+                if p != protocol {
+                    continue;
+                }
+            }
+            if !rule.match_criteria.matches_port(src_port, dst_port) {
+                continue;
+            }
             matched_class = Some(rule.traffic_class);
             matched_id = Some(id);
             best_prio = rule.priority;
@@ -288,7 +331,9 @@ impl HolisticNetClassifier {
         });
 
         // update class stats
-        let cs = self.class_stats.entry(tc.priority())
+        let cs = self
+            .class_stats
+            .entry(tc.priority())
             .or_insert_with(|| ClassStats::new(tc));
         cs.packets += 1;
         cs.bytes += bytes;
@@ -296,8 +341,16 @@ impl HolisticNetClassifier {
         tc
     }
 
-    pub fn track_flow(&mut self, flow_hash: u64, src_port: u16, dst_port: u16,
-                       protocol: Protocol, tc: TrafficClass, bytes: u64, now: u64) {
+    pub fn track_flow(
+        &mut self,
+        flow_hash: u64,
+        src_port: u16,
+        dst_port: u16,
+        protocol: Protocol,
+        tc: TrafficClass,
+        bytes: u64,
+        now: u64,
+    ) {
         if let Some(flow) = self.flows.get_mut(&flow_hash) {
             flow.packets += 1;
             flow.bytes += bytes;
@@ -305,7 +358,9 @@ impl HolisticNetClassifier {
         } else {
             if self.flows.len() >= self.max_flows {
                 // evict oldest
-                if let Some(&oldest) = self.flows.iter()
+                if let Some(&oldest) = self
+                    .flows
+                    .iter()
                     .min_by_key(|(_, f)| f.last_seen)
                     .map(|(k, _)| k)
                 {
@@ -313,9 +368,15 @@ impl HolisticNetClassifier {
                 }
             }
             self.flows.insert(flow_hash, FlowEntry {
-                flow_hash, src_port, dst_port, protocol,
-                traffic_class: tc, packets: 1, bytes,
-                first_seen: now, last_seen: now,
+                flow_hash,
+                src_port,
+                dst_port,
+                protocol,
+                traffic_class: tc,
+                packets: 1,
+                bytes,
+                first_seen: now,
+                last_seen: now,
             });
             self.stats.active_flows += 1;
         }
@@ -332,9 +393,7 @@ impl HolisticNetClassifier {
 
     #[inline]
     pub fn top_flows(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut v: Vec<_> = self.flows.iter()
-            .map(|(&h, f)| (h, f.bytes))
-            .collect();
+        let mut v: Vec<_> = self.flows.iter().map(|(&h, f)| (h, f.bytes)).collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
         v.truncate(n);
         v

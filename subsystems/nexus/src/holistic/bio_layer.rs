@@ -185,7 +185,7 @@ impl HolisticBioLayer {
         match op {
             BioOp::Read => self.stats.total_reads += 1,
             BioOp::Write => self.stats.total_writes += 1,
-            _ => {}
+            _ => {},
         }
         self.bios.insert(id, bio);
         id

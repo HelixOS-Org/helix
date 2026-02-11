@@ -135,8 +135,7 @@ impl Notification {
     /// Can retry?
     #[inline(always)]
     pub fn can_retry(&self) -> bool {
-        self.attempts < self.max_attempts
-            && self.guarantee != DeliveryGuarantee::AtMostOnce
+        self.attempts < self.max_attempts && self.guarantee != DeliveryGuarantee::AtMostOnce
     }
 
     /// Record delivery attempt
@@ -341,7 +340,9 @@ impl CoopNotificationManager {
     ) -> u64 {
         let topic_key = Self::topic_key(&topic_name);
         // Ensure topic exists
-        self.topics.entry(topic_key).or_insert_with(|| Topic::new(topic_name.clone()));
+        self.topics
+            .entry(topic_key)
+            .or_insert_with(|| Topic::new(topic_name.clone()));
 
         let sub_id = self.next_sub_id;
         self.next_sub_id += 1;

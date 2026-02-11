@@ -112,10 +112,9 @@ impl EventType {
             | Self::SessionResumed
             | Self::SessionTerminated => EventCategory::Session,
 
-            Self::HintReceived
-            | Self::HintProcessed
-            | Self::HintApplied
-            | Self::HintRejected => EventCategory::Hint,
+            Self::HintReceived | Self::HintProcessed | Self::HintApplied | Self::HintRejected => {
+                EventCategory::Hint
+            },
 
             Self::AdvisoryEmitted
             | Self::AdvisoryDelivered
@@ -128,18 +127,17 @@ impl EventType {
             | Self::ContractViolated
             | Self::ContractTerminated => EventCategory::Contract,
 
-            Self::TrustIncreased
-            | Self::TrustDecreased
-            | Self::TrustLevelChanged => EventCategory::Trust,
+            Self::TrustIncreased | Self::TrustDecreased | Self::TrustLevelChanged => {
+                EventCategory::Trust
+            },
 
-            Self::RewardIssued
-            | Self::PenaltyIssued
-            | Self::LevelUp
-            | Self::LevelDown => EventCategory::Reward,
+            Self::RewardIssued | Self::PenaltyIssued | Self::LevelUp | Self::LevelDown => {
+                EventCategory::Reward
+            },
 
-            Self::ChannelOpened
-            | Self::ChannelClosed
-            | Self::ChannelBackpressure => EventCategory::Channel,
+            Self::ChannelOpened | Self::ChannelClosed | Self::ChannelBackpressure => {
+                EventCategory::Channel
+            },
 
             Self::CapabilityRegistered
             | Self::CapabilityUnregistered
@@ -151,9 +149,9 @@ impl EventType {
             | Self::ComplianceCritical
             | Self::ComplianceRestored => EventCategory::Compliance,
 
-            Self::SystemPressure
-            | Self::SystemRecovery
-            | Self::SystemShutdown => EventCategory::System,
+            Self::SystemPressure | Self::SystemRecovery | Self::SystemShutdown => {
+                EventCategory::System
+            },
         }
     }
 }
@@ -430,11 +428,7 @@ impl CoopEventBus {
     }
 
     /// Subscribe to events
-    pub fn subscribe(
-        &mut self,
-        pid: u64,
-        filter: EventFilter,
-    ) -> SubscriptionId {
+    pub fn subscribe(&mut self, pid: u64, filter: EventFilter) -> SubscriptionId {
         let id = SubscriptionId(self.next_sub_id);
         self.next_sub_id += 1;
 

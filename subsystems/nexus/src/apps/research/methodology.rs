@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -371,8 +370,8 @@ impl AppsMethodology {
         let has = design.has_control_group;
         let isolation = has && design.randomized;
         let comparable = has && {
-            let ratio = design.sample_size_control as f32
-                / design.sample_size_treatment.max(1) as f32;
+            let ratio =
+                design.sample_size_control as f32 / design.sample_size_treatment.max(1) as f32;
             ratio >= 0.5 && ratio <= 2.0
         };
         let quality = if has { 0.4 } else { 0.0 }
@@ -407,9 +406,15 @@ impl AppsMethodology {
                     BiasType::TemporalBias => String::from("Extend experiment duration"),
                     BiasType::MeasurementBias => String::from("Use blinded measurement"),
                     BiasType::OrderEffect => String::from("Counterbalance treatment ordering"),
-                    BiasType::SurvivorshipBias => String::from("Track all participants including dropouts"),
-                    BiasType::ConfirmationBias => String::from("Pre-register hypotheses and analysis plan"),
-                    BiasType::VolunteerBias => String::from("Use mandatory sampling where possible"),
+                    BiasType::SurvivorshipBias => {
+                        String::from("Track all participants including dropouts")
+                    },
+                    BiasType::ConfirmationBias => {
+                        String::from("Pre-register hypotheses and analysis plan")
+                    },
+                    BiasType::VolunteerBias => {
+                        String::from("Use mandatory sampling where possible")
+                    },
                 };
                 hints.push(hint);
             }
@@ -449,12 +454,16 @@ impl AppsMethodology {
         let mut est_improvement = 0.0f32;
 
         if eval.sample_score < 0.7 {
-            suggestions.push(String::from("Increase sample size to at least 100 per group"));
+            suggestions.push(String::from(
+                "Increase sample size to at least 100 per group",
+            ));
             priority = String::from("Increase sample size");
             est_improvement += 0.15;
         }
         if eval.control_score < 0.7 {
-            suggestions.push(String::from("Add proper control group with baseline measurement"));
+            suggestions.push(String::from(
+                "Add proper control group with baseline measurement",
+            ));
             if est_improvement < 0.05 {
                 priority = String::from("Add control group");
             }
@@ -469,7 +478,9 @@ impl AppsMethodology {
             est_improvement += 0.10;
         }
         if eval.documentation_score < 0.7 {
-            suggestions.push(String::from("Document hypothesis, methods, and analysis plan"));
+            suggestions.push(String::from(
+                "Document hypothesis, methods, and analysis plan",
+            ));
             est_improvement += 0.08;
         }
 
@@ -531,7 +542,9 @@ impl AppsMethodology {
         if !design.randomized {
             biases.push((BiasType::SelectionBias, 0.5));
         }
-        if design.sample_size_control < MIN_SAMPLE_SIZE || design.sample_size_treatment < MIN_SAMPLE_SIZE {
+        if design.sample_size_control < MIN_SAMPLE_SIZE
+            || design.sample_size_treatment < MIN_SAMPLE_SIZE
+        {
             biases.push((BiasType::SamplingBias, 0.4));
         }
         if design.duration_ticks < 100 {

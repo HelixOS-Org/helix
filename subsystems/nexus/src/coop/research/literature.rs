@@ -407,8 +407,8 @@ impl CoopLiterature {
             }
         }
         self.stats.high_relevance_count = high_count;
-        self.stats.avg_relevance_ema = EMA_ALPHA * completeness
-            + (1.0 - EMA_ALPHA) * self.stats.avg_relevance_ema;
+        self.stats.avg_relevance_ema =
+            EMA_ALPHA * completeness + (1.0 - EMA_ALPHA) * self.stats.avg_relevance_ema;
 
         completeness
     }

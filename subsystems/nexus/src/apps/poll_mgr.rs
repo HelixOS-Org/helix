@@ -110,7 +110,9 @@ impl EpollFdEntry {
 
     #[inline(always)]
     pub fn activity_ratio(&self, total_waits: u64) -> f64 {
-        if total_waits == 0 { return 0.0; }
+        if total_waits == 0 {
+            return 0.0;
+        }
         self.fired_count as f64 / total_waits as f64
     }
 }
@@ -173,19 +175,24 @@ impl EpollInstance {
 
     #[inline(always)]
     pub fn avg_events_per_wait(&self) -> f64 {
-        if self.wait_count == 0 { return 0.0; }
+        if self.wait_count == 0 {
+            return 0.0;
+        }
         self.event_count as f64 / self.wait_count as f64
     }
 
     #[inline(always)]
     pub fn timeout_rate(&self) -> f64 {
-        if self.wait_count == 0 { return 0.0; }
+        if self.wait_count == 0 {
+            return 0.0;
+        }
         self.timeout_count as f64 / self.wait_count as f64
     }
 
     #[inline]
     pub fn stale_fds(&self) -> Vec<u64> {
-        self.fds.iter()
+        self.fds
+            .iter()
             .filter(|e| e.fired_count == 0 && self.wait_count > 10)
             .map(|e| e.fd)
             .collect()
@@ -233,7 +240,9 @@ impl AppPollProfile {
 
     #[inline(always)]
     pub fn avg_fds_per_call(&self) -> f64 {
-        if self.total_poll_calls == 0 { return 0.0; }
+        if self.total_poll_calls == 0 {
+            return 0.0;
+        }
         self.total_fds_watched as f64 / self.total_poll_calls as f64
     }
 
@@ -289,7 +298,8 @@ impl AppPollMgr {
     pub fn create_epoll(&mut self, pid: u64, timestamp_ns: u64) -> u64 {
         let epfd = self.next_epfd;
         self.next_epfd += 1;
-        self.epoll_instances.insert(epfd, EpollInstance::new(epfd, pid, timestamp_ns));
+        self.epoll_instances
+            .insert(epfd, EpollInstance::new(epfd, pid, timestamp_ns));
         if let Some(prof) = self.app_profiles.get_mut(&pid) {
             prof.epoll_instances.push(epfd);
         }
@@ -356,7 +366,9 @@ impl AppPollMgr {
 
     #[inline]
     pub fn worst_timeout_rates(&self, top: usize) -> Vec<(u64, f64)> {
-        let mut v: Vec<(u64, f64)> = self.epoll_instances.iter()
+        let mut v: Vec<(u64, f64)> = self
+            .epoll_instances
+            .iter()
             .filter(|(_, inst)| inst.wait_count > 5)
             .map(|(&epfd, inst)| (epfd, inst.timeout_rate()))
             .collect();
@@ -439,8 +451,11 @@ impl PollV2Call {
     #[inline]
     pub fn add_fd(&mut self, fd: u64, events: u16) {
         self.fds.push(PollV2Fd {
-            fd, events, revents: 0,
-            poll_count: 0, ready_count: 0,
+            fd,
+            events,
+            revents: 0,
+            poll_count: 0,
+            ready_count: 0,
         });
     }
 
@@ -485,9 +500,12 @@ impl AppPollV2Mgr {
             active_calls: BTreeMap::new(),
             next_id: 1,
             stats: PollV2MgrStats {
-                total_poll_calls: 0, total_ppoll_calls: 0,
-                total_fds_polled: 0, total_ready: 0,
-                timeouts: 0, max_fds_in_call: 0,
+                total_poll_calls: 0,
+                total_ppoll_calls: 0,
+                total_fds_polled: 0,
+                total_ready: 0,
+                timeouts: 0,
+                max_fds_in_call: 0,
                 signal_interrupts: 0,
             },
         }
@@ -497,9 +515,13 @@ impl AppPollV2Mgr {
     pub fn begin_poll(&mut self, timeout_ms: i64, is_ppoll: bool, tick: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.active_calls.insert(id, PollV2Call::new(id, timeout_ms, is_ppoll, tick));
-        if is_ppoll { self.stats.total_ppoll_calls += 1; }
-        else { self.stats.total_poll_calls += 1; }
+        self.active_calls
+            .insert(id, PollV2Call::new(id, timeout_ms, is_ppoll, tick));
+        if is_ppoll {
+            self.stats.total_ppoll_calls += 1;
+        } else {
+            self.stats.total_poll_calls += 1;
+        }
         id
     }
 
@@ -513,7 +535,9 @@ impl AppPollV2Mgr {
                 self.stats.max_fds_in_call = n;
             }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -522,9 +546,13 @@ impl AppPollV2Mgr {
             call.completed = true;
             let ready = call.ready_count;
             self.stats.total_ready += ready as u64;
-            if ready == 0 { self.stats.timeouts += 1; }
+            if ready == 0 {
+                self.stats.timeouts += 1;
+            }
             Some(ready)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline(always)]

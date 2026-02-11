@@ -6,8 +6,7 @@
 
 extern crate alloc;
 use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;

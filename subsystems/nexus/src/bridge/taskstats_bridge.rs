@@ -39,10 +39,16 @@ pub struct TaskstatsCpuAccounting {
 impl TaskstatsCpuAccounting {
     pub fn new() -> Self {
         Self {
-            utime_ns: 0, stime_ns: 0, guest_time_ns: 0,
-            blkio_delay_ns: 0, swapin_delay_ns: 0, freepages_delay_ns: 0,
-            thrashing_delay_ns: 0, compact_delay_ns: 0,
-            wpcopy_delay_ns: 0, irq_delay_ns: 0,
+            utime_ns: 0,
+            stime_ns: 0,
+            guest_time_ns: 0,
+            blkio_delay_ns: 0,
+            swapin_delay_ns: 0,
+            freepages_delay_ns: 0,
+            thrashing_delay_ns: 0,
+            compact_delay_ns: 0,
+            wpcopy_delay_ns: 0,
+            irq_delay_ns: 0,
         }
     }
 
@@ -53,16 +59,23 @@ impl TaskstatsCpuAccounting {
 
     #[inline]
     pub fn total_delay_ns(&self) -> u64 {
-        self.blkio_delay_ns + self.swapin_delay_ns + self.freepages_delay_ns
-            + self.thrashing_delay_ns + self.compact_delay_ns
-            + self.wpcopy_delay_ns + self.irq_delay_ns
+        self.blkio_delay_ns
+            + self.swapin_delay_ns
+            + self.freepages_delay_ns
+            + self.thrashing_delay_ns
+            + self.compact_delay_ns
+            + self.wpcopy_delay_ns
+            + self.irq_delay_ns
     }
 
     #[inline]
     pub fn cpu_efficiency_pct(&self) -> u64 {
         let total = self.total_cpu_ns() + self.total_delay_ns();
-        if total == 0 { 100 }
-        else { (self.total_cpu_ns() * 100) / total }
+        if total == 0 {
+            100
+        } else {
+            (self.total_cpu_ns() * 100) / total
+        }
     }
 }
 
@@ -80,9 +93,13 @@ pub struct TaskstatsIoAccounting {
 impl TaskstatsIoAccounting {
     pub fn new() -> Self {
         Self {
-            read_bytes: 0, write_bytes: 0, cancelled_write_bytes: 0,
-            read_syscalls: 0, write_syscalls: 0,
-            read_char: 0, write_char: 0,
+            read_bytes: 0,
+            write_bytes: 0,
+            cancelled_write_bytes: 0,
+            read_syscalls: 0,
+            write_syscalls: 0,
+            read_char: 0,
+            write_char: 0,
         }
     }
 
@@ -93,12 +110,20 @@ impl TaskstatsIoAccounting {
 
     #[inline(always)]
     pub fn avg_read_size(&self) -> u64 {
-        if self.read_syscalls == 0 { 0 } else { self.read_bytes / self.read_syscalls }
+        if self.read_syscalls == 0 {
+            0
+        } else {
+            self.read_bytes / self.read_syscalls
+        }
     }
 
     #[inline(always)]
     pub fn avg_write_size(&self) -> u64 {
-        if self.write_syscalls == 0 { 0 } else { self.write_bytes / self.write_syscalls }
+        if self.write_syscalls == 0 {
+            0
+        } else {
+            self.write_bytes / self.write_syscalls
+        }
     }
 }
 
@@ -118,16 +143,25 @@ pub struct TaskstatsMemAccounting {
 impl TaskstatsMemAccounting {
     pub fn new() -> Self {
         Self {
-            rss_pages: 0, vsize_bytes: 0, hiwater_rss: 0, hiwater_vm: 0,
-            nr_page_faults: 0, nr_minor_faults: 0, nr_major_faults: 0,
-            nr_voluntary_switches: 0, nr_involuntary_switches: 0,
+            rss_pages: 0,
+            vsize_bytes: 0,
+            hiwater_rss: 0,
+            hiwater_vm: 0,
+            nr_page_faults: 0,
+            nr_minor_faults: 0,
+            nr_major_faults: 0,
+            nr_voluntary_switches: 0,
+            nr_involuntary_switches: 0,
         }
     }
 
     #[inline(always)]
     pub fn major_fault_rate(&self) -> u64 {
-        if self.nr_page_faults == 0 { 0 }
-        else { (self.nr_major_faults * 100) / self.nr_page_faults }
+        if self.nr_page_faults == 0 {
+            0
+        } else {
+            (self.nr_major_faults * 100) / self.nr_page_faults
+        }
     }
 }
 
@@ -190,7 +224,10 @@ impl BridgeTaskstats {
     #[inline]
     pub fn register_task(&mut self, pid: u64, tgid: u64) {
         self.entries.insert(pid, TaskstatsEntry::new(pid, tgid));
-        self.tgid_members.entry(tgid).or_insert_with(Vec::new).push(pid);
+        self.tgid_members
+            .entry(tgid)
+            .or_insert_with(Vec::new)
+            .push(pid);
         self.stats.total_tasks_tracked += 1;
     }
 

@@ -3,11 +3,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-
 /// Governor type
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GovernorType {
     Performance,
@@ -34,18 +34,34 @@ pub struct CpuFreqState {
 
 impl CpuFreqState {
     pub fn new(cpu_id: u32, min: u64, max: u64) -> Self {
-        Self { cpu_id, current_freq_khz: max, min_freq_khz: min, max_freq_khz: max, governor: GovernorType::Schedutil, load_percent: 0, transitions: 0, time_in_state_ms: LinearMap::new() }
+        Self {
+            cpu_id,
+            current_freq_khz: max,
+            min_freq_khz: min,
+            max_freq_khz: max,
+            governor: GovernorType::Schedutil,
+            load_percent: 0,
+            transitions: 0,
+            time_in_state_ms: LinearMap::new(),
+        }
     }
 
     #[inline(always)]
     pub fn set_freq(&mut self, freq_khz: u64) {
         let f = freq_khz.clamp(self.min_freq_khz, self.max_freq_khz);
-        if f != self.current_freq_khz { self.transitions += 1; self.current_freq_khz = f; }
+        if f != self.current_freq_khz {
+            self.transitions += 1;
+            self.current_freq_khz = f;
+        }
     }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.max_freq_khz == 0 { 0.0 } else { self.current_freq_khz as f64 / self.max_freq_khz as f64 }
+        if self.max_freq_khz == 0 {
+            0.0
+        } else {
+            self.current_freq_khz as f64 / self.max_freq_khz as f64
+        }
     }
 }
 
@@ -76,11 +92,17 @@ pub struct HolisticCpuFreqGov {
 }
 
 impl HolisticCpuFreqGov {
-    pub fn new() -> Self { Self { cpus: BTreeMap::new(), transitions: 0 } }
+    pub fn new() -> Self {
+        Self {
+            cpus: BTreeMap::new(),
+            transitions: 0,
+        }
+    }
 
     #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32, min: u64, max: u64) {
-        self.cpus.insert(cpu_id, CpuFreqState::new(cpu_id, min, max));
+        self.cpus
+            .insert(cpu_id, CpuFreqState::new(cpu_id, min, max));
     }
 
     pub fn update_load(&mut self, cpu_id: u32, load: u32) {
@@ -93,13 +115,16 @@ impl HolisticCpuFreqGov {
                     let range = cpu.max_freq_khz - cpu.min_freq_khz;
                     let target = cpu.min_freq_khz + (range * load as u64) / 100;
                     cpu.set_freq(target);
-                }
+                },
                 GovernorType::Conservative => {
                     let step = (cpu.max_freq_khz - cpu.min_freq_khz) / 20;
-                    if load > 80 { cpu.set_freq(cpu.current_freq_khz + step); }
-                    else if load < 20 { cpu.set_freq(cpu.current_freq_khz.saturating_sub(step)); }
-                }
-                GovernorType::Userspace => {}
+                    if load > 80 {
+                        cpu.set_freq(cpu.current_freq_khz + step);
+                    } else if load < 20 {
+                        cpu.set_freq(cpu.current_freq_khz.saturating_sub(step));
+                    }
+                },
+                GovernorType::Userspace => {},
             }
         }
     }
@@ -108,9 +133,22 @@ impl HolisticCpuFreqGov {
     pub fn stats(&self) -> CpuFreqGovStats {
         let transitions: u64 = self.cpus.values().map(|c| c.transitions).sum();
         let freqs: Vec<u64> = self.cpus.values().map(|c| c.current_freq_khz).collect();
-        let avg_freq = if freqs.is_empty() { 0 } else { freqs.iter().sum::<u64>() / freqs.len() as u64 };
+        let avg_freq = if freqs.is_empty() {
+            0
+        } else {
+            freqs.iter().sum::<u64>() / freqs.len() as u64
+        };
         let utils: Vec<f64> = self.cpus.values().map(|c| c.utilization()).collect();
-        let avg_util = if utils.is_empty() { 0.0 } else { utils.iter().sum::<f64>() / utils.len() as f64 };
-        CpuFreqGovStats { total_cpus: self.cpus.len() as u32, total_transitions: transitions, avg_freq_khz: avg_freq, avg_utilization: avg_util }
+        let avg_util = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
+        CpuFreqGovStats {
+            total_cpus: self.cpus.len() as u32,
+            total_transitions: transitions,
+            avg_freq_khz: avg_freq,
+            avg_utilization: avg_util,
+        }
     }
 }

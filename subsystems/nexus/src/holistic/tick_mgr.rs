@@ -61,9 +61,16 @@ pub struct TimerEntry {
 impl TimerEntry {
     pub fn new(id: u64, ttype: TimerType, cpu: u32, expires: u64) -> Self {
         Self {
-            timer_id: id, timer_type: ttype, state: TimerState::Pending,
-            cpu_id: cpu, expires_ns: expires, period_ns: 0, slack_ns: 0,
-            callback_time_ns: 0, fire_count: 0, miss_count: 0,
+            timer_id: id,
+            timer_type: ttype,
+            state: TimerState::Pending,
+            cpu_id: cpu,
+            expires_ns: expires,
+            period_ns: 0,
+            slack_ns: 0,
+            callback_time_ns: 0,
+            fire_count: 0,
+            miss_count: 0,
         }
     }
 
@@ -84,12 +91,17 @@ impl TimerEntry {
 
     #[inline(always)]
     pub fn accuracy(&self) -> f64 {
-        if self.fire_count == 0 { 1.0 }
-        else { 1.0 - (self.miss_count as f64 / self.fire_count as f64) }
+        if self.fire_count == 0 {
+            1.0
+        } else {
+            1.0 - (self.miss_count as f64 / self.fire_count as f64)
+        }
     }
 
     #[inline(always)]
-    pub fn is_hrtimer(&self) -> bool { self.timer_type == TimerType::HrTimer }
+    pub fn is_hrtimer(&self) -> bool {
+        self.timer_type == TimerType::HrTimer
+    }
 }
 
 /// Timer wheel bucket
@@ -104,7 +116,12 @@ pub struct TimerWheelBucket {
 
 impl TimerWheelBucket {
     pub fn new(level: u8, slot: u32) -> Self {
-        Self { level, slot, timer_count: 0, next_expiry_ns: u64::MAX }
+        Self {
+            level,
+            slot,
+            timer_count: 0,
+            next_expiry_ns: u64::MAX,
+        }
     }
 }
 
@@ -130,11 +147,19 @@ pub struct CpuTickState {
 impl CpuTickState {
     pub fn new(cpu_id: u32, period_ns: u64) -> Self {
         Self {
-            cpu_id, mode: TickMode::Periodic, jiffies: 0,
-            tick_period_ns: period_ns, last_tick_ts: 0, ticks_missed: 0,
-            nohz_idle_since: 0, nohz_exits: 0, pending_timers: 0,
-            hr_timers_active: 0, broadcast_pending: false,
-            next_timer_ns: u64::MAX, drift_ns: 0,
+            cpu_id,
+            mode: TickMode::Periodic,
+            jiffies: 0,
+            tick_period_ns: period_ns,
+            last_tick_ts: 0,
+            ticks_missed: 0,
+            nohz_idle_since: 0,
+            nohz_exits: 0,
+            pending_timers: 0,
+            hr_timers_active: 0,
+            broadcast_pending: false,
+            next_timer_ns: u64::MAX,
+            drift_ns: 0,
         }
     }
 
@@ -172,7 +197,9 @@ impl CpuTickState {
     pub fn idle_time_ns(&self, current_ts: u64) -> u64 {
         if self.mode == TickMode::NoHzIdle || self.mode == TickMode::NoHzFull {
             current_ts.saturating_sub(self.nohz_idle_since)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 }
 
@@ -189,12 +216,20 @@ pub struct BroadcastState {
 
 impl BroadcastState {
     pub fn new(broadcaster: u32) -> Self {
-        Self { broadcaster_cpu: broadcaster, idle_cpus: Vec::new(), next_event_ns: u64::MAX, events_sent: 0, events_missed: 0 }
+        Self {
+            broadcaster_cpu: broadcaster,
+            idle_cpus: Vec::new(),
+            next_event_ns: u64::MAX,
+            events_sent: 0,
+            events_missed: 0,
+        }
     }
 
     #[inline(always)]
     pub fn add_idle_cpu(&mut self, cpu: u32) {
-        if !self.idle_cpus.contains(&cpu) { self.idle_cpus.push(cpu); }
+        if !self.idle_cpus.contains(&cpu) {
+            self.idle_cpus.push(cpu);
+        }
     }
 
     #[inline(always)]
@@ -230,15 +265,18 @@ pub struct HolisticTickMgr {
 impl HolisticTickMgr {
     pub fn new() -> Self {
         Self {
-            cpus: BTreeMap::new(), timers: BTreeMap::new(),
-            broadcast: None, stats: TickMgrStats::default(),
+            cpus: BTreeMap::new(),
+            timers: BTreeMap::new(),
+            broadcast: None,
+            stats: TickMgrStats::default(),
             next_timer_id: 1,
         }
     }
 
     #[inline(always)]
     pub fn add_cpu(&mut self, cpu_id: u32, tick_period_ns: u64) {
-        self.cpus.insert(cpu_id, CpuTickState::new(cpu_id, tick_period_ns));
+        self.cpus
+            .insert(cpu_id, CpuTickState::new(cpu_id, tick_period_ns));
     }
 
     #[inline(always)]
@@ -248,37 +286,52 @@ impl HolisticTickMgr {
 
     #[inline(always)]
     pub fn tick(&mut self, cpu: u32, ts: u64) {
-        if let Some(c) = self.cpus.get_mut(&cpu) { c.tick(ts); }
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.tick(ts);
+        }
     }
 
     #[inline(always)]
     pub fn enter_nohz(&mut self, cpu: u32, ts: u64) {
-        if let Some(c) = self.cpus.get_mut(&cpu) { c.enter_nohz(ts); }
-        if let Some(ref mut bc) = self.broadcast { bc.add_idle_cpu(cpu); }
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.enter_nohz(ts);
+        }
+        if let Some(ref mut bc) = self.broadcast {
+            bc.add_idle_cpu(cpu);
+        }
     }
 
     #[inline(always)]
     pub fn exit_nohz(&mut self, cpu: u32, ts: u64) {
-        if let Some(c) = self.cpus.get_mut(&cpu) { c.exit_nohz(ts); }
-        if let Some(ref mut bc) = self.broadcast { bc.remove_idle_cpu(cpu); }
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.exit_nohz(ts);
+        }
+        if let Some(ref mut bc) = self.broadcast {
+            bc.remove_idle_cpu(cpu);
+        }
     }
 
     #[inline]
     pub fn add_timer(&mut self, ttype: TimerType, cpu: u32, expires: u64) -> u64 {
         let id = self.next_timer_id;
         self.next_timer_id += 1;
-        self.timers.insert(id, TimerEntry::new(id, ttype, cpu, expires));
+        self.timers
+            .insert(id, TimerEntry::new(id, ttype, cpu, expires));
         id
     }
 
     #[inline(always)]
     pub fn fire_timer(&mut self, timer_id: u64, ts: u64) {
-        if let Some(t) = self.timers.get_mut(&timer_id) { t.fire(ts); }
+        if let Some(t) = self.timers.get_mut(&timer_id) {
+            t.fire(ts);
+        }
     }
 
     #[inline(always)]
     pub fn cancel_timer(&mut self, timer_id: u64) {
-        if let Some(t) = self.timers.get_mut(&timer_id) { t.state = TimerState::Cancelled; }
+        if let Some(t) = self.timers.get_mut(&timer_id) {
+            t.state = TimerState::Cancelled;
+        }
     }
 
     #[inline]
@@ -300,29 +353,53 @@ impl HolisticTickMgr {
             }
         }
         for &id in &fired {
-            if let Some(t) = self.timers.get_mut(&id) { t.fire(ts); }
+            if let Some(t) = self.timers.get_mut(&id) {
+                t.fire(ts);
+            }
         }
         fired
     }
 
     pub fn recompute(&mut self) {
         self.stats.total_cpus = self.cpus.len();
-        self.stats.nohz_idle_cpus = self.cpus.values().filter(|c| c.mode == TickMode::NoHzIdle).count();
-        self.stats.nohz_full_cpus = self.cpus.values().filter(|c| c.mode == TickMode::NoHzFull).count();
+        self.stats.nohz_idle_cpus = self
+            .cpus
+            .values()
+            .filter(|c| c.mode == TickMode::NoHzIdle)
+            .count();
+        self.stats.nohz_full_cpus = self
+            .cpus
+            .values()
+            .filter(|c| c.mode == TickMode::NoHzFull)
+            .count();
         self.stats.total_timers = self.timers.len();
         self.stats.hr_timers = self.timers.values().filter(|t| t.is_hrtimer()).count();
         self.stats.total_ticks_missed = self.cpus.values().map(|c| c.ticks_missed).sum();
         let drifts: Vec<f64> = self.cpus.values().map(|c| c.drift_ns as f64).collect();
-        self.stats.avg_drift_ns = if drifts.is_empty() { 0.0 } else { drifts.iter().sum::<f64>() / drifts.len() as f64 };
+        self.stats.avg_drift_ns = if drifts.is_empty() {
+            0.0
+        } else {
+            drifts.iter().sum::<f64>() / drifts.len() as f64
+        };
         self.stats.total_nohz_exits = self.cpus.values().map(|c| c.nohz_exits).sum();
         let accs: Vec<f64> = self.timers.values().map(|t| t.accuracy()).collect();
-        self.stats.timer_accuracy = if accs.is_empty() { 1.0 } else { accs.iter().sum::<f64>() / accs.len() as f64 };
+        self.stats.timer_accuracy = if accs.is_empty() {
+            1.0
+        } else {
+            accs.iter().sum::<f64>() / accs.len() as f64
+        };
     }
 
     #[inline(always)]
-    pub fn cpu(&self, id: u32) -> Option<&CpuTickState> { self.cpus.get(&id) }
+    pub fn cpu(&self, id: u32) -> Option<&CpuTickState> {
+        self.cpus.get(&id)
+    }
     #[inline(always)]
-    pub fn timer(&self, id: u64) -> Option<&TimerEntry> { self.timers.get(&id) }
+    pub fn timer(&self, id: u64) -> Option<&TimerEntry> {
+        self.timers.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &TickMgrStats { &self.stats }
+    pub fn stats(&self) -> &TickMgrStats {
+        &self.stats
+    }
 }

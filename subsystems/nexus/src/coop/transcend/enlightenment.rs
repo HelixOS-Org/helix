@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -58,7 +59,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(val: u64, lo: u64, hi: u64) -> u64 {
-    if val < lo { lo } else if val > hi { hi } else { val }
+    if val < lo {
+        lo
+    } else if val > hi {
+        hi
+    } else {
+        val
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -241,9 +248,10 @@ impl CoopEnlightenment {
             EnlightenmentLevel::Nascent
         };
 
-        let sid = subsystem_ids.iter().fold(FNV_OFFSET, |acc, &id| {
-            acc ^ fnv1a(&id.to_le_bytes())
-        }) ^ self.current_tick;
+        let sid = subsystem_ids
+            .iter()
+            .fold(FNV_OFFSET, |acc, &id| acc ^ fnv1a(&id.to_le_bytes()))
+            ^ self.current_tick;
 
         let conflict_residue = 100u64.saturating_sub(harmony);
 
@@ -259,7 +267,9 @@ impl CoopEnlightenment {
 
         if self.harmony_states.len() >= MAX_HARMONY_STATES {
             let oldest = self.harmony_states.keys().next().copied();
-            if let Some(k) = oldest { self.harmony_states.remove(&k); }
+            if let Some(k) = oldest {
+                self.harmony_states.remove(&k);
+            }
         }
         self.harmony_states.insert(sid, state);
         self.harmony_index.insert(sid, harmony);
@@ -337,7 +347,9 @@ impl CoopEnlightenment {
 
         if self.conflict_transcendences.len() >= MAX_CONFLICT_RECORDS {
             let oldest = self.conflict_transcendences.keys().next().copied();
-            if let Some(k) = oldest { self.conflict_transcendences.remove(&k); }
+            if let Some(k) = oldest {
+                self.conflict_transcendences.remove(&k);
+            }
         }
         self.conflict_transcendences.insert(rid, record);
         self.stats.conflicts_transcended += 1;
@@ -393,7 +405,9 @@ impl CoopEnlightenment {
 
         if self.fairness_insights.len() >= MAX_FAIRNESS_INSIGHTS {
             let oldest = self.fairness_insights.keys().next().copied();
-            if let Some(k) = oldest { self.fairness_insights.remove(&k); }
+            if let Some(k) = oldest {
+                self.fairness_insights.remove(&k);
+            }
         }
         self.fairness_insights.insert(iid, insight);
         self.stats.fairness_insights_gained += 1;
@@ -404,15 +418,12 @@ impl CoopEnlightenment {
     // -----------------------------------------------------------------------
     // unity_insight — dissolve adversarial boundaries
     // -----------------------------------------------------------------------
-    pub fn unity_insight(
-        &mut self,
-        participant_ids: &[u64],
-        shared_goal_score: u64,
-    ) -> u64 {
+    pub fn unity_insight(&mut self, participant_ids: &[u64], shared_goal_score: u64) -> u64 {
         self.current_tick += 1;
-        let uid = participant_ids.iter().fold(FNV_OFFSET, |acc, &id| {
-            acc ^ fnv1a(&id.to_le_bytes())
-        }) ^ self.current_tick;
+        let uid = participant_ids
+            .iter()
+            .fold(FNV_OFFSET, |acc, &id| acc ^ fnv1a(&id.to_le_bytes()))
+            ^ self.current_tick;
 
         let cohesion = if participant_ids.len() < 2 {
             shared_goal_score
@@ -438,7 +449,9 @@ impl CoopEnlightenment {
 
         if self.unity_records.len() >= MAX_UNITY_RECORDS {
             let oldest = self.unity_records.keys().next().copied();
-            if let Some(k) = oldest { self.unity_records.remove(&k); }
+            if let Some(k) = oldest {
+                self.unity_records.remove(&k);
+            }
         }
         self.unity_records.insert(uid, record);
         self.stats.unity_records += 1;

@@ -232,11 +232,7 @@ impl<T: Copy + Default, const N: usize> RingBuffer<T, N> {
     /// Internal: compute tail (oldest element) index. **O(1)**.
     #[inline(always)]
     const fn tail_index(&self) -> usize {
-        if self.len < N {
-            0
-        } else {
-            self.head
-        }
+        if self.len < N { 0 } else { self.head }
     }
 }
 

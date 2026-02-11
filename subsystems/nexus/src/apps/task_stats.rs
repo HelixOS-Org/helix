@@ -25,17 +25,23 @@ pub struct CpuAccounting {
 
 impl CpuAccounting {
     #[inline(always)]
-    pub fn total_ns(&self) -> u64 { self.user_ns + self.system_ns + self.guest_ns + self.irq_ns + self.softirq_ns }
+    pub fn total_ns(&self) -> u64 {
+        self.user_ns + self.system_ns + self.guest_ns + self.irq_ns + self.softirq_ns
+    }
     #[inline]
     pub fn user_ratio(&self) -> f64 {
         let t = self.total_ns();
-        if t == 0 { return 0.0; }
+        if t == 0 {
+            return 0.0;
+        }
         self.user_ns as f64 / t as f64
     }
     #[inline]
     pub fn system_ratio(&self) -> f64 {
         let t = self.total_ns();
-        if t == 0 { return 0.0; }
+        if t == 0 {
+            return 0.0;
+        }
         self.system_ns as f64 / t as f64
     }
 }
@@ -54,17 +60,25 @@ pub struct IoAccounting {
 
 impl IoAccounting {
     #[inline(always)]
-    pub fn total_bytes(&self) -> u64 { self.read_bytes + self.write_bytes }
+    pub fn total_bytes(&self) -> u64 {
+        self.read_bytes + self.write_bytes
+    }
     #[inline(always)]
-    pub fn total_syscalls(&self) -> u64 { self.read_syscalls + self.write_syscalls }
+    pub fn total_syscalls(&self) -> u64 {
+        self.read_syscalls + self.write_syscalls
+    }
     #[inline(always)]
     pub fn avg_read_size(&self) -> f64 {
-        if self.read_syscalls == 0 { return 0.0; }
+        if self.read_syscalls == 0 {
+            return 0.0;
+        }
         self.read_bytes as f64 / self.read_syscalls as f64
     }
     #[inline(always)]
     pub fn avg_write_size(&self) -> f64 {
-        if self.write_syscalls == 0 { return 0.0; }
+        if self.write_syscalls == 0 {
+            return 0.0;
+        }
         self.write_bytes as f64 / self.write_syscalls as f64
     }
 }
@@ -84,19 +98,27 @@ pub struct MemAccounting {
 
 impl MemAccounting {
     #[inline(always)]
-    pub fn rss_bytes(&self) -> u64 { self.rss_pages * 4096 }
+    pub fn rss_bytes(&self) -> u64 {
+        self.rss_pages * 4096
+    }
     #[inline(always)]
-    pub fn vm_bytes(&self) -> u64 { self.vm_pages * 4096 }
+    pub fn vm_bytes(&self) -> u64 {
+        self.vm_pages * 4096
+    }
     #[inline]
     pub fn fault_rate(&self, elapsed_ns: u64) -> f64 {
-        if elapsed_ns == 0 { return 0.0; }
+        if elapsed_ns == 0 {
+            return 0.0;
+        }
         let total = self.minor_faults + self.major_faults;
         (total as f64 * 1_000_000_000.0) / elapsed_ns as f64
     }
     #[inline]
     pub fn major_fault_ratio(&self) -> f64 {
         let total = self.minor_faults + self.major_faults;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.major_faults as f64 / total as f64
     }
 }
@@ -119,16 +141,24 @@ pub struct DelayAccounting {
 impl DelayAccounting {
     #[inline(always)]
     pub fn total_delay_ns(&self) -> u64 {
-        self.cpu_delay_ns + self.io_delay_ns + self.swap_delay_ns + self.reclaim_delay_ns + self.thrashing_delay_ns
+        self.cpu_delay_ns
+            + self.io_delay_ns
+            + self.swap_delay_ns
+            + self.reclaim_delay_ns
+            + self.thrashing_delay_ns
     }
     #[inline(always)]
     pub fn avg_cpu_delay(&self) -> f64 {
-        if self.cpu_delay_count == 0 { return 0.0; }
+        if self.cpu_delay_count == 0 {
+            return 0.0;
+        }
         self.cpu_delay_ns as f64 / self.cpu_delay_count as f64
     }
     #[inline(always)]
     pub fn avg_io_delay(&self) -> f64 {
-        if self.io_delay_count == 0 { return 0.0; }
+        if self.io_delay_count == 0 {
+            return 0.0;
+        }
         self.io_delay_ns as f64 / self.io_delay_count as f64
     }
     #[inline]
@@ -140,7 +170,11 @@ impl DelayAccounting {
             (self.reclaim_delay_ns, "reclaim"),
             (self.thrashing_delay_ns, "thrashing"),
         ];
-        delays.iter().max_by_key(|(ns, _)| *ns).map(|(_, name)| *name).unwrap_or("none")
+        delays
+            .iter()
+            .max_by_key(|(ns, _)| *ns)
+            .map(|(_, name)| *name)
+            .unwrap_or("none")
     }
 }
 
@@ -164,30 +198,47 @@ pub struct TaskStatEntry {
 impl TaskStatEntry {
     pub fn new(pid: u64, tgid: u64, ts: u64) -> Self {
         Self {
-            pid, tgid,
-            cpu: CpuAccounting::default(), io: IoAccounting::default(),
-            mem: MemAccounting::default(), delay: DelayAccounting::default(),
-            voluntary_ctx_switches: 0, involuntary_ctx_switches: 0,
-            created_ts: ts, last_update_ts: ts, cpu_id: 0, nice: 0,
+            pid,
+            tgid,
+            cpu: CpuAccounting::default(),
+            io: IoAccounting::default(),
+            mem: MemAccounting::default(),
+            delay: DelayAccounting::default(),
+            voluntary_ctx_switches: 0,
+            involuntary_ctx_switches: 0,
+            created_ts: ts,
+            last_update_ts: ts,
+            cpu_id: 0,
+            nice: 0,
         }
     }
 
     #[inline(always)]
-    pub fn total_ctx_switches(&self) -> u64 { self.voluntary_ctx_switches + self.involuntary_ctx_switches }
+    pub fn total_ctx_switches(&self) -> u64 {
+        self.voluntary_ctx_switches + self.involuntary_ctx_switches
+    }
     #[inline(always)]
-    pub fn lifetime_ns(&self) -> u64 { self.last_update_ts.saturating_sub(self.created_ts) }
+    pub fn lifetime_ns(&self) -> u64 {
+        self.last_update_ts.saturating_sub(self.created_ts)
+    }
 
     #[inline]
     pub fn cpu_utilization(&self) -> f64 {
         let lt = self.lifetime_ns();
-        if lt == 0 { return 0.0; }
+        if lt == 0 {
+            return 0.0;
+        }
         self.cpu.total_ns() as f64 / lt as f64
     }
 
     #[inline(always)]
-    pub fn is_io_bound(&self) -> bool { self.delay.io_delay_ns > self.delay.cpu_delay_ns * 2 }
+    pub fn is_io_bound(&self) -> bool {
+        self.delay.io_delay_ns > self.delay.cpu_delay_ns * 2
+    }
     #[inline(always)]
-    pub fn is_cpu_bound(&self) -> bool { self.cpu_utilization() > 0.8 }
+    pub fn is_cpu_bound(&self) -> bool {
+        self.cpu_utilization() > 0.8
+    }
 }
 
 /// Task stats aggregator stats
@@ -212,7 +263,12 @@ pub struct AppsTaskStats {
 }
 
 impl AppsTaskStats {
-    pub fn new() -> Self { Self { tasks: BTreeMap::new(), stats: TaskStatsStats::default() } }
+    pub fn new() -> Self {
+        Self {
+            tasks: BTreeMap::new(),
+            stats: TaskStatsStats::default(),
+        }
+    }
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64, tgid: u64, ts: u64) {
@@ -242,7 +298,9 @@ impl AppsTaskStats {
         if let Some(t) = self.tasks.get_mut(&pid) {
             t.mem.rss_pages = rss;
             t.mem.vm_pages = vm;
-            if rss > t.mem.peak_rss { t.mem.peak_rss = rss; }
+            if rss > t.mem.peak_rss {
+                t.mem.peak_rss = rss;
+            }
             t.last_update_ts = ts;
         }
     }
@@ -250,22 +308,36 @@ impl AppsTaskStats {
     #[inline]
     pub fn record_ctx_switch(&mut self, pid: u64, voluntary: bool) {
         if let Some(t) = self.tasks.get_mut(&pid) {
-            if voluntary { t.voluntary_ctx_switches += 1; }
-            else { t.involuntary_ctx_switches += 1; }
+            if voluntary {
+                t.voluntary_ctx_switches += 1;
+            } else {
+                t.involuntary_ctx_switches += 1;
+            }
         }
     }
 
     #[inline]
     pub fn record_delay(&mut self, pid: u64, cpu: u64, io: u64, swap: u64) {
         if let Some(t) = self.tasks.get_mut(&pid) {
-            if cpu > 0 { t.delay.cpu_delay_ns += cpu; t.delay.cpu_delay_count += 1; }
-            if io > 0 { t.delay.io_delay_ns += io; t.delay.io_delay_count += 1; }
-            if swap > 0 { t.delay.swap_delay_ns += swap; t.delay.swap_delay_count += 1; }
+            if cpu > 0 {
+                t.delay.cpu_delay_ns += cpu;
+                t.delay.cpu_delay_count += 1;
+            }
+            if io > 0 {
+                t.delay.io_delay_ns += io;
+                t.delay.io_delay_count += 1;
+            }
+            if swap > 0 {
+                t.delay.swap_delay_ns += swap;
+                t.delay.swap_delay_count += 1;
+            }
         }
     }
 
     #[inline(always)]
-    pub fn unregister(&mut self, pid: u64) { self.tasks.remove(&pid); }
+    pub fn unregister(&mut self, pid: u64) {
+        self.tasks.remove(&pid);
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
@@ -276,11 +348,19 @@ impl AppsTaskStats {
         self.stats.total_ctx_switches = self.tasks.values().map(|t| t.total_ctx_switches()).sum();
         self.stats.io_bound_tasks = self.tasks.values().filter(|t| t.is_io_bound()).count();
         self.stats.cpu_bound_tasks = self.tasks.values().filter(|t| t.is_cpu_bound()).count();
-        self.stats.high_delay_tasks = self.tasks.values().filter(|t| t.delay.total_delay_ns() > 1_000_000_000).count();
+        self.stats.high_delay_tasks = self
+            .tasks
+            .values()
+            .filter(|t| t.delay.total_delay_ns() > 1_000_000_000)
+            .count();
     }
 
     #[inline(always)]
-    pub fn task(&self, pid: u64) -> Option<&TaskStatEntry> { self.tasks.get(&pid) }
+    pub fn task(&self, pid: u64) -> Option<&TaskStatEntry> {
+        self.tasks.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &TaskStatsStats { &self.stats }
+    pub fn stats(&self) -> &TaskStatsStats {
+        &self.stats
+    }
 }

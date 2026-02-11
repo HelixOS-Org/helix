@@ -47,7 +47,14 @@ pub struct IoSchedBridgeRecord {
 
 impl IoSchedBridgeRecord {
     pub fn new(op: IoSchedBridgeOp, pid: u32) -> Self {
-        Self { op, result: IoSchedBridgeResult::Success, pid, prio_class: IoSchedBridgePrio::BestEffort, prio_level: 4, scheduler_hash: 0 }
+        Self {
+            op,
+            result: IoSchedBridgeResult::Success,
+            pid,
+            prio_class: IoSchedBridgePrio::BestEffort,
+            prio_level: 4,
+            scheduler_hash: 0,
+        }
     }
 }
 
@@ -70,7 +77,15 @@ pub struct BridgeIoSched {
 
 impl BridgeIoSched {
     pub fn new() -> Self {
-        Self { stats: IoSchedBridgeStats { total_ops: 0, prio_sets: 0, prio_gets: 0, scheduler_changes: 0, errors: 0 } }
+        Self {
+            stats: IoSchedBridgeStats {
+                total_ops: 0,
+                prio_sets: 0,
+                prio_gets: 0,
+                scheduler_changes: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
@@ -80,8 +95,10 @@ impl BridgeIoSched {
             IoSchedBridgeOp::IoprioSet | IoSchedBridgeOp::Ionice => self.stats.prio_sets += 1,
             IoSchedBridgeOp::IoprioGet => self.stats.prio_gets += 1,
             IoSchedBridgeOp::SetScheduler => self.stats.scheduler_changes += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result != IoSchedBridgeResult::Success { self.stats.errors += 1; }
+        if rec.result != IoSchedBridgeResult::Success {
+            self.stats.errors += 1;
+        }
     }
 }

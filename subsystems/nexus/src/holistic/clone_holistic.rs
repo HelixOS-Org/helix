@@ -2,8 +2,9 @@
 //! NEXUS Holistic — Clone (holistic clone analysis)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Clone pattern classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,7 +62,14 @@ impl HolisticCloneManager {
         }
     }
 
-    pub fn analyze_clone(&mut self, parent: u64, child: u64, flags: u32, ns_count: u32, latency: u64) -> HolisticClonePattern {
+    pub fn analyze_clone(
+        &mut self,
+        parent: u64,
+        child: u64,
+        flags: u32,
+        ns_count: u32,
+        latency: u64,
+    ) -> HolisticClonePattern {
         let count = self.parent_clone_count.entry(parent).or_insert(0);
         *count += 1;
         let pattern = if ns_count >= 4 {

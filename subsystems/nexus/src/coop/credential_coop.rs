@@ -27,7 +27,14 @@ pub struct CredCoopRecord {
 
 impl CredCoopRecord {
     pub fn new(event: CredCoopEvent) -> Self {
-        Self { event, source_uid: 0, target_uid: 0, source_ns: 0, target_ns: 0, pid: 0 }
+        Self {
+            event,
+            source_uid: 0,
+            target_uid: 0,
+            source_ns: 0,
+            target_ns: 0,
+            pid: 0,
+        }
     }
 }
 
@@ -49,7 +56,14 @@ pub struct CoopCredential {
 
 impl CoopCredential {
     pub fn new() -> Self {
-        Self { stats: CredCoopStats { total_events: 0, shares: 0, inherits: 0, translations: 0 } }
+        Self {
+            stats: CredCoopStats {
+                total_events: 0,
+                shares: 0,
+                inherits: 0,
+                translations: 0,
+            },
+        }
     }
 
     #[inline]
@@ -58,8 +72,10 @@ impl CoopCredential {
         match rec.event {
             CredCoopEvent::CredShare => self.stats.shares += 1,
             CredCoopEvent::CredInherit => self.stats.inherits += 1,
-            CredCoopEvent::UidTranslate | CredCoopEvent::GidTranslate | CredCoopEvent::NsMap => self.stats.translations += 1,
-            _ => {}
+            CredCoopEvent::UidTranslate | CredCoopEvent::GidTranslate | CredCoopEvent::NsMap => {
+                self.stats.translations += 1
+            },
+            _ => {},
         }
     }
 }

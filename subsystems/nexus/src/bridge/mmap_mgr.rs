@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// VMA permission flags
@@ -25,13 +24,41 @@ pub struct VmaPerms {
 
 impl VmaPerms {
     #[inline(always)]
-    pub fn rwx() -> Self { Self { read: true, write: true, exec: true, shared: false } }
+    pub fn rwx() -> Self {
+        Self {
+            read: true,
+            write: true,
+            exec: true,
+            shared: false,
+        }
+    }
     #[inline(always)]
-    pub fn rw() -> Self { Self { read: true, write: true, exec: false, shared: false } }
+    pub fn rw() -> Self {
+        Self {
+            read: true,
+            write: true,
+            exec: false,
+            shared: false,
+        }
+    }
     #[inline(always)]
-    pub fn ro() -> Self { Self { read: true, write: false, exec: false, shared: false } }
+    pub fn ro() -> Self {
+        Self {
+            read: true,
+            write: false,
+            exec: false,
+            shared: false,
+        }
+    }
     #[inline(always)]
-    pub fn rx() -> Self { Self { read: true, write: false, exec: true, shared: false } }
+    pub fn rx() -> Self {
+        Self {
+            read: true,
+            write: false,
+            exec: true,
+            shared: false,
+        }
+    }
 }
 
 /// VMA type
@@ -83,22 +110,34 @@ impl Vma {
     }
 
     #[inline(always)]
-    pub fn size(&self) -> u64 { self.end - self.start }
+    pub fn size(&self) -> u64 {
+        self.end - self.start
+    }
     #[inline(always)]
-    pub fn contains(&self, addr: u64) -> bool { addr >= self.start && addr < self.end }
+    pub fn contains(&self, addr: u64) -> bool {
+        addr >= self.start && addr < self.end
+    }
 
     #[inline(always)]
     pub fn residency_ratio(&self) -> f64 {
-        if self.page_count == 0 { return 0.0; }
+        if self.page_count == 0 {
+            return 0.0;
+        }
         self.resident_pages as f64 / self.page_count as f64
     }
 
     #[inline(always)]
-    pub fn is_writable(&self) -> bool { self.perms.write }
+    pub fn is_writable(&self) -> bool {
+        self.perms.write
+    }
     #[inline(always)]
-    pub fn is_executable(&self) -> bool { self.perms.exec }
+    pub fn is_executable(&self) -> bool {
+        self.perms.exec
+    }
     #[inline(always)]
-    pub fn is_shared(&self) -> bool { self.perms.shared }
+    pub fn is_shared(&self) -> bool {
+        self.perms.shared
+    }
 }
 
 /// Per-process address space
@@ -157,14 +196,20 @@ impl ProcessAddrSpace {
             let vma = self.vmas.remove(idx);
             self.total_mapped = self.total_mapped.saturating_sub(vma.size());
             Some(vma)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
-    pub fn vma_count(&self) -> usize { self.vmas.len() }
+    pub fn vma_count(&self) -> usize {
+        self.vmas.len()
+    }
 
     pub fn fragmentation(&self) -> f64 {
-        if self.vmas.len() < 2 { return 0.0; }
+        if self.vmas.len() < 2 {
+            return 0.0;
+        }
         let mut gaps = 0u64;
         let sorted = {
             let mut v: Vec<(u64, u64)> = self.vmas.iter().map(|v| (v.start, v.end)).collect();
@@ -175,9 +220,14 @@ impl ProcessAddrSpace {
             let gap = sorted[i].0.saturating_sub(sorted[i - 1].1);
             gaps += gap;
         }
-        let total_span = sorted.last().map(|v| v.1).unwrap_or(0)
+        let total_span = sorted
+            .last()
+            .map(|v| v.1)
+            .unwrap_or(0)
             .saturating_sub(sorted.first().map(|v| v.0).unwrap_or(0));
-        if total_span == 0 { return 0.0; }
+        if total_span == 0 {
+            return 0.0;
+        }
         gaps as f64 / total_span as f64
     }
 }
@@ -234,19 +284,32 @@ impl BridgeMmapMgr {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.spaces.entry(pid)
+        self.spaces
+            .entry(pid)
             .or_insert_with(|| ProcessAddrSpace::new(pid));
     }
 
-    pub fn mmap(&mut self, pid: u64, addr: u64, size: u64, perms: VmaPerms, vtype: VmaType, now: u64) -> u64 {
-        let space = self.spaces.entry(pid)
+    pub fn mmap(
+        &mut self,
+        pid: u64,
+        addr: u64,
+        size: u64,
+        perms: VmaPerms,
+        vtype: VmaType,
+        now: u64,
+    ) -> u64 {
+        let space = self
+            .spaces
+            .entry(pid)
             .or_insert_with(|| ProcessAddrSpace::new(pid));
 
         let actual_addr = if addr == 0 {
             let a = space.mmap_base;
             space.mmap_base += size + 4096; // simple bump allocator
             a
-        } else { addr };
+        } else {
+            addr
+        };
 
         let vma = Vma::new(actual_addr, actual_addr + size, perms, vtype);
         space.add_vma(vma);
@@ -322,9 +385,13 @@ impl BridgeMmapMgr {
     }
 
     #[inline(always)]
-    pub fn addr_space(&self, pid: u64) -> Option<&ProcessAddrSpace> { self.spaces.get(&pid) }
+    pub fn addr_space(&self, pid: u64) -> Option<&ProcessAddrSpace> {
+        self.spaces.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeMmapMgrStats { &self.stats }
+    pub fn stats(&self) -> &BridgeMmapMgrStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -411,7 +478,15 @@ impl MmapV2Space {
         }
     }
 
-    pub fn map_region(&mut self, addr: u64, length: u64, prot: MmapV2Prot, map_type: MmapV2Type, flags: u32, tick: u64) -> u64 {
+    pub fn map_region(
+        &mut self,
+        addr: u64,
+        length: u64,
+        prot: MmapV2Prot,
+        map_type: MmapV2Type,
+        flags: u32,
+        tick: u64,
+    ) -> u64 {
         let region = MmapV2Region {
             start_addr: addr,
             length,
@@ -504,12 +579,22 @@ impl BridgeMmapV2 {
 
     #[inline(always)]
     pub fn create_space(&mut self, pid: u64, mmap_base: u64, stack_top: u64) {
-        self.spaces.insert(pid, MmapV2Space::new(pid, mmap_base, stack_top));
+        self.spaces
+            .insert(pid, MmapV2Space::new(pid, mmap_base, stack_top));
         self.stats.spaces_created += 1;
     }
 
     #[inline]
-    pub fn mmap(&mut self, pid: u64, addr: u64, length: u64, prot: MmapV2Prot, map_type: MmapV2Type, flags: u32, tick: u64) -> Option<u64> {
+    pub fn mmap(
+        &mut self,
+        pid: u64,
+        addr: u64,
+        length: u64,
+        prot: MmapV2Prot,
+        map_type: MmapV2Type,
+        flags: u32,
+        tick: u64,
+    ) -> Option<u64> {
         if let Some(space) = self.spaces.get_mut(&pid) {
             let result = space.map_region(addr, length, prot, map_type, flags, tick);
             self.stats.total_maps += 1;

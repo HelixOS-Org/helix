@@ -3,10 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Page fault type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,9 +80,14 @@ pub struct ProcessFaultStats {
 impl ProcessFaultStats {
     pub fn new(pid: u32) -> Self {
         Self {
-            pid, minor_faults: 0, major_faults: 0, cow_faults: 0,
-            total_fault_time_ns: 0, recent_fault_rate: 0.0,
-            last_fault_time: 0, fault_type_counts: ArrayMap::new(0),
+            pid,
+            minor_faults: 0,
+            major_faults: 0,
+            cow_faults: 0,
+            total_fault_time_ns: 0,
+            recent_fault_rate: 0.0,
+            last_fault_time: 0,
+            fault_type_counts: ArrayMap::new(0),
         }
     }
 
@@ -94,13 +99,19 @@ impl ProcessFaultStats {
     #[inline(always)]
     pub fn avg_fault_time_ns(&self) -> u64 {
         let total = self.total_faults();
-        if total == 0 { 0 } else { self.total_fault_time_ns / total }
+        if total == 0 {
+            0
+        } else {
+            self.total_fault_time_ns / total
+        }
     }
 
     #[inline]
     pub fn major_ratio(&self) -> f64 {
         let total = self.total_faults();
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.major_faults as f64 / total as f64
     }
 
@@ -108,12 +119,16 @@ impl ProcessFaultStats {
         match fault_type {
             PageFaultType::Minor | PageFaultType::DemandZero | PageFaultType::Prefetch => {
                 self.minor_faults += 1;
-            }
+            },
             PageFaultType::Major | PageFaultType::SwapIn | PageFaultType::FileBacked => {
                 self.major_faults += 1;
-            }
-            PageFaultType::CopyOnWrite => { self.cow_faults += 1; }
-            _ => { self.minor_faults += 1; }
+            },
+            PageFaultType::CopyOnWrite => {
+                self.cow_faults += 1;
+            },
+            _ => {
+                self.minor_faults += 1;
+            },
         }
         self.total_fault_time_ns += duration_ns;
         self.last_fault_time = now;
@@ -175,9 +190,14 @@ impl AppPagefaultMgr {
             process_stats: BTreeMap::new(),
             hotspots: BTreeMap::new(),
             recent_faults: VecDeque::new(),
-            max_recent: 4096, max_hotspots: 1024,
-            total_minor: 0, total_major: 0, total_cow: 0,
-            total_fault_time_ns: 0, sigsegv_sent: 0, sigbus_sent: 0,
+            max_recent: 4096,
+            max_hotspots: 1024,
+            total_minor: 0,
+            total_major: 0,
+            total_cow: 0,
+            total_fault_time_ns: 0,
+            sigsegv_sent: 0,
+            sigbus_sent: 0,
             page_size,
         }
     }
@@ -194,25 +214,35 @@ impl AppPagefaultMgr {
         match record.fault_type {
             PageFaultType::Minor | PageFaultType::DemandZero | PageFaultType::Prefetch => {
                 self.total_minor += 1;
-            }
+            },
             PageFaultType::Major | PageFaultType::SwapIn | PageFaultType::FileBacked => {
                 self.total_major += 1;
-            }
-            PageFaultType::CopyOnWrite => { self.total_cow += 1; }
-            _ => { self.total_minor += 1; }
+            },
+            PageFaultType::CopyOnWrite => {
+                self.total_cow += 1;
+            },
+            _ => {
+                self.total_minor += 1;
+            },
         }
         self.total_fault_time_ns += record.duration_ns;
 
         match record.action {
-            FaultAction::SendSigsegv => { self.sigsegv_sent += 1; }
-            FaultAction::SendSigbus => { self.sigbus_sent += 1; }
-            _ => {}
+            FaultAction::SendSigsegv => {
+                self.sigsegv_sent += 1;
+            },
+            FaultAction::SendSigbus => {
+                self.sigbus_sent += 1;
+            },
+            _ => {},
         }
 
         // Track hotspots
         let page_addr = record.address & !(self.page_size - 1);
         let hotspot = self.hotspots.entry(page_addr).or_insert(FaultHotspot {
-            page_addr, count: 0, last_fault_type: record.fault_type,
+            page_addr,
+            count: 0,
+            last_fault_type: record.fault_type,
             last_time: record.timestamp,
         });
         hotspot.count += 1;
@@ -221,13 +251,19 @@ impl AppPagefaultMgr {
 
         // Trim hotspots
         if self.hotspots.len() > self.max_hotspots {
-            if let Some(&min_addr) = self.hotspots.iter()
-                .min_by_key(|(_, h)| h.count).map(|(k, _)| k) {
+            if let Some(&min_addr) = self
+                .hotspots
+                .iter()
+                .min_by_key(|(_, h)| h.count)
+                .map(|(k, _)| k)
+            {
                 self.hotspots.remove(&min_addr);
             }
         }
 
-        if self.recent_faults.len() >= self.max_recent { self.recent_faults.remove(0); }
+        if self.recent_faults.len() >= self.max_recent {
+            self.recent_faults.remove(0);
+        }
         self.recent_faults.push_back(record);
     }
 
@@ -251,7 +287,8 @@ impl AppPagefaultMgr {
 
     #[inline]
     pub fn high_fault_rate_processes(&self, threshold: f64) -> Vec<(u32, f64)> {
-        self.process_stats.iter()
+        self.process_stats
+            .iter()
             .filter(|(_, s)| s.recent_fault_rate > threshold)
             .map(|(&pid, s)| (pid, s.recent_fault_rate))
             .collect()

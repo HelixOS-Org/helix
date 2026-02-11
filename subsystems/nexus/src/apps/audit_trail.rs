@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -227,7 +226,9 @@ impl ProcessAuditState {
 
     #[inline(always)]
     pub fn rate_per_second(&self, elapsed_ns: u64) -> f64 {
-        if elapsed_ns == 0 { return 0.0; }
+        if elapsed_ns == 0 {
+            return 0.0;
+        }
         self.record_count as f64 / (elapsed_ns as f64 / 1_000_000_000.0)
     }
 }
@@ -332,17 +333,32 @@ impl AppAuditTrail {
 
     #[inline(always)]
     pub fn query_by_pid(&self, pid: u64, max: usize) -> Vec<&AuditRecord> {
-        self.records.iter().filter(|r| r.pid == pid).rev().take(max).collect()
+        self.records
+            .iter()
+            .filter(|r| r.pid == pid)
+            .rev()
+            .take(max)
+            .collect()
     }
 
     #[inline(always)]
     pub fn query_by_category(&self, cat: AuditCategory, max: usize) -> Vec<&AuditRecord> {
-        self.records.iter().filter(|r| r.category == cat).rev().take(max).collect()
+        self.records
+            .iter()
+            .filter(|r| r.category == cat)
+            .rev()
+            .take(max)
+            .collect()
     }
 
     #[inline(always)]
     pub fn query_by_severity(&self, min_sev: AuditSeverity, max: usize) -> Vec<&AuditRecord> {
-        self.records.iter().filter(|r| r.severity >= min_sev).rev().take(max).collect()
+        self.records
+            .iter()
+            .filter(|r| r.severity >= min_sev)
+            .rev()
+            .take(max)
+            .collect()
     }
 
     #[inline(always)]

@@ -165,12 +165,20 @@ impl BridgeSelect {
 
     #[inline(always)]
     pub fn timeout_rate(&self) -> f64 {
-        if self.stats.total_calls == 0 { 0.0 } else { self.stats.timeouts as f64 / self.stats.total_calls as f64 }
+        if self.stats.total_calls == 0 {
+            0.0
+        } else {
+            self.stats.timeouts as f64 / self.stats.total_calls as f64
+        }
     }
 
     #[inline(always)]
     pub fn avg_fds_per_call(&self) -> f64 {
-        if self.stats.total_calls == 0 { 0.0 } else { self.stats.total_fds_monitored as f64 / self.stats.total_calls as f64 }
+        if self.stats.total_calls == 0 {
+            0.0
+        } else {
+            self.stats.total_fds_monitored as f64 / self.stats.total_calls as f64
+        }
     }
 }
 
@@ -179,7 +187,11 @@ impl BridgeSelect {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SelectV2Set { ReadFds, WriteFds, ExceptFds }
+pub enum SelectV2Set {
+    ReadFds,
+    WriteFds,
+    ExceptFds,
+}
 
 /// Select v2 record
 #[derive(Debug, Clone)]
@@ -191,28 +203,53 @@ pub struct SelectV2Record {
 }
 
 impl SelectV2Record {
-    pub fn new(set: SelectV2Set, nfds: i32) -> Self { Self { set, nfds, ready: 0, timeout_us: -1 } }
+    pub fn new(set: SelectV2Set, nfds: i32) -> Self {
+        Self {
+            set,
+            nfds,
+            ready: 0,
+            timeout_us: -1,
+        }
+    }
 }
 
 /// Select v2 bridge stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct SelectV2BridgeStats { pub total_selects: u64, pub read_ready: u64, pub write_ready: u64, pub timeouts: u64 }
+pub struct SelectV2BridgeStats {
+    pub total_selects: u64,
+    pub read_ready: u64,
+    pub write_ready: u64,
+    pub timeouts: u64,
+}
 
 /// Main bridge select v2
 #[derive(Debug)]
-pub struct BridgeSelectV2 { pub stats: SelectV2BridgeStats }
+pub struct BridgeSelectV2 {
+    pub stats: SelectV2BridgeStats,
+}
 
 impl BridgeSelectV2 {
-    pub fn new() -> Self { Self { stats: SelectV2BridgeStats { total_selects: 0, read_ready: 0, write_ready: 0, timeouts: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: SelectV2BridgeStats {
+                total_selects: 0,
+                read_ready: 0,
+                write_ready: 0,
+                timeouts: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &SelectV2Record) {
         self.stats.total_selects += 1;
         match rec.set {
             SelectV2Set::ReadFds => self.stats.read_ready += rec.ready as u64,
             SelectV2Set::WriteFds => self.stats.write_ready += rec.ready as u64,
-            _ => {}
+            _ => {},
         }
-        if rec.ready == 0 && rec.timeout_us >= 0 { self.stats.timeouts += 1; }
+        if rec.ready == 0 && rec.timeout_us >= 0 {
+            self.stats.timeouts += 1;
+        }
     }
 }

@@ -10,10 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Causal ordering relation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,7 +31,11 @@ pub struct VectorClock {
 }
 
 impl VectorClock {
-    pub fn new() -> Self { Self { entries: LinearMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            entries: LinearMap::new(),
+        }
+    }
 
     #[inline]
     pub fn increment(&mut self, node_id: u64) -> u64 {
@@ -49,7 +53,9 @@ impl VectorClock {
     pub fn merge(&mut self, other: &VectorClock) {
         for (node, counter) in &other.entries {
             let entry = self.entries.entry(node).or_insert(0);
-            if counter > *entry { *entry = counter; }
+            if counter > *entry {
+                *entry = counter;
+            }
         }
     }
 
@@ -67,8 +73,12 @@ impl VectorClock {
         for key in &all_keys {
             let a = self.get(*key);
             let b = other.get(*key);
-            if a > b { other_le = false; }
-            if b > a { self_le = false; }
+            if a > b {
+                other_le = false;
+            }
+            if b > a {
+                self_le = false;
+            }
         }
 
         match (self_le, other_le) {
@@ -90,7 +100,9 @@ impl VectorClock {
     }
 
     #[inline(always)]
-    pub fn dimension(&self) -> usize { self.entries.len() }
+    pub fn dimension(&self) -> usize {
+        self.entries.len()
+    }
 
     #[inline(always)]
     pub fn max_component(&self) -> u64 {
@@ -98,7 +110,9 @@ impl VectorClock {
     }
 
     #[inline(always)]
-    pub fn sum(&self) -> u64 { self.entries.values().sum() }
+    pub fn sum(&self) -> u64 {
+        self.entries.values().sum()
+    }
 
     /// Prune entries with zero counters
     #[inline(always)]
@@ -110,7 +124,9 @@ impl VectorClock {
     #[inline]
     pub fn dominates(&self, other: &VectorClock) -> bool {
         for (node, counter) in &other.entries {
-            if self.get(node) < counter { return false; }
+            if self.get(node) < counter {
+                return false;
+            }
         }
         true
     }
@@ -124,10 +140,17 @@ pub struct VersionVector {
 }
 
 impl VersionVector {
-    pub fn new(node_id: u64) -> Self { Self { clock: VectorClock::new(), node_id } }
+    pub fn new(node_id: u64) -> Self {
+        Self {
+            clock: VectorClock::new(),
+            node_id,
+        }
+    }
 
     #[inline(always)]
-    pub fn update(&mut self) -> u64 { self.clock.increment(self.node_id) }
+    pub fn update(&mut self) -> u64 {
+        self.clock.increment(self.node_id)
+    }
 
     #[inline(always)]
     pub fn merge_remote(&mut self, remote: &VectorClock) {
@@ -163,7 +186,12 @@ pub struct CausalHistory {
 }
 
 impl CausalHistory {
-    pub fn new(max: usize) -> Self { Self { events: VecDeque::new(), max_events: max } }
+    pub fn new(max: usize) -> Self {
+        Self {
+            events: VecDeque::new(),
+            max_events: max,
+        }
+    }
 
     #[inline]
     pub fn record(&mut self, event: CausalEvent) {
@@ -191,7 +219,9 @@ impl CausalHistory {
             Some(e) => e,
             None => return Vec::new(),
         };
-        let mut chain: Vec<u64> = self.events.iter()
+        let mut chain: Vec<u64> = self
+            .events
+            .iter()
             .filter(|e| e.event_id != event_id && e.clock.happens_before(&target.clock))
             .map(|e| e.event_id)
             .collect();
@@ -204,13 +234,17 @@ impl CausalHistory {
         let mut latest: LinearMap<u64, 64> = LinearMap::new();
         for event in &self.events {
             let entry = latest.entry(event.node_id).or_insert(0);
-            if event.event_id > *entry { *entry = event.event_id; }
+            if event.event_id > *entry {
+                *entry = event.event_id;
+            }
         }
         latest
     }
 
     #[inline(always)]
-    pub fn event_count(&self) -> usize { self.events.len() }
+    pub fn event_count(&self) -> usize {
+        self.events.len()
+    }
 }
 
 /// Vector clock stats
@@ -240,9 +274,12 @@ pub struct CoopVectorClock {
 impl CoopVectorClock {
     pub fn new(max_history: usize) -> Self {
         Self {
-            clocks: BTreeMap::new(), versions: BTreeMap::new(),
-            history: CausalHistory::new(max_history), next_event_id: 1,
-            total_increments: 0, total_merges: 0,
+            clocks: BTreeMap::new(),
+            versions: BTreeMap::new(),
+            history: CausalHistory::new(max_history),
+            next_event_id: 1,
+            total_increments: 0,
+            total_merges: 0,
             stats: VectorClockStats::default(),
         }
     }
@@ -258,16 +295,24 @@ impl CoopVectorClock {
         let clock = self.clocks.get_mut(&node_id)?;
         clock.increment(node_id);
         self.total_increments += 1;
-        let eid = self.next_event_id; self.next_event_id += 1;
+        let eid = self.next_event_id;
+        self.next_event_id += 1;
         self.history.record(CausalEvent {
-            event_id: eid, node_id, clock: clock.clone(), timestamp_ns: ts, event_type,
+            event_id: eid,
+            node_id,
+            clock: clock.clone(),
+            timestamp_ns: ts,
+            event_type,
         });
         Some(eid)
     }
 
     #[inline]
     pub fn merge_clocks(&mut self, a: u64, b: u64) {
-        let b_clock = match self.clocks.get(&b) { Some(c) => c.clone(), None => return };
+        let b_clock = match self.clocks.get(&b) {
+            Some(c) => c.clone(),
+            None => return,
+        };
         if let Some(a_clock) = self.clocks.get_mut(&a) {
             a_clock.merge(&b_clock);
             self.total_merges += 1;
@@ -283,9 +328,13 @@ impl CoopVectorClock {
     }
 
     #[inline(always)]
-    pub fn clock(&self, node_id: u64) -> Option<&VectorClock> { self.clocks.get(&node_id) }
+    pub fn clock(&self, node_id: u64) -> Option<&VectorClock> {
+        self.clocks.get(&node_id)
+    }
     #[inline(always)]
-    pub fn history(&self) -> &CausalHistory { &self.history }
+    pub fn history(&self) -> &CausalHistory {
+        &self.history
+    }
 
     pub fn recompute(&mut self) {
         self.stats.total_clocks = self.clocks.len();
@@ -301,5 +350,7 @@ impl CoopVectorClock {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &VectorClockStats { &self.stats }
+    pub fn stats(&self) -> &VectorClockStats {
+        &self.stats
+    }
 }

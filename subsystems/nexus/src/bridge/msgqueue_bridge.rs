@@ -47,7 +47,14 @@ pub struct MsgqueueRecord {
 
 impl MsgqueueRecord {
     pub fn new(op: MsgqueueOp) -> Self {
-        Self { op, result: MsgqueueResult::Success, msqid: -1, msg_type: 0, msg_size: 0, key: 0 }
+        Self {
+            op,
+            result: MsgqueueResult::Success,
+            msqid: -1,
+            msg_type: 0,
+            msg_size: 0,
+            key: 0,
+        }
     }
 }
 
@@ -70,7 +77,15 @@ pub struct BridgeMsgqueue {
 
 impl BridgeMsgqueue {
     pub fn new() -> Self {
-        Self { stats: MsgqueueBridgeStats { total_ops: 0, sends: 0, receives: 0, queues_created: 0, errors: 0 } }
+        Self {
+            stats: MsgqueueBridgeStats {
+                total_ops: 0,
+                sends: 0,
+                receives: 0,
+                queues_created: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
@@ -80,8 +95,10 @@ impl BridgeMsgqueue {
             MsgqueueOp::Msgsnd => self.stats.sends += 1,
             MsgqueueOp::Msgrcv => self.stats.receives += 1,
             MsgqueueOp::Msgget => self.stats.queues_created += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result != MsgqueueResult::Success { self.stats.errors += 1; }
+        if rec.result != MsgqueueResult::Success {
+            self.stats.errors += 1;
+        }
     }
 }

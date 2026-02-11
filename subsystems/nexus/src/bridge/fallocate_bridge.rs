@@ -77,7 +77,10 @@ impl FallocateOp {
 
     #[inline(always)]
     pub fn is_destructive(&self) -> bool {
-        matches!(self.mode, FallocateMode::PunchHole | FallocateMode::CollapseRange | FallocateMode::InsertRange)
+        matches!(
+            self.mode,
+            FallocateMode::PunchHole | FallocateMode::CollapseRange | FallocateMode::InsertRange
+        )
     }
 
     #[inline(always)]
@@ -117,22 +120,26 @@ impl FileSpaceTracker {
             FallocateMode::Allocate | FallocateMode::KeepSize => {
                 self.allocated_blocks += op.blocks_allocated;
                 self.prealloc_ops += 1;
-            }
+            },
             FallocateMode::PunchHole | FallocateMode::ZeroRange => {
                 self.hole_blocks += op.blocks_freed;
                 self.punch_ops += 1;
-            }
+            },
             FallocateMode::CollapseRange | FallocateMode::InsertRange => {
                 self.collapse_ops += 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
     #[inline(always)]
     pub fn fragmentation_estimate(&self) -> f64 {
         let total = self.allocated_blocks + self.hole_blocks;
-        if total == 0 { 0.0 } else { self.hole_blocks as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.hole_blocks as f64 / total as f64
+        }
     }
 }
 
@@ -173,7 +180,16 @@ impl BridgeFallocate {
         }
     }
 
-    pub fn fallocate(&mut self, fd: i32, mode: FallocateMode, offset: u64, len: u64, ts_ns: u64, blocks_alloc: u64, blocks_free: u64) -> u64 {
+    pub fn fallocate(
+        &mut self,
+        fd: i32,
+        mode: FallocateMode,
+        offset: u64,
+        len: u64,
+        ts_ns: u64,
+        blocks_alloc: u64,
+        blocks_free: u64,
+    ) -> u64 {
         let id = self.next_op_id;
         self.next_op_id += 1;
         let mut op = FallocateOp::new(id, fd, mode, offset, len);
@@ -185,10 +201,15 @@ impl BridgeFallocate {
         match mode {
             FallocateMode::Allocate | FallocateMode::KeepSize => self.stats.prealloc_ops += 1,
             FallocateMode::PunchHole | FallocateMode::ZeroRange => self.stats.punch_ops += 1,
-            FallocateMode::CollapseRange | FallocateMode::InsertRange => self.stats.collapse_ops += 1,
-            _ => {}
+            FallocateMode::CollapseRange | FallocateMode::InsertRange => {
+                self.stats.collapse_ops += 1
+            },
+            _ => {},
         }
-        let tracker = self.file_trackers.entry(fd).or_insert_with(|| FileSpaceTracker::new(fd));
+        let tracker = self
+            .file_trackers
+            .entry(fd)
+            .or_insert_with(|| FileSpaceTracker::new(fd));
         tracker.record_op(&op);
         id
     }
@@ -204,7 +225,13 @@ impl BridgeFallocate {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FallocateV2Mode { Allocate, PunchHole, CollapseRange, ZeroRange, InsertRange }
+pub enum FallocateV2Mode {
+    Allocate,
+    PunchHole,
+    CollapseRange,
+    ZeroRange,
+    InsertRange,
+}
 
 /// Fallocate v2 record
 #[derive(Debug, Clone)]
@@ -216,20 +243,43 @@ pub struct FallocateV2Record {
 }
 
 impl FallocateV2Record {
-    pub fn new(mode: FallocateV2Mode, fd: i32) -> Self { Self { mode, fd, offset: 0, len: 0 } }
+    pub fn new(mode: FallocateV2Mode, fd: i32) -> Self {
+        Self {
+            mode,
+            fd,
+            offset: 0,
+            len: 0,
+        }
+    }
 }
 
 /// Fallocate v2 bridge stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct FallocateV2BridgeStats { pub total_ops: u64, pub allocs: u64, pub punches: u64, pub zeros: u64 }
+pub struct FallocateV2BridgeStats {
+    pub total_ops: u64,
+    pub allocs: u64,
+    pub punches: u64,
+    pub zeros: u64,
+}
 
 /// Main bridge fallocate v2
 #[derive(Debug)]
-pub struct BridgeFallocateV2 { pub stats: FallocateV2BridgeStats }
+pub struct BridgeFallocateV2 {
+    pub stats: FallocateV2BridgeStats,
+}
 
 impl BridgeFallocateV2 {
-    pub fn new() -> Self { Self { stats: FallocateV2BridgeStats { total_ops: 0, allocs: 0, punches: 0, zeros: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: FallocateV2BridgeStats {
+                total_ops: 0,
+                allocs: 0,
+                punches: 0,
+                zeros: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &FallocateV2Record) {
         self.stats.total_ops += 1;

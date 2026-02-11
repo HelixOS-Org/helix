@@ -222,7 +222,11 @@ impl HugePageAppManager {
             }
         }
 
-        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(core::cmp::Ordering::Equal));
+        candidates.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         candidates.truncate(max);
         self.stats.candidates_evaluated += candidates.len() as u64;
         candidates

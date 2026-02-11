@@ -11,8 +11,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -229,7 +228,10 @@ impl AppsAnalysisEngine {
 
         // Update per-category pool with treatment means
         let mean_t = Self::mean(treatment);
-        let entry = self.category_values.entry(String::from(category)).or_insert_with(Vec::new);
+        let entry = self
+            .category_values
+            .entry(String::from(category))
+            .or_insert_with(Vec::new);
         entry.push(mean_t);
         if entry.len() > MAX_RESULTS {
             entry.remove(0);
@@ -253,7 +255,8 @@ impl AppsAnalysisEngine {
         self.significance.insert(id, sig);
 
         self.stats.results_analyzed += 1;
-        let sig_rate = self.stats.significant_found as f32 / self.stats.results_analyzed.max(1) as f32;
+        let sig_rate =
+            self.stats.significant_found as f32 / self.stats.results_analyzed.max(1) as f32;
         self.stats.ema_significance_rate =
             EMA_ALPHA * sig_rate + (1.0 - EMA_ALPHA) * self.stats.ema_significance_rate;
 
@@ -320,7 +323,11 @@ impl AppsAnalysisEngine {
 
         let ms_between = ss_between / df_between;
         let ms_within = ss_within / df_within;
-        let f_stat = if ms_within > 1e-9 { ms_between / ms_within } else { 0.0 };
+        let f_stat = if ms_within > 1e-9 {
+            ms_between / ms_within
+        } else {
+            0.0
+        };
 
         // Rough significance heuristic: F > 3.0 for moderate alpha
         let significant = f_stat > 3.0 && grand_n >= MIN_SAMPLES;
@@ -380,7 +387,11 @@ impl AppsAnalysisEngine {
         // Required n ≈ (z_α + z_β)² / d²  for two-tailed test
         let z_alpha = T_CRITICAL_95;
         let z_beta = 0.842; // z for 80% power
-        let d = if target_effect > 0.01 { target_effect } else { MEDIUM_EFFECT };
+        let d = if target_effect > 0.01 {
+            target_effect
+        } else {
+            MEDIUM_EFFECT
+        };
         let required_n_f = ((z_alpha + z_beta) * (z_alpha + z_beta)) / (d * d);
         let required_n = (required_n_f as usize).max(MIN_SAMPLES);
 
@@ -392,7 +403,8 @@ impl AppsAnalysisEngine {
             POWER_TARGET * ratio
         };
 
-        self.stats.ema_power = EMA_ALPHA * achieved_power + (1.0 - EMA_ALPHA) * self.stats.ema_power;
+        self.stats.ema_power =
+            EMA_ALPHA * achieved_power + (1.0 - EMA_ALPHA) * self.stats.ema_power;
 
         PowerReport {
             required_n,
@@ -444,7 +456,12 @@ impl AppsAnalysisEngine {
 
     // ── Internal Helpers ───────────────────────────────────────────────
 
-    fn compute_effect_size(&mut self, id: u64, control: &[f32], treatment: &[f32]) -> EffectSizeReport {
+    fn compute_effect_size(
+        &mut self,
+        id: u64,
+        control: &[f32],
+        treatment: &[f32],
+    ) -> EffectSizeReport {
         let mean_c = Self::mean(control);
         let mean_t = Self::mean(treatment);
         let std_c = Self::std_dev(control, mean_c);
@@ -457,7 +474,11 @@ impl AppsAnalysisEngine {
                 / (n_c + n_t - 2.0).max(1.0),
         );
 
-        let d = if pooled > 1e-9 { (mean_t - mean_c) / pooled } else { 0.0 };
+        let d = if pooled > 1e-9 {
+            (mean_t - mean_c) / pooled
+        } else {
+            0.0
+        };
         let abs_d = abs_f32(d);
         let magnitude = if abs_d >= LARGE_EFFECT {
             EffectMagnitude::Large
@@ -484,7 +505,12 @@ impl AppsAnalysisEngine {
         }
     }
 
-    fn compute_significance(&self, id: u64, control: &[f32], treatment: &[f32]) -> SignificanceReport {
+    fn compute_significance(
+        &self,
+        id: u64,
+        control: &[f32],
+        treatment: &[f32],
+    ) -> SignificanceReport {
         let mean_c = Self::mean(control);
         let mean_t = Self::mean(treatment);
         let var_c = Self::variance(control, mean_c);
@@ -494,8 +520,13 @@ impl AppsAnalysisEngine {
 
         // Welch's t-test
         let se = sqrt_approx(var_c / n_c.max(1) as f32 + var_t / n_t.max(1) as f32);
-        let t_stat = if se > 1e-9 { (mean_t - mean_c) / se } else { 0.0 };
-        let significant = abs_f32(t_stat) > T_CRITICAL_95 && n_c >= MIN_SAMPLES && n_t >= MIN_SAMPLES;
+        let t_stat = if se > 1e-9 {
+            (mean_t - mean_c) / se
+        } else {
+            0.0
+        };
+        let significant =
+            abs_f32(t_stat) > T_CRITICAL_95 && n_c >= MIN_SAMPLES && n_t >= MIN_SAMPLES;
 
         // Rough p-value estimate from normal approximation
         let abs_t = abs_f32(t_stat);
@@ -526,7 +557,11 @@ impl AppsAnalysisEngine {
         let var_a = Self::variance(a, mean_a);
         let var_b = Self::variance(b, mean_b);
         let se = sqrt_approx(var_a / a.len().max(1) as f32 + var_b / b.len().max(1) as f32);
-        if se > 1e-9 { (mean_a - mean_b) / se } else { 0.0 }
+        if se > 1e-9 {
+            (mean_a - mean_b) / se
+        } else {
+            0.0
+        }
     }
 
     fn mean(vals: &[f32]) -> f32 {

@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -58,7 +59,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(val: u64, lo: u64, hi: u64) -> u64 {
-    if val < lo { lo } else if val > hi { hi } else { val }
+    if val < lo {
+        lo
+    } else if val > hi {
+        hi
+    } else {
+        val
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -233,9 +240,10 @@ impl CoopAscension {
             AscensionTier::Mortal
         };
 
-        let rid = subsystem_ids.iter().fold(FNV_OFFSET, |acc, &id| {
-            acc ^ fnv1a(&id.to_le_bytes())
-        }) ^ self.current_tick;
+        let rid = subsystem_ids
+            .iter()
+            .fold(FNV_OFFSET, |acc, &id| acc ^ fnv1a(&id.to_le_bytes()))
+            ^ self.current_tick;
 
         let record = AscensionRecord {
             record_id: rid,
@@ -249,7 +257,9 @@ impl CoopAscension {
 
         if self.ascension_records.len() >= MAX_ASCENSION_RECORDS {
             let oldest = self.ascension_records.keys().next().copied();
-            if let Some(k) = oldest { self.ascension_records.remove(&k); }
+            if let Some(k) = oldest {
+                self.ascension_records.remove(&k);
+            }
         }
         self.ascension_records.insert(rid, record);
         self.progress_index.insert(rid, score);
@@ -272,16 +282,13 @@ impl CoopAscension {
         cooperation_intensity: u64,
     ) -> u64 {
         self.current_tick += 1;
-        let zid = member_ids.iter().fold(FNV_OFFSET, |acc, &id| {
-            acc ^ fnv1a(&id.to_le_bytes())
-        }) ^ self.current_tick;
+        let zid = member_ids
+            .iter()
+            .fold(FNV_OFFSET, |acc, &id| acc ^ fnv1a(&id.to_le_bytes()))
+            ^ self.current_tick;
 
         let stability = if current_peace_ticks > 100 {
-            clamp(
-                80 + (current_peace_ticks - 100) / 10,
-                80,
-                100,
-            )
+            clamp(80 + (current_peace_ticks - 100) / 10, 80, 100)
         } else {
             clamp(current_peace_ticks * 80 / 100, 0, 80)
         };
@@ -297,7 +304,9 @@ impl CoopAscension {
 
         if self.conflict_free_zones.len() >= MAX_CONFLICT_FREE_ZONES {
             let oldest = self.conflict_free_zones.keys().next().copied();
-            if let Some(k) = oldest { self.conflict_free_zones.remove(&k); }
+            if let Some(k) = oldest {
+                self.conflict_free_zones.remove(&k);
+            }
         }
         self.conflict_free_zones.insert(zid, zone);
         self.stats.conflict_free_zones += 1;
@@ -310,15 +319,12 @@ impl CoopAscension {
     // -----------------------------------------------------------------------
     // perfect_harmony — assess and create a self-sustaining harmony region
     // -----------------------------------------------------------------------
-    pub fn perfect_harmony(
-        &mut self,
-        participant_ids: &[u64],
-        cooperation_metrics: &[u64],
-    ) -> u64 {
+    pub fn perfect_harmony(&mut self, participant_ids: &[u64], cooperation_metrics: &[u64]) -> u64 {
         self.current_tick += 1;
-        let rid = participant_ids.iter().fold(FNV_OFFSET, |acc, &id| {
-            acc ^ fnv1a(&id.to_le_bytes())
-        }) ^ self.current_tick;
+        let rid = participant_ids
+            .iter()
+            .fold(FNV_OFFSET, |acc, &id| acc ^ fnv1a(&id.to_le_bytes()))
+            ^ self.current_tick;
 
         let avg_metric = if cooperation_metrics.is_empty() {
             0
@@ -341,11 +347,7 @@ impl CoopAscension {
                 / cooperation_metrics.len() as u64
         };
 
-        let harmony = clamp(
-            avg_metric.saturating_sub(variance.min(avg_metric)),
-            0,
-            100,
-        );
+        let harmony = clamp(avg_metric.saturating_sub(variance.min(avg_metric)), 0, 100);
 
         let autonomy = if harmony >= CONFLICT_FREE_THRESHOLD {
             clamp(harmony - 50, 30, 100)
@@ -353,11 +355,7 @@ impl CoopAscension {
             clamp(harmony / 3, 0, 30)
         };
 
-        let self_regulation = clamp(
-            harmony.wrapping_mul(autonomy) / 100,
-            0,
-            100,
-        );
+        let self_regulation = clamp(harmony.wrapping_mul(autonomy) / 100, 0, 100);
 
         let external_dep = 100u64.saturating_sub(autonomy);
 
@@ -373,7 +371,9 @@ impl CoopAscension {
 
         if self.harmony_regions.len() >= MAX_HARMONY_REGIONS {
             let oldest = self.harmony_regions.keys().next().copied();
-            if let Some(k) = oldest { self.harmony_regions.remove(&k); }
+            if let Some(k) = oldest {
+                self.harmony_regions.remove(&k);
+            }
         }
         self.harmony_regions.insert(rid, region);
         self.stats.harmony_regions += 1;
@@ -416,8 +416,8 @@ impl CoopAscension {
             return 0;
         }
 
-        let avg_score: u64 = self.progress_index.values().sum::<u64>()
-            / self.progress_index.len() as u64;
+        let avg_score: u64 =
+            self.progress_index.values().sum::<u64>() / self.progress_index.len() as u64;
 
         let conflict_free_bonus = clamp(self.stats.conflict_free_zones * 2, 0, 20);
         let harmony_bonus = clamp(self.stats.harmony_regions * 3, 0, 20);
@@ -513,11 +513,7 @@ impl CoopAscension {
                 if demand == 0 {
                     satisfaction_sum += 100;
                 } else {
-                    satisfaction_sum += clamp(
-                        alloc.wrapping_mul(100) / demand,
-                        0,
-                        100,
-                    );
+                    satisfaction_sum += clamp(alloc.wrapping_mul(100) / demand, 0, 100);
                 }
             }
             satisfaction_sum / allocations.len() as u64
@@ -536,7 +532,9 @@ impl CoopAscension {
 
         if self.fairness_records.len() >= MAX_FAIRNESS_RECORDS {
             let oldest = self.fairness_records.keys().next().copied();
-            if let Some(k) = oldest { self.fairness_records.remove(&k); }
+            if let Some(k) = oldest {
+                self.fairness_records.remove(&k);
+            }
         }
         self.fairness_records.insert(rid, record);
         if unanimity >= DIVINE_FAIRNESS_THRESHOLD && pareto {
@@ -564,11 +562,7 @@ impl CoopAscension {
         // Extend peace duration for active zones
         for zone in self.conflict_free_zones.values_mut() {
             zone.peace_duration_ticks += 1;
-            zone.stability_score = clamp(
-                zone.stability_score + 1,
-                0,
-                100,
-            );
+            zone.stability_score = clamp(zone.stability_score + 1, 0, 100);
         }
 
         // Stochastic harmony boost

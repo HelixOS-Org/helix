@@ -210,9 +210,7 @@ impl AppsBeyond {
             }
 
             let predicted_tick = trace.last_request_tick + trace.request_interval_ema;
-            if predicted_tick <= self.tick + ANTICIPATION_HORIZON
-                && predicted_tick > self.tick
-            {
+            if predicted_tick <= self.tick + ANTICIPATION_HORIZON && predicted_tick > self.tick {
                 let confidence = trace.prediction_accuracy_ema;
                 let amount = trace.request_size_ema;
                 let resource_kind = trace.pattern_hash & 0xFF;
@@ -258,8 +256,8 @@ impl AppsBeyond {
             }
 
             let technique_hash = fnv1a(&app_id.to_le_bytes()) ^ xorshift64(&mut self.rng);
-            let speedup = (request_pressure + interval_tightness).min(50)
-                + xorshift64(&mut self.rng) % 10;
+            let speedup =
+                (request_pressure + interval_tightness).min(50) + xorshift64(&mut self.rng) % 10;
             let cost = speedup / 3;
 
             let record = AccelerationRecord {
@@ -347,8 +345,7 @@ impl AppsBeyond {
     /// Compute the transcendence score (0–100) — how far beyond traditional.
     pub fn transcendence_score(&self) -> u64 {
         let anticipation_factor = if self.stats.anticipatory_reservations > 0 {
-            (self.stats.reservations_fulfilled * 100)
-                / self.stats.anticipatory_reservations.max(1)
+            (self.stats.reservations_fulfilled * 100) / self.stats.anticipatory_reservations.max(1)
         } else {
             0
         };

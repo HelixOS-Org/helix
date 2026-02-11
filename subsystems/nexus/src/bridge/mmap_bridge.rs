@@ -72,23 +72,46 @@ impl BridgeMmapManager {
         }
     }
 
-    pub fn mmap(&mut self, length: u64, prot: BridgeMmapProt, flags: BridgeMmapFlag, fd: Option<u64>) -> u64 {
+    pub fn mmap(
+        &mut self,
+        length: u64,
+        prot: BridgeMmapProt,
+        flags: BridgeMmapFlag,
+        fd: Option<u64>,
+    ) -> u64 {
         let addr = self.next_addr;
         self.next_addr += (length + 4095) & !4095;
-        let region = BridgeMmapRegion { addr, length, prot, flags, fd, offset: 0 };
+        let region = BridgeMmapRegion {
+            addr,
+            length,
+            prot,
+            flags,
+            fd,
+            offset: 0,
+        };
         self.regions.insert(addr, region);
         self.stats.total_maps += 1;
         self.stats.total_mapped_bytes += length;
         match flags {
             BridgeMmapFlag::Anonymous => self.stats.anonymous += 1,
             BridgeMmapFlag::Shared => self.stats.shared += 1,
-            _ => if fd.is_some() { self.stats.file_backed += 1; } else { self.stats.anonymous += 1; }
+            _ => {
+                if fd.is_some() {
+                    self.stats.file_backed += 1;
+                } else {
+                    self.stats.anonymous += 1;
+                }
+            },
         }
         addr
     }
 
     #[inline(always)]
-    pub fn region_count(&self) -> usize { self.regions.len() }
+    pub fn region_count(&self) -> usize {
+        self.regions.len()
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeMmapStats { &self.stats }
+    pub fn stats(&self) -> &BridgeMmapStats {
+        &self.stats
+    }
 }

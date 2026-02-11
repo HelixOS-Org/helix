@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Latency bucket
 #[derive(Debug, Clone)]
@@ -36,23 +37,48 @@ pub struct LatencyHistogram {
 impl LatencyHistogram {
     pub fn new() -> Self {
         let boundaries = [
-            100, 500, 1_000, 5_000, 10_000, 50_000, 100_000,
-            500_000, 1_000_000, 5_000_000, 10_000_000, 50_000_000, u64::MAX,
+            100,
+            500,
+            1_000,
+            5_000,
+            10_000,
+            50_000,
+            100_000,
+            500_000,
+            1_000_000,
+            5_000_000,
+            10_000_000,
+            50_000_000,
+            u64::MAX,
         ];
         let mut buckets = Vec::new();
         let mut prev = 0u64;
         for &b in &boundaries {
-            buckets.push(LatencyBucketBridge { min_ns: prev, max_ns: b, count: 0 });
+            buckets.push(LatencyBucketBridge {
+                min_ns: prev,
+                max_ns: b,
+                count: 0,
+            });
             prev = b;
         }
-        Self { buckets, total_samples: 0, sum_ns: 0, min_ns: u64::MAX, max_ns: 0 }
+        Self {
+            buckets,
+            total_samples: 0,
+            sum_ns: 0,
+            min_ns: u64::MAX,
+            max_ns: 0,
+        }
     }
 
     pub fn record(&mut self, ns: u64) {
         self.total_samples += 1;
         self.sum_ns += ns;
-        if ns < self.min_ns { self.min_ns = ns; }
-        if ns > self.max_ns { self.max_ns = ns; }
+        if ns < self.min_ns {
+            self.min_ns = ns;
+        }
+        if ns > self.max_ns {
+            self.max_ns = ns;
+        }
         for bucket in &mut self.buckets {
             if ns >= bucket.min_ns && ns < bucket.max_ns {
                 bucket.count += 1;
@@ -63,7 +89,9 @@ impl LatencyHistogram {
 
     #[inline(always)]
     pub fn avg_ns(&self) -> u64 {
-        if self.total_samples == 0 { return 0; }
+        if self.total_samples == 0 {
+            return 0;
+        }
         self.sum_ns / self.total_samples
     }
 
@@ -81,11 +109,17 @@ impl LatencyHistogram {
     }
 
     #[inline(always)]
-    pub fn p50(&self) -> u64 { self.percentile(50.0) }
+    pub fn p50(&self) -> u64 {
+        self.percentile(50.0)
+    }
     #[inline(always)]
-    pub fn p95(&self) -> u64 { self.percentile(95.0) }
+    pub fn p95(&self) -> u64 {
+        self.percentile(95.0)
+    }
     #[inline(always)]
-    pub fn p99(&self) -> u64 { self.percentile(99.0) }
+    pub fn p99(&self) -> u64 {
+        self.percentile(99.0)
+    }
 }
 
 /// Error tracking by errno
@@ -99,7 +133,11 @@ pub struct ErrnoTracker {
 
 impl ErrnoTracker {
     pub fn new() -> Self {
-        Self { errors: BTreeMap::new(), total_errors: 0, total_calls: 0 }
+        Self {
+            errors: BTreeMap::new(),
+            total_errors: 0,
+            total_calls: 0,
+        }
     }
 
     #[inline(always)]
@@ -116,13 +154,16 @@ impl ErrnoTracker {
 
     #[inline(always)]
     pub fn error_rate(&self) -> f64 {
-        if self.total_calls == 0 { return 0.0; }
+        if self.total_calls == 0 {
+            return 0.0;
+        }
         self.total_errors as f64 / self.total_calls as f64
     }
 
     #[inline]
     pub fn top_error(&self) -> Option<(i32, u64)> {
-        self.errors.iter()
+        self.errors
+            .iter()
             .max_by_key(|&(_, &count)| count)
             .map(|(&errno, &count)| (errno, count))
     }
@@ -177,7 +218,8 @@ impl SyscallProfileV2 {
 
     #[inline]
     pub fn top_caller(&self) -> Option<(u64, u64)> {
-        self.caller_sites.iter()
+        self.caller_sites
+            .iter()
             .max_by_key(|(_, count)| *count)
             .map(|(addr, count)| (addr, count))
     }
@@ -214,15 +256,27 @@ impl BridgeSyscallProfilerV2 {
         }
     }
 
-    pub fn record(&mut self, task_id: u64, syscall_nr: u32, latency_ns: u64, result: i64, caller: u64, now: u64) {
-        let profile = self.profiles.entry(syscall_nr)
+    pub fn record(
+        &mut self,
+        task_id: u64,
+        syscall_nr: u32,
+        latency_ns: u64,
+        result: i64,
+        caller: u64,
+        now: u64,
+    ) {
+        let profile = self
+            .profiles
+            .entry(syscall_nr)
             .or_insert_with(|| SyscallProfileV2::new(syscall_nr));
         profile.record(latency_ns, result, caller, now);
 
         // Track pairs
         if let Some(&(prev_nr, prev_ts)) = self.last_syscall_per_task.get(&task_id) {
             let gap = now.saturating_sub(prev_ts);
-            let found = self.pairs.iter_mut()
+            let found = self
+                .pairs
+                .iter_mut()
                 .find(|p| p.first_nr == prev_nr && p.second_nr == syscall_nr);
             if let Some(pair) = found {
                 let n = pair.count;
@@ -237,7 +291,8 @@ impl BridgeSyscallProfilerV2 {
                 });
             }
         }
-        self.last_syscall_per_task.insert(task_id, (syscall_nr, now));
+        self.last_syscall_per_task
+            .insert(task_id, (syscall_nr, now));
     }
 
     /// Find hot pairs (common sequences)
@@ -254,7 +309,9 @@ impl BridgeSyscallProfilerV2 {
         let sum_lat: u64 = self.profiles.values().map(|p| p.latency.sum_ns).sum();
         self.stats.global_avg_latency_ns = if self.stats.total_calls > 0 {
             sum_lat / self.stats.total_calls
-        } else { 0 };
+        } else {
+            0
+        };
 
         if let Some((nr, profile)) = self.profiles.iter().max_by_key(|(_, p)| p.call_count) {
             self.stats.hottest_syscall_nr = *nr;
@@ -263,7 +320,11 @@ impl BridgeSyscallProfilerV2 {
     }
 
     #[inline(always)]
-    pub fn profile(&self, nr: u32) -> Option<&SyscallProfileV2> { self.profiles.get(&nr) }
+    pub fn profile(&self, nr: u32) -> Option<&SyscallProfileV2> {
+        self.profiles.get(&nr)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeSyscallProfilerV2Stats { &self.stats }
+    pub fn stats(&self) -> &BridgeSyscallProfilerV2Stats {
+        &self.stats
+    }
 }

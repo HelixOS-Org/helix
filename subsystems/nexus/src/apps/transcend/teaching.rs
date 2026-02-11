@@ -445,7 +445,11 @@ impl AppsTeaching {
             if !student.lessons_completed.contains(&lesson_id) {
                 student.lessons_completed.push(lesson_id);
             }
-            let actual_gain = if score >= MASTERY_THRESHOLD { gain } else { gain / 2 };
+            let actual_gain = if score >= MASTERY_THRESHOLD {
+                gain
+            } else {
+                gain / 2
+            };
             student.skill_level = (student.skill_level + actual_gain).min(100);
             student.readiness = student.skill_level;
             student.mastery_ema = ema_update(student.mastery_ema, score.min(100));

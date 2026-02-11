@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Standard umask permission bits
@@ -19,11 +18,17 @@ impl UmaskValue {
     pub const GROUP_WRITE: Self = Self(0o002);
 
     #[inline(always)]
-    pub fn owner_bits(&self) -> u32 { (self.0 >> 6) & 0o7 }
+    pub fn owner_bits(&self) -> u32 {
+        (self.0 >> 6) & 0o7
+    }
     #[inline(always)]
-    pub fn group_bits(&self) -> u32 { (self.0 >> 3) & 0o7 }
+    pub fn group_bits(&self) -> u32 {
+        (self.0 >> 3) & 0o7
+    }
     #[inline(always)]
-    pub fn other_bits(&self) -> u32 { self.0 & 0o7 }
+    pub fn other_bits(&self) -> u32 {
+        self.0 & 0o7
+    }
 
     #[inline(always)]
     pub fn apply_to_file(&self, mode: u32) -> u32 {
@@ -41,13 +46,21 @@ impl UmaskValue {
     }
 
     #[inline(always)]
-    pub fn blocks_world_read(&self) -> bool { self.0 & 0o004 != 0 }
+    pub fn blocks_world_read(&self) -> bool {
+        self.0 & 0o004 != 0
+    }
     #[inline(always)]
-    pub fn blocks_world_write(&self) -> bool { self.0 & 0o002 != 0 }
+    pub fn blocks_world_write(&self) -> bool {
+        self.0 & 0o002 != 0
+    }
     #[inline(always)]
-    pub fn blocks_world_exec(&self) -> bool { self.0 & 0o001 != 0 }
+    pub fn blocks_world_exec(&self) -> bool {
+        self.0 & 0o001 != 0
+    }
     #[inline(always)]
-    pub fn blocks_group_write(&self) -> bool { self.0 & 0o020 != 0 }
+    pub fn blocks_group_write(&self) -> bool {
+        self.0 & 0o020 != 0
+    }
 }
 
 /// Umask change event
@@ -75,8 +88,13 @@ pub struct ProcessUmaskState {
 impl ProcessUmaskState {
     pub fn new(pid: u32, mask: UmaskValue) -> Self {
         Self {
-            pid, current_mask: mask, initial_mask: mask,
-            change_count: 0, file_creates: 0, dir_creates: 0, last_change: 0,
+            pid,
+            current_mask: mask,
+            initial_mask: mask,
+            change_count: 0,
+            file_creates: 0,
+            dir_creates: 0,
+            last_change: 0,
         }
     }
 
@@ -100,9 +118,13 @@ impl ProcessUmaskState {
     }
 
     #[inline(always)]
-    pub fn record_file_create(&mut self) { self.file_creates += 1; }
+    pub fn record_file_create(&mut self) {
+        self.file_creates += 1;
+    }
     #[inline(always)]
-    pub fn record_dir_create(&mut self) { self.dir_creates += 1; }
+    pub fn record_dir_create(&mut self) {
+        self.dir_creates += 1;
+    }
 }
 
 /// Security assessment of a umask
@@ -119,9 +141,15 @@ impl UmaskSecurityLevel {
     pub fn assess(mask: UmaskValue) -> Self {
         let other = mask.other_bits();
         let group = mask.group_bits();
-        if other == 7 && group >= 5 { return Self::Secure; }
-        if other >= 2 && group >= 2 { return Self::Moderate; }
-        if other > 0 || group > 0 { return Self::Permissive; }
+        if other == 7 && group >= 5 {
+            return Self::Secure;
+        }
+        if other >= 2 && group >= 2 {
+            return Self::Moderate;
+        }
+        if other > 0 || group > 0 {
+            return Self::Permissive;
+        }
         Self::Dangerous
     }
 }
@@ -167,9 +195,12 @@ pub struct AppUmaskMgr {
 impl AppUmaskMgr {
     pub fn new(default_mask: UmaskValue) -> Self {
         Self {
-            processes: BTreeMap::new(), events: VecDeque::new(),
-            max_events: 2048, policies: Vec::new(),
-            default_mask, policy_violations: 0,
+            processes: BTreeMap::new(),
+            events: VecDeque::new(),
+            max_events: 2048,
+            policies: Vec::new(),
+            default_mask,
+            policy_violations: 0,
         }
     }
 
@@ -195,8 +226,15 @@ impl AppUmaskMgr {
         let state = self.processes.get_mut(&pid)?;
         let old = state.set_mask(new_mask, now);
 
-        if self.events.len() >= self.max_events { self.events.remove(0); }
-        self.events.push_back(UmaskChangeEvent { pid, old_mask: old, new_mask, timestamp: now });
+        if self.events.len() >= self.max_events {
+            self.events.remove(0);
+        }
+        self.events.push_back(UmaskChangeEvent {
+            pid,
+            old_mask: old,
+            new_mask,
+            timestamp: now,
+        });
         Some(old)
     }
 
@@ -229,9 +267,12 @@ impl AppUmaskMgr {
     pub fn fork_umask(&mut self, parent: u32, child: u32) -> bool {
         if let Some(parent_state) = self.processes.get(&parent) {
             let mask = parent_state.current_mask;
-            self.processes.insert(child, ProcessUmaskState::new(child, mask));
+            self.processes
+                .insert(child, ProcessUmaskState::new(child, mask));
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -241,12 +282,18 @@ impl AppUmaskMgr {
 
     #[inline]
     pub fn insecure_processes(&self) -> Vec<(u32, UmaskValue, UmaskSecurityLevel)> {
-        self.processes.iter()
+        self.processes
+            .iter()
             .filter_map(|(&pid, state)| {
                 let level = UmaskSecurityLevel::assess(state.current_mask);
-                if matches!(level, UmaskSecurityLevel::Permissive | UmaskSecurityLevel::Dangerous) {
+                if matches!(
+                    level,
+                    UmaskSecurityLevel::Permissive | UmaskSecurityLevel::Dangerous
+                ) {
                     Some((pid, state.current_mask, level))
-                } else { None }
+                } else {
+                    None
+                }
             })
             .collect()
     }
@@ -258,8 +305,10 @@ impl AppUmaskMgr {
         let insecure = self.insecure_processes().len() as u32;
         UmaskMgrStats {
             tracked_processes: self.processes.len() as u32,
-            total_changes, total_file_creates: total_fc,
-            total_dir_creates: total_dc, insecure_masks: insecure,
+            total_changes,
+            total_file_creates: total_fc,
+            total_dir_creates: total_dc,
+            insecure_masks: insecure,
             policy_violations: self.policy_violations,
         }
     }

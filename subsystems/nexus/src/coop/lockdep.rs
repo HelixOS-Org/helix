@@ -185,7 +185,10 @@ impl CoopLockdep {
     }
 
     pub fn record_acquire(&mut self, cpu: u32, lock_id: u64, pid: u64) {
-        let stack = self.stacks.entry(cpu).or_insert_with(|| LockdepHoldStack::new(cpu));
+        let stack = self
+            .stacks
+            .entry(cpu)
+            .or_insert_with(|| LockdepHoldStack::new(cpu));
         // Check for double-lock
         if stack.is_held(lock_id) {
             let vid = self.next_violation_id;

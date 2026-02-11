@@ -30,7 +30,14 @@ pub struct ElimSlot {
 
 impl ElimSlot {
     pub fn new() -> Self {
-        Self { state: ElimSlotState::Empty, op: None, value: 0, thread_id: 0, exchanges: 0, timeouts: 0 }
+        Self {
+            state: ElimSlotState::Empty,
+            op: None,
+            value: 0,
+            thread_id: 0,
+            exchanges: 0,
+            timeouts: 0,
+        }
     }
 
     #[inline]
@@ -38,23 +45,27 @@ impl ElimSlot {
         self.state = ElimSlotState::Waiting;
         self.op = Some(op);
         self.thread_id = thread_id;
-        if let ElimOpType::Push(v) = op { self.value = v; }
+        if let ElimOpType::Push(v) = op {
+            self.value = v;
+        }
     }
 
     pub fn try_match(&mut self, other_op: ElimOpType) -> Option<u64> {
-        if self.state != ElimSlotState::Waiting { return None; }
+        if self.state != ElimSlotState::Waiting {
+            return None;
+        }
         match (self.op, other_op) {
             (Some(ElimOpType::Push(_)), ElimOpType::Pop) => {
                 self.state = ElimSlotState::Matched;
                 self.exchanges += 1;
                 Some(self.value)
-            }
+            },
             (Some(ElimOpType::Pop), ElimOpType::Push(v)) => {
                 self.state = ElimSlotState::Matched;
                 self.value = v;
                 self.exchanges += 1;
                 Some(v)
-            }
+            },
             _ => None,
         }
     }
@@ -76,7 +87,11 @@ pub struct ElimArrayConfig {
 impl ElimArrayConfig {
     #[inline(always)]
     pub fn default_config() -> Self {
-        Self { num_slots: 16, timeout_ns: 1_000_000, backoff_base: 100 }
+        Self {
+            num_slots: 16,
+            timeout_ns: 1_000_000,
+            backoff_base: 100,
+        }
     }
 }
 
@@ -103,12 +118,17 @@ impl CoopElimStack {
     pub fn new(config: ElimArrayConfig) -> Self {
         let slots = (0..config.num_slots).map(|_| ElimSlot::new()).collect();
         Self {
-            slots, config, stack_size: 0,
+            slots,
+            config,
+            stack_size: 0,
             rng_state: 0xdeadbeefcafe1234,
             stats: ElimStackStats {
-                total_pushes: 0, total_pops: 0,
-                total_eliminations: 0, total_timeouts: 0,
-                stack_ops: 0, elimination_rate: 0,
+                total_pushes: 0,
+                total_pops: 0,
+                total_eliminations: 0,
+                total_timeouts: 0,
+                stack_ops: 0,
+                elimination_rate: 0,
             },
         }
     }
@@ -149,9 +169,13 @@ impl CoopElimStack {
             self.stack_size -= 1;
             self.stats.stack_ops += 1;
             Some(0)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &ElimStackStats { &self.stats }
+    pub fn stats(&self) -> &ElimStackStats {
+        &self.stats
+    }
 }

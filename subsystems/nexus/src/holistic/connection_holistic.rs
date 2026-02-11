@@ -5,7 +5,13 @@ extern crate alloc;
 
 /// Connection health
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConnHealth { Healthy, Idle, HalfOpen, Zombie, Orphaned }
+pub enum ConnHealth {
+    Healthy,
+    Idle,
+    HalfOpen,
+    Zombie,
+    Orphaned,
+}
 
 /// Connection holistic record
 #[derive(Debug, Clone)]
@@ -17,28 +23,53 @@ pub struct ConnectionHolisticRecord {
 }
 
 impl ConnectionHolisticRecord {
-    pub fn new(health: ConnHealth) -> Self { Self { health, active_conns: 0, idle_conns: 0, age_ms: 0 } }
+    pub fn new(health: ConnHealth) -> Self {
+        Self {
+            health,
+            active_conns: 0,
+            idle_conns: 0,
+            age_ms: 0,
+        }
+    }
 }
 
 /// Connection holistic stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct ConnectionHolisticStats { pub total_samples: u64, pub zombies: u64, pub orphaned: u64, pub peak_active: u32 }
+pub struct ConnectionHolisticStats {
+    pub total_samples: u64,
+    pub zombies: u64,
+    pub orphaned: u64,
+    pub peak_active: u32,
+}
 
 /// Main holistic connection
 #[derive(Debug)]
-pub struct HolisticConnection { pub stats: ConnectionHolisticStats }
+pub struct HolisticConnection {
+    pub stats: ConnectionHolisticStats,
+}
 
 impl HolisticConnection {
-    pub fn new() -> Self { Self { stats: ConnectionHolisticStats { total_samples: 0, zombies: 0, orphaned: 0, peak_active: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: ConnectionHolisticStats {
+                total_samples: 0,
+                zombies: 0,
+                orphaned: 0,
+                peak_active: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &ConnectionHolisticRecord) {
         self.stats.total_samples += 1;
         match rec.health {
             ConnHealth::Zombie | ConnHealth::HalfOpen => self.stats.zombies += 1,
             ConnHealth::Orphaned => self.stats.orphaned += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.active_conns > self.stats.peak_active { self.stats.peak_active = rec.active_conns; }
+        if rec.active_conns > self.stats.peak_active {
+            self.stats.peak_active = rec.active_conns;
+        }
     }
 }

@@ -58,11 +58,21 @@ impl TransferChunk {
         ck = ck.wrapping_mul(0x100000001b3);
         ck ^= size as u64;
         ck = ck.wrapping_mul(0x100000001b3);
-        Self { seq, offset, size, checksum: ck, acked: false, send_ts: ts, retries: 0 }
+        Self {
+            seq,
+            offset,
+            size,
+            checksum: ck,
+            acked: false,
+            send_ts: ts,
+            retries: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn ack(&mut self) { self.acked = true; }
+    pub fn ack(&mut self) {
+        self.acked = true;
+    }
 }
 
 /// State snapshot descriptor
@@ -80,9 +90,18 @@ impl SnapshotDesc {
     pub fn new(epoch: u64, total_size: u64, chunk_size: u32, ts: u64) -> Self {
         let chunk_count = (total_size + chunk_size as u64 - 1) / chunk_size as u64;
         let mut ck: u64 = 0xcbf29ce484222325;
-        ck ^= epoch; ck = ck.wrapping_mul(0x100000001b3);
-        ck ^= total_size; ck = ck.wrapping_mul(0x100000001b3);
-        Self { epoch, total_size, chunk_size, chunk_count, checksum: ck, create_ts: ts }
+        ck ^= epoch;
+        ck = ck.wrapping_mul(0x100000001b3);
+        ck ^= total_size;
+        ck = ck.wrapping_mul(0x100000001b3);
+        Self {
+            epoch,
+            total_size,
+            chunk_size,
+            chunk_count,
+            checksum: ck,
+            create_ts: ts,
+        }
     }
 }
 
@@ -106,11 +125,29 @@ pub struct TransferSession {
 }
 
 impl TransferSession {
-    pub fn new(id: u64, source: u64, target: u64, mode: TransferMode, snap: SnapshotDesc, max_inflight: u32, ts: u64) -> Self {
+    pub fn new(
+        id: u64,
+        source: u64,
+        target: u64,
+        mode: TransferMode,
+        snap: SnapshotDesc,
+        max_inflight: u32,
+        ts: u64,
+    ) -> Self {
         Self {
-            id, source, target, mode, state: TransferState::Init,
-            snapshot: snap, chunks: Vec::new(), sent: 0, acked: 0,
-            bytes_sent: 0, start_ts: ts, end_ts: 0, max_inflight,
+            id,
+            source,
+            target,
+            mode,
+            state: TransferState::Init,
+            snapshot: snap,
+            chunks: Vec::new(),
+            sent: 0,
+            acked: 0,
+            bytes_sent: 0,
+            start_ts: ts,
+            end_ts: 0,
+            max_inflight,
             bandwidth_bps: 0,
         }
     }
@@ -123,7 +160,13 @@ impl TransferSession {
             let offset = i * self.snapshot.chunk_size as u64;
             let remaining = self.snapshot.total_size.saturating_sub(offset);
             let sz = core::cmp::min(remaining, self.snapshot.chunk_size as u64) as u32;
-            self.chunks.push(TransferChunk::new(i, offset, sz, self.snapshot.checksum.wrapping_add(i), ts));
+            self.chunks.push(TransferChunk::new(
+                i,
+                offset,
+                sz,
+                self.snapshot.checksum.wrapping_add(i),
+                ts,
+            ));
         }
         self.state = TransferState::Transferring;
     }
@@ -131,9 +174,12 @@ impl TransferSession {
     #[inline]
     pub fn next_chunks(&self) -> Vec<u64> {
         let inflight = self.sent.saturating_sub(self.acked) as u32;
-        if inflight >= self.max_inflight { return Vec::new(); }
+        if inflight >= self.max_inflight {
+            return Vec::new();
+        }
         let can_send = (self.max_inflight - inflight) as usize;
-        self.chunks.iter()
+        self.chunks
+            .iter()
             .filter(|c| !c.acked && c.send_ts == 0)
             .take(can_send)
             .map(|c| c.seq)
@@ -154,7 +200,9 @@ impl TransferSession {
         if let Some(c) = self.chunks.iter_mut().find(|c| c.seq == seq) {
             c.ack();
             self.acked += 1;
-            if self.acked == self.snapshot.chunk_count { self.state = TransferState::Verifying; }
+            if self.acked == self.snapshot.chunk_count {
+                self.state = TransferState::Verifying;
+            }
             return true;
         }
         false
@@ -163,37 +211,61 @@ impl TransferSession {
     #[inline]
     pub fn verify(&mut self) -> bool {
         let all_acked = self.chunks.iter().all(|c| c.acked);
-        if all_acked { self.state = TransferState::Applying; }
+        if all_acked {
+            self.state = TransferState::Applying;
+        }
         all_acked
     }
 
     #[inline(always)]
-    pub fn complete(&mut self, ts: u64) { self.state = TransferState::Complete; self.end_ts = ts; }
+    pub fn complete(&mut self, ts: u64) {
+        self.state = TransferState::Complete;
+        self.end_ts = ts;
+    }
     #[inline(always)]
-    pub fn fail(&mut self, ts: u64) { self.state = TransferState::Failed; self.end_ts = ts; }
+    pub fn fail(&mut self, ts: u64) {
+        self.state = TransferState::Failed;
+        self.end_ts = ts;
+    }
     #[inline(always)]
-    pub fn pause(&mut self) { self.state = TransferState::Paused; }
+    pub fn pause(&mut self) {
+        self.state = TransferState::Paused;
+    }
     #[inline(always)]
-    pub fn resume(&mut self) { self.state = TransferState::Transferring; }
+    pub fn resume(&mut self) {
+        self.state = TransferState::Transferring;
+    }
 
     #[inline(always)]
     pub fn progress(&self) -> f64 {
-        if self.snapshot.chunk_count == 0 { return 0.0; }
+        if self.snapshot.chunk_count == 0 {
+            return 0.0;
+        }
         self.acked as f64 / self.snapshot.chunk_count as f64
     }
 
     #[inline(always)]
-    pub fn elapsed(&self, now: u64) -> u64 { now.saturating_sub(self.start_ts) }
+    pub fn elapsed(&self, now: u64) -> u64 {
+        now.saturating_sub(self.start_ts)
+    }
 
     #[inline(always)]
     pub fn throughput(&self, now: u64) -> u64 {
         let e = self.elapsed(now);
-        if e == 0 { 0 } else { self.bytes_sent.saturating_mul(1_000_000_000) / e }
+        if e == 0 {
+            0
+        } else {
+            self.bytes_sent.saturating_mul(1_000_000_000) / e
+        }
     }
 
     #[inline(always)]
     pub fn unacked_chunks(&self) -> Vec<u64> {
-        self.chunks.iter().filter(|c| !c.acked && c.send_ts > 0).map(|c| c.seq).collect()
+        self.chunks
+            .iter()
+            .filter(|c| !c.acked && c.send_ts > 0)
+            .map(|c| c.seq)
+            .collect()
     }
 }
 
@@ -221,14 +293,30 @@ pub struct CoopStateTransfer {
 
 impl CoopStateTransfer {
     pub fn new(chunk_size: u32, inflight: u32) -> Self {
-        Self { sessions: BTreeMap::new(), stats: TransferStats::default(), next_id: 1, default_chunk_size: chunk_size, default_inflight: inflight }
+        Self {
+            sessions: BTreeMap::new(),
+            stats: TransferStats::default(),
+            next_id: 1,
+            default_chunk_size: chunk_size,
+            default_inflight: inflight,
+        }
     }
 
     #[inline]
-    pub fn start_transfer(&mut self, source: u64, target: u64, mode: TransferMode, total_size: u64, epoch: u64, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+    pub fn start_transfer(
+        &mut self,
+        source: u64,
+        target: u64,
+        mode: TransferMode,
+        total_size: u64,
+        epoch: u64,
+        ts: u64,
+    ) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
         let snap = SnapshotDesc::new(epoch, total_size, self.default_chunk_size, ts);
-        let mut session = TransferSession::new(id, source, target, mode, snap, self.default_inflight, ts);
+        let mut session =
+            TransferSession::new(id, source, target, mode, snap, self.default_inflight, ts);
         session.prepare(ts);
         self.sessions.insert(id, session);
         id
@@ -238,7 +326,9 @@ impl CoopStateTransfer {
     pub fn send_chunks(&mut self, session_id: u64, ts: u64) -> Vec<u64> {
         if let Some(s) = self.sessions.get_mut(&session_id) {
             let seqs = s.next_chunks();
-            for &seq in &seqs { s.mark_sent(seq, ts); }
+            for &seq in &seqs {
+                s.mark_sent(seq, ts);
+            }
             return seqs;
         }
         Vec::new()
@@ -246,33 +336,58 @@ impl CoopStateTransfer {
 
     #[inline(always)]
     pub fn ack(&mut self, session_id: u64, seq: u64) -> bool {
-        if let Some(s) = self.sessions.get_mut(&session_id) { s.ack_chunk(seq) } else { false }
+        if let Some(s) = self.sessions.get_mut(&session_id) {
+            s.ack_chunk(seq)
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn try_complete(&mut self, session_id: u64, ts: u64) -> bool {
         if let Some(s) = self.sessions.get_mut(&session_id) {
-            if s.verify() { s.complete(ts); return true; }
+            if s.verify() {
+                s.complete(ts);
+                return true;
+            }
         }
         false
     }
 
     #[inline(always)]
     pub fn cancel(&mut self, session_id: u64, ts: u64) {
-        if let Some(s) = self.sessions.get_mut(&session_id) { s.fail(ts); }
+        if let Some(s) = self.sessions.get_mut(&session_id) {
+            s.fail(ts);
+        }
     }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.sessions = self.sessions.len();
-        self.stats.active = self.sessions.values().filter(|s| s.state == TransferState::Transferring).count();
-        self.stats.completed = self.sessions.values().filter(|s| s.state == TransferState::Complete).count();
-        self.stats.failed = self.sessions.values().filter(|s| s.state == TransferState::Failed).count();
+        self.stats.active = self
+            .sessions
+            .values()
+            .filter(|s| s.state == TransferState::Transferring)
+            .count();
+        self.stats.completed = self
+            .sessions
+            .values()
+            .filter(|s| s.state == TransferState::Complete)
+            .count();
+        self.stats.failed = self
+            .sessions
+            .values()
+            .filter(|s| s.state == TransferState::Failed)
+            .count();
         self.stats.total_bytes = self.sessions.values().map(|s| s.bytes_sent).sum();
     }
 
     #[inline(always)]
-    pub fn session(&self, id: u64) -> Option<&TransferSession> { self.sessions.get(&id) }
+    pub fn session(&self, id: u64) -> Option<&TransferSession> {
+        self.sessions.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &TransferStats { &self.stats }
+    pub fn stats(&self) -> &TransferStats {
+        &self.stats
+    }
 }

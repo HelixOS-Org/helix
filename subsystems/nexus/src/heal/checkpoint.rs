@@ -7,13 +7,13 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::core::{ComponentId, NexusTimestamp};
 use crate::error::{HealingError, NexusResult};
+use crate::fast::linear_map::LinearMap;
 
 /// A checkpoint for rollback
 #[derive(Debug, Clone)]

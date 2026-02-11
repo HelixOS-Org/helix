@@ -81,7 +81,10 @@ impl AppSetpgidManager {
             if !self.groups.contains_key(&new_pgid) {
                 self.stats.groups_created += 1;
             }
-            self.groups.entry(new_pgid).or_insert_with(Vec::new).push(pid);
+            self.groups
+                .entry(new_pgid)
+                .or_insert_with(Vec::new)
+                .push(pid);
             true
         } else {
             false

@@ -206,7 +206,9 @@ impl PageClassifier {
     /// Get cold pages (eviction candidates)
     #[inline]
     pub fn cold_pages(&self, limit: usize) -> Vec<u64> {
-        let mut cold: Vec<&PageClassification> = self.pages.values()
+        let mut cold: Vec<&PageClassification> = self
+            .pages
+            .values()
             .filter(|p| matches!(p.temperature, PageTemp::Cold | PageTemp::Frozen))
             .collect();
         cold.sort_by(|a, b| a.access_count.cmp(&b.access_count));
@@ -273,7 +275,10 @@ impl HolisticCacheManager {
     /// Create partition
     #[inline(always)]
     pub fn create_partition(&mut self, owner: u64, ways: u32) {
-        self.partitions.insert(owner, CachePartitionEntry::new(owner, ways, self.total_ways));
+        self.partitions.insert(
+            owner,
+            CachePartitionEntry::new(owner, ways, self.total_ways),
+        );
         self.update_stats();
     }
 
@@ -338,9 +343,8 @@ impl HolisticCacheManager {
         self.stats.partitions = self.partitions.len();
         self.stats.tracked_pages = self.classifier.pages.len();
         if !self.partitions.is_empty() {
-            self.stats.avg_hit_rate = self.partitions.values()
-                .map(|p| p.hit_rate)
-                .sum::<f64>() / self.partitions.len() as f64;
+            self.stats.avg_hit_rate = self.partitions.values().map(|p| p.hit_rate).sum::<f64>()
+                / self.partitions.len() as f64;
         }
         let dist = self.classifier.temperature_distribution();
         self.stats.hot_pages = dist.get(&(PageTemp::Hot as u8)).copied().unwrap_or(0);

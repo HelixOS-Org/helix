@@ -5,7 +5,12 @@ extern crate alloc;
 
 /// Buffer pool coop event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BufferPoolCoopEvent { PoolShare, BufferRecycle, FragmentMerge, SkbClone }
+pub enum BufferPoolCoopEvent {
+    PoolShare,
+    BufferRecycle,
+    FragmentMerge,
+    SkbClone,
+}
 
 /// Buffer pool coop record
 #[derive(Debug, Clone)]
@@ -18,30 +23,55 @@ pub struct BufferPoolCoopRecord {
 }
 
 impl BufferPoolCoopRecord {
-    pub fn new(event: BufferPoolCoopEvent) -> Self { Self { event, buffers: 0, bytes: 0, pool_utilization_pct: 0 } }
+    pub fn new(event: BufferPoolCoopEvent) -> Self {
+        Self {
+            event,
+            buffers: 0,
+            bytes: 0,
+            pool_utilization_pct: 0,
+        }
+    }
 }
 
 /// Buffer pool coop stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct BufferPoolCoopStats { pub total_events: u64, pub shares: u64, pub recycled: u64, pub bytes_saved: u64 }
+pub struct BufferPoolCoopStats {
+    pub total_events: u64,
+    pub shares: u64,
+    pub recycled: u64,
+    pub bytes_saved: u64,
+}
 
 /// Main coop buffer pool
 #[derive(Debug)]
 #[repr(align(64))]
-pub struct CoopBufferPool { pub stats: BufferPoolCoopStats }
+pub struct CoopBufferPool {
+    pub stats: BufferPoolCoopStats,
+}
 
 impl CoopBufferPool {
-    pub fn new() -> Self { Self { stats: BufferPoolCoopStats { total_events: 0, shares: 0, recycled: 0, bytes_saved: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: BufferPoolCoopStats {
+                total_events: 0,
+                shares: 0,
+                recycled: 0,
+                bytes_saved: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &BufferPoolCoopRecord) {
         self.stats.total_events += 1;
         match rec.event {
-            BufferPoolCoopEvent::PoolShare | BufferPoolCoopEvent::SkbClone => self.stats.shares += 1,
+            BufferPoolCoopEvent::PoolShare | BufferPoolCoopEvent::SkbClone => {
+                self.stats.shares += 1
+            },
             BufferPoolCoopEvent::BufferRecycle | BufferPoolCoopEvent::FragmentMerge => {
                 self.stats.recycled += 1;
                 self.stats.bytes_saved += rec.bytes;
-            }
+            },
         }
     }
 }

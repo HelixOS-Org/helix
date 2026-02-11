@@ -2,9 +2,10 @@
 //! Holistic inode — inode lifecycle management with allocation and eviction
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Inode type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,28 +54,54 @@ pub struct HolisticInode {
 impl HolisticInode {
     pub fn new(ino: u64, inode_type: InodeType, mode: u16) -> Self {
         Self {
-            ino, inode_type, state: InodeState::New, mode, uid: 0, gid: 0,
-            size: 0, blocks: 0, nlink: 1, ref_count: 1, atime_ns: 0,
-            mtime_ns: 0, ctime_ns: 0, dirty_pages: 0, generation: 0,
+            ino,
+            inode_type,
+            state: InodeState::New,
+            mode,
+            uid: 0,
+            gid: 0,
+            size: 0,
+            blocks: 0,
+            nlink: 1,
+            ref_count: 1,
+            atime_ns: 0,
+            mtime_ns: 0,
+            ctime_ns: 0,
+            dirty_pages: 0,
+            generation: 0,
         }
     }
 
     #[inline(always)]
-    pub fn mark_dirty(&mut self) { self.state = InodeState::Dirty; }
+    pub fn mark_dirty(&mut self) {
+        self.state = InodeState::Dirty;
+    }
     #[inline(always)]
-    pub fn activate(&mut self) { self.state = InodeState::Active; }
+    pub fn activate(&mut self) {
+        self.state = InodeState::Active;
+    }
     #[inline(always)]
-    pub fn grab(&mut self) { self.ref_count += 1; }
+    pub fn grab(&mut self) {
+        self.ref_count += 1;
+    }
     #[inline(always)]
-    pub fn put(&mut self) { self.ref_count = self.ref_count.saturating_sub(1); }
+    pub fn put(&mut self) {
+        self.ref_count = self.ref_count.saturating_sub(1);
+    }
 
     #[inline(always)]
-    pub fn is_orphan(&self) -> bool { self.nlink == 0 }
+    pub fn is_orphan(&self) -> bool {
+        self.nlink == 0
+    }
     #[inline(always)]
-    pub fn is_reclaimable(&self) -> bool { self.ref_count == 0 && self.state != InodeState::Dirty }
+    pub fn is_reclaimable(&self) -> bool {
+        self.ref_count == 0 && self.state != InodeState::Dirty
+    }
 
     #[inline(always)]
-    pub fn block_usage_bytes(&self) -> u64 { self.blocks * 512 }
+    pub fn block_usage_bytes(&self) -> u64 {
+        self.blocks * 512
+    }
 }
 
 /// Inode allocator
@@ -88,14 +115,24 @@ pub struct InodeAllocator {
 
 impl InodeAllocator {
     pub fn new(start_ino: u64) -> Self {
-        Self { next_ino: start_ino, free_list: Vec::new(), total_allocated: 0, total_freed: 0 }
+        Self {
+            next_ino: start_ino,
+            free_list: Vec::new(),
+            total_allocated: 0,
+            total_freed: 0,
+        }
     }
 
     #[inline]
     pub fn alloc(&mut self) -> u64 {
         self.total_allocated += 1;
-        if let Some(ino) = self.free_list.pop() { ino }
-        else { let ino = self.next_ino; self.next_ino += 1; ino }
+        if let Some(ino) = self.free_list.pop() {
+            ino
+        } else {
+            let ino = self.next_ino;
+            self.next_ino += 1;
+            ino
+        }
     }
 
     #[inline(always)]
@@ -105,7 +142,9 @@ impl InodeAllocator {
     }
 
     #[inline(always)]
-    pub fn in_use(&self) -> u64 { self.total_allocated - self.total_freed }
+    pub fn in_use(&self) -> u64 {
+        self.total_allocated - self.total_freed
+    }
 }
 
 /// Holistic inode stats
@@ -132,14 +171,21 @@ impl HolisticInodeMgr {
         Self {
             inodes: BTreeMap::new(),
             allocator: InodeAllocator::new(1),
-            stats: HolisticInodeStats { total_inodes: 0, dirty_inodes: 0, orphan_inodes: 0, evictions: 0, active: 0 },
+            stats: HolisticInodeStats {
+                total_inodes: 0,
+                dirty_inodes: 0,
+                orphan_inodes: 0,
+                evictions: 0,
+                active: 0,
+            },
         }
     }
 
     #[inline]
     pub fn create(&mut self, inode_type: InodeType, mode: u16) -> u64 {
         let ino = self.allocator.alloc();
-        self.inodes.insert(ino, HolisticInode::new(ino, inode_type, mode));
+        self.inodes
+            .insert(ino, HolisticInode::new(ino, inode_type, mode));
         self.stats.total_inodes += 1;
         self.stats.active += 1;
         ino
@@ -232,7 +278,13 @@ impl HolisticInodeV2Manager {
     }
 
     #[inline]
-    pub fn record(&mut self, metric: HolisticInodeV2Metric, value: u64, range_start: u64, range_end: u64) {
+    pub fn record(
+        &mut self,
+        metric: HolisticInodeV2Metric,
+        value: u64,
+        range_start: u64,
+        range_end: u64,
+    ) {
         let sample = HolisticInodeV2Sample {
             metric,
             value,

@@ -235,20 +235,34 @@ impl HolisticReplication {
     }
 
     /// Register a finding for replication tracking
-    pub fn register_finding(&mut self, subsystem: ReplicationSubsystem,
-                             description: String, effect: f32, confidence: f32) -> u64 {
+    pub fn register_finding(
+        &mut self,
+        subsystem: ReplicationSubsystem,
+        description: String,
+        effect: f32,
+        confidence: f32,
+    ) -> u64 {
         let id = self.stats.total_findings_tracked;
         let hash = fnv1a_hash(description.as_bytes());
         let finding = ReplicableFinding {
-            id, subsystem, description, original_effect: effect,
-            original_confidence: confidence, replication_attempts: 0,
-            successful_replications: 0, replication_rate: 0.0,
+            id,
+            subsystem,
+            description,
+            original_effect: effect,
+            original_confidence: confidence,
+            replication_attempts: 0,
+            successful_replications: 0,
+            replication_rate: 0.0,
             reliability: ReliabilityClass::Tentative,
-            first_reported_tick: self.tick, last_attempt_tick: 0, hash,
+            first_reported_tick: self.tick,
+            last_attempt_tick: 0,
+            hash,
         };
         if self.findings.len() >= MAX_FINDINGS {
             let oldest = self.findings.keys().next().copied();
-            if let Some(k) = oldest { self.findings.remove(&k); }
+            if let Some(k) = oldest {
+                self.findings.remove(&k);
+            }
         }
         self.findings.insert(id, finding);
         self.stats.total_findings_tracked += 1;
@@ -256,24 +270,34 @@ impl HolisticReplication {
     }
 
     /// Attempt to replicate a finding
-    pub fn system_replication(&mut self, finding_id: u64,
-                               replicating_subsystem: ReplicationSubsystem) -> ReplicationAttempt {
+    pub fn system_replication(
+        &mut self,
+        finding_id: u64,
+        replicating_subsystem: ReplicationSubsystem,
+    ) -> ReplicationAttempt {
         let (original_effect, finding_subsystem) = match self.findings.get(&finding_id) {
             Some(f) => (f.original_effect, f.subsystem),
             None => {
                 return ReplicationAttempt {
-                    id: 0, finding_id, replicated_effect: 0.0,
-                    effect_difference: 1.0, status: ReplicationStatus::Inconclusive,
-                    replicating_subsystem, confidence: 0.0, tick: self.tick,
+                    id: 0,
+                    finding_id,
+                    replicated_effect: 0.0,
+                    effect_difference: 1.0,
+                    status: ReplicationStatus::Inconclusive,
+                    replicating_subsystem,
+                    confidence: 0.0,
+                    tick: self.tick,
                 };
-            }
+            },
         };
         let noise = xorshift_f32(&mut self.rng_state);
         let replicated_effect = original_effect * (0.7 + noise * 0.6);
         let effect_diff = (replicated_effect - original_effect).abs();
         let relative_diff = if original_effect.abs() > 0.001 {
             effect_diff / original_effect.abs()
-        } else { effect_diff };
+        } else {
+            effect_diff
+        };
         let status = if relative_diff <= EFFECT_TOLERANCE {
             ReplicationStatus::Replicated
         } else if relative_diff <= EFFECT_TOLERANCE * 2.0 {
@@ -284,11 +308,18 @@ impl HolisticReplication {
         let confidence = (1.0 - relative_diff).max(0.0).min(1.0);
         let attempt_id = self.stats.total_attempts;
         let attempt = ReplicationAttempt {
-            id: attempt_id, finding_id, replicated_effect,
-            effect_difference: effect_diff, status,
-            replicating_subsystem, confidence, tick: self.tick,
+            id: attempt_id,
+            finding_id,
+            replicated_effect,
+            effect_difference: effect_diff,
+            status,
+            replicating_subsystem,
+            confidence,
+            tick: self.tick,
         };
-        if self.attempts.len() >= MAX_ATTEMPTS { self.attempts.remove(0); }
+        if self.attempts.len() >= MAX_ATTEMPTS {
+            self.attempts.remove(0);
+        }
         self.attempts.push(attempt.clone());
         self.stats.total_attempts += 1;
         let is_success = status == ReplicationStatus::Replicated
@@ -300,16 +331,22 @@ impl HolisticReplication {
         }
         if let Some(finding) = self.findings.get_mut(&finding_id) {
             finding.replication_attempts += 1;
-            if is_success { finding.successful_replications += 1; }
+            if is_success {
+                finding.successful_replications += 1;
+            }
             finding.replication_rate = if finding.replication_attempts > 0 {
                 finding.successful_replications as f32 / finding.replication_attempts as f32
-            } else { 0.0 };
+            } else {
+                0.0
+            };
             finding.last_attempt_tick = self.tick;
             finding.reliability = if finding.replication_rate >= 0.9
-                && finding.successful_replications >= MIN_REPLICATIONS * 2 {
+                && finding.successful_replications >= MIN_REPLICATIONS * 2
+            {
                 ReliabilityClass::Canonical
             } else if finding.replication_rate >= REPLICATION_SUCCESS_THRESHOLD
-                && finding.successful_replications >= MIN_REPLICATIONS {
+                && finding.successful_replications >= MIN_REPLICATIONS
+            {
                 ReliabilityClass::Robust
             } else if finding.replication_rate >= 0.6 {
                 ReliabilityClass::Reliable
@@ -326,22 +363,32 @@ impl HolisticReplication {
         }
         let success_rate = if self.stats.total_attempts > 0 {
             self.stats.successful_replications as f32 / self.stats.total_attempts as f32
-        } else { 0.5 };
-        self.stats.global_replication_rate_ema = self.stats.global_replication_rate_ema
-            * (1.0 - EMA_ALPHA) + success_rate * EMA_ALPHA;
-        self.stats.avg_effect_difference_ema = self.stats.avg_effect_difference_ema
-            * (1.0 - EMA_ALPHA) + effect_diff * EMA_ALPHA;
+        } else {
+            0.5
+        };
+        self.stats.global_replication_rate_ema =
+            self.stats.global_replication_rate_ema * (1.0 - EMA_ALPHA) + success_rate * EMA_ALPHA;
+        self.stats.avg_effect_difference_ema =
+            self.stats.avg_effect_difference_ema * (1.0 - EMA_ALPHA) + effect_diff * EMA_ALPHA;
         let key = finding_subsystem as u64;
-        let rate = self.subsystem_rates.entry(key).or_insert(SubsystemReplicationRate {
-            subsystem: finding_subsystem, total_findings: 0,
-            replicated_findings: 0, replication_rate: 0.0,
-            avg_effect_diff_ema: 0.0, crisis_flag: false,
-        });
+        let rate = self
+            .subsystem_rates
+            .entry(key)
+            .or_insert(SubsystemReplicationRate {
+                subsystem: finding_subsystem,
+                total_findings: 0,
+                replicated_findings: 0,
+                replication_rate: 0.0,
+                avg_effect_diff_ema: 0.0,
+                crisis_flag: false,
+            });
         rate.total_findings += 1;
-        if is_success { rate.replicated_findings += 1; }
+        if is_success {
+            rate.replicated_findings += 1;
+        }
         rate.replication_rate = rate.replicated_findings as f32 / rate.total_findings.max(1) as f32;
-        rate.avg_effect_diff_ema = rate.avg_effect_diff_ema
-            * (1.0 - EMA_ALPHA) + effect_diff * EMA_ALPHA;
+        rate.avg_effect_diff_ema =
+            rate.avg_effect_diff_ema * (1.0 - EMA_ALPHA) + effect_diff * EMA_ALPHA;
         rate.crisis_flag = rate.replication_rate < CRISIS_THRESHOLD;
         self.stats.last_tick = self.tick;
         attempt
@@ -354,14 +401,18 @@ impl HolisticReplication {
         for rate in self.subsystem_rates.values() {
             if rate.total_findings >= MIN_REPLICATIONS {
                 total_domains += 1;
-                if rate.crisis_flag { crisis_domains += 1; }
+                if rate.crisis_flag {
+                    crisis_domains += 1;
+                }
             }
         }
         let crisis_level = if total_domains > 0 {
             crisis_domains as f32 / total_domains as f32
-        } else { 0.0 };
-        self.stats.crisis_level = self.stats.crisis_level
-            * (1.0 - EMA_ALPHA) + crisis_level * EMA_ALPHA;
+        } else {
+            0.0
+        };
+        self.stats.crisis_level =
+            self.stats.crisis_level * (1.0 - EMA_ALPHA) + crisis_level * EMA_ALPHA;
         crisis_level
     }
 
@@ -372,11 +423,12 @@ impl HolisticReplication {
             match finding.reliability {
                 ReliabilityClass::Robust | ReliabilityClass::Canonical => {
                     if finding.replication_rate >= ROBUST_CONFIDENCE
-                        && finding.successful_replications >= MIN_REPLICATIONS {
+                        && finding.successful_replications >= MIN_REPLICATIONS
+                    {
                         robust_ids.push(finding.id);
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
         self.stats.robust_findings = robust_ids.len() as u64;
@@ -394,12 +446,13 @@ impl HolisticReplication {
         let mut newly_flagged = Vec::new();
         for finding in self.findings.values() {
             if finding.replication_attempts >= MIN_REPLICATIONS
-                && finding.replication_rate < UNRELIABLE_THRESHOLD {
-                let already_flagged = self.unreliable.iter()
-                    .any(|u| u.finding_id == finding.id);
+                && finding.replication_rate < UNRELIABLE_THRESHOLD
+            {
+                let already_flagged = self.unreliable.iter().any(|u| u.finding_id == finding.id);
                 if !already_flagged {
                     let uf = UnreliableFinding {
-                        finding_id: finding.id, subsystem: finding.subsystem,
+                        finding_id: finding.id,
+                        subsystem: finding.subsystem,
                         replication_rate: finding.replication_rate,
                         attempts: finding.replication_attempts,
                         last_failure_tick: finding.last_attempt_tick,
@@ -422,49 +475,70 @@ impl HolisticReplication {
             return mandate.clone();
         }
         let required = MIN_REPLICATIONS;
-        let completed = self.findings.get(&finding_id)
-            .map(|f| f.successful_replications).unwrap_or(0);
+        let completed = self
+            .findings
+            .get(&finding_id)
+            .map(|f| f.successful_replications)
+            .unwrap_or(0);
         let is_satisfied = completed >= required;
         let mandate = ReplicationMandate {
             id: self.stats.mandates_issued,
-            finding_id, required_replications: required,
+            finding_id,
+            required_replications: required,
             completed_replications: completed,
             mandate_strictness: MANDATE_STRICTNESS,
-            is_satisfied, created_tick: self.tick,
+            is_satisfied,
+            created_tick: self.tick,
         };
         if self.mandates.len() >= MAX_MANDATES {
             let oldest = self.mandates.keys().next().copied();
-            if let Some(k) = oldest { self.mandates.remove(&k); }
+            if let Some(k) = oldest {
+                self.mandates.remove(&k);
+            }
         }
         self.mandates.insert(finding_id, mandate.clone());
         self.stats.mandates_issued += 1;
-        if is_satisfied { self.stats.mandates_satisfied += 1; }
+        if is_satisfied {
+            self.stats.mandates_satisfied += 1;
+        }
         mandate
     }
 
     /// Advance the engine tick
     #[inline(always)]
-    pub fn tick(&mut self) { self.tick += 1; }
+    pub fn tick(&mut self) {
+        self.tick += 1;
+    }
 
     /// Get current statistics
     #[inline(always)]
-    pub fn stats(&self) -> &ReplicationStats { &self.stats }
+    pub fn stats(&self) -> &ReplicationStats {
+        &self.stats
+    }
 
     /// Get all tracked findings
     #[inline(always)]
-    pub fn findings(&self) -> &BTreeMap<u64, ReplicableFinding> { &self.findings }
+    pub fn findings(&self) -> &BTreeMap<u64, ReplicableFinding> {
+        &self.findings
+    }
 
     /// Get replication attempt log
     #[inline(always)]
-    pub fn attempt_log(&self) -> &[ReplicationAttempt] { &self.attempts }
+    pub fn attempt_log(&self) -> &[ReplicationAttempt] {
+        &self.attempts
+    }
 
     /// Get unreliable findings list
     #[inline(always)]
-    pub fn unreliable_findings(&self) -> &[UnreliableFinding] { &self.unreliable }
+    pub fn unreliable_findings(&self) -> &[UnreliableFinding] {
+        &self.unreliable
+    }
 
     /// Get all mandates
     #[inline(always)]
-    pub fn mandates(&self) -> &BTreeMap<u64, ReplicationMandate> { &self.mandates }
+    pub fn mandates(&self) -> &BTreeMap<u64, ReplicationMandate> {
+        &self.mandates
+    }
 
     /// Get subsystem rates
     #[inline(always)]

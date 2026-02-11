@@ -124,7 +124,12 @@ impl ResourceSnapshot {
         }
 
         // Find dominant resource
-        let max_util = [self.cpu_util, self.memory_util, self.io_util, self.network_util];
+        let max_util = [
+            self.cpu_util,
+            self.memory_util,
+            self.io_util,
+            self.network_util,
+        ];
         let max_idx = max_util
             .iter()
             .enumerate()
@@ -540,10 +545,8 @@ impl HolisticWorkloadAnalyzer {
         // Trend
         let first_quarter: f64 =
             self.load_history[..len / 4].iter().sum::<f64>() / (len / 4) as f64;
-        let last_quarter: f64 = self.load_history[3 * len / 4..]
-            .iter()
-            .sum::<f64>()
-            / (len - 3 * len / 4) as f64;
+        let last_quarter: f64 =
+            self.load_history[3 * len / 4..].iter().sum::<f64>() / (len - 3 * len / 4) as f64;
 
         if cv < 0.1 {
             LoadPattern::Constant

@@ -13,19 +13,36 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FlushStrategy { Periodic, OnDemand, Adaptive, Aggressive }
+pub enum FlushStrategy {
+    Periodic,
+    OnDemand,
+    Adaptive,
+    Aggressive,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CongestionLevel { None, Light, Medium, Heavy, Saturated }
+pub enum CongestionLevel {
+    None,
+    Light,
+    Medium,
+    Heavy,
+    Saturated,
+}
 
 impl CongestionLevel {
     #[inline]
     pub fn from_pending_ratio(ratio: f64) -> Self {
-        if ratio < 0.2 { Self::None }
-        else if ratio < 0.4 { Self::Light }
-        else if ratio < 0.6 { Self::Medium }
-        else if ratio < 0.8 { Self::Heavy }
-        else { Self::Saturated }
+        if ratio < 0.2 {
+            Self::None
+        } else if ratio < 0.4 {
+            Self::Light
+        } else if ratio < 0.6 {
+            Self::Medium
+        } else if ratio < 0.8 {
+            Self::Heavy
+        } else {
+            Self::Saturated
+        }
     }
 }
 
@@ -43,12 +60,16 @@ pub struct DeviceSyncProfile {
 impl DeviceSyncProfile {
     #[inline(always)]
     pub fn dirty_ratio(&self) -> f64 {
-        if self.total_pages == 0 { return 0.0; }
+        if self.total_pages == 0 {
+            return 0.0;
+        }
         self.dirty_pages as f64 / self.total_pages as f64
     }
     #[inline(always)]
     pub fn estimated_flush_time_ns(&self) -> u64 {
-        if self.write_bandwidth_bps == 0 { return u64::MAX; }
+        if self.write_bandwidth_bps == 0 {
+            return u64::MAX;
+        }
         (self.dirty_pages * 4096 * 1_000_000_000) / self.write_bandwidth_bps
     }
 }
@@ -117,7 +138,9 @@ impl MsyncHolisticManager {
     #[inline]
     pub fn global_dirty_ratio(&self) -> f64 {
         let total_pages: u64 = self.devices.values().map(|d| d.total_pages).sum();
-        if total_pages == 0 { return 0.0; }
+        if total_pages == 0 {
+            return 0.0;
+        }
         self.stats.total_dirty_pages as f64 / total_pages as f64
     }
 
@@ -126,7 +149,9 @@ impl MsyncHolisticManager {
     pub fn congestion_level(&self) -> CongestionLevel {
         let total_pending: u64 = self.devices.values().map(|d| d.pending_flushes).sum();
         let total_capacity: u64 = self.devices.values().map(|d| d.total_pages / 100).sum();
-        if total_capacity == 0 { return CongestionLevel::None; }
+        if total_capacity == 0 {
+            return CongestionLevel::None;
+        }
         CongestionLevel::from_pending_ratio(total_pending as f64 / total_capacity as f64)
     }
 
@@ -136,7 +161,9 @@ impl MsyncHolisticManager {
         self.schedule.clear();
 
         for (_, dev) in &self.devices {
-            if dev.dirty_ratio() < self.dirty_threshold && self.strategy != FlushStrategy::Aggressive {
+            if dev.dirty_ratio() < self.dirty_threshold
+                && self.strategy != FlushStrategy::Aggressive
+            {
                 continue;
             }
             let bw_share = if total_bw > 0 {
@@ -144,9 +171,13 @@ impl MsyncHolisticManager {
             } else {
                 1.0 / self.devices.len().max(1) as f64
             };
-            let priority = if dev.dirty_ratio() > 0.8 { 0 }
-                else if dev.dirty_ratio() > 0.5 { 1 }
-                else { 2 };
+            let priority = if dev.dirty_ratio() > 0.8 {
+                0
+            } else if dev.dirty_ratio() > 0.5 {
+                1
+            } else {
+                2
+            };
 
             self.schedule.push(WritebackSchedule {
                 device_id: dev.device_id,
@@ -167,13 +198,17 @@ impl MsyncHolisticManager {
         let old = self.strategy;
 
         self.strategy = match (dirty_ratio > self.dirty_threshold, congestion) {
-            (true, CongestionLevel::Heavy | CongestionLevel::Saturated) => FlushStrategy::Aggressive,
+            (true, CongestionLevel::Heavy | CongestionLevel::Saturated) => {
+                FlushStrategy::Aggressive
+            },
             (true, _) => FlushStrategy::OnDemand,
             (false, CongestionLevel::None) => FlushStrategy::Periodic,
             _ => FlushStrategy::Adaptive,
         };
 
-        if old != self.strategy { self.stats.strategy_switches += 1; }
+        if old != self.strategy {
+            self.stats.strategy_switches += 1;
+        }
     }
 
     /// Record a completed flush
@@ -190,7 +225,11 @@ impl MsyncHolisticManager {
     }
 
     #[inline(always)]
-    pub fn strategy(&self) -> FlushStrategy { self.strategy }
+    pub fn strategy(&self) -> FlushStrategy {
+        self.strategy
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &MsyncHolisticStats { &self.stats }
+    pub fn stats(&self) -> &MsyncHolisticStats {
+        &self.stats
+    }
 }

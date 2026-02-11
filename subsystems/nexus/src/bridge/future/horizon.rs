@@ -11,9 +11,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -53,13 +54,13 @@ fn xorshift64(state: &mut u64) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TimeScale {
     /// 1-second buckets — immediate future
-    OneSecond = 0,
+    OneSecond  = 0,
     /// 1-minute buckets — short-term
-    OneMinute = 1,
+    OneMinute  = 1,
     /// 10-minute buckets — medium-term
     TenMinutes = 2,
     /// 1-hour buckets — long horizon
-    OneHour = 3,
+    OneHour    = 3,
 }
 
 impl TimeScale {
@@ -190,13 +191,18 @@ impl ScaleTracker {
         pattern.occurrence_count += 1;
         pattern.last_seen_tick = tick;
         pattern.frequency = EMA_ALPHA * 1.0 + (1.0 - EMA_ALPHA) * pattern.frequency;
-        pattern.strength = pattern.occurrence_count as f32
-            / self.bucket_counts.len().max(1) as f32;
+        pattern.strength = pattern.occurrence_count as f32 / self.bucket_counts.len().max(1) as f32;
 
         // Evict weakest if over capacity
         if self.patterns.len() > MAX_PATTERNS_PER_SCALE {
-            let weakest = self.patterns.iter()
-                .min_by(|a, b| a.1.strength.partial_cmp(&b.1.strength).unwrap_or(core::cmp::Ordering::Equal))
+            let weakest = self
+                .patterns
+                .iter()
+                .min_by(|a, b| {
+                    a.1.strength
+                        .partial_cmp(&b.1.strength)
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
                 .map(|(&k, _)| k);
             if let Some(k) = weakest {
                 self.patterns.remove(&k);
@@ -291,7 +297,11 @@ impl BridgeHorizonPredictor {
         self.tick += 1;
         self.total_observations += 1;
 
-        let obs = Observation { syscall_nr, process_id, tick: self.tick };
+        let obs = Observation {
+            syscall_nr,
+            process_id,
+            tick: self.tick,
+        };
         if self.observations.len() < MAX_OBSERVATIONS {
             self.observations.push(obs);
         } else {
@@ -302,7 +312,9 @@ impl BridgeHorizonPredictor {
         for i in 0..NUM_SCALES {
             let scale = TimeScale::from_index(i);
             self.scale_trackers[i].record_observation(
-                syscall_nr, self.tick, scale.bucket_width_ticks(),
+                syscall_nr,
+                self.tick,
+                scale.bucket_width_ticks(),
             );
         }
     }
@@ -313,11 +325,14 @@ impl BridgeHorizonPredictor {
         let idx = scale as usize;
         let bucket_width = scale.bucket_width_ticks();
 
-        self.scale_trackers[idx].best_prediction(self.tick, bucket_width)
+        self.scale_trackers[idx]
+            .best_prediction(self.tick, bucket_width)
             .map(|(syscall, raw_conf, supporting)| {
                 let scale_penalty = 1.0 - (idx as f32 * CONFIDENCE_DECAY_PER_SCALE);
                 let accuracy_mod = self.scale_trackers[idx].accuracy_ema;
-                let confidence = (raw_conf * scale_penalty * accuracy_mod).max(0.01).min(0.99);
+                let confidence = (raw_conf * scale_penalty * accuracy_mod)
+                    .max(0.01)
+                    .min(0.99);
 
                 HorizonPrediction {
                     target_tick: self.tick + bucket_width,
@@ -390,13 +405,19 @@ impl BridgeHorizonPredictor {
 
     /// Aggregate statistics across all horizons
     pub fn stats(&self) -> HorizonStats {
-        let total_conf: f32 = self.scale_trackers.iter()
+        let total_conf: f32 = self
+            .scale_trackers
+            .iter()
             .map(|t| t.confidence_ema)
-            .sum::<f32>() / NUM_SCALES as f32;
+            .sum::<f32>()
+            / NUM_SCALES as f32;
 
-        let cal_error: f32 = self.scale_trackers.iter()
+        let cal_error: f32 = self
+            .scale_trackers
+            .iter()
             .map(|t| (t.confidence_ema - t.accuracy_ema).abs())
-            .sum::<f32>() / NUM_SCALES as f32;
+            .sum::<f32>()
+            / NUM_SCALES as f32;
 
         HorizonStats {
             total_predictions: self.total_predictions,

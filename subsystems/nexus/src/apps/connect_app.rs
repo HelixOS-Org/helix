@@ -39,11 +39,19 @@ pub struct ConnectAttempt {
 impl ConnectAttempt {
     pub fn new(fd: u64, addr: &[u8], port: u16, start: u64) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for &b in addr { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for &b in addr {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            fd, dest_addr_hash: h, dest_port: port,
-            state: ConnectState::Pending, attempt_nr: 1,
-            start_ns: start, end_ns: 0, error_code: None,
+            fd,
+            dest_addr_hash: h,
+            dest_port: port,
+            state: ConnectState::Pending,
+            attempt_nr: 1,
+            start_ns: start,
+            end_ns: 0,
+            error_code: None,
         }
     }
 
@@ -55,15 +63,23 @@ impl ConnectAttempt {
 
     #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
-        if self.end_ns > self.start_ns { self.end_ns - self.start_ns } else { 0 }
+        if self.end_ns > self.start_ns {
+            self.end_ns - self.start_ns
+        } else {
+            0
+        }
     }
 
     #[inline]
     pub fn is_terminal(&self) -> bool {
-        matches!(self.state,
-            ConnectState::Established | ConnectState::Refused |
-            ConnectState::TimedOut | ConnectState::Unreachable |
-            ConnectState::Failed)
+        matches!(
+            self.state,
+            ConnectState::Established
+                | ConnectState::Refused
+                | ConnectState::TimedOut
+                | ConnectState::Unreachable
+                | ConnectState::Failed
+        )
     }
 }
 
@@ -83,9 +99,14 @@ pub struct ConnectTargetStats {
 impl ConnectTargetStats {
     pub fn new(addr_hash: u64, port: u16) -> Self {
         Self {
-            addr_hash, port, total_attempts: 0, successful: 0,
-            total_latency_ns: 0, min_latency_ns: u64::MAX,
-            max_latency_ns: 0, last_error: None,
+            addr_hash,
+            port,
+            total_attempts: 0,
+            successful: 0,
+            total_latency_ns: 0,
+            min_latency_ns: u64::MAX,
+            max_latency_ns: 0,
+            last_error: None,
         }
     }
 
@@ -93,8 +114,12 @@ impl ConnectTargetStats {
         self.total_attempts += 1;
         let lat = attempt.latency_ns();
         self.total_latency_ns += lat;
-        if lat < self.min_latency_ns { self.min_latency_ns = lat; }
-        if lat > self.max_latency_ns { self.max_latency_ns = lat; }
+        if lat < self.min_latency_ns {
+            self.min_latency_ns = lat;
+        }
+        if lat > self.max_latency_ns {
+            self.max_latency_ns = lat;
+        }
         if attempt.state == ConnectState::Established {
             self.successful += 1;
         } else if attempt.is_terminal() {
@@ -104,14 +129,20 @@ impl ConnectTargetStats {
 
     #[inline(always)]
     pub fn success_rate(&self) -> u64 {
-        if self.total_attempts == 0 { 0 }
-        else { (self.successful * 100) / self.total_attempts }
+        if self.total_attempts == 0 {
+            0
+        } else {
+            (self.successful * 100) / self.total_attempts
+        }
     }
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.total_attempts == 0 { 0 }
-        else { self.total_latency_ns / self.total_attempts }
+        if self.total_attempts == 0 {
+            0
+        } else {
+            self.total_latency_ns / self.total_attempts
+        }
     }
 }
 
@@ -137,8 +168,11 @@ impl AppConnect {
             targets: BTreeMap::new(),
             pending: BTreeMap::new(),
             stats: ConnectAppStats {
-                total_connects: 0, successful: 0,
-                failed: 0, timed_out: 0, refused: 0,
+                total_connects: 0,
+                successful: 0,
+                failed: 0,
+                timed_out: 0,
+                refused: 0,
             },
         }
     }
@@ -159,14 +193,17 @@ impl AppConnect {
                 _ => self.stats.failed += 1,
             }
             let key = attempt.dest_addr_hash ^ (attempt.dest_port as u64);
-            let target = self.targets.entry(key)
-                .or_insert_with(|| ConnectTargetStats::new(attempt.dest_addr_hash, attempt.dest_port));
+            let target = self.targets.entry(key).or_insert_with(|| {
+                ConnectTargetStats::new(attempt.dest_addr_hash, attempt.dest_port)
+            });
             target.record(&attempt);
         }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &ConnectAppStats { &self.stats }
+    pub fn stats(&self) -> &ConnectAppStats {
+        &self.stats
+    }
 }
 
 // ============================================================================

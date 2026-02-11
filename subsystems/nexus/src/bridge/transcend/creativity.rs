@@ -13,10 +13,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -145,20 +146,26 @@ struct StrategyVault {
 
 impl StrategyVault {
     fn new() -> Self {
-        Self { strategies: BTreeMap::new(), param_hash_index: LinearMap::new() }
+        Self {
+            strategies: BTreeMap::new(),
+            param_hash_index: LinearMap::new(),
+        }
     }
 
     fn add(&mut self, strategy: KnownStrategy) {
         if self.strategies.len() >= MAX_STRATEGY_POOL {
             // Evict lowest-fitness
             if let Some((&worst_id, _)) = self.strategies.iter().min_by(|(_, a), (_, b)| {
-                a.fitness.partial_cmp(&b.fitness).unwrap_or(core::cmp::Ordering::Equal)
+                a.fitness
+                    .partial_cmp(&b.fitness)
+                    .unwrap_or(core::cmp::Ordering::Equal)
             }) {
                 self.strategies.remove(&worst_id);
             }
         }
         let param_hash = self.hash_params(&strategy.parameters);
-        self.param_hash_index.insert(param_hash, strategy.strategy_id);
+        self.param_hash_index
+            .insert(param_hash, strategy.strategy_id);
         self.strategies.insert(strategy.strategy_id, strategy);
     }
 
@@ -271,7 +278,9 @@ impl BridgeCreativity {
         candidates.sort_by(|a, b| {
             let score_a = (a.expected_reward - a.risk) * a.novelty;
             let score_b = (b.expected_reward - b.risk) * b.novelty;
-            score_b.partial_cmp(&score_a).unwrap_or(core::cmp::Ordering::Equal)
+            score_b
+                .partial_cmp(&score_a)
+                .unwrap_or(core::cmp::Ordering::Equal)
         });
 
         if let Some(best) = candidates.into_iter().next() {
@@ -445,7 +454,11 @@ impl BridgeCreativity {
         Some(NoveltyReport {
             solution_id,
             novelty_score: sol.novelty,
-            distance_from_known: if min_distance == f32::MAX { 1.0 } else { min_distance },
+            distance_from_known: if min_distance == f32::MAX {
+                1.0
+            } else {
+                min_distance
+            },
             similar_solutions: similar,
             is_novel: sol.novelty >= NOVELTY_THRESHOLD,
         })
@@ -514,7 +527,11 @@ impl BridgeCreativity {
             total_dist += dist;
             count += 1;
         }
-        let avg_dist = if count > 0 { total_dist / count as f32 } else { 1.0 };
+        let avg_dist = if count > 0 {
+            total_dist / count as f32
+        } else {
+            1.0
+        };
         (avg_dist / 2.0).min(1.0)
     }
 

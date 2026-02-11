@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -58,7 +59,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(val: u64, lo: u64, hi: u64) -> u64 {
-    if val < lo { lo } else if val > hi { hi } else { val }
+    if val < lo {
+        lo
+    } else if val > hi {
+        hi
+    } else {
+        val
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -232,16 +239,16 @@ impl CoopTeaching {
         match topic {
             LessonTopic::TrustBuilding => {
                 student.trust_aptitude = ema_update(student.trust_aptitude, score);
-            }
+            },
             LessonTopic::ResourceSharing => {
                 student.sharing_aptitude = ema_update(student.sharing_aptitude, score);
-            }
+            },
             LessonTopic::FairnessProtocol => {
                 student.fairness_aptitude = ema_update(student.fairness_aptitude, score);
-            }
+            },
             LessonTopic::ConflictResolution | LessonTopic::NegotiationStrategy => {
                 student.cooperation_score = ema_update(student.cooperation_score, score);
-            }
+            },
         }
         student.lessons_completed.push(lesson_hash);
 
@@ -281,9 +288,9 @@ impl CoopTeaching {
     // -----------------------------------------------------------------------
     pub fn sharing_curriculum(&mut self, lesson_ids: &[u64]) -> u64 {
         self.current_tick += 1;
-        let name_hash = lesson_ids.iter().fold(FNV_OFFSET, |acc, &l| {
-            acc ^ fnv1a(&l.to_le_bytes())
-        });
+        let name_hash = lesson_ids
+            .iter()
+            .fold(FNV_OFFSET, |acc, &l| acc ^ fnv1a(&l.to_le_bytes()));
         let cid = name_hash ^ self.current_tick;
 
         let avg_eff = if lesson_ids.is_empty() {
@@ -312,7 +319,9 @@ impl CoopTeaching {
 
         if self.curricula.len() >= MAX_CURRICULA {
             let oldest = self.curricula.keys().next().copied();
-            if let Some(k) = oldest { self.curricula.remove(&k); }
+            if let Some(k) = oldest {
+                self.curricula.remove(&k);
+            }
         }
         self.curricula.insert(cid, curriculum);
         self.stats.curricula_created += 1;
@@ -324,11 +333,7 @@ impl CoopTeaching {
     // trust_lesson — focused lesson on trust building
     // -----------------------------------------------------------------------
     #[inline]
-    pub fn trust_lesson(
-        &mut self,
-        student_subsystem: &str,
-        scenario_complexity: u64,
-    ) -> u64 {
+    pub fn trust_lesson(&mut self, student_subsystem: &str, scenario_complexity: u64) -> u64 {
         self.teach_cooperation(
             student_subsystem,
             LessonTopic::TrustBuilding,
@@ -408,19 +413,19 @@ impl CoopTeaching {
             match topic {
                 LessonTopic::TrustBuilding => {
                     student.trust_aptitude = clamp(student.trust_aptitude + improvement, 0, 100);
-                }
+                },
                 LessonTopic::ResourceSharing => {
                     student.sharing_aptitude =
                         clamp(student.sharing_aptitude + improvement, 0, 100);
-                }
+                },
                 LessonTopic::FairnessProtocol => {
                     student.fairness_aptitude =
                         clamp(student.fairness_aptitude + improvement, 0, 100);
-                }
+                },
                 _ => {
                     student.cooperation_score =
                         clamp(student.cooperation_score + improvement, 0, 100);
-                }
+                },
             }
         }
 
@@ -436,7 +441,9 @@ impl CoopTeaching {
 
         if self.mentoring_sessions.len() >= MAX_MENTORING_SESSIONS {
             let oldest = self.mentoring_sessions.keys().next().copied();
-            if let Some(k) = oldest { self.mentoring_sessions.remove(&k); }
+            if let Some(k) = oldest {
+                self.mentoring_sessions.remove(&k);
+            }
         }
         self.mentoring_sessions.insert(sid, session);
         self.stats.mentoring_sessions += 1;
@@ -453,8 +460,7 @@ impl CoopTeaching {
         self.students
             .get(&sub_hash)
             .map(|s| {
-                (s.cooperation_score + s.trust_aptitude + s.sharing_aptitude
-                    + s.fairness_aptitude)
+                (s.cooperation_score + s.trust_aptitude + s.sharing_aptitude + s.fairness_aptitude)
                     / 4
             })
             .unwrap_or(0)

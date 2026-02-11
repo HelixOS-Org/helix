@@ -13,10 +13,23 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum VmaPermission { None, ReadOnly, ReadWrite, ReadExec, ReadWriteExec }
+pub enum VmaPermission {
+    None,
+    ReadOnly,
+    ReadWrite,
+    ReadExec,
+    ReadWriteExec,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VmaType { Anonymous, FileBacked, Shared, Stack, Heap, Mmap }
+pub enum VmaType {
+    Anonymous,
+    FileBacked,
+    Shared,
+    Stack,
+    Heap,
+    Mmap,
+}
 
 #[derive(Debug, Clone)]
 pub struct VmaEntry {
@@ -33,17 +46,25 @@ pub struct VmaEntry {
 
 impl VmaEntry {
     #[inline(always)]
-    pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
+    pub fn size(&self) -> u64 {
+        self.end.saturating_sub(self.start)
+    }
     #[inline(always)]
-    pub fn page_count(&self) -> u64 { self.size() / 4096 }
+    pub fn page_count(&self) -> u64 {
+        self.size() / 4096
+    }
     #[inline(always)]
     pub fn residency_ratio(&self) -> f64 {
-        if self.page_count() == 0 { return 0.0; }
+        if self.page_count() == 0 {
+            return 0.0;
+        }
         self.resident_pages as f64 / self.page_count() as f64
     }
     #[inline(always)]
     pub fn dirty_ratio(&self) -> f64 {
-        if self.resident_pages == 0 { return 0.0; }
+        if self.resident_pages == 0 {
+            return 0.0;
+        }
         self.dirty_pages as f64 / self.resident_pages as f64
     }
 }
@@ -94,8 +115,11 @@ impl VmaAppManager {
         let vmas = self.app_vmas.get_mut(&app_id)?;
         let idx = vmas.iter().position(|v| v.start == start)?;
         let removed = vmas.remove(idx);
-        self.stats.total_mapped_bytes = self.stats.total_mapped_bytes.saturating_sub(removed.size());
-        self.stats.total_resident_bytes = self.stats.total_resident_bytes
+        self.stats.total_mapped_bytes =
+            self.stats.total_mapped_bytes.saturating_sub(removed.size());
+        self.stats.total_resident_bytes = self
+            .stats
+            .total_resident_bytes
             .saturating_sub(removed.resident_pages * 4096);
         self.stats.total_vmas = self.stats.total_vmas.saturating_sub(1);
         Some(removed)
@@ -111,7 +135,9 @@ impl VmaAppManager {
         let range_start = vmas.first().unwrap().start;
         let range_end = vmas.last().unwrap().end;
         let total_range = range_end.saturating_sub(range_start);
-        if total_range == 0 { return 0.0; }
+        if total_range == 0 {
+            return 0.0;
+        }
 
         let mut gap_bytes: u64 = 0;
         for i in 1..vmas.len() {
@@ -133,10 +159,7 @@ impl VmaAppManager {
         for i in 1..vmas.len() {
             let prev = &vmas[i - 1];
             let curr = &vmas[i];
-            if prev.end == curr.start
-                && prev.perm == curr.perm
-                && prev.vma_type == curr.vma_type
-            {
+            if prev.end == curr.start && prev.perm == curr.perm && prev.vma_type == curr.vma_type {
                 merges.push((prev.start, curr.end));
             }
         }
@@ -145,12 +168,18 @@ impl VmaAppManager {
 
     /// Record a permission change for audit
     pub fn record_perm_change(
-        &mut self, app_id: u64, vma_start: u64,
-        old: VmaPermission, new: VmaPermission, now: u64,
+        &mut self,
+        app_id: u64,
+        vma_start: u64,
+        old: VmaPermission,
+        new: VmaPermission,
+        now: u64,
     ) {
         let log = self.perm_log.entry(app_id).or_insert_with(Vec::new);
         log.push((now, vma_start, old, new));
-        if log.len() > 1024 { log.drain(..512); }
+        if log.len() > 1024 {
+            log.drain(..512);
+        }
 
         // Update actual VMA
         if let Some(vmas) = self.app_vmas.get_mut(&app_id) {
@@ -175,9 +204,14 @@ impl VmaAppManager {
 
     #[inline(always)]
     pub fn app_vmas(&self, app_id: u64) -> &[VmaEntry] {
-        self.app_vmas.get(&app_id).map(|v| v.as_slice()).unwrap_or(&[])
+        self.app_vmas
+            .get(&app_id)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[])
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &VmaAppStats { &self.stats }
+    pub fn stats(&self) -> &VmaAppStats {
+        &self.stats
+    }
 }

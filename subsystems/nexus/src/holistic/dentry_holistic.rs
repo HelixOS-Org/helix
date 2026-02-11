@@ -2,8 +2,7 @@
 //! Holistic dentry — directory entry cache with negative dentry handling
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Dentry state
@@ -45,30 +44,57 @@ pub struct DentryCacheEntry {
 impl DentryCacheEntry {
     pub fn new(name: &[u8], parent_hash: u64, inode: u64) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in name { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in name {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            name_hash: h, parent_hash, inode,
-            state: if inode == 0 { DentryState::Negative } else { DentryState::Positive },
-            flags: 0, ref_count: 1, lookup_count: 0, child_count: 0, created_ns: 0,
+            name_hash: h,
+            parent_hash,
+            inode,
+            state: if inode == 0 {
+                DentryState::Negative
+            } else {
+                DentryState::Positive
+            },
+            flags: 0,
+            ref_count: 1,
+            lookup_count: 0,
+            child_count: 0,
+            created_ns: 0,
         }
     }
 
     #[inline(always)]
-    pub fn is_positive(&self) -> bool { self.state == DentryState::Positive }
+    pub fn is_positive(&self) -> bool {
+        self.state == DentryState::Positive
+    }
     #[inline(always)]
-    pub fn is_negative(&self) -> bool { self.state == DentryState::Negative }
+    pub fn is_negative(&self) -> bool {
+        self.state == DentryState::Negative
+    }
 
     #[inline(always)]
-    pub fn lookup(&mut self) { self.lookup_count += 1; }
+    pub fn lookup(&mut self) {
+        self.lookup_count += 1;
+    }
     #[inline(always)]
-    pub fn grab(&mut self) { self.ref_count += 1; }
+    pub fn grab(&mut self) {
+        self.ref_count += 1;
+    }
     #[inline(always)]
-    pub fn put(&mut self) { self.ref_count = self.ref_count.saturating_sub(1); }
+    pub fn put(&mut self) {
+        self.ref_count = self.ref_count.saturating_sub(1);
+    }
 
     #[inline(always)]
-    pub fn invalidate(&mut self) { self.state = DentryState::Unhashed; }
+    pub fn invalidate(&mut self) {
+        self.state = DentryState::Unhashed;
+    }
     #[inline(always)]
-    pub fn kill(&mut self) { self.state = DentryState::Killed; }
+    pub fn kill(&mut self) {
+        self.state = DentryState::Killed;
+    }
 }
 
 /// Dentry LRU
@@ -82,13 +108,20 @@ pub struct DentryLru {
 
 impl DentryLru {
     pub fn new(max_entries: u32) -> Self {
-        Self { max_entries, entries: Vec::new(), negative_count: 0, shrink_count: 0 }
+        Self {
+            max_entries,
+            entries: Vec::new(),
+            negative_count: 0,
+            shrink_count: 0,
+        }
     }
 
     #[inline(always)]
     pub fn add(&mut self, name_hash: u64, is_negative: bool) {
         self.entries.push(name_hash);
-        if is_negative { self.negative_count += 1; }
+        if is_negative {
+            self.negative_count += 1;
+        }
     }
 
     #[inline]
@@ -101,7 +134,11 @@ impl DentryLru {
 
     #[inline(always)]
     pub fn negative_ratio(&self) -> f64 {
-        if self.entries.is_empty() { 0.0 } else { self.negative_count as f64 / self.entries.len() as f64 }
+        if self.entries.is_empty() {
+            0.0
+        } else {
+            self.negative_count as f64 / self.entries.len() as f64
+        }
     }
 }
 
@@ -130,14 +167,25 @@ impl HolisticDentry {
         Self {
             cache: BTreeMap::new(),
             lru: DentryLru::new(max_lru),
-            stats: HolisticDentryStats { total_entries: 0, positive: 0, negative: 0, lookups: 0, cache_hits: 0, invalidations: 0 },
+            stats: HolisticDentryStats {
+                total_entries: 0,
+                positive: 0,
+                negative: 0,
+                lookups: 0,
+                cache_hits: 0,
+                invalidations: 0,
+            },
         }
     }
 
     #[inline]
     pub fn insert(&mut self, entry: DentryCacheEntry) {
         self.stats.total_entries += 1;
-        if entry.is_positive() { self.stats.positive += 1; } else { self.stats.negative += 1; }
+        if entry.is_positive() {
+            self.stats.positive += 1;
+        } else {
+            self.stats.negative += 1;
+        }
         self.lru.add(entry.name_hash, entry.is_negative());
         self.cache.insert(entry.name_hash, entry);
     }
@@ -154,7 +202,11 @@ impl HolisticDentry {
 
     #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
-        if self.stats.lookups == 0 { 0.0 } else { self.stats.cache_hits as f64 / self.stats.lookups as f64 }
+        if self.stats.lookups == 0 {
+            0.0
+        } else {
+            self.stats.cache_hits as f64 / self.stats.lookups as f64
+        }
     }
 }
 
@@ -242,7 +294,9 @@ impl HolisticDentryV2Manager {
 
     pub fn analyze(&mut self) -> &HolisticDentryV2Health {
         self.stats.analyses += 1;
-        let hit_samples: VecDeque<&HolisticDentryV2Sample> = self.samples.iter()
+        let hit_samples: VecDeque<&HolisticDentryV2Sample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticDentryV2Metric::HitRate))
             .collect();
         if !hit_samples.is_empty() {

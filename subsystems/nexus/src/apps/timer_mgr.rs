@@ -66,12 +66,18 @@ pub struct AppTimer {
 impl AppTimer {
     pub fn new(id: u64, pid: u64, clock: AppClockType, ts: u64) -> Self {
         Self {
-            id, process_id: pid, clock,
+            id,
+            process_id: pid,
+            clock,
             timer_type: AppTimerType::OneShot,
             state: AppTimerState::Disarmed,
-            value_ns: 0, interval_ns: 0, expiry_ns: 0,
-            overrun_count: 0, delivery_signal: 14, // SIGALRM
-            created_ns: ts, total_expirations: 0,
+            value_ns: 0,
+            interval_ns: 0,
+            expiry_ns: 0,
+            overrun_count: 0,
+            delivery_signal: 14, // SIGALRM
+            created_ns: ts,
+            total_expirations: 0,
             coalesce_window_ns: 0,
         }
     }
@@ -81,7 +87,11 @@ impl AppTimer {
         self.value_ns = value_ns;
         self.interval_ns = interval_ns;
         self.expiry_ns = now + value_ns;
-        self.timer_type = if interval_ns > 0 { AppTimerType::Periodic } else { AppTimerType::OneShot };
+        self.timer_type = if interval_ns > 0 {
+            AppTimerType::Periodic
+        } else {
+            AppTimerType::OneShot
+        };
         self.state = AppTimerState::Armed;
     }
 
@@ -91,7 +101,9 @@ impl AppTimer {
     }
 
     pub fn check_expiry(&mut self, now: u64) -> bool {
-        if self.state != AppTimerState::Armed { return false; }
+        if self.state != AppTimerState::Armed {
+            return false;
+        }
         if now >= self.expiry_ns {
             self.total_expirations += 1;
             if self.interval_ns > 0 {
@@ -111,12 +123,16 @@ impl AppTimer {
 
     #[inline(always)]
     pub fn remaining(&self, now: u64) -> u64 {
-        if self.state != AppTimerState::Armed { return 0; }
+        if self.state != AppTimerState::Armed {
+            return 0;
+        }
         self.expiry_ns.saturating_sub(now)
     }
 
     #[inline(always)]
-    pub fn is_armed(&self) -> bool { self.state == AppTimerState::Armed }
+    pub fn is_armed(&self) -> bool {
+        self.state == AppTimerState::Armed
+    }
 }
 
 /// Interval timer (setitimer)
@@ -139,7 +155,13 @@ pub enum IntervalTimerWhich {
 
 impl IntervalTimer {
     pub fn new(which: IntervalTimerWhich) -> Self {
-        Self { which, value_ns: 0, interval_ns: 0, expiry_ns: 0, armed: false }
+        Self {
+            which,
+            value_ns: 0,
+            interval_ns: 0,
+            expiry_ns: 0,
+            armed: false,
+        }
     }
 }
 
@@ -217,7 +239,9 @@ impl AppsTimerMgr {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.process_timers.entry(pid).or_insert_with(|| ProcessTimerSet::new(pid));
+        self.process_timers
+            .entry(pid)
+            .or_insert_with(|| ProcessTimerSet::new(pid));
     }
 
     #[inline]
@@ -229,11 +253,20 @@ impl AppsTimerMgr {
             set.timers.insert(timer_id, timer);
             set.total_created += 1;
             Some(timer_id)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
-    pub fn timer_settime(&mut self, pid: u64, timer_id: u64, value_ns: u64, interval_ns: u64, now: u64) -> bool {
+    pub fn timer_settime(
+        &mut self,
+        pid: u64,
+        timer_id: u64,
+        value_ns: u64,
+        interval_ns: u64,
+        now: u64,
+    ) -> bool {
         if let Some(set) = self.process_timers.get_mut(&pid) {
             if let Some(timer) = set.timers.get_mut(&timer_id) {
                 timer.arm(value_ns, interval_ns, now);
@@ -268,23 +301,39 @@ impl AppsTimerMgr {
     }
 
     #[inline(always)]
-    pub fn remove_process(&mut self, pid: u64) { self.process_timers.remove(&pid); }
+    pub fn remove_process(&mut self, pid: u64) {
+        self.process_timers.remove(&pid);
+    }
 
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.process_timers.len();
         self.stats.total_timers = self.process_timers.values().map(|s| s.timers.len()).sum();
-        self.stats.armed_timers = self.process_timers.values()
+        self.stats.armed_timers = self
+            .process_timers
+            .values()
             .flat_map(|s| s.timers.values())
-            .filter(|t| t.is_armed()).count();
-        self.stats.total_expirations = self.process_timers.values().map(|s| s.total_expirations).sum();
-        self.stats.total_overruns = self.process_timers.values()
+            .filter(|t| t.is_armed())
+            .count();
+        self.stats.total_expirations = self
+            .process_timers
+            .values()
+            .map(|s| s.total_expirations)
+            .sum();
+        self.stats.total_overruns = self
+            .process_timers
+            .values()
             .flat_map(|s| s.timers.values())
-            .map(|t| t.overrun_count).sum();
+            .map(|t| t.overrun_count)
+            .sum();
         self.stats.coalesce_groups = self.coalesce_groups.len();
     }
 
     #[inline(always)]
-    pub fn process_timers(&self, pid: u64) -> Option<&ProcessTimerSet> { self.process_timers.get(&pid) }
+    pub fn process_timers(&self, pid: u64) -> Option<&ProcessTimerSet> {
+        self.process_timers.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsTimerMgrStats { &self.stats }
+    pub fn stats(&self) -> &AppsTimerMgrStats {
+        &self.stats
+    }
 }

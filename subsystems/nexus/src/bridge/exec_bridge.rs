@@ -73,7 +73,14 @@ impl BridgeExecManager {
         }
     }
 
-    pub fn exec(&mut self, pid: u64, path: &str, format: BridgeExecFormat, argc: u32, envc: u32) -> BridgeExecResult {
+    pub fn exec(
+        &mut self,
+        pid: u64,
+        path: &str,
+        format: BridgeExecFormat,
+        argc: u32,
+        envc: u32,
+    ) -> BridgeExecResult {
         self.stats.total_execs += 1;
         let req = BridgeExecRequest {
             pid,
@@ -86,7 +93,7 @@ impl BridgeExecManager {
         match format {
             BridgeExecFormat::Elf64 | BridgeExecFormat::Elf32 => self.stats.elf_execs += 1,
             BridgeExecFormat::Script => self.stats.script_execs += 1,
-            _ => {}
+            _ => {},
         }
         self.active_execs.insert(pid, req.clone());
         self.history.push((req, BridgeExecResult::Success));

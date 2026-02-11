@@ -238,7 +238,8 @@ impl HolisticSocketMgr {
         }
         let fd = self.next_fd;
         self.next_fd += 1;
-        self.sockets.insert(fd, ManagedSocket::new(fd, domain, sock_type));
+        self.sockets
+            .insert(fd, ManagedSocket::new(fd, domain, sock_type));
         self.stats.total_created += 1;
         self.stats.active_sockets += 1;
         let dk = domain as u8;
@@ -264,7 +265,8 @@ impl HolisticSocketMgr {
 
     #[inline]
     pub fn active_by_domain(&self, domain: SocketDomain) -> u64 {
-        self.sockets.values()
+        self.sockets
+            .values()
             .filter(|s| s.domain == domain && s.state != SocketMgrState::Closed)
             .count() as u64
     }

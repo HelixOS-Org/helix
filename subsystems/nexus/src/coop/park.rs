@@ -28,7 +28,15 @@ pub struct ParkedThread {
 
 impl ParkedThread {
     pub fn new(tid: u64) -> Self {
-        Self { tid, state: ParkState::Running, parked_at: 0, unparked_at: 0, timeout_ns: 0, park_count: 0, total_park_ns: 0 }
+        Self {
+            tid,
+            state: ParkState::Running,
+            parked_at: 0,
+            unparked_at: 0,
+            timeout_ns: 0,
+            park_count: 0,
+            total_park_ns: 0,
+        }
     }
 
     #[inline]
@@ -50,12 +58,17 @@ impl ParkedThread {
 
     #[inline]
     pub fn check_timeout(&mut self, now: u64) -> bool {
-        if self.state == ParkState::Parked && self.timeout_ns > 0 && now - self.parked_at >= self.timeout_ns {
+        if self.state == ParkState::Parked
+            && self.timeout_ns > 0
+            && now - self.parked_at >= self.timeout_ns
+        {
             self.state = ParkState::TimedOut;
             self.unparked_at = now;
             self.total_park_ns += now - self.parked_at;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }
 
@@ -75,33 +88,56 @@ pub struct CoopPark {
 }
 
 impl CoopPark {
-    pub fn new() -> Self { Self { threads: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            threads: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn register(&mut self, tid: u64) { self.threads.insert(tid, ParkedThread::new(tid)); }
+    pub fn register(&mut self, tid: u64) {
+        self.threads.insert(tid, ParkedThread::new(tid));
+    }
 
     #[inline(always)]
     pub fn park(&mut self, tid: u64, now: u64, timeout: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.park(now, timeout); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.park(now, timeout);
+        }
     }
 
     #[inline(always)]
     pub fn unpark(&mut self, tid: u64, now: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.unpark(now); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.unpark(now);
+        }
     }
 
     #[inline(always)]
     pub fn tick(&mut self, now: u64) {
-        for t in self.threads.values_mut() { t.check_timeout(now); }
+        for t in self.threads.values_mut() {
+            t.check_timeout(now);
+        }
     }
 
     #[inline(always)]
-    pub fn unregister(&mut self, tid: u64) { self.threads.remove(&tid); }
+    pub fn unregister(&mut self, tid: u64) {
+        self.threads.remove(&tid);
+    }
 
     #[inline]
     pub fn stats(&self) -> ParkStats {
-        let parked = self.threads.values().filter(|t| t.state == ParkState::Parked).count() as u32;
+        let parked = self
+            .threads
+            .values()
+            .filter(|t| t.state == ParkState::Parked)
+            .count() as u32;
         let parks: u64 = self.threads.values().map(|t| t.park_count).sum();
         let ns: u64 = self.threads.values().map(|t| t.total_park_ns).sum();
-        ParkStats { tracked_threads: self.threads.len() as u32, parked_count: parked, total_parks: parks, total_park_ns: ns }
+        ParkStats {
+            tracked_threads: self.threads.len() as u32,
+            parked_count: parked,
+            total_parks: parks,
+            total_park_ns: ns,
+        }
     }
 }

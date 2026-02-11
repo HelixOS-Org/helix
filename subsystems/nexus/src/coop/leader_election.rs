@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Node role in election
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,7 +98,7 @@ impl ElectionNode {
             None => {
                 self.voted_for = Some(candidate_id);
                 VoteResponse::Granted
-            }
+            },
             Some(v) if v == candidate_id => VoteResponse::Granted,
             _ => VoteResponse::AlreadyVoted,
         }
@@ -207,7 +208,9 @@ impl Election {
     pub fn lease_expired(&self, now: u64) -> bool {
         if let Some(ref lease) = self.lease {
             !lease.is_valid(now)
-        } else { true }
+        } else {
+            true
+        }
     }
 }
 
@@ -242,7 +245,9 @@ impl CoopLeaderElection {
 
     #[inline(always)]
     pub fn register_node(&mut self, node_id: u64, priority: i32) {
-        self.nodes.entry(node_id).or_insert_with(|| ElectionNode::new(node_id, priority));
+        self.nodes
+            .entry(node_id)
+            .or_insert_with(|| ElectionNode::new(node_id, priority));
     }
 
     #[inline]
@@ -300,13 +305,22 @@ impl CoopLeaderElection {
 
     fn recompute(&mut self) {
         self.stats.total_elections_tracked = self.elections.len();
-        self.stats.active_leaders = self.elections.values()
-            .filter(|e| e.leader_id.is_some() && e.state == ElectionState::Decided).count();
-        self.stats.contested = self.elections.values()
-            .filter(|e| e.state == ElectionState::Contested).count();
+        self.stats.active_leaders = self
+            .elections
+            .values()
+            .filter(|e| e.leader_id.is_some() && e.state == ElectionState::Decided)
+            .count();
+        self.stats.contested = self
+            .elections
+            .values()
+            .filter(|e| e.state == ElectionState::Contested)
+            .count();
         self.stats.total_elections_held = self.elections.values().map(|e| e.total_elections).sum();
-        self.stats.expired_leases = self.elections.values()
-            .filter(|e| e.lease.is_none() && e.total_terms > 0).count();
+        self.stats.expired_leases = self
+            .elections
+            .values()
+            .filter(|e| e.lease.is_none() && e.total_terms > 0)
+            .count();
     }
 
     #[inline(always)]

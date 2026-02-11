@@ -2,8 +2,7 @@
 //!
 //! Analyzes network traffic patterns.
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 

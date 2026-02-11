@@ -141,11 +141,11 @@ impl Bulkhead {
                     self.total_rejected += 1;
                     false
                 }
-            }
+            },
             _ => {
                 self.total_rejected += 1;
                 false
-            }
+            },
         }
     }
 
@@ -262,7 +262,8 @@ impl BridgeBulkheadManager {
     #[inline]
     pub fn register(&mut self, class: BulkheadClass, max_concurrent: u32, max_queue: u32) {
         let key = class as u8;
-        self.bulkheads.insert(key, Bulkhead::new(class, max_concurrent, max_queue));
+        self.bulkheads
+            .insert(key, Bulkhead::new(class, max_concurrent, max_queue));
         self.update_stats();
     }
 
@@ -298,7 +299,8 @@ impl BridgeBulkheadManager {
     /// Failed bulkheads
     #[inline]
     pub fn failed(&self) -> Vec<BulkheadClass> {
-        self.bulkheads.values()
+        self.bulkheads
+            .values()
             .filter(|b| b.state == BulkheadState::Failed)
             .map(|b| b.class)
             .collect()
@@ -307,8 +309,11 @@ impl BridgeBulkheadManager {
     fn update_stats(&mut self) {
         self.stats.active_bulkheads = self.bulkheads.len();
         self.stats.total_in_flight = self.bulkheads.values().map(|b| b.in_flight).sum();
-        self.stats.failed_bulkheads = self.bulkheads.values()
-            .filter(|b| b.state == BulkheadState::Failed).count();
+        self.stats.failed_bulkheads = self
+            .bulkheads
+            .values()
+            .filter(|b| b.state == BulkheadState::Failed)
+            .count();
         self.stats.total_rejections = self.bulkheads.values().map(|b| b.total_rejected).sum();
     }
 

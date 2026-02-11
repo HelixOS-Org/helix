@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // POLICY TYPES
@@ -373,7 +374,8 @@ impl CoopGovernanceEngine {
     /// Create tenant
     #[inline(always)]
     pub fn create_tenant(&mut self, tenant_id: u64, policy_set_id: u64) {
-        self.tenants.insert(tenant_id, TenantBoundary::new(tenant_id, policy_set_id));
+        self.tenants
+            .insert(tenant_id, TenantBoundary::new(tenant_id, policy_set_id));
         self.update_stats();
     }
 

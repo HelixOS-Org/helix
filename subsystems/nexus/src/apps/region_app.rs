@@ -44,7 +44,9 @@ pub struct VmRegion {
 
 impl VmRegion {
     #[inline(always)]
-    pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
+    pub fn size(&self) -> u64 {
+        self.end.saturating_sub(self.start)
+    }
 
     #[inline(always)]
     pub fn contains(&self, addr: u64) -> bool {
@@ -70,7 +72,9 @@ impl VmRegion {
     }
 
     #[inline(always)]
-    pub fn pages(&self) -> u64 { (self.size() + 4095) / 4096 }
+    pub fn pages(&self) -> u64 {
+        (self.size() + 4095) / 4096
+    }
 }
 
 /// Gap between two regions
@@ -84,7 +88,9 @@ pub struct RegionGap {
 
 impl RegionGap {
     #[inline(always)]
-    pub fn size(&self) -> u64 { self.end.saturating_sub(self.start) }
+    pub fn size(&self) -> u64 {
+        self.end.saturating_sub(self.start)
+    }
 }
 
 /// Region manager stats
@@ -147,7 +153,9 @@ impl RegionAppManager {
         };
 
         let idx = regions.partition_point(|r| r.start <= split_addr);
-        if idx == 0 { return false; }
+        if idx == 0 {
+            return false;
+        }
         let idx = idx - 1;
 
         if !regions[idx].contains(split_addr) || split_addr == regions[idx].start {
@@ -228,12 +236,16 @@ impl RegionAppManager {
             Some(r) => r,
             None => return 0.0,
         };
-        if regions.is_empty() { return 0.0; }
+        if regions.is_empty() {
+            return 0.0;
+        }
 
         let first = regions.first().map(|r| r.start).unwrap_or(0);
         let last = regions.last().map(|r| r.end).unwrap_or(0);
         let span = last.saturating_sub(first);
-        if span == 0 { return 0.0; }
+        if span == 0 {
+            return 0.0;
+        }
 
         let mapped: u64 = regions.iter().map(|r| r.size()).sum();
         1.0 - (mapped as f64 / span as f64)
@@ -245,5 +257,7 @@ impl RegionAppManager {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &RegionAppStats { &self.stats }
+    pub fn stats(&self) -> &RegionAppStats {
+        &self.stats
+    }
 }

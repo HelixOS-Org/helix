@@ -65,11 +65,11 @@ pub enum DecisionOrigin {
 /// Quality rating for a global decision
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QualityRating {
-    Poor = 0,
+    Poor         = 0,
     BelowAverage = 1,
-    Average = 2,
-    Good = 3,
-    Excellent = 4,
+    Average      = 2,
+    Good         = 3,
+    Excellent    = 4,
 }
 
 // ============================================================================
@@ -211,8 +211,7 @@ impl HolisticIntrospector {
             cross_module_effects: cross_effects,
         };
 
-        self.depth_ema =
-            EMA_ALPHA * reasoning_depth as f32 + (1.0 - EMA_ALPHA) * self.depth_ema;
+        self.depth_ema = EMA_ALPHA * reasoning_depth as f32 + (1.0 - EMA_ALPHA) * self.depth_ema;
 
         if self.decisions.len() < MAX_DECISIONS {
             self.decisions.push(decision);
@@ -243,8 +242,7 @@ impl HolisticIntrospector {
             if d.id == decision_id {
                 d.outcome_score = clamped;
                 d.resolved = true;
-                self.quality_ema =
-                    EMA_ALPHA * clamped + (1.0 - EMA_ALPHA) * self.quality_ema;
+                self.quality_ema = EMA_ALPHA * clamped + (1.0 - EMA_ALPHA) * self.quality_ema;
                 break;
             }
         }
@@ -271,8 +269,7 @@ impl HolisticIntrospector {
             return 0.5;
         }
 
-        let resolved: Vec<&GlobalDecision> =
-            self.decisions.iter().filter(|d| d.resolved).collect();
+        let resolved: Vec<&GlobalDecision> = self.decisions.iter().filter(|d| d.resolved).collect();
         if resolved.is_empty() {
             return self.quality_ema;
         }
@@ -286,8 +283,7 @@ impl HolisticIntrospector {
             / resolved.len() as f32;
 
         let audit_score = avg_outcome * 0.6 + (1.0 - avg_cal) * 0.4;
-        self.quality_ema =
-            EMA_ALPHA * audit_score + (1.0 - EMA_ALPHA) * self.quality_ema;
+        self.quality_ema = EMA_ALPHA * audit_score + (1.0 - EMA_ALPHA) * self.quality_ema;
         self.quality_ema
     }
 
@@ -313,14 +309,17 @@ impl HolisticIntrospector {
                 let alignment = 1.0 - (a_avg - b_avg).abs();
 
                 let pair_key = ((origins[i] as u16) << 8) | origins[j] as u16;
-                let pair = self.coherence_pairs.entry(pair_key).or_insert(CoherencePair {
-                    origin_a: int_to_origin(origins[i]),
-                    origin_b: int_to_origin(origins[j]),
-                    alignment_score: 0.5,
-                    conflict_count: 0,
-                    synergy_count: 0,
-                    sample_count: 0,
-                });
+                let pair = self
+                    .coherence_pairs
+                    .entry(pair_key)
+                    .or_insert(CoherencePair {
+                        origin_a: int_to_origin(origins[i]),
+                        origin_b: int_to_origin(origins[j]),
+                        alignment_score: 0.5,
+                        conflict_count: 0,
+                        synergy_count: 0,
+                        sample_count: 0,
+                    });
                 pair.sample_count += 1;
                 pair.alignment_score =
                     EMA_ALPHA * alignment + (1.0 - EMA_ALPHA) * pair.alignment_score;
@@ -340,15 +339,13 @@ impl HolisticIntrospector {
         } else {
             0.5
         };
-        self.coherence_ema =
-            EMA_ALPHA * coherence + (1.0 - EMA_ALPHA) * self.coherence_ema;
+        self.coherence_ema = EMA_ALPHA * coherence + (1.0 - EMA_ALPHA) * self.coherence_ema;
         self.coherence_ema
     }
 
     /// Evaluate decision optimality: were the best alternatives chosen?
     pub fn decision_optimality(&self) -> f32 {
-        let resolved: Vec<&GlobalDecision> =
-            self.decisions.iter().filter(|d| d.resolved).collect();
+        let resolved: Vec<&GlobalDecision> = self.decisions.iter().filter(|d| d.resolved).collect();
         if resolved.is_empty() {
             return self.optimality_ema;
         }
@@ -434,10 +431,12 @@ impl HolisticIntrospector {
         let conflict_rate = if self.coherence_pairs.is_empty() {
             0.0
         } else {
-            let total_conflicts: u64 =
-                self.coherence_pairs.values().map(|p| p.conflict_count).sum();
-            let total_samples: u64 =
-                self.coherence_pairs.values().map(|p| p.sample_count).sum();
+            let total_conflicts: u64 = self
+                .coherence_pairs
+                .values()
+                .map(|p| p.conflict_count)
+                .sum();
+            let total_samples: u64 = self.coherence_pairs.values().map(|p| p.sample_count).sum();
             if total_samples > 0 {
                 total_conflicts as f32 / total_samples as f32
             } else {

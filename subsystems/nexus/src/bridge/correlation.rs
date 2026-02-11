@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CORRELATION TYPES
@@ -126,7 +127,10 @@ impl TemporalWindow {
     pub fn find_near(&self, timestamp: u64, range_ns: u64) -> Vec<&SyscallEvent> {
         let lo = timestamp.saturating_sub(range_ns);
         let hi = timestamp.saturating_add(range_ns);
-        self.events.iter().filter(|e| e.timestamp >= lo && e.timestamp <= hi).collect()
+        self.events
+            .iter()
+            .filter(|e| e.timestamp >= lo && e.timestamp <= hi)
+            .collect()
     }
 
     /// Find events by pid
@@ -337,7 +341,8 @@ impl BridgeCorrelationEngine {
                 }
             }
             // Update co-occurrence
-            self.cooccurrence.record(existing.syscall_nr, event.syscall_nr);
+            self.cooccurrence
+                .record(existing.syscall_nr, event.syscall_nr);
         }
 
         self.window.add(event);

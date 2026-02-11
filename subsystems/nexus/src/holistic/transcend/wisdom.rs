@@ -14,8 +14,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -526,8 +525,16 @@ impl HolisticWisdom {
             }
         }
 
-        let avg_depth = if relevant_count > 0 { sum_depth / relevant_count } else { 0 };
-        let avg_acc = if relevant_count > 0 { sum_accuracy / relevant_count } else { 0 };
+        let avg_depth = if relevant_count > 0 {
+            sum_depth / relevant_count
+        } else {
+            0
+        };
+        let avg_acc = if relevant_count > 0 {
+            sum_accuracy / relevant_count
+        } else {
+            0
+        };
         let mastery = (avg_depth + avg_acc) / 2;
 
         let rh = self.gen_hash(context);
@@ -555,10 +562,7 @@ impl HolisticWisdom {
 
         // Experience: accumulated from total consultations and entries
         let experience = if self.stats.total_entries > 0 {
-            let consultation_ratio = self
-                .stats
-                .total_consultations
-                .saturating_mul(10_000)
+            let consultation_ratio = self.stats.total_consultations.saturating_mul(10_000)
                 / self.stats.total_entries.max(1);
             consultation_ratio.min(10_000)
         } else {

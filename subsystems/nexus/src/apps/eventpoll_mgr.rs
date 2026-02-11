@@ -23,13 +23,21 @@ impl EpollEvents {
     pub const EXCLUSIVE: u32 = 1 << 28;
     pub const WAKEUP: u32 = 1 << 29;
 
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u32) -> bool {
+        self.bits & flag != 0
+    }
     #[inline(always)]
-    pub fn is_edge_triggered(&self) -> bool { self.has(Self::ET) }
+    pub fn is_edge_triggered(&self) -> bool {
+        self.has(Self::ET)
+    }
     #[inline(always)]
-    pub fn is_oneshot(&self) -> bool { self.has(Self::ONESHOT) }
+    pub fn is_oneshot(&self) -> bool {
+        self.has(Self::ONESHOT)
+    }
 }
 
 /// Epoll operation type
@@ -63,24 +71,38 @@ pub struct EpollItem {
 
 impl EpollItem {
     pub fn new(fd: i32, events: EpollEvents, data: u64) -> Self {
-        Self { fd, events, data, active: true, ready_events: 0, trigger_count: 0, last_triggered: 0 }
+        Self {
+            fd,
+            events,
+            data,
+            active: true,
+            ready_events: 0,
+            trigger_count: 0,
+            last_triggered: 0,
+        }
     }
 
     #[inline]
     pub fn fire(&mut self, events: u32, now: u64) -> bool {
         let masked = events & self.events.bits;
-        if masked == 0 { return false; }
+        if masked == 0 {
+            return false;
+        }
         self.ready_events |= masked;
         self.trigger_count += 1;
         self.last_triggered = now;
-        if self.events.is_oneshot() { self.active = false; }
+        if self.events.is_oneshot() {
+            self.active = false;
+        }
         true
     }
 
     #[inline]
     pub fn consume(&mut self) -> u32 {
         let r = self.ready_events;
-        if self.events.is_edge_triggered() { self.ready_events = 0; }
+        if self.events.is_edge_triggered() {
+            self.ready_events = 0;
+        }
         r
     }
 }
@@ -100,43 +122,66 @@ pub struct EpollInstance {
 impl EpollInstance {
     pub fn new(id: u64, now: u64) -> Self {
         Self {
-            id, items: BTreeMap::new(), max_events: 1024,
-            total_waits: 0, total_ready: 0, total_timeouts: 0, created_at: now,
+            id,
+            items: BTreeMap::new(),
+            max_events: 1024,
+            total_waits: 0,
+            total_ready: 0,
+            total_timeouts: 0,
+            created_at: now,
         }
     }
 
     #[inline]
     pub fn add(&mut self, fd: i32, events: EpollEvents, data: u64) -> bool {
-        if self.items.contains_key(&fd) { return false; }
+        if self.items.contains_key(&fd) {
+            return false;
+        }
         self.items.insert(fd, EpollItem::new(fd, events, data));
         true
     }
 
     #[inline(always)]
     pub fn modify(&mut self, fd: i32, events: EpollEvents) -> bool {
-        if let Some(item) = self.items.get_mut(&fd) { item.events = events; item.active = true; true }
-        else { false }
+        if let Some(item) = self.items.get_mut(&fd) {
+            item.events = events;
+            item.active = true;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn remove(&mut self, fd: i32) -> bool { self.items.remove(&fd).is_some() }
+    pub fn remove(&mut self, fd: i32) -> bool {
+        self.items.remove(&fd).is_some()
+    }
 
     #[inline(always)]
     pub fn ready_count(&self) -> u32 {
-        self.items.values().filter(|i| i.active && i.ready_events != 0).count() as u32
+        self.items
+            .values()
+            .filter(|i| i.active && i.ready_events != 0)
+            .count() as u32
     }
 
     pub fn wait(&mut self, max: u32) -> Vec<(i32, u32, u64)> {
         self.total_waits += 1;
         let mut results = Vec::new();
         for item in self.items.values_mut() {
-            if !item.active || item.ready_events == 0 { continue; }
+            if !item.active || item.ready_events == 0 {
+                continue;
+            }
             let events = item.consume();
             results.push((item.fd, events, item.data));
-            if results.len() as u32 >= max { break; }
+            if results.len() as u32 >= max {
+                break;
+            }
         }
         self.total_ready += results.len() as u64;
-        if results.is_empty() { self.total_timeouts += 1; }
+        if results.is_empty() {
+            self.total_timeouts += 1;
+        }
         results
     }
 }
@@ -159,7 +204,12 @@ pub struct AppEventPollMgr {
 }
 
 impl AppEventPollMgr {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, now: u64) -> u64 {
@@ -171,7 +221,10 @@ impl AppEventPollMgr {
 
     #[inline(always)]
     pub fn add_fd(&mut self, inst_id: u64, fd: i32, events: EpollEvents, data: u64) -> bool {
-        self.instances.get_mut(&inst_id).map(|i| i.add(fd, events, data)).unwrap_or(false)
+        self.instances
+            .get_mut(&inst_id)
+            .map(|i| i.add(fd, events, data))
+            .unwrap_or(false)
     }
 
     #[inline]
@@ -181,8 +234,11 @@ impl AppEventPollMgr {
         let ready: u64 = self.instances.values().map(|i| i.total_ready).sum();
         let tos: u64 = self.instances.values().map(|i| i.total_timeouts).sum();
         EventPollMgrStats {
-            total_instances: self.instances.len() as u32, total_fds_monitored: fds,
-            total_waits: waits, total_ready: ready, total_timeouts: tos,
+            total_instances: self.instances.len() as u32,
+            total_fds_monitored: fds,
+            total_waits: waits,
+            total_ready: ready,
+            total_timeouts: tos,
         }
     }
 }

@@ -9,8 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -59,12 +58,12 @@ impl RlimitResource {
             Self::CpuTime => u64::MAX,
             Self::FileSize => u64::MAX,
             Self::DataSize => u64::MAX,
-            Self::StackSize => 8 * 1024 * 1024,    // 8MB
-            Self::CoreSize => 0,                     // no core dumps
+            Self::StackSize => 8 * 1024 * 1024, // 8MB
+            Self::CoreSize => 0,                // no core dumps
             Self::Rss => u64::MAX,
             Self::NumProcs => 4096,
             Self::OpenFiles => 1024,
-            Self::LockedMemory => 64 * 1024,        // 64KB
+            Self::LockedMemory => 64 * 1024, // 64KB
             Self::AddressSpace => u64::MAX,
             Self::FileLocks => u64::MAX,
             Self::PendingSignals => 4096,

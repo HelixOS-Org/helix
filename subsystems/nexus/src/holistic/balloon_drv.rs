@@ -50,12 +50,27 @@ pub struct BalloonInstance {
 
 impl BalloonInstance {
     pub fn new(id: u64, max: u64) -> Self {
-        Self { id, state: BalloonState::Idle, target_pages: 0, current_pages: 0, max_pages: max, ranges: Vec::new(), inflate_count: 0, deflate_count: 0, total_inflated: 0, total_deflated: 0 }
+        Self {
+            id,
+            state: BalloonState::Idle,
+            target_pages: 0,
+            current_pages: 0,
+            max_pages: max,
+            ranges: Vec::new(),
+            inflate_count: 0,
+            deflate_count: 0,
+            total_inflated: 0,
+            total_deflated: 0,
+        }
     }
 
     #[inline]
     pub fn inflate(&mut self, pfn: u64, count: u32, now: u64) {
-        self.ranges.push(BalloonPageRange { start_pfn: pfn, count, inflated_at: now });
+        self.ranges.push(BalloonPageRange {
+            start_pfn: pfn,
+            count,
+            inflated_at: now,
+        });
         self.current_pages += count as u64;
         self.inflate_count += 1;
         self.total_inflated += count as u64;
@@ -99,23 +114,35 @@ pub struct HolisticBalloonDrv {
 }
 
 impl HolisticBalloonDrv {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, max: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.instances.insert(id, BalloonInstance::new(id, max));
         id
     }
 
     #[inline(always)]
     pub fn inflate(&mut self, id: u64, pfn: u64, count: u32, now: u64) {
-        if let Some(b) = self.instances.get_mut(&id) { b.inflate(pfn, count, now); }
+        if let Some(b) = self.instances.get_mut(&id) {
+            b.inflate(pfn, count, now);
+        }
     }
 
     #[inline(always)]
     pub fn deflate(&mut self, id: u64, count: u32) -> u32 {
-        if let Some(b) = self.instances.get_mut(&id) { b.deflate(count) } else { 0 }
+        if let Some(b) = self.instances.get_mut(&id) {
+            b.deflate(count)
+        } else {
+            0
+        }
     }
 
     #[inline]
@@ -123,6 +150,11 @@ impl HolisticBalloonDrv {
         let inflated: u64 = self.instances.values().map(|b| b.total_inflated).sum();
         let deflated: u64 = self.instances.values().map(|b| b.total_deflated).sum();
         let current: u64 = self.instances.values().map(|b| b.current_pages).sum();
-        BalloonDrvStats { total_instances: self.instances.len() as u32, total_inflated_pages: inflated, total_deflated_pages: deflated, current_balloon_pages: current }
+        BalloonDrvStats {
+            total_instances: self.instances.len() as u32,
+            total_inflated_pages: inflated,
+            total_deflated_pages: deflated,
+            current_balloon_pages: current,
+        }
     }
 }

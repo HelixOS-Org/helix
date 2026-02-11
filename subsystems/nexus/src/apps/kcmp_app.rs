@@ -52,7 +52,14 @@ pub struct ProcessKcmpTracker {
 
 impl ProcessKcmpTracker {
     pub fn new(pid: u64) -> Self {
-        Self { pid, total_comparisons: 0, equal_count: 0, shared_files: 0, shared_vm: false, shared_fs: false }
+        Self {
+            pid,
+            total_comparisons: 0,
+            equal_count: 0,
+            shared_files: 0,
+            shared_vm: false,
+            shared_fs: false,
+        }
     }
 }
 
@@ -71,34 +78,50 @@ pub struct AppKcmp {
 }
 
 impl AppKcmp {
-    pub fn new() -> Self { Self { procs: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            procs: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn track(&mut self, pid: u64) { self.procs.insert(pid, ProcessKcmpTracker::new(pid)); }
+    pub fn track(&mut self, pid: u64) {
+        self.procs.insert(pid, ProcessKcmpTracker::new(pid));
+    }
 
     pub fn compare(&mut self, pid1: u64, pid2: u64, rtype: KcmpType, result: KcmpResult) {
         if let Some(p) = self.procs.get_mut(&pid1) {
             p.total_comparisons += 1;
-            if result == KcmpResult::Equal { p.equal_count += 1; }
+            if result == KcmpResult::Equal {
+                p.equal_count += 1;
+            }
             match rtype {
                 KcmpType::Vm if result == KcmpResult::Equal => p.shared_vm = true,
                 KcmpType::Fs if result == KcmpResult::Equal => p.shared_fs = true,
                 KcmpType::File if result == KcmpResult::Equal => p.shared_files += 1,
-                _ => {}
+                _ => {},
             }
         }
         if let Some(p) = self.procs.get_mut(&pid2) {
             p.total_comparisons += 1;
-            if result == KcmpResult::Equal { p.equal_count += 1; }
+            if result == KcmpResult::Equal {
+                p.equal_count += 1;
+            }
         }
     }
 
     #[inline(always)]
-    pub fn untrack(&mut self, pid: u64) { self.procs.remove(&pid); }
+    pub fn untrack(&mut self, pid: u64) {
+        self.procs.remove(&pid);
+    }
 
     #[inline]
     pub fn stats(&self) -> KcmpAppStats {
         let cmps: u64 = self.procs.values().map(|p| p.total_comparisons).sum();
         let eq: u64 = self.procs.values().map(|p| p.equal_count).sum();
-        KcmpAppStats { tracked_procs: self.procs.len() as u32, total_comparisons: cmps, total_equal: eq }
+        KcmpAppStats {
+            tracked_procs: self.procs.len() as u32,
+            total_comparisons: cmps,
+            total_equal: eq,
+        }
     }
 }

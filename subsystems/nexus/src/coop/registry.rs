@@ -309,8 +309,8 @@ impl CapabilityRegistry {
                     continue;
                 }
                 // Score: priority * 1000 - response_time
-                let score = (cap.priority as u64) * 1000
-                    + 1000u64.saturating_sub(cap.avg_response_us / 10);
+                let score =
+                    (cap.priority as u64) * 1000 + 1000u64.saturating_sub(cap.avg_response_us / 10);
                 if score > best_score {
                     best_score = score;
                     best_id = Some(id);
@@ -354,7 +354,10 @@ impl CapabilityRegistry {
     /// Available capabilities count
     #[inline(always)]
     pub fn available_count(&self) -> usize {
-        self.capabilities.values().filter(|c| c.is_available()).count()
+        self.capabilities
+            .values()
+            .filter(|c| c.is_available())
+            .count()
     }
 
     /// Health check — mark offline any cap not checked recently
@@ -406,12 +409,9 @@ impl ServiceDirectory {
         descriptor: &ServiceDescriptor,
         timestamp: u64,
     ) -> Option<u64> {
-        let id = self.registry.register(
-            pid,
-            descriptor.category,
-            descriptor.name.clone(),
-            timestamp,
-        )?;
+        let id =
+            self.registry
+                .register(pid, descriptor.category, descriptor.name.clone(), timestamp)?;
 
         if let Some(cap) = self.registry.get_mut(id) {
             cap.priority = descriptor.priority;

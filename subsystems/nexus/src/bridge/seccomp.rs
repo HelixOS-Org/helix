@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Seccomp action
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,11 +92,15 @@ impl SeccompRule {
 
     #[inline]
     pub fn matches(&self, syscall_nr: u32, args: &[u64; 6]) -> bool {
-        if self.syscall_nr != syscall_nr { return false; }
+        if self.syscall_nr != syscall_nr {
+            return false;
+        }
         self.conditions.iter().all(|c| {
             if (c.arg_index as usize) < 6 {
                 c.matches(args[c.arg_index as usize])
-            } else { false }
+            } else {
+                false
+            }
         })
     }
 }
@@ -144,7 +149,9 @@ impl SeccompFilter {
     /// Fast path: check bitmap
     fn bitmap_allows(&self, syscall_nr: u32) -> bool {
         let nr = syscall_nr as usize;
-        if nr >= 512 { return false; }
+        if nr >= 512 {
+            return false;
+        }
         (self.allow_bitmap[nr / 64] >> (nr % 64)) & 1 == 1
     }
 
@@ -176,7 +183,9 @@ impl SeccompFilter {
 
     #[inline(always)]
     pub fn denial_rate(&self) -> f64 {
-        if self.total_checks == 0 { return 0.0; }
+        if self.total_checks == 0 {
+            return 0.0;
+        }
         self.total_denied as f64 / self.total_checks as f64
     }
 }

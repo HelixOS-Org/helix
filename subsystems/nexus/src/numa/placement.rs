@@ -2,7 +2,6 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
@@ -10,6 +9,7 @@ use super::stats::NumaStats;
 use super::topology::NumaTopology;
 use super::types::{MemoryBinding, NodeId};
 use crate::core::NexusTimestamp;
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // PLACEMENT

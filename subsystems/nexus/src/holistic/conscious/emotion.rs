@@ -29,11 +29,11 @@
 
 extern crate alloc;
 
-use crate::fast::math::F32Ext;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -135,7 +135,10 @@ impl SystemEmotion {
     /// Whether this emotion is negative / stress-inducing
     #[inline(always)]
     pub fn is_negative(&self) -> bool {
-        matches!(self, SystemEmotion::SystemStress | SystemEmotion::SystemAlarm)
+        matches!(
+            self,
+            SystemEmotion::SystemStress | SystemEmotion::SystemAlarm
+        )
     }
 
     /// Whether this emotion is positive / restorative
@@ -201,7 +204,13 @@ impl SystemEmotionSignal {
     /// Observe a new raw value and update EMA
     #[inline]
     pub fn observe(&mut self, raw: f32, tick: u64) {
-        let clamped = if raw < 0.0 { 0.0 } else if raw > 1.0 { 1.0 } else { raw };
+        let clamped = if raw < 0.0 {
+            0.0
+        } else if raw > 1.0 {
+            1.0
+        } else {
+            raw
+        };
         self.raw_intensity = clamped;
         let delta = clamped - self.intensity;
         self.intensity += EMA_ALPHA * delta;
@@ -232,13 +241,17 @@ impl SystemEmotionSignal {
             return 0.0;
         }
         let end = self.write_idx;
-        let start = if end >= TREND_WINDOW { end - TREND_WINDOW } else { 0 };
+        let start = if end >= TREND_WINDOW {
+            end - TREND_WINDOW
+        } else {
+            0
+        };
         let window = &self.history[start..end.max(1)];
         if window.len() < 2 {
             return 0.0;
         }
-        let first_half: f32 = window[..window.len() / 2].iter().sum::<f32>()
-            / (window.len() / 2) as f32;
+        let first_half: f32 =
+            window[..window.len() / 2].iter().sum::<f32>() / (window.len() / 2) as f32;
         let second_half: f32 = window[window.len() / 2..].iter().sum::<f32>()
             / (window.len() - window.len() / 2) as f32;
         second_half - first_half
@@ -463,14 +476,25 @@ impl HolisticEmotionEngine {
             let mut best_kind = SystemEmotion::SystemSerenity;
             let mut best_intensity: f32 = 0.0;
             for (_idx, signal) in self.signals.iter() {
-                let projected = signal.intensity * decay_factor + signal.trend() * step as f32 * 0.1;
-                let clamped = if projected < 0.0 { 0.0 } else if projected > 1.0 { 1.0 } else { projected };
+                let projected =
+                    signal.intensity * decay_factor + signal.trend() * step as f32 * 0.1;
+                let clamped = if projected < 0.0 {
+                    0.0
+                } else if projected > 1.0 {
+                    1.0
+                } else {
+                    projected
+                };
                 if clamped > best_intensity {
                     best_intensity = clamped;
                     best_kind = signal.kind;
                 }
             }
-            let valence = if best_kind.is_positive() { best_intensity } else { -best_intensity };
+            let valence = if best_kind.is_positive() {
+                best_intensity
+            } else {
+                -best_intensity
+            };
             let confidence = 1.0 / (1.0 + step as f32 * 0.15);
             self.forecasts.push(EmotionForecast {
                 horizon_ticks: step as u64,
@@ -525,14 +549,18 @@ impl HolisticEmotionEngine {
     #[inline(always)]
     pub fn is_alarm_active(&self) -> bool {
         let alarm_idx = 4u8; // SystemAlarm
-        self.signals.get(&alarm_idx).map_or(false, |s| s.intensity > ALARM_CRITICAL)
+        self.signals
+            .get(&alarm_idx)
+            .map_or(false, |s| s.intensity > ALARM_CRITICAL)
     }
 
     /// Check if system is serene
     #[inline(always)]
     pub fn is_serene(&self) -> bool {
         let serenity_idx = 5u8; // SystemSerenity
-        self.signals.get(&serenity_idx).map_or(false, |s| s.intensity > SERENITY_THRESHOLD)
+        self.signals
+            .get(&serenity_idx)
+            .map_or(false, |s| s.intensity > SERENITY_THRESHOLD)
     }
 
     // ========================================================================
@@ -569,14 +597,24 @@ impl HolisticEmotionEngine {
             }
         }
 
-        let dominant = self.signals.get(&best_idx).map_or(SystemEmotion::SystemSerenity, |s| s.kind);
-        let secondary = self.signals.get(&second_idx).map_or(SystemEmotion::SystemConfidence, |s| s.kind);
+        let dominant = self
+            .signals
+            .get(&best_idx)
+            .map_or(SystemEmotion::SystemSerenity, |s| s.kind);
+        let secondary = self
+            .signals
+            .get(&second_idx)
+            .map_or(SystemEmotion::SystemConfidence, |s| s.kind);
         let valence = if (total_positive + total_negative) > 0.0 {
             (total_positive - total_negative) / (total_positive + total_negative)
         } else {
             0.0
         };
-        let arousal = if count > 0.0 { total_arousal / count } else { 0.0 };
+        let arousal = if count > 0.0 {
+            total_arousal / count
+        } else {
+            0.0
+        };
 
         let trend = self.signals.get(&best_idx).map_or(0.0, |s| s.trend());
 
@@ -618,7 +656,7 @@ impl HolisticEmotionEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F32Ext, F64Ext};
+    use crate::fast::math::{F32Ext, F64Ext};
 
     #[test]
     fn test_emotion_signal_ema() {

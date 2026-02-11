@@ -28,7 +28,15 @@ pub struct ChrootEntry {
 
 impl ChrootEntry {
     pub fn new(pid: u64, root_hash: u64, now: u64) -> Self {
-        Self { pid, state: ChrootState::Chrooted, root_path_hash: root_hash, old_root_hash: 0, depth: 1, created_at: now, escapes_blocked: 0 }
+        Self {
+            pid,
+            state: ChrootState::Chrooted,
+            root_path_hash: root_hash,
+            old_root_hash: 0,
+            depth: 1,
+            created_at: now,
+            escapes_blocked: 0,
+        }
     }
 }
 
@@ -48,23 +56,41 @@ pub struct AppChroot {
 }
 
 impl AppChroot {
-    pub fn new() -> Self { Self { entries: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            entries: BTreeMap::new(),
+        }
+    }
 
     #[inline]
     pub fn chroot(&mut self, pid: u64, root_hash: u64, now: u64) {
         let mut entry = ChrootEntry::new(pid, root_hash, now);
-        if let Some(old) = self.entries.get(&pid) { entry.depth = old.depth + 1; entry.old_root_hash = old.root_path_hash; }
+        if let Some(old) = self.entries.get(&pid) {
+            entry.depth = old.depth + 1;
+            entry.old_root_hash = old.root_path_hash;
+        }
         self.entries.insert(pid, entry);
     }
 
     #[inline(always)]
-    pub fn exit(&mut self, pid: u64) { self.entries.remove(&pid); }
+    pub fn exit(&mut self, pid: u64) {
+        self.entries.remove(&pid);
+    }
 
     #[inline]
     pub fn stats(&self) -> ChrootAppStats {
-        let active = self.entries.values().filter(|e| e.state == ChrootState::Chrooted).count() as u32;
+        let active = self
+            .entries
+            .values()
+            .filter(|e| e.state == ChrootState::Chrooted)
+            .count() as u32;
         let escapes: u64 = self.entries.values().map(|e| e.escapes_blocked).sum();
         let depth = self.entries.values().map(|e| e.depth).max().unwrap_or(0);
-        ChrootAppStats { total_chroots: self.entries.len() as u32, active_chroots: active, total_escapes_blocked: escapes, max_depth: depth }
+        ChrootAppStats {
+            total_chroots: self.entries.len() as u32,
+            active_chroots: active,
+            total_escapes_blocked: escapes,
+            max_depth: depth,
+        }
     }
 }

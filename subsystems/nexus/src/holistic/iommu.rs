@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-
 /// IOMMU domain type
 use alloc::vec::Vec;
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,12 +44,26 @@ pub struct IommuDomain {
 
 impl IommuDomain {
     pub fn new(id: u64, dtype: IommuDomainType) -> Self {
-        Self { id, domain_type: dtype, mappings: BTreeMap::new(), total_mapped: 0, total_unmapped: 0, page_faults: 0, ..Default::default() }
+        Self {
+            id,
+            domain_type: dtype,
+            mappings: BTreeMap::new(),
+            total_mapped: 0,
+            total_unmapped: 0,
+            page_faults: 0,
+            ..Default::default()
+        }
     }
 
     #[inline(always)]
     pub fn map(&mut self, iova: u64, phys: u64, size: u64, prot: u32) {
-        self.mappings.insert(iova, IommuMapping { iova, phys_addr: phys, size, prot, ..Default::default() });
+        self.mappings.insert(iova, IommuMapping {
+            iova,
+            phys_addr: phys,
+            size,
+            prot,
+            ..Default::default()
+        });
         self.total_mapped += size;
     }
 
@@ -59,7 +72,9 @@ impl IommuDomain {
         if let Some(m) = self.mappings.remove(&iova) {
             self.total_unmapped += m.size;
             Some(m.size)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     /// Attach a device to this domain (V2 API)
@@ -95,35 +110,59 @@ pub struct HolisticIommu {
 }
 
 impl HolisticIommu {
-    pub fn new() -> Self { Self { domains: BTreeMap::new(), devices: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            domains: BTreeMap::new(),
+            devices: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create_domain(&mut self, dtype: IommuDomainType) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.domains.insert(id, IommuDomain::new(id, dtype));
         id
     }
 
     #[inline(always)]
     pub fn attach_device(&mut self, dev_id: u32, domain: u64, group: u32) {
-        self.devices.insert(dev_id, IommuDevice { dev_id, domain_id: domain, group_id: group });
+        self.devices.insert(dev_id, IommuDevice {
+            dev_id,
+            domain_id: domain,
+            group_id: group,
+        });
     }
 
     #[inline(always)]
     pub fn map(&mut self, domain: u64, iova: u64, phys: u64, size: u64, prot: u32) {
-        if let Some(d) = self.domains.get_mut(&domain) { d.map(iova, phys, size, prot); }
+        if let Some(d) = self.domains.get_mut(&domain) {
+            d.map(iova, phys, size, prot);
+        }
     }
 
     #[inline(always)]
     pub fn unmap(&mut self, domain: u64, iova: u64) {
-        if let Some(d) = self.domains.get_mut(&domain) { d.unmap(iova); }
+        if let Some(d) = self.domains.get_mut(&domain) {
+            d.unmap(iova);
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> IommuStats {
-        let mapped: u64 = self.domains.values().map(|d| d.total_mapped - d.total_unmapped).sum();
+        let mapped: u64 = self
+            .domains
+            .values()
+            .map(|d| d.total_mapped - d.total_unmapped)
+            .sum();
         let faults: u64 = self.domains.values().map(|d| d.page_faults).sum();
-        IommuStats { total_domains: self.domains.len() as u32, total_devices: self.devices.len() as u32, total_mapped_bytes: mapped, total_page_faults: faults }
+        IommuStats {
+            total_domains: self.domains.len() as u32,
+            total_devices: self.devices.len() as u32,
+            total_mapped_bytes: mapped,
+            total_page_faults: faults,
+        }
     }
 }
 
@@ -146,8 +185,6 @@ pub enum IoptLevel {
     Level4,
     Level5,
 }
-
-
 
 /// IO mapping
 #[derive(Debug, Clone)]
@@ -201,7 +238,13 @@ pub struct HolisticIommuV2 {
 
 impl HolisticIommuV2 {
     pub fn new(iommu_type: IommuType) -> Self {
-        Self { iommu_type, domains: BTreeMap::new(), faults: Vec::new(), next_domain_id: 1, total_faults: 0 }
+        Self {
+            iommu_type,
+            domains: BTreeMap::new(),
+            faults: Vec::new(),
+            next_domain_id: 1,
+            total_faults: 0,
+        }
     }
 
     #[inline]
@@ -214,12 +257,16 @@ impl HolisticIommuV2 {
 
     #[inline(always)]
     pub fn attach(&mut self, domain: u64, bdf: u64) {
-        if let Some(d) = self.domains.get_mut(&domain) { d.attach_device(bdf); }
+        if let Some(d) = self.domains.get_mut(&domain) {
+            d.attach_device(bdf);
+        }
     }
 
     #[inline(always)]
     pub fn map_iova(&mut self, domain: u64, iova: u64, paddr: u64, size: u64, flags: u32) {
-        if let Some(d) = self.domains.get_mut(&domain) { d.map(iova, paddr, size, flags); }
+        if let Some(d) = self.domains.get_mut(&domain) {
+            d.map(iova, paddr, size, flags);
+        }
     }
 
     #[inline(always)]
@@ -229,9 +276,13 @@ impl HolisticIommuV2 {
 
     #[inline]
     pub fn report_fault(&mut self, fault: IommuFault) {
-        if let Some(d) = self.domains.get_mut(&fault.domain_id) { d.fault_count += 1; }
+        if let Some(d) = self.domains.get_mut(&fault.domain_id) {
+            d.fault_count += 1;
+        }
         self.total_faults += 1;
-        if self.faults.len() > 4096 { self.faults.drain(..2048); }
+        if self.faults.len() > 4096 {
+            self.faults.drain(..2048);
+        }
         self.faults.push(fault);
     }
 
@@ -241,10 +292,16 @@ impl HolisticIommuV2 {
         let mappings: u64 = self.domains.values().map(|d| d.mappings.len() as u64).sum();
         let bytes: u64 = self.domains.values().map(|d| d.total_mapped_bytes).sum();
         IommuV2Stats {
-            total_domains: self.domains.len() as u32, total_devices: devices,
-            total_mappings: mappings, total_mapped_bytes: bytes,
+            total_domains: self.domains.len() as u32,
+            total_devices: devices,
+            total_mappings: mappings,
+            total_mapped_bytes: bytes,
             total_faults: self.total_faults,
-            fault_rate: if mappings == 0 { 0.0 } else { self.total_faults as f64 / mappings as f64 },
+            fault_rate: if mappings == 0 {
+                0.0
+            } else {
+                self.total_faults as f64 / mappings as f64
+            },
         }
     }
 }

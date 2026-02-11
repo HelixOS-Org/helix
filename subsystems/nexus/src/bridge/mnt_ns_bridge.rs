@@ -36,11 +36,17 @@ impl MountFlags {
     pub const MOVE: u64 = 1 << 13;
     pub const LAZYTIME: u64 = 1 << 25;
 
-    pub fn new(bits: u64) -> Self { Self { bits } }
+    pub fn new(bits: u64) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u64) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u64) -> bool {
+        self.bits & flag != 0
+    }
     #[inline(always)]
-    pub fn is_readonly(&self) -> bool { self.has(Self::RDONLY) }
+    pub fn is_readonly(&self) -> bool {
+        self.has(Self::RDONLY)
+    }
 }
 
 /// Filesystem type
@@ -78,9 +84,16 @@ pub struct MountPoint {
 impl MountPoint {
     pub fn new(id: u64, ns_id: u64, source: String, target: String, fs_type: FsType) -> Self {
         Self {
-            id, parent_id: None, ns_id, source, target, fs_type,
-            flags: MountFlags::new(0), propagation: MountPropagation::Private,
-            peer_group: 0, mounted_at: 0,
+            id,
+            parent_id: None,
+            ns_id,
+            source,
+            target,
+            fs_type,
+            flags: MountFlags::new(0),
+            propagation: MountPropagation::Private,
+            peer_group: 0,
+            mounted_at: 0,
         }
     }
 
@@ -107,13 +120,23 @@ pub struct MountNamespace {
 
 impl MountNamespace {
     pub fn new(id: u64, owner: u64, now: u64) -> Self {
-        Self { id, owner_pid: owner, mount_ids: Vec::new(), created_at: now, ref_count: 1 }
+        Self {
+            id,
+            owner_pid: owner,
+            mount_ids: Vec::new(),
+            created_at: now,
+            ref_count: 1,
+        }
     }
 
     #[inline(always)]
-    pub fn add_mount(&mut self, mount_id: u64) { self.mount_ids.push(mount_id); }
+    pub fn add_mount(&mut self, mount_id: u64) {
+        self.mount_ids.push(mount_id);
+    }
     #[inline(always)]
-    pub fn remove_mount(&mut self, mount_id: u64) { self.mount_ids.retain(|&id| id != mount_id); }
+    pub fn remove_mount(&mut self, mount_id: u64) {
+        self.mount_ids.retain(|&id| id != mount_id);
+    }
 }
 
 /// Mount event type
@@ -150,8 +173,11 @@ pub struct BridgeMntNs {
 impl BridgeMntNs {
     pub fn new() -> Self {
         Self {
-            namespaces: BTreeMap::new(), mounts: BTreeMap::new(),
-            next_ns_id: 1, next_mount_id: 1, total_events: 0,
+            namespaces: BTreeMap::new(),
+            mounts: BTreeMap::new(),
+            next_ns_id: 1,
+            next_mount_id: 1,
+            total_events: 0,
         }
     }
 
@@ -159,18 +185,28 @@ impl BridgeMntNs {
     pub fn create_namespace(&mut self, owner: u64, now: u64) -> u64 {
         let id = self.next_ns_id;
         self.next_ns_id += 1;
-        self.namespaces.insert(id, MountNamespace::new(id, owner, now));
+        self.namespaces
+            .insert(id, MountNamespace::new(id, owner, now));
         id
     }
 
     #[inline]
-    pub fn mount(&mut self, ns_id: u64, source: String, target: String, fs_type: FsType, now: u64) -> Option<u64> {
+    pub fn mount(
+        &mut self,
+        ns_id: u64,
+        source: String,
+        target: String,
+        fs_type: FsType,
+        now: u64,
+    ) -> Option<u64> {
         let mid = self.next_mount_id;
         self.next_mount_id += 1;
         let mut mp = MountPoint::new(mid, ns_id, source, target, fs_type);
         mp.mounted_at = now;
         self.mounts.insert(mid, mp);
-        if let Some(ns) = self.namespaces.get_mut(&ns_id) { ns.add_mount(mid); }
+        if let Some(ns) = self.namespaces.get_mut(&ns_id) {
+            ns.add_mount(mid);
+        }
         self.total_events += 1;
         Some(mid)
     }
@@ -178,21 +214,34 @@ impl BridgeMntNs {
     #[inline]
     pub fn umount(&mut self, mount_id: u64) -> bool {
         if let Some(mp) = self.mounts.remove(&mount_id) {
-            if let Some(ns) = self.namespaces.get_mut(&mp.ns_id) { ns.remove_mount(mount_id); }
+            if let Some(ns) = self.namespaces.get_mut(&mp.ns_id) {
+                ns.remove_mount(mount_id);
+            }
             self.total_events += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> MntNsBridgeStats {
-        let shared = self.mounts.values().filter(|m| m.propagation == MountPropagation::Shared).count() as u32;
-        let ro = self.mounts.values().filter(|m| m.flags.is_readonly()).count() as u32;
+        let shared = self
+            .mounts
+            .values()
+            .filter(|m| m.propagation == MountPropagation::Shared)
+            .count() as u32;
+        let ro = self
+            .mounts
+            .values()
+            .filter(|m| m.flags.is_readonly())
+            .count() as u32;
         MntNsBridgeStats {
             total_namespaces: self.namespaces.len() as u32,
             total_mounts: self.mounts.len() as u32,
             total_events: self.total_events,
-            shared_mounts: shared, readonly_mounts: ro,
+            shared_mounts: shared,
+            readonly_mounts: ro,
         }
     }
 }

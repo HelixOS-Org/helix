@@ -57,7 +57,14 @@ impl HolisticPidManager {
         }
     }
 
-    pub fn analyze_namespace(&mut self, ns_id: u64, depth: u32, count: u32, max: u64, frag: f64) -> HolisticPidHealth {
+    pub fn analyze_namespace(
+        &mut self,
+        ns_id: u64,
+        depth: u32,
+        count: u32,
+        max: u64,
+        frag: f64,
+    ) -> HolisticPidHealth {
         let health = if frag > 0.7 {
             self.stats.fragmented += 1;
             HolisticPidHealth::Fragmented

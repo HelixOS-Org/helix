@@ -9,12 +9,19 @@
 //! - Demand paging vs prefetch ratio optimization
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
+use crate::fast::linear_map::LinearMap;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FaultAnomaly { None, SpikeMajor, SpikeMinor, Sustained, ThrashPattern }
+pub enum FaultAnomaly {
+    None,
+    SpikeMajor,
+    SpikeMinor,
+    Sustained,
+    ThrashPattern,
+}
 
 #[derive(Debug, Clone)]
 pub struct SystemFaultSnapshot {
@@ -31,12 +38,16 @@ impl SystemFaultSnapshot {
     #[inline]
     pub fn major_ratio(&self) -> f64 {
         let total = self.total_major + self.total_minor;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.total_major as f64 / total as f64
     }
     #[inline(always)]
     pub fn working_set_ratio(&self) -> f64 {
-        if self.resident_pages == 0 { return 0.0; }
+        if self.resident_pages == 0 {
+            return 0.0;
+        }
         self.working_set_pages as f64 / self.resident_pages as f64
     }
 }
@@ -61,12 +72,16 @@ pub struct PrefetchEfficiency {
 impl PrefetchEfficiency {
     #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
-        if self.total_prefetched == 0 { return 0.0; }
+        if self.total_prefetched == 0 {
+            return 0.0;
+        }
         self.prefetch_hits as f64 / self.total_prefetched as f64
     }
     #[inline(always)]
     pub fn waste_ratio(&self) -> f64 {
-        if self.total_prefetched == 0 { return 0.0; }
+        if self.total_prefetched == 0 {
+            return 0.0;
+        }
         self.prefetch_wasted as f64 / self.total_prefetched as f64
     }
 }
@@ -101,8 +116,10 @@ impl PageFaultHolisticManager {
             fault_history: Vec::with_capacity(history_capacity),
             subsystem_costs: BTreeMap::new(),
             prefetch: PrefetchEfficiency {
-                total_prefetched: 0, prefetch_hits: 0,
-                prefetch_wasted: 0, bandwidth_used_bps: 0,
+                total_prefetched: 0,
+                prefetch_hits: 0,
+                prefetch_wasted: 0,
+                bandwidth_used_bps: 0,
             },
             process_majors: LinearMap::new(),
             history_capacity,
@@ -125,11 +142,13 @@ impl PageFaultHolisticManager {
 
     /// Detect anomalies in fault patterns
     pub fn detect_anomaly(&self) -> FaultAnomaly {
-        if self.fault_history.len() < 5 { return FaultAnomaly::None; }
+        if self.fault_history.len() < 5 {
+            return FaultAnomaly::None;
+        }
 
         let recent = &self.fault_history[self.fault_history.len().saturating_sub(5)..];
-        let avg_major: f64 = recent.iter().map(|s| s.major_rate_per_sec).sum::<f64>()
-            / recent.len() as f64;
+        let avg_major: f64 =
+            recent.iter().map(|s| s.major_rate_per_sec).sum::<f64>() / recent.len() as f64;
 
         // Check for spike: last sample >> average
         if let Some(last) = recent.last() {
@@ -142,9 +161,10 @@ impl PageFaultHolisticManager {
         }
 
         // Check for sustained high rate
-        let all_high = recent.iter()
-            .all(|s| s.major_rate_per_sec > 1000.0);
-        if all_high { return FaultAnomaly::Sustained; }
+        let all_high = recent.iter().all(|s| s.major_rate_per_sec > 1000.0);
+        if all_high {
+            return FaultAnomaly::Sustained;
+        }
 
         // Check for thrash pattern: alternating high/low
         let rates: Vec<f64> = recent.iter().map(|s| s.major_rate_per_sec).collect();
@@ -154,17 +174,25 @@ impl PageFaultHolisticManager {
                 alternations += 1;
             }
         }
-        if alternations >= 3 { return FaultAnomaly::ThrashPattern; }
+        if alternations >= 3 {
+            return FaultAnomaly::ThrashPattern;
+        }
 
         FaultAnomaly::None
     }
 
     /// Record fault cost attribution to a subsystem
     pub fn attribute_cost(&mut self, subsystem_id: u64, cost_ns: u64) {
-        let entry = self.subsystem_costs.entry(subsystem_id).or_insert(SubsystemFaultCost {
-            subsystem_id, fault_count: 0, total_cost_ns: 0,
-            avg_cost_ns: 0, percentage_of_total: 0.0,
-        });
+        let entry = self
+            .subsystem_costs
+            .entry(subsystem_id)
+            .or_insert(SubsystemFaultCost {
+                subsystem_id,
+                fault_count: 0,
+                total_cost_ns: 0,
+                avg_cost_ns: 0,
+                percentage_of_total: 0.0,
+            });
         entry.fault_count += 1;
         entry.total_cost_ns += cost_ns;
         entry.avg_cost_ns = entry.total_cost_ns / entry.fault_count;
@@ -174,7 +202,9 @@ impl PageFaultHolisticManager {
         for cost in self.subsystem_costs.values_mut() {
             cost.percentage_of_total = if total > 0 {
                 cost.total_cost_ns as f64 / total as f64
-            } else { 0.0 };
+            } else {
+                0.0
+            };
         }
     }
 
@@ -182,8 +212,11 @@ impl PageFaultHolisticManager {
     #[inline]
     pub fn record_prefetch(&mut self, pages: u64, hit: bool) {
         self.prefetch.total_prefetched += pages;
-        if hit { self.prefetch.prefetch_hits += pages; }
-        else { self.prefetch.prefetch_wasted += pages; }
+        if hit {
+            self.prefetch.prefetch_hits += pages;
+        } else {
+            self.prefetch.prefetch_wasted += pages;
+        }
         self.stats.prefetch_ratio = self.prefetch.hit_rate();
     }
 
@@ -191,10 +224,21 @@ impl PageFaultHolisticManager {
     #[inline]
     pub fn optimal_prefetch_depth(&self) -> u64 {
         let hit_rate = self.prefetch.hit_rate();
-        if hit_rate > 0.8 { 16 }      // good prediction: prefetch more
-        else if hit_rate > 0.5 { 8 }   // moderate: standard depth
-        else if hit_rate > 0.2 { 4 }   // poor: reduce
-        else { 1 }                      // very poor: demand-page only
+        if hit_rate > 0.8 {
+            16
+        }
+        // good prediction: prefetch more
+        else if hit_rate > 0.5 {
+            8
+        }
+        // moderate: standard depth
+        else if hit_rate > 0.2 {
+            4
+        }
+        // poor: reduce
+        else {
+            1
+        } // very poor: demand-page only
     }
 
     /// Top fault-costly subsystems
@@ -206,5 +250,7 @@ impl PageFaultHolisticManager {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &FaultHolisticStats { &self.stats }
+    pub fn stats(&self) -> &FaultHolisticStats {
+        &self.stats
+    }
 }

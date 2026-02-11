@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // SLA TYPES
@@ -107,8 +108,11 @@ impl SloDefinition {
                 } else {
                     SloStatus::Breached
                 }
-            }
-            SloMetric::Latency | SloMetric::ErrorRate | SloMetric::ResponseTime | SloMetric::QueueWait => {
+            },
+            SloMetric::Latency
+            | SloMetric::ErrorRate
+            | SloMetric::ResponseTime
+            | SloMetric::QueueWait => {
                 // Lower is better
                 if current <= self.target {
                     SloStatus::Met
@@ -117,7 +121,7 @@ impl SloDefinition {
                 } else {
                     SloStatus::Breached
                 }
-            }
+            },
         }
     }
 }
@@ -247,7 +251,8 @@ impl SlaContract {
         let slo_id = slo.slo_id;
         let window_ns = slo.window_ns;
         self.slos.push(slo);
-        self.error_budgets.insert(slo_id, ErrorBudget::new(error_budget, window_ns, now));
+        self.error_budgets
+            .insert(slo_id, ErrorBudget::new(error_budget, window_ns, now));
     }
 
     /// Update metric value
@@ -275,7 +280,9 @@ impl SlaContract {
         if self.slos.is_empty() {
             return 1.0;
         }
-        let met_count = self.slos.iter()
+        let met_count = self
+            .slos
+            .iter()
             .filter(|slo| {
                 let value = self.current_values.get(slo.slo_id).unwrap_or(0.0);
                 matches!(slo.check(value), SloStatus::Met)
@@ -335,13 +342,25 @@ impl CoopSlaEngine {
 
     /// Create SLA contract
     #[inline]
-    pub fn create_contract(&mut self, provider: u64, consumer: u64, tier: SlaTier, now: u64) -> u64 {
+    pub fn create_contract(
+        &mut self,
+        provider: u64,
+        consumer: u64,
+        tier: SlaTier,
+        now: u64,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let contract = SlaContract::new(id, provider, consumer, tier, now);
         self.contracts.insert(id, contract);
-        self.process_contracts.entry(provider).or_insert_with(Vec::new).push(id);
-        self.process_contracts.entry(consumer).or_insert_with(Vec::new).push(id);
+        self.process_contracts
+            .entry(provider)
+            .or_insert_with(Vec::new)
+            .push(id);
+        self.process_contracts
+            .entry(consumer)
+            .or_insert_with(Vec::new)
+            .push(id);
         self.update_stats();
         id
     }
@@ -367,7 +386,10 @@ impl CoopSlaEngine {
     /// Get contract health
     #[inline(always)]
     pub fn contract_health(&self, contract_id: u64) -> f64 {
-        self.contracts.get(&contract_id).map(|c| c.health()).unwrap_or(0.0)
+        self.contracts
+            .get(&contract_id)
+            .map(|c| c.health())
+            .unwrap_or(0.0)
     }
 
     /// Remove process
@@ -386,21 +408,29 @@ impl CoopSlaEngine {
     fn update_stats(&mut self) {
         self.stats.active_contracts = self.contracts.values().filter(|c| c.active).count();
         self.stats.total_slos = self.contracts.values().map(|c| c.slos.len()).sum();
-        self.stats.breached_slos = self.contracts.values()
-            .flat_map(|c| c.slos.iter().map(move |slo| {
-                let val = c.current_values.get(slo.slo_id).unwrap_or(0.0);
-                slo.check(val)
-            }))
+        self.stats.breached_slos = self
+            .contracts
+            .values()
+            .flat_map(|c| {
+                c.slos.iter().map(move |slo| {
+                    let val = c.current_values.get(slo.slo_id).unwrap_or(0.0);
+                    slo.check(val)
+                })
+            })
             .filter(|s| matches!(s, SloStatus::Breached))
             .count();
-        let healths: Vec<f64> = self.contracts.values()
+        let healths: Vec<f64> = self
+            .contracts
+            .values()
             .filter(|c| c.active)
             .map(|c| c.health())
             .collect();
         if !healths.is_empty() {
             self.stats.avg_health = healths.iter().sum::<f64>() / healths.len() as f64;
         }
-        self.stats.exhausted_budgets = self.contracts.values()
+        self.stats.exhausted_budgets = self
+            .contracts
+            .values()
             .flat_map(|c| c.error_budgets.values())
             .filter(|b| b.exhausted())
             .count();

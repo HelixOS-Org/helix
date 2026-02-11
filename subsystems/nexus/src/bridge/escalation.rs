@@ -20,13 +20,13 @@ use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BasePriority {
     /// Idle
-    Idle = 0,
+    Idle     = 0,
     /// Low
-    Low = 1,
+    Low      = 1,
     /// Normal
-    Normal = 2,
+    Normal   = 2,
     /// High
-    High = 3,
+    High     = 3,
     /// RealTime
     RealTime = 4,
     /// Critical
@@ -141,10 +141,7 @@ impl TrackedSyscall {
         }
 
         self.escalation_level += 1;
-        self.effective_priority = self
-            .effective_priority
-            .saturating_add(10)
-            .min(255);
+        self.effective_priority = self.effective_priority.saturating_add(10).min(255);
 
         if !self.reasons.contains(&reason) {
             self.reasons.push(reason);
@@ -202,7 +199,7 @@ impl EscalationPolicy {
     #[inline]
     pub fn default_policy() -> Self {
         Self {
-            age_threshold_ns: 100_000_000, // 100ms
+            age_threshold_ns: 100_000_000,     // 100ms
             deadline_threshold_ns: 50_000_000, // 50ms
             starvation_window_ns: 500_000_000, // 500ms
             max_escalations_per_tick: 8,

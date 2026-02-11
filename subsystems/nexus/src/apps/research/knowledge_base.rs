@@ -10,10 +10,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -270,7 +271,13 @@ impl AppsKnowledgeBase {
         }
 
         // Also score by content hash similarity for broad matching
-        let query_hash = fnv1a_hash(tags.iter().flat_map(|t| t.as_bytes()).copied().collect::<Vec<u8>>().as_slice());
+        let query_hash = fnv1a_hash(
+            tags.iter()
+                .flat_map(|t| t.as_bytes())
+                .copied()
+                .collect::<Vec<u8>>()
+                .as_slice(),
+        );
         for (eid, entry) in self.entries.iter() {
             let hash_sim = 1.0 - ((entry.content_hash ^ query_hash) % 1000) as f32 / 1000.0;
             let score = candidate_scores.entry(*eid).or_insert(0.0);
@@ -306,7 +313,8 @@ impl AppsKnowledgeBase {
         let avg_rel = total_rel / n;
         let avg_conf = total_conf / n;
 
-        self.stats.ema_relevance = EMA_ALPHA * avg_rel + (1.0 - EMA_ALPHA) * self.stats.ema_relevance;
+        self.stats.ema_relevance =
+            EMA_ALPHA * avg_rel + (1.0 - EMA_ALPHA) * self.stats.ema_relevance;
         let access_rate = self.stats.queries_served as f32 / self.tick.max(1) as f32;
         self.stats.ema_access_rate =
             EMA_ALPHA * access_rate + (1.0 - EMA_ALPHA) * self.stats.ema_access_rate;
@@ -385,7 +393,10 @@ impl AppsKnowledgeBase {
             };
 
             let access_bonus = (entry.access_count as f32).min(20.0) / 20.0;
-            let score = tag_match as f32 * 0.4 + entry.confidence * 0.3 + recency * 0.2 + access_bonus * 0.1;
+            let score = tag_match as f32 * 0.4
+                + entry.confidence * 0.3
+                + recency * 0.2
+                + access_bonus * 0.1;
 
             rankings.push(RelevanceRanking {
                 entry_id: *eid,
@@ -475,7 +486,10 @@ impl AppsKnowledgeBase {
             // Mark stale entries for removal if low access
             if current > entry.last_accessed_tick {
                 let age = current - entry.last_accessed_tick;
-                if age > STALE_THRESHOLD && entry.access_count < MIN_ACCESS_FOR_KEEP && !entry.validated {
+                if age > STALE_THRESHOLD
+                    && entry.access_count < MIN_ACCESS_FOR_KEEP
+                    && !entry.validated
+                {
                     to_remove.push(*eid);
                 }
             }

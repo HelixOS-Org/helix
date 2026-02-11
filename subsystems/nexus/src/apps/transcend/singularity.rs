@@ -159,7 +159,8 @@ impl AppsSingularity {
             new_dims.push(ema_update(prev, incoming));
         }
         model.classification.dimensions = new_dims;
-        model.classification.confidence = model.classification.confidence.saturating_add(1).min(100);
+        model.classification.confidence =
+            model.classification.confidence.saturating_add(1).min(100);
         model.classification.version += 1;
         model.observation_count += 1;
         self.stats.total_observations += 1;
@@ -204,7 +205,10 @@ impl AppsSingularity {
             None => return 0,
         };
 
-        let dim_fill = model.classification.dimensions.iter()
+        let dim_fill = model
+            .classification
+            .dimensions
+            .iter()
             .filter(|&&v| v > 0)
             .count() as u64;
         let fill_ratio = dim_fill * 100 / CLASSIFICATION_DIMS as u64;
@@ -234,13 +238,11 @@ impl AppsSingularity {
         }
 
         let avg_convergence = convergence_sum / self.models.len() as u64;
-        self.stats.avg_convergence_ema = ema_update(
-            self.stats.avg_convergence_ema,
-            avg_convergence,
-        );
+        self.stats.avg_convergence_ema =
+            ema_update(self.stats.avg_convergence_ema, avg_convergence);
 
-        let classification_quality = self.stats.perfect_classifications * 100
-            / self.stats.total_models.max(1);
+        let classification_quality =
+            self.stats.perfect_classifications * 100 / self.stats.total_models.max(1);
         let beyond_factor = (self.stats.beyond_profiles * 10).min(100);
 
         let level = (avg_convergence + classification_quality + beyond_factor) / 3;
@@ -421,10 +423,14 @@ impl AppsSingularity {
             return 0;
         }
         let mean = cv.dimensions.iter().sum::<u64>() / cv.dimensions.len() as u64;
-        let var_sum: u64 = cv.dimensions.iter().map(|&d| {
-            let diff = if d > mean { d - mean } else { mean - d };
-            diff * diff
-        }).sum();
+        let var_sum: u64 = cv
+            .dimensions
+            .iter()
+            .map(|&d| {
+                let diff = if d > mean { d - mean } else { mean - d };
+                diff * diff
+            })
+            .sum();
         var_sum / cv.dimensions.len() as u64
     }
 
@@ -443,9 +449,11 @@ impl AppsSingularity {
 
     fn synergy_potential_hash(&self, model: &UnifiedModel) -> u64 {
         let mut buf = [0u8; 8];
-        let cv_hash: u64 = model.classification.dimensions.iter().fold(0u64, |acc, &d| {
-            acc.wrapping_add(d)
-        });
+        let cv_hash: u64 = model
+            .classification
+            .dimensions
+            .iter()
+            .fold(0u64, |acc, &d| acc.wrapping_add(d));
         buf.copy_from_slice(&cv_hash.to_le_bytes());
         fnv1a(&buf)
     }

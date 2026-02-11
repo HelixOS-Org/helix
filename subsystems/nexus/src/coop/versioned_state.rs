@@ -47,16 +47,25 @@ pub struct VersionRecord {
 impl VersionRecord {
     pub fn new(id: u64, key: u64, txn: u64, ts: u64) -> Self {
         Self {
-            version_id: id, key, value_hash: 0, value_size: 0,
-            created_by_txn: txn, created_ts: ts,
-            visibility: VersionVisibility::InProgress, prev_version: None,
+            version_id: id,
+            key,
+            value_hash: 0,
+            value_size: 0,
+            created_by_txn: txn,
+            created_ts: ts,
+            visibility: VersionVisibility::InProgress,
+            prev_version: None,
         }
     }
 
     #[inline(always)]
-    pub fn commit(&mut self) { self.visibility = VersionVisibility::Committed; }
+    pub fn commit(&mut self) {
+        self.visibility = VersionVisibility::Committed;
+    }
     #[inline(always)]
-    pub fn abort(&mut self) { self.visibility = VersionVisibility::Aborted; }
+    pub fn abort(&mut self) {
+        self.visibility = VersionVisibility::Aborted;
+    }
 }
 
 /// Version chain for a key
@@ -73,7 +82,15 @@ pub struct VersionChain {
 
 impl VersionChain {
     pub fn new(key: u64, head: u64, ts: u64) -> Self {
-        Self { key, head_version: head, chain_length: 1, oldest_version_ts: ts, newest_version_ts: ts, total_versions: 1, gc_eligible: 0 }
+        Self {
+            key,
+            head_version: head,
+            chain_length: 1,
+            oldest_version_ts: ts,
+            newest_version_ts: ts,
+            total_versions: 1,
+            gc_eligible: 0,
+        }
     }
 }
 
@@ -94,14 +111,22 @@ pub struct MvccTransaction {
 impl MvccTransaction {
     pub fn new(id: u64, ts: u64) -> Self {
         Self {
-            txn_id: id, state: MvccTxnState::Active, start_ts: ts,
-            commit_ts: None, snapshot_ts: ts, read_set: Vec::new(),
-            write_set: Vec::new(), versions_created: Vec::new(), is_read_only: true,
+            txn_id: id,
+            state: MvccTxnState::Active,
+            start_ts: ts,
+            commit_ts: None,
+            snapshot_ts: ts,
+            read_set: Vec::new(),
+            write_set: Vec::new(),
+            versions_created: Vec::new(),
+            is_read_only: true,
         }
     }
 
     #[inline(always)]
-    pub fn read(&mut self, key: u64) { self.read_set.push(key); }
+    pub fn read(&mut self, key: u64) {
+        self.read_set.push(key);
+    }
 
     #[inline]
     pub fn write(&mut self, key: u64, version_id: u64) {
@@ -111,19 +136,28 @@ impl MvccTransaction {
     }
 
     #[inline(always)]
-    pub fn commit(&mut self, ts: u64) { self.state = MvccTxnState::Committed; self.commit_ts = Some(ts); }
+    pub fn commit(&mut self, ts: u64) {
+        self.state = MvccTxnState::Committed;
+        self.commit_ts = Some(ts);
+    }
     #[inline(always)]
-    pub fn abort(&mut self) { self.state = MvccTxnState::Aborted; }
+    pub fn abort(&mut self) {
+        self.state = MvccTxnState::Aborted;
+    }
 
     #[inline]
     pub fn has_conflict(&self, other: &MvccTransaction) -> bool {
         // Write-write conflict: overlapping write sets
         for key in &self.write_set {
-            if other.write_set.contains(key) { return true; }
+            if other.write_set.contains(key) {
+                return true;
+            }
         }
         // Read-write conflict: this reads what other writes
         for key in &self.read_set {
-            if other.write_set.contains(key) { return true; }
+            if other.write_set.contains(key) {
+                return true;
+            }
         }
         false
     }
@@ -139,14 +173,24 @@ pub struct Snapshot {
 
 impl Snapshot {
     pub fn new(ts: u64, active: Vec<u64>, min_active: u64) -> Self {
-        Self { snapshot_ts: ts, active_txns: active, min_active_ts: min_active }
+        Self {
+            snapshot_ts: ts,
+            active_txns: active,
+            min_active_ts: min_active,
+        }
     }
 
     #[inline]
     pub fn is_visible(&self, version: &VersionRecord) -> bool {
-        if version.visibility == VersionVisibility::Aborted { return false; }
-        if version.created_ts > self.snapshot_ts { return false; }
-        if self.active_txns.contains(&version.created_by_txn) { return false; }
+        if version.visibility == VersionVisibility::Aborted {
+            return false;
+        }
+        if version.created_ts > self.snapshot_ts {
+            return false;
+        }
+        if self.active_txns.contains(&version.created_by_txn) {
+            return false;
+        }
         version.visibility == VersionVisibility::Committed
     }
 }
@@ -182,21 +226,29 @@ pub struct CoopVersionedState {
 impl CoopVersionedState {
     pub fn new() -> Self {
         Self {
-            versions: BTreeMap::new(), chains: BTreeMap::new(),
-            transactions: BTreeMap::new(), stats: MvccStats::default(),
-            next_id: 1, committed_txns: 0, aborted_txns: 0, conflict_aborts: 0,
+            versions: BTreeMap::new(),
+            chains: BTreeMap::new(),
+            transactions: BTreeMap::new(),
+            stats: MvccStats::default(),
+            next_id: 1,
+            committed_txns: 0,
+            aborted_txns: 0,
+            conflict_aborts: 0,
         }
     }
 
     #[inline]
     pub fn begin_txn(&mut self, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.transactions.insert(id, MvccTransaction::new(id, ts));
         id
     }
 
     pub fn read(&mut self, txn_id: u64, key: u64) -> Option<u64> {
-        if let Some(txn) = self.transactions.get_mut(&txn_id) { txn.read(key); }
+        if let Some(txn) = self.transactions.get_mut(&txn_id) {
+            txn.read(key);
+        }
         // Find visible version for key
         let chain = self.chains.get(&key)?;
         let txn = self.transactions.get(&txn_id)?;
@@ -204,15 +256,20 @@ impl CoopVersionedState {
         let mut vid = Some(chain.head_version);
         while let Some(v) = vid {
             if let Some(ver) = self.versions.get(&v) {
-                if snapshot.is_visible(ver) { return Some(v); }
+                if snapshot.is_visible(ver) {
+                    return Some(v);
+                }
                 vid = ver.prev_version;
-            } else { break; }
+            } else {
+                break;
+            }
         }
         None
     }
 
     pub fn write(&mut self, txn_id: u64, key: u64, ts: u64) -> Option<u64> {
-        let ver_id = self.next_id; self.next_id += 1;
+        let ver_id = self.next_id;
+        self.next_id += 1;
         let mut ver = VersionRecord::new(ver_id, key, txn_id, ts);
         // Link to previous
         if let Some(chain) = self.chains.get(&key) {
@@ -228,17 +285,26 @@ impl CoopVersionedState {
         } else {
             self.chains.insert(key, VersionChain::new(key, ver_id, ts));
         }
-        if let Some(txn) = self.transactions.get_mut(&txn_id) { txn.write(key, ver_id); }
+        if let Some(txn) = self.transactions.get_mut(&txn_id) {
+            txn.write(key, ver_id);
+        }
         Some(ver_id)
     }
 
     pub fn commit_txn(&mut self, txn_id: u64, ts: u64) -> bool {
         // Validate: check for conflicts with other committed txns since snapshot
-        let txn = match self.transactions.get(&txn_id) { Some(t) => t.clone(), None => return false };
+        let txn = match self.transactions.get(&txn_id) {
+            Some(t) => t.clone(),
+            None => return false,
+        };
         if !txn.is_read_only {
             for other in self.transactions.values() {
-                if other.txn_id == txn_id { continue; }
-                if other.state != MvccTxnState::Committed { continue; }
+                if other.txn_id == txn_id {
+                    continue;
+                }
+                if other.state != MvccTxnState::Committed {
+                    continue;
+                }
                 if let Some(cts) = other.commit_ts {
                     if cts > txn.snapshot_ts && txn.has_conflict(other) {
                         self.abort_txn(txn_id);
@@ -251,7 +317,9 @@ impl CoopVersionedState {
         if let Some(t) = self.transactions.get_mut(&txn_id) {
             t.commit(ts);
             for &vid in &t.versions_created.clone() {
-                if let Some(v) = self.versions.get_mut(&vid) { v.commit(); }
+                if let Some(v) = self.versions.get_mut(&vid) {
+                    v.commit();
+                }
             }
         }
         self.committed_txns += 1;
@@ -263,7 +331,9 @@ impl CoopVersionedState {
         if let Some(t) = self.transactions.get_mut(&txn_id) {
             t.abort();
             for &vid in &t.versions_created.clone() {
-                if let Some(v) = self.versions.get_mut(&vid) { v.abort(); }
+                if let Some(v) = self.versions.get_mut(&vid) {
+                    v.abort();
+                }
             }
         }
         self.aborted_txns += 1;
@@ -271,25 +341,49 @@ impl CoopVersionedState {
 
     #[inline]
     pub fn gc(&mut self, min_active_ts: u64) {
-        let gc: Vec<u64> = self.versions.iter()
-            .filter(|(_, v)| v.visibility == VersionVisibility::Aborted || (v.visibility == VersionVisibility::Committed && v.created_ts < min_active_ts && v.prev_version.is_some()))
-            .map(|(&id, _)| id).collect();
-        for id in gc { self.versions.remove(&id); }
+        let gc: Vec<u64> = self
+            .versions
+            .iter()
+            .filter(|(_, v)| {
+                v.visibility == VersionVisibility::Aborted
+                    || (v.visibility == VersionVisibility::Committed
+                        && v.created_ts < min_active_ts
+                        && v.prev_version.is_some())
+            })
+            .map(|(&id, _)| id)
+            .collect();
+        for id in gc {
+            self.versions.remove(&id);
+        }
     }
 
     pub fn recompute(&mut self) {
         self.stats.total_keys = self.chains.len();
         self.stats.total_versions = self.versions.len();
-        self.stats.active_txns = self.transactions.values().filter(|t| t.state == MvccTxnState::Active).count();
+        self.stats.active_txns = self
+            .transactions
+            .values()
+            .filter(|t| t.state == MvccTxnState::Active)
+            .count();
         self.stats.committed_txns = self.committed_txns;
         self.stats.aborted_txns = self.aborted_txns;
         self.stats.conflict_aborts = self.conflict_aborts;
-        self.stats.gc_eligible_versions = self.versions.values().filter(|v| v.visibility == VersionVisibility::Aborted).count();
+        self.stats.gc_eligible_versions = self
+            .versions
+            .values()
+            .filter(|v| v.visibility == VersionVisibility::Aborted)
+            .count();
         let lengths: Vec<u32> = self.chains.values().map(|c| c.chain_length).collect();
-        self.stats.avg_chain_length = if lengths.is_empty() { 0.0 } else { lengths.iter().map(|&l| l as f64).sum::<f64>() / lengths.len() as f64 };
+        self.stats.avg_chain_length = if lengths.is_empty() {
+            0.0
+        } else {
+            lengths.iter().map(|&l| l as f64).sum::<f64>() / lengths.len() as f64
+        };
         self.stats.max_chain_length = lengths.iter().copied().max().unwrap_or(0);
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &MvccStats { &self.stats }
+    pub fn stats(&self) -> &MvccStats {
+        &self.stats
+    }
 }

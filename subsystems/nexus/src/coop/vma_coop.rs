@@ -9,9 +9,10 @@
 //! - Memory layout templates for process families
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VmaInheritance {

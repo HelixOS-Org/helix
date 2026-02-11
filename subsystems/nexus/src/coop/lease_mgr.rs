@@ -4,10 +4,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-
 /// Lease type
 use alloc::string::String;
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LeaseType {
     #[default]
@@ -53,12 +52,25 @@ pub struct ResourceLease {
 }
 
 impl ResourceLease {
-    pub fn new(id: u64, resource_id: u64, ltype: LeaseType, holder: LeaseHolder,
-               duration: u64, now: u64) -> Self {
+    pub fn new(
+        id: u64,
+        resource_id: u64,
+        ltype: LeaseType,
+        holder: LeaseHolder,
+        duration: u64,
+        now: u64,
+    ) -> Self {
         Self {
-            id, resource_id, lease_type: ltype, state: LeaseState::Active,
-            holder, granted_at: now, expires_at: now + duration,
-            duration_ns: duration, renewals: 0, max_renewals: 10,
+            id,
+            resource_id,
+            lease_type: ltype,
+            state: LeaseState::Active,
+            holder,
+            granted_at: now,
+            expires_at: now + duration,
+            duration_ns: duration,
+            renewals: 0,
+            max_renewals: 10,
             auto_renew: false,
         }
     }
@@ -75,8 +87,12 @@ impl ResourceLease {
 
     #[inline]
     pub fn renew(&mut self, now: u64) -> bool {
-        if self.state != LeaseState::Active { return false; }
-        if self.renewals >= self.max_renewals { return false; }
+        if self.state != LeaseState::Active {
+            return false;
+        }
+        if self.renewals >= self.max_renewals {
+            return false;
+        }
         self.renewals += 1;
         self.expires_at = now + self.duration_ns;
         true
@@ -101,7 +117,9 @@ impl ResourceLease {
     pub fn utilization(&self, now: u64) -> f64 {
         let elapsed = self.held_time(now);
         let total = self.duration_ns * (self.renewals as u64 + 1);
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         elapsed as f64 / total as f64
     }
 }
@@ -139,20 +157,27 @@ pub struct ResourceLeaseState {
 impl ResourceLeaseState {
     pub fn new(resource_id: u64, max_shared: u32) -> Self {
         Self {
-            resource_id, active_leases: Vec::new(),
-            pending_requests: Vec::new(), max_shared,
-            total_granted: 0, total_denied: 0, total_expired: 0,
+            resource_id,
+            active_leases: Vec::new(),
+            pending_requests: Vec::new(),
+            max_shared,
+            total_granted: 0,
+            total_denied: 0,
+            total_expired: 0,
         }
     }
 
     #[inline(always)]
     pub fn has_exclusive(&self) -> bool {
-        self.active_leases.iter().any(|l| l.lease_type == LeaseType::Exclusive && l.state == LeaseState::Active)
+        self.active_leases
+            .iter()
+            .any(|l| l.lease_type == LeaseType::Exclusive && l.state == LeaseState::Active)
     }
 
     #[inline]
     pub fn shared_count(&self) -> u32 {
-        self.active_leases.iter()
+        self.active_leases
+            .iter()
             .filter(|l| l.lease_type == LeaseType::Shared && l.state == LeaseState::Active)
             .count() as u32
     }
@@ -160,12 +185,13 @@ impl ResourceLeaseState {
     #[inline]
     pub fn can_grant(&self, ltype: LeaseType) -> bool {
         match ltype {
-            LeaseType::Exclusive | LeaseType::WriteOnly => {
-                self.active_leases.iter().all(|l| l.state != LeaseState::Active)
-            }
+            LeaseType::Exclusive | LeaseType::WriteOnly => self
+                .active_leases
+                .iter()
+                .all(|l| l.state != LeaseState::Active),
             LeaseType::Shared | LeaseType::ReadOnly | LeaseType::Timed => {
                 !self.has_exclusive() && self.shared_count() < self.max_shared
-            }
+            },
         }
     }
 
@@ -223,8 +249,11 @@ pub struct CoopLeaseMgr {
 impl CoopLeaseMgr {
     pub fn new(max_shared: u32) -> Self {
         Self {
-            resources: BTreeMap::new(), next_lease_id: 1,
-            total_granted: 0, total_denied: 0, total_revoked: 0,
+            resources: BTreeMap::new(),
+            next_lease_id: 1,
+            total_granted: 0,
+            total_denied: 0,
+            total_revoked: 0,
             default_max_shared: max_shared,
         }
     }
@@ -232,12 +261,21 @@ impl CoopLeaseMgr {
     #[inline]
     pub fn ensure_resource(&mut self, resource_id: u64) {
         if !self.resources.contains_key(&resource_id) {
-            self.resources.insert(resource_id, ResourceLeaseState::new(resource_id, self.default_max_shared));
+            self.resources.insert(
+                resource_id,
+                ResourceLeaseState::new(resource_id, self.default_max_shared),
+            );
         }
     }
 
-    pub fn request_lease(&mut self, holder: LeaseHolder, resource_id: u64, ltype: LeaseType,
-                          duration: u64, now: u64) -> Option<u64> {
+    pub fn request_lease(
+        &mut self,
+        holder: LeaseHolder,
+        resource_id: u64,
+        ltype: LeaseType,
+        duration: u64,
+        now: u64,
+    ) -> Option<u64> {
         self.ensure_resource(resource_id);
         let res = self.resources.get_mut(&resource_id)?;
 
@@ -253,8 +291,12 @@ impl CoopLeaseMgr {
             res.total_denied += 1;
             self.total_denied += 1;
             res.pending_requests.push(LeaseRequest {
-                requester: holder, resource_id, lease_type: ltype,
-                duration_ns: duration, requested_at: now, priority: holder.priority,
+                requester: holder,
+                resource_id,
+                lease_type: ltype,
+                duration_ns: duration,
+                requested_at: now,
+                priority: holder.priority,
                 ..Default::default()
             });
             None
@@ -267,7 +309,9 @@ impl CoopLeaseMgr {
             let before = res.active_leases.len();
             res.active_leases.retain(|l| l.id != lease_id);
             res.active_leases.len() < before
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn revoke_lease(&mut self, resource_id: u64, lease_id: u64) -> bool {
@@ -293,15 +337,25 @@ impl CoopLeaseMgr {
     }
 
     pub fn stats(&self) -> LeaseMgrStats {
-        let active: u64 = self.resources.values().map(|r| r.active_leases.len() as u64).sum();
-        let pending: u64 = self.resources.values().map(|r| r.pending_requests.len() as u64).sum();
+        let active: u64 = self
+            .resources
+            .values()
+            .map(|r| r.active_leases.len() as u64)
+            .sum();
+        let pending: u64 = self
+            .resources
+            .values()
+            .map(|r| r.pending_requests.len() as u64)
+            .sum();
         let total_expired: u64 = self.resources.values().map(|r| r.total_expired).sum();
         LeaseMgrStats {
             tracked_resources: self.resources.len() as u32,
-            active_leases: active, pending_requests: pending,
+            active_leases: active,
+            pending_requests: pending,
             total_granted: self.total_granted,
             total_denied: self.total_denied,
-            total_expired, total_revoked: self.total_revoked,
+            total_expired,
+            total_revoked: self.total_revoked,
             ..Default::default()
         }
     }
@@ -333,32 +387,61 @@ pub struct LeaseRecord {
 }
 
 impl LeaseRecord {
-    pub fn new(id: u64, resource: String, ltype: LeaseType, node: u64, holder: u64, ts: u64, ttl: u64) -> Self {
+    pub fn new(
+        id: u64,
+        resource: String,
+        ltype: LeaseType,
+        node: u64,
+        holder: u64,
+        ts: u64,
+        ttl: u64,
+    ) -> Self {
         Self {
-            id, resource_name: resource, lease_type: ltype, state: LeaseState::Active,
-            holder_node: node, holder_id: holder, epoch: 1, grant_ts: ts,
-            expiry_ts: ts + ttl, last_renewal_ts: ts, renewal_count: 0,
-            max_renewals: u32::MAX, ttl_ns: ttl, delegated_from: None,
-            delegated_to: Vec::new(), fence_token: id,
+            id,
+            resource_name: resource,
+            lease_type: ltype,
+            state: LeaseState::Active,
+            holder_node: node,
+            holder_id: holder,
+            epoch: 1,
+            grant_ts: ts,
+            expiry_ts: ts + ttl,
+            last_renewal_ts: ts,
+            renewal_count: 0,
+            max_renewals: u32::MAX,
+            ttl_ns: ttl,
+            delegated_from: None,
+            delegated_to: Vec::new(),
+            fence_token: id,
         }
     }
 
     #[inline(always)]
-    pub fn is_expired(&self, now: u64) -> bool { now >= self.expiry_ts }
+    pub fn is_expired(&self, now: u64) -> bool {
+        now >= self.expiry_ts
+    }
 
     #[inline(always)]
-    pub fn remaining_ns(&self, now: u64) -> u64 { self.expiry_ts.saturating_sub(now) }
+    pub fn remaining_ns(&self, now: u64) -> u64 {
+        self.expiry_ts.saturating_sub(now)
+    }
 
     #[inline(always)]
     pub fn remaining_pct(&self, now: u64) -> f64 {
-        if self.ttl_ns == 0 { return 0.0; }
+        if self.ttl_ns == 0 {
+            return 0.0;
+        }
         (self.remaining_ns(now) as f64 / self.ttl_ns as f64) * 100.0
     }
 
     #[inline]
     pub fn renew(&mut self, now: u64) -> bool {
-        if self.state == LeaseState::Revoked || self.state == LeaseState::Expired { return false; }
-        if self.renewal_count >= self.max_renewals { return false; }
+        if self.state == LeaseState::Revoked || self.state == LeaseState::Expired {
+            return false;
+        }
+        if self.renewal_count >= self.max_renewals {
+            return false;
+        }
         self.expiry_ts = now + self.ttl_ns;
         self.last_renewal_ts = now;
         self.renewal_count += 1;
@@ -418,21 +501,45 @@ pub struct CoopLeaseMgrV2 {
 
 impl CoopLeaseMgrV2 {
     pub fn new(default_ttl_ns: u64) -> Self {
-        Self { leases: BTreeMap::new(), pending: Vec::new(), events: Vec::new(), stats: LeaseMgrStats::default(), next_id: 1, default_ttl_ns }
+        Self {
+            leases: BTreeMap::new(),
+            pending: Vec::new(),
+            events: Vec::new(),
+            stats: LeaseMgrStats::default(),
+            next_id: 1,
+            default_ttl_ns,
+        }
     }
 
     fn resource_hash(name: &str) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
-        for b in name.bytes() { hash ^= b as u64; hash = hash.wrapping_mul(0x100000001b3); }
+        for b in name.bytes() {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
         hash
     }
 
     #[inline]
-    pub fn grant(&mut self, resource: String, ltype: LeaseType, node: u64, holder: u64, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+    pub fn grant(
+        &mut self,
+        resource: String,
+        ltype: LeaseType,
+        node: u64,
+        holder: u64,
+        ts: u64,
+    ) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
         let lease = LeaseRecord::new(id, resource, ltype, node, holder, ts, self.default_ttl_ns);
         self.leases.insert(id, lease);
-        self.events.push(LeaseEvent { lease_id: id, event_type: LeaseEventType::Granted, node_id: node, timestamp: ts, epoch: 1 });
+        self.events.push(LeaseEvent {
+            lease_id: id,
+            event_type: LeaseEventType::Granted,
+            node_id: node,
+            timestamp: ts,
+            epoch: 1,
+        });
         self.stats.total_grants += 1;
         id
     }
@@ -441,7 +548,13 @@ impl CoopLeaseMgrV2 {
     pub fn renew(&mut self, lease_id: u64, now: u64) -> bool {
         if let Some(lease) = self.leases.get_mut(&lease_id) {
             if lease.renew(now) {
-                self.events.push(LeaseEvent { lease_id, event_type: LeaseEventType::Renewed, node_id: lease.holder_node, timestamp: now, epoch: lease.epoch });
+                self.events.push(LeaseEvent {
+                    lease_id,
+                    event_type: LeaseEventType::Renewed,
+                    node_id: lease.holder_node,
+                    timestamp: now,
+                    epoch: lease.epoch,
+                });
                 self.stats.total_renewals += 1;
                 return true;
             }
@@ -455,20 +568,34 @@ impl CoopLeaseMgrV2 {
             let node = lease.holder_node;
             let epoch = lease.epoch + 1;
             lease.revoke();
-            self.events.push(LeaseEvent { lease_id, event_type: LeaseEventType::Revoked, node_id: node, timestamp: now, epoch });
+            self.events.push(LeaseEvent {
+                lease_id,
+                event_type: LeaseEventType::Revoked,
+                node_id: node,
+                timestamp: now,
+                epoch,
+            });
             self.stats.total_revocations += 1;
         }
     }
 
     pub fn transfer(&mut self, lease_id: u64, new_node: u64, new_holder: u64, now: u64) -> bool {
         if let Some(lease) = self.leases.get_mut(&lease_id) {
-            if lease.state != LeaseState::Active { return false; }
+            if lease.state != LeaseState::Active {
+                return false;
+            }
             lease.holder_node = new_node;
             lease.holder_id = new_holder;
             lease.epoch += 1;
             lease.expiry_ts = now + lease.ttl_ns;
             lease.state = LeaseState::Active;
-            self.events.push(LeaseEvent { lease_id, event_type: LeaseEventType::Transferred, node_id: new_node, timestamp: now, epoch: lease.epoch });
+            self.events.push(LeaseEvent {
+                lease_id,
+                event_type: LeaseEventType::Transferred,
+                node_id: new_node,
+                timestamp: now,
+                epoch: lease.epoch,
+            });
             self.stats.total_transfers += 1;
             return true;
         }
@@ -487,26 +614,63 @@ impl CoopLeaseMgrV2 {
 
     #[inline(always)]
     pub fn find_renewable(&self, now: u64) -> Vec<u64> {
-        self.leases.iter().filter(|(_, l)| l.should_renew(now)).map(|(&id, _)| id).collect()
+        self.leases
+            .iter()
+            .filter(|(_, l)| l.should_renew(now))
+            .map(|(&id, _)| id)
+            .collect()
     }
 
     #[inline(always)]
-    pub fn request(&mut self, _resource: String, ltype: LeaseType, _node: u64, _requester: u64, ttl: u64, priority: u32, ts: u64) {
-        let _id = self.next_id; self.next_id += 1;
-        self.pending.push(LeaseRequest { resource_id: 0, lease_type: ltype, duration_ns: ttl, requested_at: ts, priority, ..Default::default() });
+    pub fn request(
+        &mut self,
+        _resource: String,
+        ltype: LeaseType,
+        _node: u64,
+        _requester: u64,
+        ttl: u64,
+        priority: u32,
+        ts: u64,
+    ) {
+        let _id = self.next_id;
+        self.next_id += 1;
+        self.pending.push(LeaseRequest {
+            resource_id: 0,
+            lease_type: ltype,
+            duration_ns: ttl,
+            requested_at: ts,
+            priority,
+            ..Default::default()
+        });
     }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_leases = self.leases.len() as u64;
-        self.stats.active_leases = self.leases.values().filter(|l| l.state == LeaseState::Active).count() as u64;
-        self.stats.expired_leases = self.leases.values().filter(|l| l.state == LeaseState::Expired).count() as u64;
-        self.stats.revoked_leases = self.leases.values().filter(|l| l.state == LeaseState::Revoked).count() as u64;
+        self.stats.active_leases = self
+            .leases
+            .values()
+            .filter(|l| l.state == LeaseState::Active)
+            .count() as u64;
+        self.stats.expired_leases = self
+            .leases
+            .values()
+            .filter(|l| l.state == LeaseState::Expired)
+            .count() as u64;
+        self.stats.revoked_leases = self
+            .leases
+            .values()
+            .filter(|l| l.state == LeaseState::Revoked)
+            .count() as u64;
         self.stats.pending_requests = self.pending.len() as u64;
     }
 
     #[inline(always)]
-    pub fn lease(&self, id: u64) -> Option<&LeaseRecord> { self.leases.get(&id) }
+    pub fn lease(&self, id: u64) -> Option<&LeaseRecord> {
+        self.leases.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &LeaseMgrStats { &self.stats }
+    pub fn stats(&self) -> &LeaseMgrStats {
+        &self.stats
+    }
 }

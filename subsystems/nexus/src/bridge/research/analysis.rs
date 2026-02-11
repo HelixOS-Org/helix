@@ -105,10 +105,15 @@ fn p_value_approx(t_stat: f32, df: f32) -> f32 {
     // exp(-z^2/2) approx via Taylor-ish (kernel safe)
     let zz = z * z * 0.5;
     let exp_neg = 1.0 / (1.0 + zz + zz * zz * 0.5 + zz * zz * zz / 6.0);
-    let one_tail = exp_neg * (b1 * t_var + b2 * t2 + b3 * t3 + b4 * t4 + b5 * t5)
-        * 0.3989422804; // 1/sqrt(2*pi)
+    let one_tail = exp_neg * (b1 * t_var + b2 * t2 + b3 * t3 + b4 * t4 + b5 * t5) * 0.3989422804; // 1/sqrt(2*pi)
     let two_tail = 2.0 * one_tail;
-    if two_tail > 1.0 { 1.0 } else if two_tail < 0.0 { 0.0 } else { two_tail }
+    if two_tail > 1.0 {
+        1.0
+    } else if two_tail < 0.0 {
+        0.0
+    } else {
+        two_tail
+    }
 }
 
 // ============================================================================
@@ -233,16 +238,13 @@ impl BridgeAnalysisEngine {
         for v in values {
             stored.push(*v);
         }
-        self.groups.insert(
-            key,
-            SampleGroup {
-                label: String::from(label),
-                values: stored,
-                mean,
-                variance: var,
-                n,
-            },
-        );
+        self.groups.insert(key, SampleGroup {
+            label: String::from(label),
+            values: stored,
+            mean,
+            variance: var,
+            n,
+        });
         self.stats.total_samples_processed += n as u64;
     }
 
@@ -256,11 +258,15 @@ impl BridgeAnalysisEngine {
         let (mean_b, var_b, n_b) = self.group_stats(key_b);
 
         let se = sqrt_approx(var_a / n_a as f32 + var_b / n_b as f32);
-        let t_stat = if se > 1e-9 { (mean_a - mean_b) / se } else { 0.0 };
+        let t_stat = if se > 1e-9 {
+            (mean_a - mean_b) / se
+        } else {
+            0.0
+        };
 
         // Welch–Satterthwaite degrees of freedom
-        let num = (var_a / n_a as f32 + var_b / n_b as f32)
-            * (var_a / n_a as f32 + var_b / n_b as f32);
+        let num =
+            (var_a / n_a as f32 + var_b / n_b as f32) * (var_a / n_a as f32 + var_b / n_b as f32);
         let den_a = (var_a / n_a as f32) * (var_a / n_a as f32) / ((n_a - 1).max(1)) as f32;
         let den_b = (var_b / n_b as f32) * (var_b / n_b as f32) / ((n_b - 1).max(1)) as f32;
         let df = if den_a + den_b > 1e-12 {
@@ -327,8 +333,8 @@ impl BridgeAnalysisEngine {
         }
 
         let total_n: usize = groups.iter().map(|g| g.n).sum();
-        let grand_mean: f32 = groups.iter().map(|g| g.mean * g.n as f32).sum::<f32>()
-            / total_n as f32;
+        let grand_mean: f32 =
+            groups.iter().map(|g| g.mean * g.n as f32).sum::<f32>() / total_n as f32;
 
         // Between-group sum of squares
         let ss_between: f32 = groups
@@ -380,7 +386,11 @@ impl BridgeAnalysisEngine {
         self.tick += 1;
         self.stats.power_analyses += 1;
 
-        let effect = if abs_f32(target_effect) < 0.01 { MEDIUM_EFFECT } else { abs_f32(target_effect) };
+        let effect = if abs_f32(target_effect) < 0.01 {
+            MEDIUM_EFFECT
+        } else {
+            abs_f32(target_effect)
+        };
 
         // Sample size formula: n = (z_alpha + z_beta)^2 / d^2
         // z_alpha/2 ≈ 1.96, z_beta for 0.80 power ≈ 0.842
@@ -493,8 +503,7 @@ impl BridgeAnalysisEngine {
         // Pooled standard deviation (Cohen's d)
         let na = n_a.max(1) as f32;
         let nb = n_b.max(1) as f32;
-        let pooled_var = ((na - 1.0) * var_a + (nb - 1.0) * var_b)
-            / (na + nb - 2.0).max(1.0);
+        let pooled_var = ((na - 1.0) * var_a + (nb - 1.0) * var_b) / (na + nb - 2.0).max(1.0);
         let pooled_sd = sqrt_approx(pooled_var);
         if pooled_sd > 1e-9 {
             abs_f32(mean_a - mean_b) / pooled_sd
@@ -573,7 +582,13 @@ impl BridgeAnalysisEngine {
         let z = if z_den > 1e-9 { z_num / z_den } else { 0.0 };
         // Two-tailed p from z
         let p = 1.0 - self.phi_approx(z);
-        if p < 0.0 { 0.0 } else if p > 1.0 { 1.0 } else { p }
+        if p < 0.0 {
+            0.0
+        } else if p > 1.0 {
+            1.0
+        } else {
+            p
+        }
     }
 
     /// Approximate standard normal CDF Φ(x).
@@ -592,8 +607,8 @@ impl BridgeAnalysisEngine {
         let t5 = t4 * t;
         let zz = ax * ax * 0.5;
         let exp_neg = 1.0 / (1.0 + zz + zz * zz * 0.5 + zz * zz * zz / 6.0);
-        let poly = 0.319381530 * t - 0.356563782 * t2 + 1.781477937 * t3
-            - 1.821255978 * t4 + 1.330274429 * t5;
+        let poly = 0.319381530 * t - 0.356563782 * t2 + 1.781477937 * t3 - 1.821255978 * t4
+            + 1.330274429 * t5;
         let cdf = 1.0 - 0.3989422804 * exp_neg * poly;
         if x >= 0.0 { cdf } else { 1.0 - cdf }
     }

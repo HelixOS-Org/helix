@@ -8,10 +8,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
 fn fnv1a_hash(data: &[u8]) -> u64 {
@@ -234,8 +234,8 @@ impl CoopEnsemble {
                     actual_value - predicted
                 };
                 model_errors.insert(mt.clone(), error);
-                ensemble_pred = ensemble_pred
-                    .saturating_add(predicted.saturating_mul(tracker.weight));
+                ensemble_pred =
+                    ensemble_pred.saturating_add(predicted.saturating_mul(tracker.weight));
                 total_weight = total_weight.saturating_add(tracker.weight);
             }
         }
@@ -278,8 +278,7 @@ impl CoopEnsemble {
 
         for (mt, tracker) in &self.models {
             if let Some(pred) = tracker.last_predictions.get(target_id) {
-                weighted_sum = weighted_sum
-                    .saturating_add(pred.saturating_mul(tracker.weight));
+                weighted_sum = weighted_sum.saturating_add(pred.saturating_mul(tracker.weight));
                 total_weight = total_weight.saturating_add(tracker.weight);
                 contributions.push((mt.clone(), tracker.weight));
                 predictions.push(pred);
@@ -299,7 +298,8 @@ impl CoopEnsemble {
             800u64.saturating_add(diversity / 10)
         } else {
             600u64.saturating_sub(disagreement / 5)
-        }.min(1000);
+        }
+        .min(1000);
 
         self.stats.ensemble_predictions = self.stats.ensemble_predictions.saturating_add(1);
         self.stats.avg_diversity = ema_update(self.stats.avg_diversity, diversity, 150, 1000);
@@ -316,12 +316,17 @@ impl CoopEnsemble {
 
     /// Select the best model for a specific domain.
     pub fn model_selection(&mut self, domain_hash: u64) -> ModelSelection {
-        let mut rankings: Vec<(ModelType, u64)> = self.models.iter()
+        let mut rankings: Vec<(ModelType, u64)> = self
+            .models
+            .iter()
             .map(|(mt, tracker)| (mt.clone(), tracker.ema_accuracy))
             .collect();
         rankings.sort_by(|a, b| b.1.cmp(&a.1));
 
-        let best = rankings.first().cloned().unwrap_or((ModelType::HistoricalTrend, 0));
+        let best = rankings
+            .first()
+            .cloned()
+            .unwrap_or((ModelType::HistoricalTrend, 0));
 
         let selection_confidence = if rankings.len() >= 2 {
             let gap = best.1.saturating_sub(rankings[1].1);
@@ -332,7 +337,11 @@ impl CoopEnsemble {
 
         self.domain_best.insert(domain_hash, best.0.clone());
         self.stats.model_selections = self.stats.model_selections.saturating_add(1);
-        *self.stats.best_model_wins.entry(best.0.clone()).or_insert(0) += 1;
+        *self
+            .stats
+            .best_model_wins
+            .entry(best.0.clone())
+            .or_insert(0) += 1;
 
         ModelSelection {
             domain_hash,
@@ -350,16 +359,10 @@ impl CoopEnsemble {
         let mut preds: Vec<u64> = Vec::new();
 
         for (_, tracker) in &self.models {
-            let fairness_key = fnv1a_hash(&[
-                b"fair_",
-                pair_hash.to_le_bytes().as_slice(),
-            ].concat());
+            let fairness_key = fnv1a_hash(&[b"fair_", pair_hash.to_le_bytes().as_slice()].concat());
 
-            let pred = tracker.last_predictions.get(fairness_key)
-                
-                .unwrap_or(500);
-            weighted_sum = weighted_sum
-                .saturating_add(pred.saturating_mul(tracker.weight));
+            let pred = tracker.last_predictions.get(fairness_key).unwrap_or(500);
+            weighted_sum = weighted_sum.saturating_add(pred.saturating_mul(tracker.weight));
             total_weight = total_weight.saturating_add(tracker.weight);
             preds.push(pred);
         }
@@ -372,7 +375,9 @@ impl CoopEnsemble {
 
         let agreement = self.compute_agreement(&preds, predicted);
 
-        let dominant = self.domain_best.get(&pair_hash)
+        let dominant = self
+            .domain_best
+            .get(&pair_hash)
             .cloned()
             .unwrap_or(ModelType::TrustDynamics);
 
@@ -391,14 +396,18 @@ impl CoopEnsemble {
 
     /// Measure the diversity bonus of the ensemble.
     pub fn diversity_bonus(&mut self, domain_hash: u64) -> DiversityBonus {
-        let predictions: Vec<u64> = self.models.values()
+        let predictions: Vec<u64> = self
+            .models
+            .values()
             .filter_map(|t| t.last_predictions.get(domain_hash))
             .collect();
 
         let diversity = self.compute_diversity(&predictions);
         let spread = self.compute_spread(&predictions);
 
-        let solo_best = self.models.values()
+        let solo_best = self
+            .models
+            .values()
             .map(|t| t.ema_accuracy)
             .max()
             .unwrap_or(0);
@@ -427,7 +436,8 @@ impl CoopEnsemble {
     /// Identify the best predictor overall.
     #[inline]
     pub fn best_predictor(&self) -> (ModelType, u64) {
-        self.models.iter()
+        self.models
+            .iter()
             .max_by_key(|(_, t)| t.ema_accuracy)
             .map(|(mt, t)| (mt.clone(), t.ema_accuracy))
             .unwrap_or((ModelType::HistoricalTrend, 0))
@@ -439,7 +449,9 @@ impl CoopEnsemble {
         let (_, best_single_acc) = self.best_predictor();
         let diff = overall_acc as i64 - best_single_acc as i64;
 
-        let active = self.models.values()
+        let active = self
+            .models
+            .values()
             .filter(|t| t.prediction_count > 0)
             .count() as u32;
 
@@ -448,12 +460,8 @@ impl CoopEnsemble {
         let calibration = self.compute_calibration();
 
         self.stats.quality_assessments = self.stats.quality_assessments.saturating_add(1);
-        self.stats.avg_ensemble_accuracy = ema_update(
-            self.stats.avg_ensemble_accuracy,
-            overall_acc,
-            150,
-            1000,
-        );
+        self.stats.avg_ensemble_accuracy =
+            ema_update(self.stats.avg_ensemble_accuracy, overall_acc, 150, 1000);
 
         EnsembleQuality {
             overall_accuracy: overall_acc,
@@ -480,9 +488,7 @@ impl CoopEnsemble {
     // ── Private helpers ──────────────────────────────────────────────
 
     fn rebalance_weights(&mut self) {
-        let total_accuracy: u64 = self.models.values()
-            .map(|t| t.ema_accuracy)
-            .sum();
+        let total_accuracy: u64 = self.models.values().map(|t| t.ema_accuracy).sum();
 
         if total_accuracy == 0 {
             for tracker in self.models.values_mut() {
@@ -525,19 +531,22 @@ impl CoopEnsemble {
             }
         }
 
-        if pairs > 0 {
-            total_diff / pairs
-        } else {
-            0
-        }
+        if pairs > 0 { total_diff / pairs } else { 0 }
     }
 
     fn compute_disagreement(&self, predictions: &[u64], ensemble: u64) -> u64 {
         if predictions.is_empty() {
             return 0;
         }
-        let total: u64 = predictions.iter()
-            .map(|&p| if p > ensemble { p - ensemble } else { ensemble - p })
+        let total: u64 = predictions
+            .iter()
+            .map(|&p| {
+                if p > ensemble {
+                    p - ensemble
+                } else {
+                    ensemble - p
+                }
+            })
             .sum();
         total / predictions.len() as u64
     }
@@ -560,7 +569,8 @@ impl CoopEnsemble {
         }
 
         let mean = accuracies.iter().sum::<u64>() / accuracies.len() as u64;
-        let variance: u64 = accuracies.iter()
+        let variance: u64 = accuracies
+            .iter()
             .map(|&a| {
                 let d = if a > mean { a - mean } else { mean - a };
                 d.saturating_mul(d)
@@ -582,13 +592,16 @@ impl CoopEnsemble {
             &self.outcomes[..]
         };
 
-        let total_error: u64 = recent.iter().map(|o| {
-            if o.ensemble_pred > o.actual_value {
-                o.ensemble_pred - o.actual_value
-            } else {
-                o.actual_value - o.ensemble_pred
-            }
-        }).sum();
+        let total_error: u64 = recent
+            .iter()
+            .map(|o| {
+                if o.ensemble_pred > o.actual_value {
+                    o.ensemble_pred - o.actual_value
+                } else {
+                    o.actual_value - o.ensemble_pred
+                }
+            })
+            .sum();
 
         let avg_error = total_error / recent.len().max(1) as u64;
         1000u64.saturating_sub(avg_error.min(1000))
@@ -600,7 +613,8 @@ impl CoopEnsemble {
             return 500;
         }
         let mean = acc_values.iter().sum::<u64>() / acc_values.len() as u64;
-        let max_dev = acc_values.iter()
+        let max_dev = acc_values
+            .iter()
             .map(|&a| if a > mean { a - mean } else { mean - a })
             .max()
             .unwrap_or(0);

@@ -23,7 +23,13 @@ pub struct SigprocmaskRecord {
 
 impl SigprocmaskRecord {
     pub fn new(how: SigprocmaskHow, mask: u64) -> Self {
-        Self { how, mask_bits: mask, old_mask_bits: 0, pid: 0, tid: 0 }
+        Self {
+            how,
+            mask_bits: mask,
+            old_mask_bits: 0,
+            pid: 0,
+            tid: 0,
+        }
     }
 
     #[inline(always)]
@@ -50,7 +56,14 @@ pub struct BridgeSigprocmask {
 
 impl BridgeSigprocmask {
     pub fn new() -> Self {
-        Self { stats: SigprocmaskBridgeStats { total_ops: 0, blocks: 0, unblocks: 0, full_sets: 0 } }
+        Self {
+            stats: SigprocmaskBridgeStats {
+                total_ops: 0,
+                blocks: 0,
+                unblocks: 0,
+                full_sets: 0,
+            },
+        }
     }
 
     #[inline]

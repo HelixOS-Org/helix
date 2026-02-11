@@ -215,14 +215,22 @@ impl CoopTemporalFusion {
     }
 
     /// Record a resource contention signal (short-term).
-    pub fn record_contention_signal(&mut self, resource_id: u64, pressure: u64, _processes: &[u64]) {
-        let signal = self.short_signals.entry(resource_id).or_insert_with(|| ShortTermSignal {
-            resource_id,
-            pressure_history: Vec::new(),
-            ema_pressure: pressure,
-            event_intervals: Vec::new(),
-            last_event_tick: self.current_tick,
-        });
+    pub fn record_contention_signal(
+        &mut self,
+        resource_id: u64,
+        pressure: u64,
+        _processes: &[u64],
+    ) {
+        let signal = self
+            .short_signals
+            .entry(resource_id)
+            .or_insert_with(|| ShortTermSignal {
+                resource_id,
+                pressure_history: Vec::new(),
+                ema_pressure: pressure,
+                event_intervals: Vec::new(),
+                last_event_tick: self.current_tick,
+            });
 
         signal.pressure_history.push(pressure);
         signal.ema_pressure = ema_update(signal.ema_pressure, pressure, 300, 1000);
@@ -243,13 +251,16 @@ impl CoopTemporalFusion {
 
     /// Record a trust observation (medium-term).
     pub fn record_trust_signal(&mut self, partner_id: u64, trust_value: u64) {
-        let state = self.medium_states.entry(partner_id).or_insert_with(|| MediumTermState {
-            partner_id,
-            trust_history: Vec::new(),
-            ema_trust: trust_value,
-            ema_trend: 0,
-            inflection_candidates: Vec::new(),
-        });
+        let state = self
+            .medium_states
+            .entry(partner_id)
+            .or_insert_with(|| MediumTermState {
+                partner_id,
+                trust_history: Vec::new(),
+                ema_trust: trust_value,
+                ema_trend: 0,
+                inflection_candidates: Vec::new(),
+            });
 
         let prev = state.ema_trust;
         state.trust_history.push(trust_value);
@@ -274,12 +285,8 @@ impl CoopTemporalFusion {
     /// Record a global cooperation level (long-term).
     pub fn record_cooperation_level(&mut self, level: u64) {
         self.long_tracker.coop_history.push(level);
-        self.long_tracker.ema_cooperation = ema_update(
-            self.long_tracker.ema_cooperation,
-            level,
-            100,
-            1000,
-        );
+        self.long_tracker.ema_cooperation =
+            ema_update(self.long_tracker.ema_cooperation, level, 100, 1000);
 
         self.long_tracker.stability_window.push(level);
         if self.long_tracker.stability_window.len() > 32 {
@@ -307,7 +314,8 @@ impl CoopTemporalFusion {
 
         let (ws, wm, wl) = self.horizon_weights;
         let total_w = ws.saturating_add(wm).saturating_add(wl).max(1);
-        let fused = short.saturating_mul(ws)
+        let fused = short
+            .saturating_mul(ws)
             .saturating_add(medium.saturating_mul(wm))
             .saturating_add(long.saturating_mul(wl))
             / total_w;
@@ -352,17 +360,20 @@ impl CoopTemporalFusion {
                 let avg_interval = if s.event_intervals.is_empty() {
                     100
                 } else {
-                    s.event_intervals.iter().sum::<u64>()
-                        / s.event_intervals.len() as u64
+                    s.event_intervals.iter().sum::<u64>() / s.event_intervals.len() as u64
                 };
 
                 let since_last = self.current_tick.saturating_sub(s.last_event_tick);
                 let ticks_until = avg_interval.saturating_sub(since_last);
                 let severity = s.ema_pressure;
-                let conf = if s.event_intervals.len() > 3 { 700 } else { 400 };
+                let conf = if s.event_intervals.len() > 3 {
+                    700
+                } else {
+                    400
+                };
 
                 (ticks_until, severity, conf)
-            }
+            },
             None => (100, 300, 200),
         };
 
@@ -394,7 +405,7 @@ impl CoopTemporalFusion {
                 let conf = if s.trust_history.len() > 10 { 700 } else { 400 };
 
                 (current, points, s.ema_trend, inflection, conf)
-            }
+            },
             None => (500, alloc::vec![500; 10], 0, 0, 200),
         };
 
@@ -542,13 +553,15 @@ impl CoopTemporalFusion {
     // ── Private helpers ──────────────────────────────────────────────
 
     fn predict_short_term(&self, target_id: u64) -> u64 {
-        self.short_signals.get(&target_id)
+        self.short_signals
+            .get(&target_id)
             .map(|s| s.ema_pressure)
             .unwrap_or(500)
     }
 
     fn predict_medium_term(&self, target_id: u64) -> u64 {
-        self.medium_states.get(&target_id)
+        self.medium_states
+            .get(&target_id)
             .map(|s| {
                 let projected = s.ema_trust as i64 + s.ema_trend * 5;
                 (projected.max(0) as u64).min(1000)
@@ -577,7 +590,8 @@ impl CoopTemporalFusion {
             return 0;
         }
         let mean = window.iter().sum::<u64>() / window.len() as u64;
-        let variance: u64 = window.iter()
+        let variance: u64 = window
+            .iter()
             .map(|&v| {
                 let d = if v > mean { v - mean } else { mean - v };
                 d.saturating_mul(d)
@@ -598,8 +612,8 @@ impl CoopTemporalFusion {
             } else {
                 records[i - 1].fused_pred - records[i].fused_pred
             };
-            consistency_sum = consistency_sum
-                .saturating_add(1000u64.saturating_sub(diff.min(1000)));
+            consistency_sum =
+                consistency_sum.saturating_add(1000u64.saturating_sub(diff.min(1000)));
         }
         consistency_sum / (records.len() as u64 - 1).max(1)
     }

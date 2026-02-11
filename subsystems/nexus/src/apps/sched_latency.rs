@@ -45,11 +45,26 @@ pub struct SchedLatencyHistogram {
 impl SchedLatencyHistogram {
     pub fn new() -> Self {
         let boundaries = [
-            1_000, 5_000, 10_000, 50_000, 100_000, 500_000,
-            1_000_000, 5_000_000, 10_000_000, 50_000_000, 100_000_000,
+            1_000,
+            5_000,
+            10_000,
+            50_000,
+            100_000,
+            500_000,
+            1_000_000,
+            5_000_000,
+            10_000_000,
+            50_000_000,
+            100_000_000,
             u64::MAX,
         ];
-        let buckets = boundaries.iter().map(|&b| LatencyBucketApps { upper_bound_ns: b, count: 0 }).collect();
+        let buckets = boundaries
+            .iter()
+            .map(|&b| LatencyBucketApps {
+                upper_bound_ns: b,
+                count: 0,
+            })
+            .collect();
         Self {
             buckets,
             total_count: 0,
@@ -62,8 +77,12 @@ impl SchedLatencyHistogram {
     pub fn record(&mut self, latency_ns: u64) {
         self.total_count += 1;
         self.total_ns += latency_ns;
-        if latency_ns < self.min_ns { self.min_ns = latency_ns; }
-        if latency_ns > self.max_ns { self.max_ns = latency_ns; }
+        if latency_ns < self.min_ns {
+            self.min_ns = latency_ns;
+        }
+        if latency_ns > self.max_ns {
+            self.max_ns = latency_ns;
+        }
 
         for bucket in &mut self.buckets {
             if latency_ns <= bucket.upper_bound_ns {
@@ -75,13 +94,17 @@ impl SchedLatencyHistogram {
 
     #[inline(always)]
     pub fn avg_ns(&self) -> u64 {
-        if self.total_count == 0 { return 0; }
+        if self.total_count == 0 {
+            return 0;
+        }
         self.total_ns / self.total_count
     }
 
     /// Estimate percentile from histogram
     pub fn percentile(&self, p: f64) -> u64 {
-        if self.total_count == 0 { return 0; }
+        if self.total_count == 0 {
+            return 0;
+        }
         let target = (self.total_count as f64 * p) as u64;
         let mut cumulative = 0u64;
         for bucket in &self.buckets {
@@ -94,11 +117,17 @@ impl SchedLatencyHistogram {
     }
 
     #[inline(always)]
-    pub fn p50(&self) -> u64 { self.percentile(0.50) }
+    pub fn p50(&self) -> u64 {
+        self.percentile(0.50)
+    }
     #[inline(always)]
-    pub fn p95(&self) -> u64 { self.percentile(0.95) }
+    pub fn p95(&self) -> u64 {
+        self.percentile(0.95)
+    }
     #[inline(always)]
-    pub fn p99(&self) -> u64 { self.percentile(0.99) }
+    pub fn p99(&self) -> u64 {
+        self.percentile(0.99)
+    }
 }
 
 /// Per-thread scheduling state
@@ -163,7 +192,9 @@ impl ThreadSchedState {
     #[inline]
     pub fn cpu_utilization(&self) -> f64 {
         let total = self.total_wait_ns + self.total_run_ns;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.total_run_ns as f64 / total as f64
     }
 }
@@ -191,18 +222,25 @@ impl ProcessSchedProfile {
 
     #[inline(always)]
     pub fn register_thread(&mut self, thread_id: u64) {
-        self.threads.entry(thread_id)
+        self.threads
+            .entry(thread_id)
             .or_insert_with(|| ThreadSchedState::new(thread_id));
     }
 
     pub fn record_event(&mut self, thread_id: u64, event: SchedEventKind, ts: u64) {
-        let thread = self.threads.entry(thread_id)
+        let thread = self
+            .threads
+            .entry(thread_id)
             .or_insert_with(|| ThreadSchedState::new(thread_id));
 
         match event {
             SchedEventKind::Enqueue => thread.on_enqueue(ts),
             SchedEventKind::Dequeue => {
-                let wait = if thread.enqueue_ts > 0 { ts.saturating_sub(thread.enqueue_ts) } else { 0 };
+                let wait = if thread.enqueue_ts > 0 {
+                    ts.saturating_sub(thread.enqueue_ts)
+                } else {
+                    0
+                };
                 thread.on_dequeue(ts);
                 if wait > 0 {
                     self.aggregate_hist.record(wait);
@@ -210,17 +248,20 @@ impl ProcessSchedProfile {
                         self.budget_violations += 1;
                     }
                 }
-            }
+            },
             SchedEventKind::Preempted => thread.on_preempt(ts),
             SchedEventKind::WakeUp => thread.on_wakeup(ts),
-            SchedEventKind::Yield => { thread.yield_count += 1; }
-            SchedEventKind::Sleep | SchedEventKind::Migrated => {}
+            SchedEventKind::Yield => {
+                thread.yield_count += 1;
+            },
+            SchedEventKind::Sleep | SchedEventKind::Migrated => {},
         }
     }
 
     #[inline]
     pub fn worst_p99_thread(&self) -> Option<u64> {
-        self.threads.values()
+        self.threads
+            .values()
             .filter(|t| t.latency_hist.total_count > 10)
             .max_by_key(|t| t.latency_hist.p99())
             .map(|t| t.thread_id)
@@ -258,7 +299,9 @@ impl AppSchedLatencyProfiler {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.profiles.entry(pid).or_insert_with(|| ProcessSchedProfile::new(pid));
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ProcessSchedProfile::new(pid));
     }
 
     #[inline]
@@ -279,10 +322,12 @@ impl AppSchedLatencyProfiler {
     pub fn recompute(&mut self) {
         self.stats.total_processes = self.profiles.len();
         self.stats.total_threads = self.profiles.values().map(|p| p.threads.len()).sum();
-        self.stats.total_events = self.profiles.values()
-            .map(|p| p.aggregate_hist.total_count).sum();
-        self.stats.budget_violations = self.profiles.values()
-            .map(|p| p.budget_violations).sum();
+        self.stats.total_events = self
+            .profiles
+            .values()
+            .map(|p| p.aggregate_hist.total_count)
+            .sum();
+        self.stats.budget_violations = self.profiles.values().map(|p| p.budget_violations).sum();
         self.stats.global_p50_ns = self.global_hist.p50();
         self.stats.global_p95_ns = self.global_hist.p95();
         self.stats.global_p99_ns = self.global_hist.p99();

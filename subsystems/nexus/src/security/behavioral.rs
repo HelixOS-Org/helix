@@ -1,9 +1,9 @@
 //! Behavioral profiling and anomaly detection.
 
-use crate::fast::array_map::ArrayMap;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // BEHAVIORAL PROFILE

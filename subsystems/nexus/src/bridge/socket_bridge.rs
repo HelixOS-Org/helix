@@ -60,17 +60,32 @@ impl SockAddr {
     pub fn inet4(addr: [u8; 4], port: u16) -> Self {
         let mut bytes = [0u8; 16];
         bytes[..4].copy_from_slice(&addr);
-        Self { domain: SocketDomain::Inet, port, addr_bytes: bytes, path_hash: 0 }
+        Self {
+            domain: SocketDomain::Inet,
+            port,
+            addr_bytes: bytes,
+            path_hash: 0,
+        }
     }
 
     #[inline(always)]
     pub fn inet6(addr: [u8; 16], port: u16) -> Self {
-        Self { domain: SocketDomain::Inet6, port, addr_bytes: addr, path_hash: 0 }
+        Self {
+            domain: SocketDomain::Inet6,
+            port,
+            addr_bytes: addr,
+            path_hash: 0,
+        }
     }
 
     #[inline(always)]
     pub fn unix(path_hash: u64) -> Self {
-        Self { domain: SocketDomain::Unix, port: 0, addr_bytes: [0; 16], path_hash }
+        Self {
+            domain: SocketDomain::Unix,
+            port: 0,
+            addr_bytes: [0; 16],
+            path_hash,
+        }
     }
 }
 
@@ -91,12 +106,16 @@ pub struct SockBufStats {
 impl SockBufStats {
     #[inline(always)]
     pub fn send_buf_util(&self) -> f64 {
-        if self.send_buf_size == 0 { return 0.0; }
+        if self.send_buf_size == 0 {
+            return 0.0;
+        }
         self.send_buf_used as f64 / self.send_buf_size as f64
     }
     #[inline(always)]
     pub fn recv_buf_util(&self) -> f64 {
-        if self.recv_buf_size == 0 { return 0.0; }
+        if self.recv_buf_size == 0 {
+            return 0.0;
+        }
         self.recv_buf_used as f64 / self.recv_buf_size as f64
     }
 }
@@ -120,11 +139,16 @@ impl SockOptions {
     #[inline]
     pub fn default_stream() -> Self {
         Self {
-            reuse_addr: false, reuse_port: false,
-            keepalive: false, keepalive_secs: 7200,
-            no_delay: false, linger: None,
-            nonblocking: false, broadcast: false,
-            recv_timeout_ms: 0, send_timeout_ms: 0,
+            reuse_addr: false,
+            reuse_port: false,
+            keepalive: false,
+            keepalive_secs: 7200,
+            no_delay: false,
+            linger: None,
+            nonblocking: false,
+            broadcast: false,
+            recv_timeout_ms: 0,
+            send_timeout_ms: 0,
         }
     }
 }
@@ -163,19 +187,32 @@ pub struct BridgeSocket {
 impl BridgeSocket {
     pub fn new(fd: i32, pid: u64, domain: SocketDomain, stype: SocketType, ts: u64) -> Self {
         Self {
-            fd, owner_pid: pid, domain, sock_type: stype,
+            fd,
+            owner_pid: pid,
+            domain,
+            sock_type: stype,
             state: SocketState::Unbound,
-            local_addr: None, conn: None,
-            buf_stats: SockBufStats { send_buf_size: 212992, recv_buf_size: 212992, ..Default::default() },
+            local_addr: None,
+            conn: None,
+            buf_stats: SockBufStats {
+                send_buf_size: 212992,
+                recv_buf_size: 212992,
+                ..Default::default()
+            },
             options: SockOptions::default_stream(),
-            backlog: 0, accept_count: 0, error_count: 0,
-            created_ns: ts, namespace_id: 0,
+            backlog: 0,
+            accept_count: 0,
+            error_count: 0,
+            created_ns: ts,
+            namespace_id: 0,
         }
     }
 
     #[inline]
     pub fn bind(&mut self, addr: SockAddr) -> bool {
-        if self.state != SocketState::Unbound { return false; }
+        if self.state != SocketState::Unbound {
+            return false;
+        }
         self.local_addr = Some(addr);
         self.state = SocketState::Bound;
         true
@@ -183,7 +220,9 @@ impl BridgeSocket {
 
     #[inline]
     pub fn listen(&mut self, backlog: u32) -> bool {
-        if self.state != SocketState::Bound { return false; }
+        if self.state != SocketState::Bound {
+            return false;
+        }
         self.backlog = backlog;
         self.state = SocketState::Listening;
         true
@@ -191,12 +230,21 @@ impl BridgeSocket {
 
     #[inline]
     pub fn connect(&mut self, remote: SockAddr, ts: u64) -> bool {
-        if self.state != SocketState::Unbound && self.state != SocketState::Bound { return false; }
-        let local = self.local_addr.clone().unwrap_or(SockAddr::inet4([0; 4], 0));
+        if self.state != SocketState::Unbound && self.state != SocketState::Bound {
+            return false;
+        }
+        let local = self
+            .local_addr
+            .clone()
+            .unwrap_or(SockAddr::inet4([0; 4], 0));
         self.conn = Some(ConnInfo {
-            local, remote, connected_ns: ts,
-            rtt_us: 0, retransmits: 0,
-            congestion_window: 10, slow_start_threshold: 65535,
+            local,
+            remote,
+            connected_ns: ts,
+            rtt_us: 0,
+            retransmits: 0,
+            congestion_window: 10,
+            slow_start_threshold: 65535,
         });
         self.state = SocketState::Connected;
         true
@@ -220,9 +268,13 @@ impl BridgeSocket {
     }
 
     #[inline(always)]
-    pub fn is_listening(&self) -> bool { self.state == SocketState::Listening }
+    pub fn is_listening(&self) -> bool {
+        self.state == SocketState::Listening
+    }
     #[inline(always)]
-    pub fn is_connected(&self) -> bool { self.state == SocketState::Connected }
+    pub fn is_connected(&self) -> bool {
+        self.state == SocketState::Connected
+    }
 }
 
 /// Bridge socket manager stats
@@ -257,37 +309,60 @@ impl BridgeSocketBridge {
     }
 
     #[inline]
-    pub fn socket_create(&mut self, pid: u64, domain: SocketDomain, stype: SocketType, ts: u64) -> i32 {
+    pub fn socket_create(
+        &mut self,
+        pid: u64,
+        domain: SocketDomain,
+        stype: SocketType,
+        ts: u64,
+    ) -> i32 {
         let fd = self.next_fd;
         self.next_fd += 1;
-        self.sockets.insert(fd, BridgeSocket::new(fd, pid, domain, stype, ts));
-        self.process_sockets.entry(pid).or_insert_with(Vec::new).push(fd);
+        self.sockets
+            .insert(fd, BridgeSocket::new(fd, pid, domain, stype, ts));
+        self.process_sockets
+            .entry(pid)
+            .or_insert_with(Vec::new)
+            .push(fd);
         fd
     }
 
     #[inline(always)]
     pub fn socket_bind(&mut self, fd: i32, addr: SockAddr) -> bool {
-        self.sockets.get_mut(&fd).map(|s| s.bind(addr)).unwrap_or(false)
+        self.sockets
+            .get_mut(&fd)
+            .map(|s| s.bind(addr))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
     pub fn socket_listen(&mut self, fd: i32, backlog: u32) -> bool {
-        self.sockets.get_mut(&fd).map(|s| s.listen(backlog)).unwrap_or(false)
+        self.sockets
+            .get_mut(&fd)
+            .map(|s| s.listen(backlog))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
     pub fn socket_connect(&mut self, fd: i32, remote: SockAddr, ts: u64) -> bool {
-        self.sockets.get_mut(&fd).map(|s| s.connect(remote, ts)).unwrap_or(false)
+        self.sockets
+            .get_mut(&fd)
+            .map(|s| s.connect(remote, ts))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
     pub fn socket_send(&mut self, fd: i32, bytes: u64) {
-        if let Some(s) = self.sockets.get_mut(&fd) { s.record_send(bytes); }
+        if let Some(s) = self.sockets.get_mut(&fd) {
+            s.record_send(bytes);
+        }
     }
 
     #[inline(always)]
     pub fn socket_recv(&mut self, fd: i32, bytes: u64) {
-        if let Some(s) = self.sockets.get_mut(&fd) { s.record_recv(bytes); }
+        if let Some(s) = self.sockets.get_mut(&fd) {
+            s.record_recv(bytes);
+        }
     }
 
     #[inline]
@@ -301,27 +376,55 @@ impl BridgeSocketBridge {
         }
     }
 
-    pub fn socket_accept(&mut self, listen_fd: i32, remote: SockAddr, pid: u64, ts: u64) -> Option<i32> {
+    pub fn socket_accept(
+        &mut self,
+        listen_fd: i32,
+        remote: SockAddr,
+        pid: u64,
+        ts: u64,
+    ) -> Option<i32> {
         if let Some(listener) = self.sockets.get_mut(&listen_fd) {
-            if !listener.is_listening() { return None; }
+            if !listener.is_listening() {
+                return None;
+            }
             listener.accept_count += 1;
-        } else { return None; }
+        } else {
+            return None;
+        }
 
         let new_fd = self.next_fd;
         self.next_fd += 1;
-        let domain = self.sockets.get(&listen_fd).map(|s| s.domain).unwrap_or(SocketDomain::Inet);
-        let stype = self.sockets.get(&listen_fd).map(|s| s.sock_type).unwrap_or(SocketType::Stream);
+        let domain = self
+            .sockets
+            .get(&listen_fd)
+            .map(|s| s.domain)
+            .unwrap_or(SocketDomain::Inet);
+        let stype = self
+            .sockets
+            .get(&listen_fd)
+            .map(|s| s.sock_type)
+            .unwrap_or(SocketType::Stream);
         let mut new_sock = BridgeSocket::new(new_fd, pid, domain, stype, ts);
-        let local = self.sockets.get(&listen_fd).and_then(|s| s.local_addr.clone())
+        let local = self
+            .sockets
+            .get(&listen_fd)
+            .and_then(|s| s.local_addr.clone())
             .unwrap_or(SockAddr::inet4([0; 4], 0));
         new_sock.conn = Some(ConnInfo {
-            local, remote, connected_ns: ts,
-            rtt_us: 0, retransmits: 0,
-            congestion_window: 10, slow_start_threshold: 65535,
+            local,
+            remote,
+            connected_ns: ts,
+            rtt_us: 0,
+            retransmits: 0,
+            congestion_window: 10,
+            slow_start_threshold: 65535,
         });
         new_sock.state = SocketState::Connected;
         self.sockets.insert(new_fd, new_sock);
-        self.process_sockets.entry(pid).or_insert_with(Vec::new).push(new_fd);
+        self.process_sockets
+            .entry(pid)
+            .or_insert_with(Vec::new)
+            .push(new_fd);
         Some(new_fd)
     }
 
@@ -331,14 +434,22 @@ impl BridgeSocketBridge {
         self.stats.listening_count = self.sockets.values().filter(|s| s.is_listening()).count();
         self.stats.connected_count = self.sockets.values().filter(|s| s.is_connected()).count();
         self.stats.total_bytes_sent = self.sockets.values().map(|s| s.buf_stats.bytes_sent).sum();
-        self.stats.total_bytes_recv = self.sockets.values().map(|s| s.buf_stats.bytes_received).sum();
+        self.stats.total_bytes_recv = self
+            .sockets
+            .values()
+            .map(|s| s.buf_stats.bytes_received)
+            .sum();
         self.stats.total_errors = self.sockets.values().map(|s| s.error_count).sum();
     }
 
     #[inline(always)]
-    pub fn socket(&self, fd: i32) -> Option<&BridgeSocket> { self.sockets.get(&fd) }
+    pub fn socket(&self, fd: i32) -> Option<&BridgeSocket> {
+        self.sockets.get(&fd)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeSocketStats { &self.stats }
+    pub fn stats(&self) -> &BridgeSocketStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -539,10 +650,16 @@ impl BridgeSocketV2 {
     }
 
     #[inline]
-    pub fn create_socket(&mut self, family: SocketV2Family, sock_type: SocketV2Type, tick: u64) -> u64 {
+    pub fn create_socket(
+        &mut self,
+        family: SocketV2Family,
+        sock_type: SocketV2Type,
+        tick: u64,
+    ) -> u64 {
         let fd = self.next_fd;
         self.next_fd += 1;
-        self.sockets.insert(fd, SocketV2Instance::new(fd, family, sock_type, tick));
+        self.sockets
+            .insert(fd, SocketV2Instance::new(fd, family, sock_type, tick));
         self.stats.sockets_created += 1;
         fd
     }
@@ -613,7 +730,15 @@ impl BridgeSocketV2 {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SocketV3Event { Create, Bind, Listen, Accept, Connect, Shutdown, Close }
+pub enum SocketV3Event {
+    Create,
+    Bind,
+    Listen,
+    Accept,
+    Connect,
+    Shutdown,
+    Close,
+}
 
 /// Socket bridge v3 record
 #[derive(Debug, Clone)]
@@ -626,7 +751,15 @@ pub struct SocketV3Record {
 }
 
 impl SocketV3Record {
-    pub fn new(event: SocketV3Event, fd: i32) -> Self { Self { event, domain: 0, sock_type: 0, protocol: 0, fd } }
+    pub fn new(event: SocketV3Event, fd: i32) -> Self {
+        Self {
+            event,
+            domain: 0,
+            sock_type: 0,
+            protocol: 0,
+            fd,
+        }
+    }
 }
 
 /// Socket bridge v3 stats
@@ -648,18 +781,29 @@ pub struct BridgeSocketV3 {
 
 impl BridgeSocketV3 {
     pub fn new() -> Self {
-        Self { stats: SocketV3BridgeStats { total_events: 0, creates: 0, connections: 0, shutdowns: 0 }, active_fds: Vec::new() }
+        Self {
+            stats: SocketV3BridgeStats {
+                total_events: 0,
+                creates: 0,
+                connections: 0,
+                shutdowns: 0,
+            },
+            active_fds: Vec::new(),
+        }
     }
     pub fn record(&mut self, rec: &SocketV3Record) {
         self.stats.total_events += 1;
         match rec.event {
-            SocketV3Event::Create => { self.stats.creates += 1; self.active_fds.push(rec.fd); }
+            SocketV3Event::Create => {
+                self.stats.creates += 1;
+                self.active_fds.push(rec.fd);
+            },
             SocketV3Event::Connect | SocketV3Event::Accept => self.stats.connections += 1,
             SocketV3Event::Shutdown | SocketV3Event::Close => {
                 self.stats.shutdowns += 1;
                 self.active_fds.retain(|&f| f != rec.fd);
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }

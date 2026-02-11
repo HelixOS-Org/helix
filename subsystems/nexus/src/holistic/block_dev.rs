@@ -114,7 +114,12 @@ pub struct BlockDevEntry {
 }
 
 impl BlockDevEntry {
-    pub fn new(dev_id: u32, name: String, dev_type: BlockDevType, geometry: BlockDevGeometry) -> Self {
+    pub fn new(
+        dev_id: u32,
+        name: String,
+        dev_type: BlockDevType,
+        geometry: BlockDevGeometry,
+    ) -> Self {
         Self {
             dev_id,
             major: 0,

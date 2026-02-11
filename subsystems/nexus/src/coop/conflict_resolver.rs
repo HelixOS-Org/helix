@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Resolution strategy
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,7 +67,13 @@ impl ConflictResource {
             hash ^= b as u64;
             hash = hash.wrapping_mul(0x100000001b3);
         }
-        Self { resource_id: id, resource_type: rtype, version: ver, owner, name_hash: hash }
+        Self {
+            resource_id: id,
+            resource_type: rtype,
+            version: ver,
+            owner,
+            name_hash: hash,
+        }
     }
 }
 
@@ -98,14 +105,23 @@ pub struct Conflict {
 impl Conflict {
     pub fn new(id: u64, resource: ConflictResource, ts: u64, sev: ConflictSeverity) -> Self {
         Self {
-            id, resource, parties: Vec::new(), state: ConflictState::Detected,
-            severity: sev, strategy: ResolutionStrategy::LastWriterWins,
-            winner: None, detect_ts: ts, resolve_ts: 0, attempts: 0,
+            id,
+            resource,
+            parties: Vec::new(),
+            state: ConflictState::Detected,
+            severity: sev,
+            strategy: ResolutionStrategy::LastWriterWins,
+            winner: None,
+            detect_ts: ts,
+            resolve_ts: 0,
+            attempts: 0,
         }
     }
 
     #[inline(always)]
-    pub fn add_party(&mut self, party: ConflictParty) { self.parties.push(party); }
+    pub fn add_party(&mut self, party: ConflictParty) {
+        self.parties.push(party);
+    }
 
     #[inline]
     pub fn resolve_lww(&mut self, ts: u64) {
@@ -138,17 +154,26 @@ impl Conflict {
             ResolutionStrategy::LastWriterWins => self.resolve_lww(ts),
             ResolutionStrategy::FirstWriterWins => self.resolve_fww(ts),
             ResolutionStrategy::HigherPriority => self.resolve_priority(ts),
-            ResolutionStrategy::Abort => { self.state = ConflictState::Failed; self.resolve_ts = ts; }
+            ResolutionStrategy::Abort => {
+                self.state = ConflictState::Failed;
+                self.resolve_ts = ts;
+            },
             _ => self.resolve_lww(ts),
         }
     }
 
     #[inline(always)]
-    pub fn escalate(&mut self) { self.state = ConflictState::Escalated; }
+    pub fn escalate(&mut self) {
+        self.state = ConflictState::Escalated;
+    }
     #[inline(always)]
-    pub fn is_resolved(&self) -> bool { self.state == ConflictState::Resolved }
+    pub fn is_resolved(&self) -> bool {
+        self.state == ConflictState::Resolved
+    }
     #[inline(always)]
-    pub fn latency(&self) -> u64 { self.resolve_ts.saturating_sub(self.detect_ts) }
+    pub fn latency(&self) -> u64 {
+        self.resolve_ts.saturating_sub(self.detect_ts)
+    }
 }
 
 /// Conflict graph edge (resource dependency)
@@ -185,18 +210,31 @@ pub struct CoopConflictResolver {
 impl CoopConflictResolver {
     pub fn new(strategy: ResolutionStrategy, max_retries: u32) -> Self {
         Self {
-            conflicts: BTreeMap::new(), edges: Vec::new(),
-            history: Vec::new(), stats: ResolverStats::default(),
-            next_id: 1, default_strategy: strategy, max_retries,
+            conflicts: BTreeMap::new(),
+            edges: Vec::new(),
+            history: Vec::new(),
+            stats: ResolverStats::default(),
+            next_id: 1,
+            default_strategy: strategy,
+            max_retries,
         }
     }
 
     #[inline]
-    pub fn detect(&mut self, resource: ConflictResource, parties: Vec<ConflictParty>, ts: u64, sev: ConflictSeverity) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+    pub fn detect(
+        &mut self,
+        resource: ConflictResource,
+        parties: Vec<ConflictParty>,
+        ts: u64,
+        sev: ConflictSeverity,
+    ) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
         let mut c = Conflict::new(id, resource, ts, sev);
         c.strategy = self.default_strategy;
-        for p in parties { c.add_party(p); }
+        for p in parties {
+            c.add_party(p);
+        }
         self.conflicts.insert(id, c);
         self.stats.total_conflicts += 1;
         self.stats.by_severity[sev as usize] += 1;
@@ -243,7 +281,9 @@ impl CoopConflictResolver {
         let mut cycles = Vec::new();
         let mut visited: LinearMap<u8, 64> = LinearMap::new();
         let nodes: Vec<u64> = self.edges.iter().map(|e| e.from).collect();
-        for n in &nodes { visited.entry(*n).or_insert(0); }
+        for n in &nodes {
+            visited.entry(*n).or_insert(0);
+        }
         // Simple DFS cycle detection
         for &start in &nodes {
             let mut stack = alloc::vec![start];
@@ -256,7 +296,9 @@ impl CoopConflictResolver {
                 }
                 path.push(cur);
                 for e in &self.edges {
-                    if e.from == cur { stack.push(e.to); }
+                    if e.from == cur {
+                        stack.push(e.to);
+                    }
                 }
             }
         }
@@ -265,20 +307,39 @@ impl CoopConflictResolver {
 
     #[inline]
     pub fn recompute(&mut self) {
-        let resolved: Vec<&Conflict> = self.conflicts.values().filter(|c| c.is_resolved()).collect();
+        let resolved: Vec<&Conflict> = self
+            .conflicts
+            .values()
+            .filter(|c| c.is_resolved())
+            .collect();
         if !resolved.is_empty() {
             let total_lat: u64 = resolved.iter().map(|c| c.latency()).sum();
             self.stats.avg_latency_ns = total_lat / resolved.len() as u64;
         }
-        self.stats.failed = self.conflicts.values().filter(|c| c.state == ConflictState::Failed).count() as u64;
+        self.stats.failed = self
+            .conflicts
+            .values()
+            .filter(|c| c.state == ConflictState::Failed)
+            .count() as u64;
     }
 
     #[inline(always)]
-    pub fn conflict(&self, id: u64) -> Option<&Conflict> { self.conflicts.get(&id) }
+    pub fn conflict(&self, id: u64) -> Option<&Conflict> {
+        self.conflicts.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &ResolverStats { &self.stats }
+    pub fn stats(&self) -> &ResolverStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn history(&self) -> &[u64] { &self.history }
+    pub fn history(&self) -> &[u64] {
+        &self.history
+    }
     #[inline(always)]
-    pub fn pending(&self) -> usize { self.conflicts.values().filter(|c| !c.is_resolved() && c.state != ConflictState::Failed).count() }
+    pub fn pending(&self) -> usize {
+        self.conflicts
+            .values()
+            .filter(|c| !c.is_resolved() && c.state != ConflictState::Failed)
+            .count()
+    }
 }

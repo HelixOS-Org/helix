@@ -92,6 +92,26 @@ pub mod precognition;
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
 
+pub use self::anomaly_forecast::{
+    AnomalyForecastStats, CascadePrediction, CliffWarning, EarlySystemWarning,
+    HolisticAnomalyForecast, PreventionStrategy, SystemAnomalyForecast, SystemicRisk,
+};
+pub use self::causal_forecast::{
+    CausalCascade, CausalCompleteness, CausalEdge, CausalForecastStats, CausalNode,
+    CrossSubsystemCausality, HolisticCausalForecast, InterventionPlan, RootCauseChain,
+};
+pub use self::confidence_interval::{
+    CalibrationAudit, ConfidenceIntervalStats, GlobalUncertainty, HolisticConfidenceInterval,
+    IntervalReliability, PredictionCI, UncertaintyBudget, UncertaintyPropagation,
+};
+pub use self::counterfactual::{
+    AlternativeTimeline, CounterfactualCascade, CounterfactualStats, DecisionQualityReport,
+    GlobalRegret, HolisticCounterfactual, OptimalHistory, WhatIfQuery, WhatIfResult,
+};
+pub use self::ensemble::{
+    CrossSubsystemFusion, EnsembleDominance, EnsembleStats, HolisticEnsemble, MasterEnsembleResult,
+    MetaAccuracy, ModelSelection,
+};
 pub use self::horizon::{
     HolisticHorizonPredictor, HorizonDecomposition, HorizonScale, HorizonStats,
     SystemStatePrediction,
@@ -99,6 +119,10 @@ pub use self::horizon::{
 pub use self::monte_carlo::{
     ConfidenceBounds, ExhaustionEstimate, FailureMode, HolisticMonteCarlo, MonteCarloStats,
     PerformanceDistribution, ResourceKind,
+};
+pub use self::precognition::{
+    HolisticPrecognition, ParadigmShiftAlert, PhaseTransitionSense, PrecogAccuracyReport,
+    PrecognitionStats, RegimeChangeDetection, TranscendentForesight,
 };
 pub use self::proactive::{
     ActionDomain, CascadePreventionRecord, HolisticProactive, ProactiveAction, ProactiveStats,
@@ -108,9 +132,17 @@ pub use self::rehearsal::{
     CounterfactualResult, DecisionKind, HolisticRehearsal, ImpactAssessment, Recommendation,
     RehearsalRecommendation, RehearsalStats, RiskCategory, RiskEvaluation,
 };
+pub use self::scenario_tree::{
+    ExpectedSystemState, HolisticScenarioTree, PruningReport, PruningStrategy, ScenarioNode,
+    ScenarioTreeStats, StateTransition, SystemStateVector, TreePath,
+};
 pub use self::simulator::{
     BottleneckPrediction, HolisticSimulator, OptimalPath, ResourceDomain, ScenarioKind,
     ScenarioResult, SimulatorStats,
+};
+pub use self::temporal_fusion::{
+    FusedHorizonPrediction, FusionPanorama, HolisticTemporalFusion, LongRangeForecast,
+    MicroToMacroBridge, SystemTemporalFusion, TemporalFusionStats, TemporalHorizon,
 };
 pub use self::timeline::{
     CourseCorrection, HolisticTimeline, MergeResult, PredictedVsActual, TimelineBranch,
@@ -119,36 +151,4 @@ pub use self::timeline::{
 pub use self::validator::{
     GlobalValidation, HolisticPredictionValidator, ModelSelectionSignal, PredictionDecomposition,
     RecalibrationSignal, SubsystemAccuracy, SubsystemId, SystematicError, ValidatorStats,
-};
-pub use self::scenario_tree::{
-    ExpectedSystemState, HolisticScenarioTree, PruningReport, PruningStrategy, ScenarioNode,
-    ScenarioTreeStats, StateTransition, SystemStateVector, TreePath,
-};
-pub use self::causal_forecast::{
-    CausalCascade, CausalCompleteness, CausalEdge, CausalForecastStats, CausalNode,
-    CrossSubsystemCausality, HolisticCausalForecast, InterventionPlan, RootCauseChain,
-};
-pub use self::counterfactual::{
-    AlternativeTimeline, CounterfactualCascade, CounterfactualStats, DecisionQualityReport,
-    GlobalRegret, HolisticCounterfactual, OptimalHistory, WhatIfQuery, WhatIfResult,
-};
-pub use self::confidence_interval::{
-    CalibrationAudit, ConfidenceIntervalStats, GlobalUncertainty, HolisticConfidenceInterval,
-    IntervalReliability, PredictionCI, UncertaintyBudget, UncertaintyPropagation,
-};
-pub use self::ensemble::{
-    CrossSubsystemFusion, EnsembleDominance, EnsembleStats, HolisticEnsemble,
-    MasterEnsembleResult, MetaAccuracy, ModelSelection,
-};
-pub use self::temporal_fusion::{
-    FusedHorizonPrediction, FusionPanorama, HolisticTemporalFusion, LongRangeForecast,
-    MicroToMacroBridge, SystemTemporalFusion, TemporalFusionStats, TemporalHorizon,
-};
-pub use self::anomaly_forecast::{
-    AnomalyForecastStats, CascadePrediction, CliffWarning, EarlySystemWarning,
-    HolisticAnomalyForecast, PreventionStrategy, SystemAnomalyForecast, SystemicRisk,
-};
-pub use self::precognition::{
-    HolisticPrecognition, ParadigmShiftAlert, PhaseTransitionSense, PrecogAccuracyReport,
-    PrecognitionStats, RegimeChangeDetection, TranscendentForesight,
 };

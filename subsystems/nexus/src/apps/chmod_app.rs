@@ -71,9 +71,13 @@ impl AppChmod {
             history: VecDeque::new(),
             max_history,
             stats: ChmodAppStats {
-                total_calls: 0, chmod_calls: 0, fchmod_calls: 0,
-                successful: 0, permission_denied: 0,
-                setuid_changes: 0, setgid_changes: 0,
+                total_calls: 0,
+                chmod_calls: 0,
+                fchmod_calls: 0,
+                successful: 0,
+                permission_denied: 0,
+                setuid_changes: 0,
+                setgid_changes: 0,
             },
         }
     }
@@ -87,9 +91,22 @@ impl AppChmod {
         h
     }
 
-    pub fn chmod(&mut self, path: &str, old_mode: u32, new_mode: u32, pid: u64, uid: u32, is_fchmod: bool, tick: u64) -> ChmodResult {
+    pub fn chmod(
+        &mut self,
+        path: &str,
+        old_mode: u32,
+        new_mode: u32,
+        pid: u64,
+        uid: u32,
+        is_fchmod: bool,
+        tick: u64,
+    ) -> ChmodResult {
         self.stats.total_calls += 1;
-        if is_fchmod { self.stats.fchmod_calls += 1; } else { self.stats.chmod_calls += 1; }
+        if is_fchmod {
+            self.stats.fchmod_calls += 1;
+        } else {
+            self.stats.chmod_calls += 1;
+        }
         self.stats.successful += 1;
 
         if (new_mode & 0o4000) != 0 && (old_mode & 0o4000) == 0 {
@@ -101,9 +118,13 @@ impl AppChmod {
 
         let record = ChmodRecord {
             path_hash: Self::hash_path(path),
-            old_mode, new_mode, pid, uid,
+            old_mode,
+            new_mode,
+            pid,
+            uid,
             result: ChmodResult::Success,
-            is_fchmod, tick,
+            is_fchmod,
+            tick,
         };
         if self.history.len() >= self.max_history {
             self.history.remove(0);

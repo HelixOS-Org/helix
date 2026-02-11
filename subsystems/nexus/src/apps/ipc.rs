@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // IPC TYPES
@@ -123,13 +124,7 @@ pub struct AppIpcChannel {
 }
 
 impl AppIpcChannel {
-    pub fn new(
-        id: IpcChannelId,
-        mechanism: AppIpcMechanism,
-        src: u64,
-        dst: u64,
-        now: u64,
-    ) -> Self {
+    pub fn new(id: IpcChannelId, mechanism: AppIpcMechanism, src: u64, dst: u64, now: u64) -> Self {
         Self {
             id,
             mechanism,
@@ -292,7 +287,11 @@ impl IpcGraph {
     /// Top talkers by bytes
     #[inline]
     pub fn top_talkers(&self, limit: usize) -> Vec<(u64, u64, u64)> {
-        let mut edges: Vec<_> = self.edges.values().map(|e| (e.src, e.dst, e.bytes)).collect();
+        let mut edges: Vec<_> = self
+            .edges
+            .values()
+            .map(|e| (e.src, e.dst, e.bytes))
+            .collect();
         edges.sort_by(|a, b| b.2.cmp(&a.2));
         edges.truncate(limit);
         edges
@@ -371,16 +370,11 @@ impl AppIpcAnalyzer {
 
     /// Record send on channel
     #[inline]
-    pub fn record_send(
-        &mut self,
-        channel_id: IpcChannelId,
-        bytes: u64,
-        latency_ns: u64,
-        now: u64,
-    ) {
+    pub fn record_send(&mut self, channel_id: IpcChannelId, bytes: u64, latency_ns: u64, now: u64) {
         if let Some(ch) = self.channels.get_mut(&channel_id.0) {
             ch.record_send(bytes, latency_ns, now);
-            self.graph.record(ch.src_pid, ch.dst_pid, bytes, ch.mechanism);
+            self.graph
+                .record(ch.src_pid, ch.dst_pid, bytes, ch.mechanism);
             self.stats.total_bytes += bytes;
             self.stats.total_messages += 1;
         }

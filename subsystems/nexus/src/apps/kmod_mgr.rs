@@ -157,7 +157,9 @@ impl KmodInfo {
 
     #[inline(always)]
     pub fn fault_rate_per_load(&self) -> f64 {
-        if self.load_count == 0 { return 0.0; }
+        if self.load_count == 0 {
+            return 0.0;
+        }
         self.fault_count as f64 / self.load_count as f64
     }
 }
@@ -195,7 +197,9 @@ impl AppKmodUsage {
     #[inline]
     pub fn denial_rate(&self) -> f64 {
         let total = self.requested_modules.len() + self.denied_modules.len();
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.denied_modules.len() as f64 / total as f64
     }
 }
@@ -268,12 +272,18 @@ impl AppKmodMgr {
     }
 
     fn has_path(&self, from: u64, to: u64) -> bool {
-        if from == to { return true; }
+        if from == to {
+            return true;
+        }
         let mut visited = Vec::new();
         let mut stack = alloc::vec![from];
         while let Some(current) = stack.pop() {
-            if current == to { return true; }
-            if visited.contains(&current) { continue; }
+            if current == to {
+                return true;
+            }
+            if visited.contains(&current) {
+                continue;
+            }
             visited.push(current);
             if let Some(m) = self.modules.get(&current) {
                 for dep in &m.deps {
@@ -313,8 +323,11 @@ impl AppKmodMgr {
 
     pub fn unload_module(&mut self, id: u64) -> bool {
         if let Some(m) = self.modules.get_mut(&id) {
-            if !m.can_unload() { return false; }
-            self.stats.total_memory_bytes = self.stats.total_memory_bytes.saturating_sub(m.size_bytes);
+            if !m.can_unload() {
+                return false;
+            }
+            self.stats.total_memory_bytes =
+                self.stats.total_memory_bytes.saturating_sub(m.size_bytes);
             m.state = KmodState::Unloaded;
             m.base_addr = 0;
             self.stats.total_unloads += 1;
@@ -327,7 +340,10 @@ impl AppKmodMgr {
 
     #[inline]
     pub fn request_module_for_app(&mut self, pid: u64, mod_name: &str, granted: bool) {
-        let usage = self.app_usage.entry(pid).or_insert_with(|| AppKmodUsage::new(pid));
+        let usage = self
+            .app_usage
+            .entry(pid)
+            .or_insert_with(|| AppKmodUsage::new(pid));
         if let Some(&id) = self.name_to_id.get(mod_name) {
             usage.request_module(id, granted);
         }
@@ -342,7 +358,9 @@ impl AppKmodMgr {
 
     #[inline]
     pub fn modules_by_memory(&self) -> Vec<(u64, u64)> {
-        let mut v: Vec<(u64, u64)> = self.modules.iter()
+        let mut v: Vec<(u64, u64)> = self
+            .modules
+            .iter()
             .filter(|(_, m)| m.state == KmodState::Live)
             .map(|(&id, m)| (id, m.memory_total()))
             .collect();
@@ -352,7 +370,9 @@ impl AppKmodMgr {
 
     #[inline]
     pub fn faultiest_modules(&self, top: usize) -> Vec<(u64, f64)> {
-        let mut v: Vec<(u64, f64)> = self.modules.iter()
+        let mut v: Vec<(u64, f64)> = self
+            .modules
+            .iter()
             .filter(|(_, m)| m.load_count > 0)
             .map(|(&id, m)| (id, m.fault_rate_per_load()))
             .collect();

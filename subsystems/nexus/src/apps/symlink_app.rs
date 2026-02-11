@@ -52,7 +52,10 @@ impl SymlinkRecord {
     pub fn new(target: &[u8], link_path: &[u8]) -> Self {
         let hash = |path: &[u8]| -> u64 {
             let mut h: u64 = 0xcbf29ce484222325;
-            for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+            for b in path {
+                h ^= *b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
             h
         };
         let kind = if target.first() == Some(&b'/') {
@@ -123,8 +126,11 @@ impl SymlinkResolver {
 
     #[inline(always)]
     pub fn loop_rate(&self) -> f64 {
-        if self.total_resolutions == 0 { 0.0 }
-        else { self.loop_detections as f64 / self.total_resolutions as f64 }
+        if self.total_resolutions == 0 {
+            0.0
+        } else {
+            self.loop_detections as f64 / self.total_resolutions as f64
+        }
     }
 }
 
@@ -169,16 +175,16 @@ impl AppSymlink {
                 match record.kind {
                     SymlinkKind::Relative => self.stats.relative_links += 1,
                     SymlinkKind::Absolute => self.stats.absolute_links += 1,
-                    _ => {}
+                    _ => {},
                 }
                 if record.is_fast_symlink() {
                     self.stats.fast_symlinks += 1;
                 }
-            }
+            },
             SymlinkResult::LoopDetected => {
                 self.stats.failures += 1;
                 self.stats.loop_detections += 1;
-            }
+            },
             _ => self.stats.failures += 1,
         }
     }

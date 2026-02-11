@@ -3,20 +3,42 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 
 /// Signal number
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SignalNum {
-    Sighup = 1, Sigint = 2, Sigquit = 3, Sigill = 4,
-    Sigtrap = 5, Sigabrt = 6, Sigbus = 7, Sigfpe = 8,
-    Sigkill = 9, Sigusr1 = 10, Sigsegv = 11, Sigusr2 = 12,
-    Sigpipe = 13, Sigalrm = 14, Sigterm = 15, Sigstkflt = 16,
-    Sigchld = 17, Sigcont = 18, Sigstop = 19, Sigtstp = 20,
-    Sigttin = 21, Sigttou = 22, Sigurg = 23, Sigxcpu = 24,
-    Sigxfsz = 25, Sigvtalrm = 26, Sigprof = 27, Sigwinch = 28,
-    Sigio = 29, Sigpwr = 30, Sigsys = 31,
+    Sighup    = 1,
+    Sigint    = 2,
+    Sigquit   = 3,
+    Sigill    = 4,
+    Sigtrap   = 5,
+    Sigabrt   = 6,
+    Sigbus    = 7,
+    Sigfpe    = 8,
+    Sigkill   = 9,
+    Sigusr1   = 10,
+    Sigsegv   = 11,
+    Sigusr2   = 12,
+    Sigpipe   = 13,
+    Sigalrm   = 14,
+    Sigterm   = 15,
+    Sigstkflt = 16,
+    Sigchld   = 17,
+    Sigcont   = 18,
+    Sigstop   = 19,
+    Sigtstp   = 20,
+    Sigttin   = 21,
+    Sigttou   = 22,
+    Sigurg    = 23,
+    Sigxcpu   = 24,
+    Sigxfsz   = 25,
+    Sigvtalrm = 26,
+    Sigprof   = 27,
+    Sigwinch  = 28,
+    Sigio     = 29,
+    Sigpwr    = 30,
+    Sigsys    = 31,
 }
 
 /// Signal mask (64-bit)
@@ -25,15 +47,29 @@ pub struct SigMask(pub u64);
 
 impl SigMask {
     #[inline(always)]
-    pub fn empty() -> Self { Self(0) }
+    pub fn empty() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn full() -> Self { Self(u64::MAX) }
+    pub fn full() -> Self {
+        Self(u64::MAX)
+    }
     #[inline(always)]
-    pub fn add(&mut self, sig: u32) { if sig > 0 && sig <= 64 { self.0 |= 1u64 << (sig - 1); } }
+    pub fn add(&mut self, sig: u32) {
+        if sig > 0 && sig <= 64 {
+            self.0 |= 1u64 << (sig - 1);
+        }
+    }
     #[inline(always)]
-    pub fn remove(&mut self, sig: u32) { if sig > 0 && sig <= 64 { self.0 &= !(1u64 << (sig - 1)); } }
+    pub fn remove(&mut self, sig: u32) {
+        if sig > 0 && sig <= 64 {
+            self.0 &= !(1u64 << (sig - 1));
+        }
+    }
     #[inline(always)]
-    pub fn contains(&self, sig: u32) -> bool { sig > 0 && sig <= 64 && self.0 & (1u64 << (sig - 1)) != 0 }
+    pub fn contains(&self, sig: u32) -> bool {
+        sig > 0 && sig <= 64 && self.0 & (1u64 << (sig - 1)) != 0
+    }
 }
 
 /// Signalfd info
@@ -60,19 +96,32 @@ pub struct SignalfdInstance {
 
 impl SignalfdInstance {
     pub fn new(id: u64, mask: SigMask, pid: u64) -> Self {
-        Self { id, mask, owner_pid: pid, pending: VecDeque::new(), read_count: 0, max_pending: 256 }
+        Self {
+            id,
+            mask,
+            owner_pid: pid,
+            pending: VecDeque::new(),
+            read_count: 0,
+            max_pending: 256,
+        }
     }
 
     #[inline]
     pub fn deliver(&mut self, info: SignalfdInfo) {
-        if !self.mask.contains(info.signo) { return; }
-        if self.pending.len() >= self.max_pending { self.pending.remove(0); }
+        if !self.mask.contains(info.signo) {
+            return;
+        }
+        if self.pending.len() >= self.max_pending {
+            self.pending.remove(0);
+        }
         self.pending.push_back(info);
     }
 
     #[inline]
     pub fn read(&mut self) -> Option<SignalfdInfo> {
-        if self.pending.is_empty() { return None; }
+        if self.pending.is_empty() {
+            return None;
+        }
         self.read_count += 1;
         self.pending.remove(0)
     }
@@ -96,28 +145,50 @@ pub struct AppSignalfd {
 }
 
 impl AppSignalfd {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1, total_delivered: 0 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_id: 1,
+            total_delivered: 0,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, mask: SigMask, pid: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.instances.insert(id, SignalfdInstance::new(id, mask, pid));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.instances
+            .insert(id, SignalfdInstance::new(id, mask, pid));
         id
     }
 
     #[inline(always)]
-    pub fn close(&mut self, id: u64) { self.instances.remove(&id); }
+    pub fn close(&mut self, id: u64) {
+        self.instances.remove(&id);
+    }
 
     #[inline(always)]
     pub fn deliver(&mut self, id: u64, info: SignalfdInfo) {
-        if let Some(inst) = self.instances.get_mut(&id) { inst.deliver(info); self.total_delivered += 1; }
+        if let Some(inst) = self.instances.get_mut(&id) {
+            inst.deliver(info);
+            self.total_delivered += 1;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> SignalfdAppStats {
-        let pending: u32 = self.instances.values().map(|i| i.pending.len() as u32).sum();
+        let pending: u32 = self
+            .instances
+            .values()
+            .map(|i| i.pending.len() as u32)
+            .sum();
         let reads: u64 = self.instances.values().map(|i| i.read_count).sum();
-        SignalfdAppStats { total_instances: self.instances.len() as u32, total_pending: pending, total_reads: reads, total_delivered: self.total_delivered }
+        SignalfdAppStats {
+            total_instances: self.instances.len() as u32,
+            total_pending: pending,
+            total_reads: reads,
+            total_delivered: self.total_delivered,
+        }
     }
 }
 
@@ -173,13 +244,29 @@ pub struct SignalfdV2Instance {
 
 impl SignalfdV2Instance {
     pub fn new(fd: u64, mask: u64, flags: u32, now: u64) -> Self {
-        Self { fd, mask, flags, pending_count: 0, total_signals: 0, total_reads: 0, created_at: now }
+        Self {
+            fd,
+            mask,
+            flags,
+            pending_count: 0,
+            total_signals: 0,
+            total_reads: 0,
+            created_at: now,
+        }
     }
 
     #[inline(always)]
-    pub fn deliver(&mut self) { self.pending_count += 1; self.total_signals += 1; }
+    pub fn deliver(&mut self) {
+        self.pending_count += 1;
+        self.total_signals += 1;
+    }
     #[inline(always)]
-    pub fn read(&mut self) -> u32 { let c = self.pending_count; self.pending_count = 0; self.total_reads += 1; c }
+    pub fn read(&mut self) -> u32 {
+        let c = self.pending_count;
+        self.pending_count = 0;
+        self.total_reads += 1;
+        c
+    }
 }
 
 /// Signal info v2
@@ -209,33 +296,53 @@ pub struct AppSignalfdV2 {
 }
 
 impl AppSignalfdV2 {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_fd: 1 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_fd: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, mask: u64, flags: u32, now: u64) -> u64 {
-        let fd = self.next_fd; self.next_fd += 1;
-        self.instances.insert(fd, SignalfdV2Instance::new(fd, mask, flags, now));
+        let fd = self.next_fd;
+        self.next_fd += 1;
+        self.instances
+            .insert(fd, SignalfdV2Instance::new(fd, mask, flags, now));
         fd
     }
 
     #[inline(always)]
     pub fn deliver(&mut self, fd: u64) {
-        if let Some(inst) = self.instances.get_mut(&fd) { inst.deliver(); }
+        if let Some(inst) = self.instances.get_mut(&fd) {
+            inst.deliver();
+        }
     }
 
     #[inline(always)]
     pub fn read(&mut self, fd: u64) -> u32 {
-        if let Some(inst) = self.instances.get_mut(&fd) { inst.read() } else { 0 }
+        if let Some(inst) = self.instances.get_mut(&fd) {
+            inst.read()
+        } else {
+            0
+        }
     }
 
     #[inline(always)]
-    pub fn close(&mut self, fd: u64) { self.instances.remove(&fd); }
+    pub fn close(&mut self, fd: u64) {
+        self.instances.remove(&fd);
+    }
 
     #[inline]
     pub fn stats(&self) -> SignalfdV2AppStats {
         let sigs: u64 = self.instances.values().map(|i| i.total_signals).sum();
         let reads: u64 = self.instances.values().map(|i| i.total_reads).sum();
         let pending: u32 = self.instances.values().map(|i| i.pending_count).sum();
-        SignalfdV2AppStats { total_instances: self.instances.len() as u32, total_signals: sigs, total_reads: reads, total_pending: pending }
+        SignalfdV2AppStats {
+            total_instances: self.instances.len() as u32,
+            total_signals: sigs,
+            total_reads: reads,
+            total_pending: pending,
+        }
     }
 }

@@ -146,33 +146,31 @@ impl AdvisoryType {
             | Self::IoLatencyHigh
             | Self::IoDeviceError => AdvisoryCategory::Io,
 
-            Self::NetworkCongestion
-            | Self::NetworkBandwidthReduced
-            | Self::NetworkLatencyHigh => AdvisoryCategory::Network,
+            Self::NetworkCongestion | Self::NetworkBandwidthReduced | Self::NetworkLatencyHigh => {
+                AdvisoryCategory::Network
+            },
 
-            Self::ThermalWarning
-            | Self::ThermalThrottling
-            | Self::ThermalCritical => AdvisoryCategory::Thermal,
+            Self::ThermalWarning | Self::ThermalThrottling | Self::ThermalCritical => {
+                AdvisoryCategory::Thermal
+            },
 
-            Self::PowerSavingEnabled
-            | Self::PowerBatteryLow
-            | Self::PowerSourceChanged => AdvisoryCategory::Power,
+            Self::PowerSavingEnabled | Self::PowerBatteryLow | Self::PowerSourceChanged => {
+                AdvisoryCategory::Power
+            },
 
-            Self::SecurityThreat
-            | Self::SecurityPolicyChange => AdvisoryCategory::Security,
+            Self::SecurityThreat | Self::SecurityPolicyChange => AdvisoryCategory::Security,
 
-            Self::QosLevelChanged
-            | Self::QosDegradation => AdvisoryCategory::Qos,
+            Self::QosLevelChanged | Self::QosDegradation => AdvisoryCategory::Qos,
 
-            Self::SchedPriorityChange
-            | Self::SchedClassChange => AdvisoryCategory::Scheduling,
+            Self::SchedPriorityChange | Self::SchedClassChange => AdvisoryCategory::Scheduling,
 
-            Self::ResourceLimitApproaching
-            | Self::ResourceLimitReached => AdvisoryCategory::ResourceLimit,
+            Self::ResourceLimitApproaching | Self::ResourceLimitReached => {
+                AdvisoryCategory::ResourceLimit
+            },
 
-            Self::SystemShutdown
-            | Self::SystemReboot
-            | Self::SystemMaintenance => AdvisoryCategory::System,
+            Self::SystemShutdown | Self::SystemReboot | Self::SystemMaintenance => {
+                AdvisoryCategory::System
+            },
         }
     }
 
@@ -238,12 +236,7 @@ pub struct Advisory {
 }
 
 impl Advisory {
-    pub fn new(
-        id: u64,
-        advisory_type: AdvisoryType,
-        target_pid: u64,
-        timestamp: u64,
-    ) -> Self {
+    pub fn new(id: u64, advisory_type: AdvisoryType, target_pid: u64, timestamp: u64) -> Self {
         Self {
             id,
             advisory_type,
@@ -492,7 +485,9 @@ impl AdvisoryEngine {
     /// Register a process
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.queues.entry(pid).or_insert_with(|| ProcessAdvisoryQueue::new(pid));
+        self.queues
+            .entry(pid)
+            .or_insert_with(|| ProcessAdvisoryQueue::new(pid));
     }
 
     /// Unregister a process
@@ -548,11 +543,7 @@ impl AdvisoryEngine {
     }
 
     /// Broadcast advisory to all processes
-    pub fn broadcast(
-        &mut self,
-        advisory_type: AdvisoryType,
-        timestamp: u64,
-    ) -> u32 {
+    pub fn broadcast(&mut self, advisory_type: AdvisoryType, timestamp: u64) -> u32 {
         let pids: Vec<u64> = self.queues.keys().copied().collect();
         let mut count = 0u32;
 
@@ -611,9 +602,7 @@ impl AdvisoryEngine {
     /// Pending advisory count for a process
     #[inline]
     pub fn pending_count(&self, pid: u64) -> usize {
-        self.queues
-            .get(&pid)
-            .map_or(0, |q| q.pending_count())
+        self.queues.get(&pid).map_or(0, |q| q.pending_count())
     }
 
     /// Total pending across all processes

@@ -96,12 +96,20 @@ impl WakeupEdge {
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> f64 {
-        if self.count == 0 { 0.0 } else { self.total_latency_ns as f64 / self.count as f64 }
+        if self.count == 0 {
+            0.0
+        } else {
+            self.total_latency_ns as f64 / self.count as f64
+        }
     }
 
     #[inline(always)]
     pub fn cross_cpu_ratio(&self) -> f64 {
-        if self.count == 0 { 0.0 } else { self.cross_cpu_count as f64 / self.count as f64 }
+        if self.count == 0 {
+            0.0
+        } else {
+            self.cross_cpu_count as f64 / self.count as f64
+        }
     }
 }
 
@@ -156,7 +164,9 @@ impl ThreadWakeupStats {
 
     #[inline]
     pub fn avg_wakeup_latency_ns(&self) -> f64 {
-        if self.times_woken == 0 { 0.0 } else {
+        if self.times_woken == 0 {
+            0.0
+        } else {
             self.total_wakeup_latency_ns as f64 / self.times_woken as f64
         }
     }
@@ -238,18 +248,21 @@ impl AppWakeupProfiler {
 
     pub fn record_wakeup(&mut self, event: &WakeupEvent) {
         // Update wakee
-        self.threads.entry(event.wakee_tid)
+        self.threads
+            .entry(event.wakee_tid)
             .or_insert_with(|| ThreadWakeupStats::new(event.wakee_tid))
             .record_woken(event.latency_ns, event.source, event.timestamp_ns);
 
         // Update waker
-        self.threads.entry(event.waker_tid)
+        self.threads
+            .entry(event.waker_tid)
             .or_insert_with(|| ThreadWakeupStats::new(event.waker_tid))
             .record_waking();
 
         // Update edge
         let key = (event.waker_tid, event.wakee_tid);
-        self.edges.entry(key)
+        self.edges
+            .entry(key)
             .or_insert_with(|| WakeupEdge::new(event.waker_tid, event.wakee_tid))
             .record(event.latency_ns, event.is_cross_cpu());
 
@@ -262,14 +275,18 @@ impl AppWakeupProfiler {
         self.stats.total_wakeups = self.threads.values().map(|t| t.times_woken).sum();
         self.stats.cross_cpu_wakeups = self.edges.values().map(|e| e.cross_cpu_count).sum();
 
-        let total_latency: u64 = self.threads.values()
+        let total_latency: u64 = self
+            .threads
+            .values()
             .map(|t| t.total_wakeup_latency_ns)
             .sum();
         if self.stats.total_wakeups > 0 {
             self.stats.avg_wakeup_latency_ns =
                 total_latency as f64 / self.stats.total_wakeups as f64;
         }
-        self.stats.wakeup_storm_threads = self.threads.values()
+        self.stats.wakeup_storm_threads = self
+            .threads
+            .values()
             .filter(|t| t.is_wakeup_storm())
             .count();
     }
@@ -291,7 +308,8 @@ impl AppWakeupProfiler {
     /// Threads with wakeup storms
     #[inline]
     pub fn storm_threads(&self) -> Vec<u64> {
-        self.threads.iter()
+        self.threads
+            .iter()
             .filter(|(_, t)| t.is_wakeup_storm())
             .map(|(&tid, _)| tid)
             .collect()
@@ -306,7 +324,9 @@ impl AppWakeupProfiler {
         for _ in 0..max_depth {
             chain.push(current);
             // Find the most frequent waker of current
-            let next = self.edges.iter()
+            let next = self
+                .edges
+                .iter()
                 .filter(|((_, wakee), _)| *wakee == current)
                 .max_by_key(|(_, e)| e.count)
                 .map(|((waker, _), e)| {
@@ -319,6 +339,9 @@ impl AppWakeupProfiler {
             }
         }
         chain.reverse();
-        WakeupChain { chain, total_latency_ns: total_lat }
+        WakeupChain {
+            chain,
+            total_latency_ns: total_lat,
+        }
     }
 }

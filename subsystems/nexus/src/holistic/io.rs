@@ -320,7 +320,8 @@ impl IoMergeEngine {
             // Check if can merge
             let contiguous = req.offset <= current_end;
             let same_type = req.is_write == current_is_write;
-            let within_size = (req.offset + req.length as u64 - current_offset) <= self.max_merge_size;
+            let within_size =
+                (req.offset + req.length as u64 - current_offset) <= self.max_merge_size;
             let within_count = current_ids.len() < self.max_merge_count;
 
             if contiguous && same_type && within_size && within_count {
@@ -525,7 +526,10 @@ impl HolisticIoManager {
     /// Get merge engine stats
     #[inline(always)]
     pub fn merge_stats(&self) -> (u64, u64) {
-        (self.merge_engine.total_merges, self.merge_engine.total_requests)
+        (
+            self.merge_engine.total_merges,
+            self.merge_engine.total_requests,
+        )
     }
 
     /// Device count

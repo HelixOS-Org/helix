@@ -1,7 +1,6 @@
 //! Intrusion Detection System (IDS).
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::format;
 use alloc::vec::Vec;
 

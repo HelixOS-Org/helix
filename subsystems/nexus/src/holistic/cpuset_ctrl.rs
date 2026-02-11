@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -69,16 +68,24 @@ pub struct Cpuset {
 impl Cpuset {
     pub fn new(id: u64, name: String) -> Self {
         Self {
-            id, name, parent_id: None,
-            cpus: Vec::new(), mems: Vec::new(),
+            id,
+            name,
+            parent_id: None,
+            cpus: Vec::new(),
+            mems: Vec::new(),
             partition: CpusetPartition::Member,
-            cpu_exclusive: false, mem_exclusive: false,
-            mem_hardwall: false, sched_load_balance: true,
-            spread_page: false, spread_slab: false,
+            cpu_exclusive: false,
+            mem_exclusive: false,
+            mem_hardwall: false,
+            sched_load_balance: true,
+            spread_page: false,
+            spread_slab: false,
             cpu_dist: CpuDistPolicy::Auto,
             mem_place: MemPlacePolicy::Default,
-            task_count: 0, children: Vec::new(),
-            effective_cpus: Vec::new(), effective_mems: Vec::new(),
+            task_count: 0,
+            children: Vec::new(),
+            effective_cpus: Vec::new(),
+            effective_mems: Vec::new(),
         }
     }
 
@@ -110,7 +117,9 @@ impl Cpuset {
     #[inline]
     pub fn tasks_per_cpu(&self) -> f64 {
         let cpus = self.cpu_count();
-        if cpus == 0 { return 0.0; }
+        if cpus == 0 {
+            return 0.0;
+        }
         self.task_count as f64 / cpus as f64
     }
 
@@ -121,11 +130,15 @@ impl Cpuset {
 
     #[inline]
     pub fn recalculate_effective(&mut self, parent_cpus: &[u32], parent_mems: &[u32]) {
-        self.effective_cpus = self.cpus.iter()
+        self.effective_cpus = self
+            .cpus
+            .iter()
             .filter(|c| parent_cpus.contains(c))
             .copied()
             .collect();
-        self.effective_mems = self.mems.iter()
+        self.effective_mems = self
+            .mems
+            .iter()
             .filter(|m| parent_mems.contains(m))
             .copied()
             .collect();
@@ -195,9 +208,13 @@ impl HolisticCpusetCtrl {
             max_history: 2048,
             next_id: 1,
             stats: CpusetStats {
-                total_cpusets: 0, root_partitions: 0,
-                isolated_partitions: 0, total_tasks_managed: 0,
-                migrations: 0, violations: 0, exclusive_cpus: 0,
+                total_cpusets: 0,
+                root_partitions: 0,
+                isolated_partitions: 0,
+                total_tasks_managed: 0,
+                migrations: 0,
+                violations: 0,
+                exclusive_cpus: 0,
             },
             system_cpus,
             system_mems,
@@ -280,16 +297,20 @@ impl HolisticCpusetCtrl {
             match (old, partition) {
                 (_, CpusetPartition::Root) => self.stats.root_partitions += 1,
                 (CpusetPartition::Root, _) => {
-                    if self.stats.root_partitions > 0 { self.stats.root_partitions -= 1; }
-                }
-                _ => {}
+                    if self.stats.root_partitions > 0 {
+                        self.stats.root_partitions -= 1;
+                    }
+                },
+                _ => {},
             }
             match (old, partition) {
                 (_, CpusetPartition::Isolated) => self.stats.isolated_partitions += 1,
                 (CpusetPartition::Isolated, _) => {
-                    if self.stats.isolated_partitions > 0 { self.stats.isolated_partitions -= 1; }
-                }
-                _ => {}
+                    if self.stats.isolated_partitions > 0 {
+                        self.stats.isolated_partitions -= 1;
+                    }
+                },
+                _ => {},
             }
         }
     }
@@ -314,7 +335,8 @@ impl HolisticCpusetCtrl {
 
     #[inline]
     pub fn overloaded_cpusets(&self, threshold: f64) -> Vec<(u64, f64)> {
-        self.cpusets.iter()
+        self.cpusets
+            .iter()
             .filter(|(_, cs)| cs.tasks_per_cpu() > threshold)
             .map(|(&id, cs)| (id, cs.tasks_per_cpu()))
             .collect()
@@ -322,7 +344,8 @@ impl HolisticCpusetCtrl {
 
     #[inline]
     pub fn empty_cpusets(&self) -> Vec<u64> {
-        self.cpusets.iter()
+        self.cpusets
+            .iter()
             .filter(|(_, cs)| cs.is_empty())
             .map(|(&id, _)| id)
             .collect()

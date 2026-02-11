@@ -74,7 +74,14 @@ impl BridgePriorityManager {
                 static_priority: priority,
                 dynamic_priority: priority,
                 nice_value: 0,
-                rt_priority: if matches!(policy, BridgePriorityPolicy::Fifo | BridgePriorityPolicy::RoundRobin) { priority as u32 } else { 0 },
+                rt_priority: if matches!(
+                    policy,
+                    BridgePriorityPolicy::Fifo | BridgePriorityPolicy::RoundRobin
+                ) {
+                    priority as u32
+                } else {
+                    0
+                },
             };
             self.entries.insert(id, entry);
         }

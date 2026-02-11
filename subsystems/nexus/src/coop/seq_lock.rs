@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-
 /// Seqlock instance
 use alloc::vec::Vec;
 #[derive(Debug)]
@@ -20,17 +19,30 @@ pub struct SeqLock {
 
 impl SeqLock {
     pub fn new(id: u64) -> Self {
-        Self { id, sequence: 0, write_in_progress: false, read_count: 0, write_count: 0, retry_count: 0, writer_tid: None }
+        Self {
+            id,
+            sequence: 0,
+            write_in_progress: false,
+            read_count: 0,
+            write_count: 0,
+            retry_count: 0,
+            writer_tid: None,
+        }
     }
 
     #[inline(always)]
-    pub fn read_begin(&self) -> u64 { self.sequence }
+    pub fn read_begin(&self) -> u64 {
+        self.sequence
+    }
 
     #[inline]
     pub fn read_retry(&mut self, start_seq: u64) -> bool {
         let retry = start_seq & 1 != 0 || self.sequence != start_seq;
-        if retry { self.retry_count += 1; }
-        else { self.read_count += 1; }
+        if retry {
+            self.retry_count += 1;
+        } else {
+            self.read_count += 1;
+        }
         retry
     }
 
@@ -52,7 +64,11 @@ impl SeqLock {
     #[inline(always)]
     pub fn contention_ratio(&self) -> f64 {
         let total = self.read_count + self.retry_count;
-        if total == 0 { 0.0 } else { self.retry_count as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.retry_count as f64 / total as f64
+        }
     }
 }
 
@@ -74,11 +90,17 @@ pub struct CoopSeqLock {
 }
 
 impl CoopSeqLock {
-    pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            locks: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.locks.insert(id, SeqLock::new(id));
         id
     }
@@ -89,7 +111,17 @@ impl CoopSeqLock {
         let writes: u64 = self.locks.values().map(|l| l.write_count).sum();
         let retries: u64 = self.locks.values().map(|l| l.retry_count).sum();
         let contns: Vec<f64> = self.locks.values().map(|l| l.contention_ratio()).collect();
-        let avg = if contns.is_empty() { 0.0 } else { contns.iter().sum::<f64>() / contns.len() as f64 };
-        SeqLockStats { total_locks: self.locks.len() as u32, total_reads: reads, total_writes: writes, total_retries: retries, avg_contention: avg }
+        let avg = if contns.is_empty() {
+            0.0
+        } else {
+            contns.iter().sum::<f64>() / contns.len() as f64
+        };
+        SeqLockStats {
+            total_locks: self.locks.len() as u32,
+            total_reads: reads,
+            total_writes: writes,
+            total_retries: retries,
+            avg_contention: avg,
+        }
     }
 }

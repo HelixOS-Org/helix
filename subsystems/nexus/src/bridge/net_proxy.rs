@@ -223,7 +223,8 @@ impl BridgeNetProxy {
     #[inline]
     pub fn track_socket(&mut self, pid: u64, fd: u32, sock_type: BridgeSocketType, now_ns: u64) {
         let key = Self::socket_key(pid, fd);
-        self.sockets.insert(key, SocketEntry::new(fd, pid, sock_type, now_ns));
+        self.sockets
+            .insert(key, SocketEntry::new(fd, pid, sock_type, now_ns));
         self.update_stats();
     }
 
@@ -267,7 +268,8 @@ impl BridgeNetProxy {
 
     /// Find coalescing opportunities (many small sends)
     pub fn coalesce_opportunities(&self) -> Vec<CoalesceOpportunity> {
-        self.sockets.values()
+        self.sockets
+            .values()
             .filter(|s| s.send_ops > 10 && s.avg_send_size < 256.0)
             .map(|s| {
                 let small = (s.send_ops as f64 * 0.8) as u64;
@@ -283,7 +285,8 @@ impl BridgeNetProxy {
     /// Sockets needing buffer tuning
     #[inline]
     pub fn buffer_tune_needed(&self) -> Vec<(u32, u32, u32)> {
-        self.sockets.values()
+        self.sockets
+            .values()
             .filter(|s| s.suggested_sndbuf() != s.sndbuf || s.suggested_rcvbuf() != s.rcvbuf)
             .map(|s| (s.fd, s.suggested_sndbuf(), s.suggested_rcvbuf()))
             .collect()
@@ -291,8 +294,15 @@ impl BridgeNetProxy {
 
     fn update_stats(&mut self) {
         self.stats.tracked_sockets = self.sockets.len();
-        self.stats.active_connections = self.sockets.values()
-            .filter(|s| matches!(s.state, BridgeSocketState::Connected | BridgeSocketState::Listening))
+        self.stats.active_connections = self
+            .sockets
+            .values()
+            .filter(|s| {
+                matches!(
+                    s.state,
+                    BridgeSocketState::Connected | BridgeSocketState::Listening
+                )
+            })
             .count();
         self.stats.total_bytes_sent = self.sockets.values().map(|s| s.bytes_sent).sum();
         self.stats.total_bytes_recv = self.sockets.values().map(|s| s.bytes_recv).sum();

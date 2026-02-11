@@ -28,7 +28,14 @@ pub struct WqV2Entry {
 
 impl WqV2Entry {
     pub fn new(tid: u64, exclusive: bool, key: u64, now: u64) -> Self {
-        Self { tid, state: WqV2EntryState::Waiting, exclusive, enqueue_time: now, wake_time: 0, key }
+        Self {
+            tid,
+            state: WqV2EntryState::Waiting,
+            exclusive,
+            enqueue_time: now,
+            wake_time: 0,
+            key,
+        }
     }
 }
 
@@ -45,7 +52,13 @@ pub struct WaitQueueV2 {
 
 impl WaitQueueV2 {
     pub fn new(id: u64) -> Self {
-        Self { id, entries: Vec::new(), total_waits: 0, total_wakes: 0, total_timeouts: 0 }
+        Self {
+            id,
+            entries: Vec::new(),
+            total_waits: 0,
+            total_wakes: 0,
+            total_timeouts: 0,
+        }
     }
 
     #[inline(always)]
@@ -85,8 +98,11 @@ impl WaitQueueV2 {
         let mut woken = Vec::new();
         let mut remaining = Vec::new();
         for entry in self.entries.drain(..) {
-            if entry.state == WqV2EntryState::Woken { woken.push(entry); }
-            else { remaining.push(entry); }
+            if entry.state == WqV2EntryState::Woken {
+                woken.push(entry);
+            } else {
+                remaining.push(entry);
+            }
         }
         self.entries = remaining;
         woken
@@ -94,7 +110,10 @@ impl WaitQueueV2 {
 
     #[inline(always)]
     pub fn waiting_count(&self) -> u32 {
-        self.entries.iter().filter(|e| e.state == WqV2EntryState::Waiting).count() as u32
+        self.entries
+            .iter()
+            .filter(|e| e.state == WqV2EntryState::Waiting)
+            .count() as u32
     }
 }
 
@@ -116,38 +135,61 @@ pub struct CoopWaitQueueV2 {
 }
 
 impl CoopWaitQueueV2 {
-    pub fn new() -> Self { Self { queues: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            queues: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.queues.insert(id, WaitQueueV2::new(id));
         id
     }
 
     #[inline(always)]
     pub fn enqueue(&mut self, qid: u64, tid: u64, exclusive: bool, key: u64, now: u64) {
-        if let Some(q) = self.queues.get_mut(&qid) { q.enqueue(tid, exclusive, key, now); }
+        if let Some(q) = self.queues.get_mut(&qid) {
+            q.enqueue(tid, exclusive, key, now);
+        }
     }
 
     #[inline(always)]
     pub fn wake_one(&mut self, qid: u64, now: u64) -> Option<u64> {
-        if let Some(q) = self.queues.get_mut(&qid) { q.wake_one(now) } else { None }
+        if let Some(q) = self.queues.get_mut(&qid) {
+            q.wake_one(now)
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
     pub fn wake_all(&mut self, qid: u64, now: u64) -> u32 {
-        if let Some(q) = self.queues.get_mut(&qid) { q.wake_all(now) } else { 0 }
+        if let Some(q) = self.queues.get_mut(&qid) {
+            q.wake_all(now)
+        } else {
+            0
+        }
     }
 
     #[inline(always)]
-    pub fn destroy(&mut self, qid: u64) { self.queues.remove(&qid); }
+    pub fn destroy(&mut self, qid: u64) {
+        self.queues.remove(&qid);
+    }
 
     #[inline]
     pub fn stats(&self) -> WaitQueueV2Stats {
         let waits: u64 = self.queues.values().map(|q| q.total_waits).sum();
         let wakes: u64 = self.queues.values().map(|q| q.total_wakes).sum();
         let waiting: u32 = self.queues.values().map(|q| q.waiting_count()).sum();
-        WaitQueueV2Stats { total_queues: self.queues.len() as u32, total_waits: waits, total_wakes: wakes, total_waiting: waiting }
+        WaitQueueV2Stats {
+            total_queues: self.queues.len() as u32,
+            total_waits: waits,
+            total_wakes: wakes,
+            total_waiting: waiting,
+        }
     }
 }

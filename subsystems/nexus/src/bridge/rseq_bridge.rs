@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Rseq flags
@@ -50,11 +49,17 @@ pub struct RseqRegistration {
 impl RseqRegistration {
     pub fn new(pid: u32, tid: u32, addr: u64, sig: u32, now: u64) -> Self {
         Self {
-            pid, tid, rseq_addr: addr,
-            rseq_len: 32, signature: sig,
-            cpu_id: 0, node_id: 0, mm_cid: 0,
+            pid,
+            tid,
+            rseq_addr: addr,
+            rseq_len: 32,
+            signature: sig,
+            cpu_id: 0,
+            node_id: 0,
+            mm_cid: 0,
             flags: RseqFlags(0),
-            registered: true, created: now,
+            registered: true,
+            created: now,
         }
     }
 
@@ -80,16 +85,20 @@ pub struct CriticalSection {
 impl CriticalSection {
     pub fn new(start: u64, post_commit: u32, abort: u64) -> Self {
         Self {
-            start_ip: start, post_commit_offset: post_commit,
+            start_ip: start,
+            post_commit_offset: post_commit,
             abort_ip: abort,
-            execution_count: 0, abort_count: 0,
+            execution_count: 0,
+            abort_count: 0,
             avg_cycles: 0,
         }
     }
 
     #[inline(always)]
     pub fn abort_rate(&self) -> f64 {
-        if self.execution_count == 0 { return 0.0; }
+        if self.execution_count == 0 {
+            return 0.0;
+        }
         self.abort_count as f64 / self.execution_count as f64
     }
 
@@ -130,15 +139,20 @@ pub struct CpuRseqState {
 impl CpuRseqState {
     pub fn new(cpu_id: u32) -> Self {
         Self {
-            cpu_id, active_registrations: 0,
-            total_executions: 0, total_aborts: 0,
-            migration_aborts: 0, preemption_aborts: 0,
+            cpu_id,
+            active_registrations: 0,
+            total_executions: 0,
+            total_aborts: 0,
+            migration_aborts: 0,
+            preemption_aborts: 0,
         }
     }
 
     #[inline(always)]
     pub fn abort_rate(&self) -> f64 {
-        if self.total_executions == 0 { return 0.0; }
+        if self.total_executions == 0 {
+            return 0.0;
+        }
         self.total_aborts as f64 / self.total_executions as f64
     }
 }
@@ -176,9 +190,12 @@ impl BridgeRseq {
             aborts: VecDeque::new(),
             max_aborts: 4096,
             stats: RseqBridgeStats {
-                registered_threads: 0, total_registrations: 0,
-                total_unregistrations: 0, total_aborts: 0,
-                total_migrations: 0, critical_sections_tracked: 0,
+                registered_threads: 0,
+                total_registrations: 0,
+                total_unregistrations: 0,
+                total_aborts: 0,
+                total_migrations: 0,
+                critical_sections_tracked: 0,
                 avg_abort_rate: 0.0,
             },
         }
@@ -198,12 +215,18 @@ impl BridgeRseq {
     pub fn unregister(&mut self, tid: u32) -> bool {
         if let Some(reg) = self.registrations.remove(&tid) {
             self.stats.total_unregistrations += 1;
-            if self.stats.registered_threads > 0 { self.stats.registered_threads -= 1; }
+            if self.stats.registered_threads > 0 {
+                self.stats.registered_threads -= 1;
+            }
             if let Some(cs) = self.cpu_states.get_mut(&reg.cpu_id) {
-                if cs.active_registrations > 0 { cs.active_registrations -= 1; }
+                if cs.active_registrations > 0 {
+                    cs.active_registrations -= 1;
+                }
             }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -227,11 +250,13 @@ impl BridgeRseq {
             match abort.reason {
                 RseqAbortReason::Migration => cpu.migration_aborts += 1,
                 RseqAbortReason::Preemption => cpu.preemption_aborts += 1,
-                _ => {}
+                _ => {},
             }
         }
 
-        if self.aborts.len() >= self.max_aborts { self.aborts.remove(0); }
+        if self.aborts.len() >= self.max_aborts {
+            self.aborts.remove(0);
+        }
         self.aborts.push_back(abort);
     }
 
@@ -254,7 +279,8 @@ impl BridgeRseq {
 
     #[inline]
     pub fn problematic_cs(&self) -> Vec<(u64, f64)> {
-        self.critical_sections.iter()
+        self.critical_sections
+            .iter()
             .filter(|(_, cs)| cs.is_problematic())
             .map(|(&ip, cs)| (ip, cs.abort_rate()))
             .collect()
@@ -262,7 +288,9 @@ impl BridgeRseq {
 
     #[inline]
     pub fn worst_cpus(&self, n: usize) -> Vec<(u32, f64)> {
-        let mut v: Vec<_> = self.cpu_states.iter()
+        let mut v: Vec<_> = self
+            .cpu_states
+            .iter()
             .map(|(&cpu, s)| (cpu, s.abort_rate()))
             .collect();
         v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
@@ -287,11 +315,17 @@ impl RseqV2Flags {
     pub const CS_FLAG_NO_RESTART_ON_PREEMPT: u32 = 1 << 0;
     pub const CS_FLAG_NO_RESTART_ON_SIGNAL: u32 = 1 << 1;
     pub const CS_FLAG_NO_RESTART_ON_MIGRATE: u32 = 1 << 2;
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn set(&mut self, f: u32) { self.0 |= f; }
+    pub fn set(&mut self, f: u32) {
+        self.0 |= f;
+    }
     #[inline(always)]
-    pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u32) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Critical section descriptor
@@ -321,19 +355,42 @@ pub struct RseqV2ThreadState {
 
 impl RseqV2ThreadState {
     pub fn new(tid: u64) -> Self {
-        Self { tid, cpu_id: 0, cpu_id_start: 0, registered: false, rseq_cs: None, abort_count: 0, migration_count: 0, preempt_count: 0, signal_count: 0, success_count: 0 }
+        Self {
+            tid,
+            cpu_id: 0,
+            cpu_id_start: 0,
+            registered: false,
+            rseq_cs: None,
+            abort_count: 0,
+            migration_count: 0,
+            preempt_count: 0,
+            signal_count: 0,
+            success_count: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn register(&mut self, cpu: u32) { self.registered = true; self.cpu_id = cpu; self.cpu_id_start = cpu; }
+    pub fn register(&mut self, cpu: u32) {
+        self.registered = true;
+        self.cpu_id = cpu;
+        self.cpu_id_start = cpu;
+    }
     #[inline(always)]
-    pub fn record_abort(&mut self) { self.abort_count += 1; }
+    pub fn record_abort(&mut self) {
+        self.abort_count += 1;
+    }
     #[inline(always)]
-    pub fn record_success(&mut self) { self.success_count += 1; }
+    pub fn record_success(&mut self) {
+        self.success_count += 1;
+    }
     #[inline(always)]
     pub fn success_rate(&self) -> f64 {
         let total = self.success_count + self.abort_count;
-        if total == 0 { 1.0 } else { self.success_count as f64 / total as f64 }
+        if total == 0 {
+            1.0
+        } else {
+            self.success_count as f64 / total as f64
+        }
     }
 }
 
@@ -355,7 +412,11 @@ pub struct BridgeRseqV2 {
 }
 
 impl BridgeRseqV2 {
-    pub fn new() -> Self { Self { threads: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            threads: BTreeMap::new(),
+        }
+    }
 
     #[inline]
     pub fn register(&mut self, tid: u64, cpu: u32) {
@@ -365,16 +426,29 @@ impl BridgeRseqV2 {
     }
 
     #[inline(always)]
-    pub fn unregister(&mut self, tid: u64) { self.threads.remove(&tid); }
+    pub fn unregister(&mut self, tid: u64) {
+        self.threads.remove(&tid);
+    }
 
     #[inline(always)]
     pub fn notify_preempt(&mut self, tid: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { if t.rseq_cs.is_some() { t.preempt_count += 1; t.record_abort(); } }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            if t.rseq_cs.is_some() {
+                t.preempt_count += 1;
+                t.record_abort();
+            }
+        }
     }
 
     #[inline(always)]
     pub fn notify_migrate(&mut self, tid: u64, new_cpu: u32) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.migration_count += 1; t.cpu_id = new_cpu; if t.rseq_cs.is_some() { t.record_abort(); } }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.migration_count += 1;
+            t.cpu_id = new_cpu;
+            if t.rseq_cs.is_some() {
+                t.record_abort();
+            }
+        }
     }
 
     #[inline]
@@ -384,7 +458,17 @@ impl BridgeRseqV2 {
         let successes: u64 = self.threads.values().map(|t| t.success_count).sum();
         let migrations: u64 = self.threads.values().map(|t| t.migration_count).sum();
         let rates: Vec<f64> = self.threads.values().map(|t| t.success_rate()).collect();
-        let avg = if rates.is_empty() { 1.0 } else { rates.iter().sum::<f64>() / rates.len() as f64 };
-        RseqV2BridgeStats { registered_threads: reg, total_aborts: aborts, total_successes: successes, total_migrations: migrations, avg_success_rate: avg }
+        let avg = if rates.is_empty() {
+            1.0
+        } else {
+            rates.iter().sum::<f64>() / rates.len() as f64
+        };
+        RseqV2BridgeStats {
+            registered_threads: reg,
+            total_aborts: aborts,
+            total_successes: successes,
+            total_migrations: migrations,
+            avg_success_rate: avg,
+        }
     }
 }

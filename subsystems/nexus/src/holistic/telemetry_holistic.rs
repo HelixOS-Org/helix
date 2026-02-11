@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // TELEMETRY TYPES
@@ -151,21 +152,21 @@ impl MetricSeries {
                 } else {
                     self.sum / self.count as f64
                 }
-            }
+            },
             AggregationMethod::Min => {
                 if self.count == 0 {
                     0.0
                 } else {
                     self.min
                 }
-            }
+            },
             AggregationMethod::Max => {
                 if self.count == 0 {
                     0.0
                 } else {
                     self.max
                 }
-            }
+            },
             AggregationMethod::Last => self.last,
             AggregationMethod::Count => self.count as f64,
             AggregationMethod::P99 => self.percentile(99),
@@ -390,11 +391,7 @@ impl HolisticTelemetryEngine {
     }
 
     /// Aggregate across multiple series
-    pub fn aggregate_multi(
-        &self,
-        keys: &[u64],
-        method: AggregationMethod,
-    ) -> f64 {
+    pub fn aggregate_multi(&self, keys: &[u64], method: AggregationMethod) -> f64 {
         let values: Vec<f64> = keys
             .iter()
             .filter_map(|k| self.series.get(k))
@@ -420,12 +417,10 @@ impl HolisticTelemetryEngine {
             AggregationMethod::Count => values.len() as f64,
             AggregationMethod::P99 => {
                 let mut sorted = values;
-                sorted.sort_by(|a, b| {
-                    a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal)
-                });
+                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
                 let idx = ((99.0 / 100.0) * (sorted.len() - 1) as f64) as usize;
                 sorted[idx]
-            }
+            },
         }
     }
 

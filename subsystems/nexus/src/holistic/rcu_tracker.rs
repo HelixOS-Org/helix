@@ -50,17 +50,39 @@ pub struct PerCpuRcuState {
 
 impl PerCpuRcuState {
     pub fn new(cpu: u32) -> Self {
-        Self { cpu_id: cpu, qs_passed: false, last_qs_ts: 0, callbacks_pending: 0, callbacks_processed: 0, in_critical_section: false, nesting_depth: 0, online: true }
+        Self {
+            cpu_id: cpu,
+            qs_passed: false,
+            last_qs_ts: 0,
+            callbacks_pending: 0,
+            callbacks_processed: 0,
+            in_critical_section: false,
+            nesting_depth: 0,
+            online: true,
+        }
     }
 
     #[inline(always)]
-    pub fn enter_read(&mut self) { self.nesting_depth += 1; self.in_critical_section = true; }
+    pub fn enter_read(&mut self) {
+        self.nesting_depth += 1;
+        self.in_critical_section = true;
+    }
     #[inline(always)]
-    pub fn exit_read(&mut self) { self.nesting_depth = self.nesting_depth.saturating_sub(1); if self.nesting_depth == 0 { self.in_critical_section = false; } }
+    pub fn exit_read(&mut self) {
+        self.nesting_depth = self.nesting_depth.saturating_sub(1);
+        if self.nesting_depth == 0 {
+            self.in_critical_section = false;
+        }
+    }
     #[inline(always)]
-    pub fn report_qs(&mut self, ts: u64) { self.qs_passed = true; self.last_qs_ts = ts; }
+    pub fn report_qs(&mut self, ts: u64) {
+        self.qs_passed = true;
+        self.last_qs_ts = ts;
+    }
     #[inline(always)]
-    pub fn new_gp(&mut self) { self.qs_passed = false; }
+    pub fn new_gp(&mut self) {
+        self.qs_passed = false;
+    }
 }
 
 /// Grace period descriptor
@@ -78,23 +100,44 @@ pub struct GracePeriod {
 
 impl GracePeriod {
     pub fn new(num: u64, flavor: RcuFlavor, ts: u64, cpus: Vec<u32>, expedited: bool) -> Self {
-        Self { gp_num: num, flavor, state: GracePeriodState::Started, start_ts: ts, end_ts: 0, cpus_pending: cpus, expedited, force_qs_count: 0 }
+        Self {
+            gp_num: num,
+            flavor,
+            state: GracePeriodState::Started,
+            start_ts: ts,
+            end_ts: 0,
+            cpus_pending: cpus,
+            expedited,
+            force_qs_count: 0,
+        }
     }
 
     #[inline(always)]
     pub fn report_qs(&mut self, cpu: u32) {
         self.cpus_pending.retain(|&c| c != cpu);
-        if self.cpus_pending.is_empty() { self.state = GracePeriodState::Completing; }
+        if self.cpus_pending.is_empty() {
+            self.state = GracePeriodState::Completing;
+        }
     }
 
     #[inline(always)]
-    pub fn complete(&mut self, ts: u64) { self.state = GracePeriodState::Completed; self.end_ts = ts; }
+    pub fn complete(&mut self, ts: u64) {
+        self.state = GracePeriodState::Completed;
+        self.end_ts = ts;
+    }
     #[inline(always)]
-    pub fn force_qs(&mut self) { self.force_qs_count += 1; self.state = GracePeriodState::ForcingQs; }
+    pub fn force_qs(&mut self) {
+        self.force_qs_count += 1;
+        self.state = GracePeriodState::ForcingQs;
+    }
     #[inline(always)]
-    pub fn latency(&self) -> u64 { self.end_ts.saturating_sub(self.start_ts) }
+    pub fn latency(&self) -> u64 {
+        self.end_ts.saturating_sub(self.start_ts)
+    }
     #[inline(always)]
-    pub fn is_complete(&self) -> bool { self.state == GracePeriodState::Completed }
+    pub fn is_complete(&self) -> bool {
+        self.state == GracePeriodState::Completed
+    }
 }
 
 /// RCU callback
@@ -149,38 +192,68 @@ pub struct HolisticRcuTracker {
 impl HolisticRcuTracker {
     pub fn new(stall_timeout: u64) -> Self {
         Self {
-            cpus: BTreeMap::new(), grace_periods: BTreeMap::new(),
-            callbacks: Vec::new(), stalls: Vec::new(),
-            stats: RcuStats::default(), current_gp: 0,
-            next_cb_id: 1, stall_timeout_ns: stall_timeout,
+            cpus: BTreeMap::new(),
+            grace_periods: BTreeMap::new(),
+            callbacks: Vec::new(),
+            stalls: Vec::new(),
+            stats: RcuStats::default(),
+            current_gp: 0,
+            next_cb_id: 1,
+            stall_timeout_ns: stall_timeout,
         }
     }
 
     #[inline(always)]
-    pub fn add_cpu(&mut self, cpu: u32) { self.cpus.insert(cpu, PerCpuRcuState::new(cpu)); }
+    pub fn add_cpu(&mut self, cpu: u32) {
+        self.cpus.insert(cpu, PerCpuRcuState::new(cpu));
+    }
     #[inline(always)]
-    pub fn offline_cpu(&mut self, cpu: u32) { if let Some(c) = self.cpus.get_mut(&cpu) { c.online = false; c.qs_passed = true; } }
+    pub fn offline_cpu(&mut self, cpu: u32) {
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.online = false;
+            c.qs_passed = true;
+        }
+    }
     #[inline(always)]
-    pub fn online_cpu(&mut self, cpu: u32) { if let Some(c) = self.cpus.get_mut(&cpu) { c.online = true; } }
+    pub fn online_cpu(&mut self, cpu: u32) {
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.online = true;
+        }
+    }
 
     #[inline]
     pub fn start_gp(&mut self, flavor: RcuFlavor, ts: u64, expedited: bool) -> u64 {
         self.current_gp += 1;
-        let cpus: Vec<u32> = self.cpus.values().filter(|c| c.online).map(|c| c.cpu_id).collect();
-        for c in self.cpus.values_mut() { if c.online { c.new_gp(); } }
+        let cpus: Vec<u32> = self
+            .cpus
+            .values()
+            .filter(|c| c.online)
+            .map(|c| c.cpu_id)
+            .collect();
+        for c in self.cpus.values_mut() {
+            if c.online {
+                c.new_gp();
+            }
+        }
         let gp = GracePeriod::new(self.current_gp, flavor, ts, cpus, expedited);
         self.grace_periods.insert(self.current_gp, gp);
-        if expedited { self.stats.expedited_count += 1; }
+        if expedited {
+            self.stats.expedited_count += 1;
+        }
         self.current_gp
     }
 
     #[inline]
     pub fn report_qs(&mut self, cpu: u32, ts: u64) {
-        if let Some(c) = self.cpus.get_mut(&cpu) { c.report_qs(ts); }
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.report_qs(ts);
+        }
         let gp_nums: Vec<u64> = self.grace_periods.keys().copied().collect();
         for gp_num in gp_nums {
             if let Some(gp) = self.grace_periods.get_mut(&gp_num) {
-                if !gp.is_complete() { gp.report_qs(cpu); }
+                if !gp.is_complete() {
+                    gp.report_qs(cpu);
+                }
             }
         }
     }
@@ -200,7 +273,10 @@ impl HolisticRcuTracker {
                 cb.invoked = true;
                 cb.invoke_ts = ts;
                 self.stats.callbacks_invoked += 1;
-                if let Some(c) = self.cpus.get_mut(&cb.cpu) { c.callbacks_pending = c.callbacks_pending.saturating_sub(1); c.callbacks_processed += 1; }
+                if let Some(c) = self.cpus.get_mut(&cb.cpu) {
+                    c.callbacks_pending = c.callbacks_pending.saturating_sub(1);
+                    c.callbacks_processed += 1;
+                }
             }
         }
         completed
@@ -208,9 +284,20 @@ impl HolisticRcuTracker {
 
     #[inline]
     pub fn register_callback(&mut self, gp: u64, cpu: u32, func_hash: u64, ts: u64) -> u64 {
-        let id = self.next_cb_id; self.next_cb_id += 1;
-        self.callbacks.push(RcuCallback { id, gp_num: gp, cpu, func_hash, register_ts: ts, invoke_ts: 0, invoked: false });
-        if let Some(c) = self.cpus.get_mut(&cpu) { c.callbacks_pending += 1; }
+        let id = self.next_cb_id;
+        self.next_cb_id += 1;
+        self.callbacks.push(RcuCallback {
+            id,
+            gp_num: gp,
+            cpu,
+            func_hash,
+            register_ts: ts,
+            invoke_ts: 0,
+            invoked: false,
+        });
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.callbacks_pending += 1;
+        }
         self.stats.total_callbacks += 1;
         id
     }
@@ -218,11 +305,22 @@ impl HolisticRcuTracker {
     pub fn detect_stalls(&mut self, now: u64) -> Vec<RcuStall> {
         let mut new_stalls = Vec::new();
         for gp in self.grace_periods.values() {
-            if gp.is_complete() { continue; }
-            if now.saturating_sub(gp.start_ts) < self.stall_timeout_ns { continue; }
+            if gp.is_complete() {
+                continue;
+            }
+            if now.saturating_sub(gp.start_ts) < self.stall_timeout_ns {
+                continue;
+            }
             for &cpu in &gp.cpus_pending {
                 let depth = self.cpus.get(&cpu).map(|c| c.nesting_depth).unwrap_or(0);
-                let stall = RcuStall { gp_num: gp.gp_num, cpu, stall_ts: now, duration_ns: now.saturating_sub(gp.start_ts), flavor: gp.flavor, nesting_depth: depth };
+                let stall = RcuStall {
+                    gp_num: gp.gp_num,
+                    cpu,
+                    stall_ts: now,
+                    duration_ns: now.saturating_sub(gp.start_ts),
+                    flavor: gp.flavor,
+                    nesting_depth: depth,
+                };
                 new_stalls.push(stall.clone());
                 self.stalls.push(stall);
                 self.stats.stalls_detected += 1;
@@ -232,14 +330,30 @@ impl HolisticRcuTracker {
     }
 
     #[inline(always)]
-    pub fn enter_read(&mut self, cpu: u32) { if let Some(c) = self.cpus.get_mut(&cpu) { c.enter_read(); } }
+    pub fn enter_read(&mut self, cpu: u32) {
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.enter_read();
+        }
+    }
     #[inline(always)]
-    pub fn exit_read(&mut self, cpu: u32) { if let Some(c) = self.cpus.get_mut(&cpu) { c.exit_read(); } }
+    pub fn exit_read(&mut self, cpu: u32) {
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.exit_read();
+        }
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
-        self.stats.gp_active = self.grace_periods.values().filter(|g| !g.is_complete()).count();
-        let done: Vec<&GracePeriod> = self.grace_periods.values().filter(|g| g.is_complete()).collect();
+        self.stats.gp_active = self
+            .grace_periods
+            .values()
+            .filter(|g| !g.is_complete())
+            .count();
+        let done: Vec<&GracePeriod> = self
+            .grace_periods
+            .values()
+            .filter(|g| g.is_complete())
+            .collect();
         if !done.is_empty() {
             let total: u64 = done.iter().map(|g| g.latency()).sum();
             self.stats.avg_gp_latency_ns = total / done.len() as u64;
@@ -248,11 +362,19 @@ impl HolisticRcuTracker {
     }
 
     #[inline(always)]
-    pub fn cpu(&self, id: u32) -> Option<&PerCpuRcuState> { self.cpus.get(&id) }
+    pub fn cpu(&self, id: u32) -> Option<&PerCpuRcuState> {
+        self.cpus.get(&id)
+    }
     #[inline(always)]
-    pub fn gp(&self, num: u64) -> Option<&GracePeriod> { self.grace_periods.get(&num) }
+    pub fn gp(&self, num: u64) -> Option<&GracePeriod> {
+        self.grace_periods.get(&num)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &RcuStats { &self.stats }
+    pub fn stats(&self) -> &RcuStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn stalls(&self) -> &[RcuStall] { &self.stalls }
+    pub fn stalls(&self) -> &[RcuStall] {
+        &self.stalls
+    }
 }

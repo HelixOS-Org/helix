@@ -212,7 +212,7 @@ impl TcpConnection {
         match self.state {
             TcpState::Established => self.state = TcpState::FinWait1,
             TcpState::CloseWait => self.state = TcpState::LastAck,
-            _ => {}
+            _ => {},
         }
         self.segments_sent += 1;
     }
@@ -287,7 +287,11 @@ impl HolisticTcpStack {
         if self.connections.is_empty() {
             return 0;
         }
-        let total: u64 = self.connections.values().map(|c| c.cwnd_state.bandwidth_estimate_bps()).sum();
+        let total: u64 = self
+            .connections
+            .values()
+            .map(|c| c.cwnd_state.bandwidth_estimate_bps())
+            .sum();
         total / self.connections.len() as u64
     }
 }

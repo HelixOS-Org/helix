@@ -66,7 +66,7 @@ impl CoopWaitManager {
         match mode {
             CoopWaitMode::Blocking => self.stats.blocking_waits += 1,
             CoopWaitMode::NonBlocking => self.stats.nonblocking_waits += 1,
-            _ => {}
+            _ => {},
         }
         let entry = CoopWaitEntry {
             waiter_pid: waiter,
@@ -76,7 +76,10 @@ impl CoopWaitManager {
             wait_duration_us: 0,
             reaped: false,
         };
-        self.pending.entry(waiter).or_insert_with(Vec::new).push(entry);
+        self.pending
+            .entry(waiter)
+            .or_insert_with(Vec::new)
+            .push(entry);
     }
 
     pub fn notify_exit(&mut self, pid: u64) {

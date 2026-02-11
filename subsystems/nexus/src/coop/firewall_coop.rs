@@ -57,10 +57,22 @@ pub struct CoopFwRule {
 }
 
 impl CoopFwRule {
-    pub fn new(rule_id: u64, chain: CoopFwChain, match_type: CoopFwMatch, action: CoopFwAction) -> Self {
+    pub fn new(
+        rule_id: u64,
+        chain: CoopFwChain,
+        match_type: CoopFwMatch,
+        action: CoopFwAction,
+    ) -> Self {
         Self {
-            rule_id, chain, match_type, match_value: 0, action, priority: 0,
-            hit_count: 0, byte_count: 0, shared: false,
+            rule_id,
+            chain,
+            match_type,
+            match_value: 0,
+            action,
+            priority: 0,
+            hit_count: 0,
+            byte_count: 0,
+            shared: false,
         }
     }
 
@@ -88,13 +100,22 @@ pub struct SharedRuleSet {
 
 impl SharedRuleSet {
     pub fn new(set_id: u64) -> Self {
-        Self { set_id, rules: Vec::new(), subscribers: Vec::new(), version: 0 }
+        Self {
+            set_id,
+            rules: Vec::new(),
+            subscribers: Vec::new(),
+            version: 0,
+        }
     }
 
     #[inline]
     pub fn add_rule(&mut self, mut rule: CoopFwRule) {
         rule.shared = true;
-        let pos = self.rules.iter().position(|r| r.priority > rule.priority).unwrap_or(self.rules.len());
+        let pos = self
+            .rules
+            .iter()
+            .position(|r| r.priority > rule.priority)
+            .unwrap_or(self.rules.len());
         self.rules.insert(pos, rule);
         self.version += 1;
     }
@@ -111,7 +132,9 @@ impl SharedRuleSet {
 
     #[inline(always)]
     pub fn subscribe(&mut self, ns_id: u64) {
-        if !self.subscribers.contains(&ns_id) { self.subscribers.push(ns_id); }
+        if !self.subscribers.contains(&ns_id) {
+            self.subscribers.push(ns_id);
+        }
     }
 }
 
@@ -137,7 +160,13 @@ impl CoopFirewall {
     pub fn new() -> Self {
         Self {
             rule_sets: BTreeMap::new(),
-            stats: CoopFwStats { total_rules: 0, shared_sets: 0, total_packets: 0, total_drops: 0, total_accepts: 0 },
+            stats: CoopFwStats {
+                total_rules: 0,
+                shared_sets: 0,
+                total_packets: 0,
+                total_drops: 0,
+                total_accepts: 0,
+            },
         }
     }
 
@@ -153,12 +182,17 @@ impl CoopFirewall {
             set.add_rule(rule);
             self.stats.total_rules += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn drop_rate(&self) -> f64 {
-        if self.stats.total_packets == 0 { 0.0 }
-        else { self.stats.total_drops as f64 / self.stats.total_packets as f64 }
+        if self.stats.total_packets == 0 {
+            0.0
+        } else {
+            self.stats.total_drops as f64 / self.stats.total_packets as f64
+        }
     }
 }

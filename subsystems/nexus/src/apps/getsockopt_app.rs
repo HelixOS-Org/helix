@@ -65,17 +65,35 @@ pub struct SockoptValue {
 impl SockoptValue {
     #[inline(always)]
     pub fn from_int(v: i32) -> Self {
-        Self { int_val: Some(v), u64_val: None, timeval_sec: None, timeval_usec: None, raw_len: 4 }
+        Self {
+            int_val: Some(v),
+            u64_val: None,
+            timeval_sec: None,
+            timeval_usec: None,
+            raw_len: 4,
+        }
     }
 
     #[inline(always)]
     pub fn from_u64(v: u64) -> Self {
-        Self { int_val: None, u64_val: Some(v), timeval_sec: None, timeval_usec: None, raw_len: 8 }
+        Self {
+            int_val: None,
+            u64_val: Some(v),
+            timeval_sec: None,
+            timeval_usec: None,
+            raw_len: 8,
+        }
     }
 
     #[inline(always)]
     pub fn from_timeval(sec: u64, usec: u64) -> Self {
-        Self { int_val: None, u64_val: None, timeval_sec: Some(sec), timeval_usec: Some(usec), raw_len: 16 }
+        Self {
+            int_val: None,
+            u64_val: None,
+            timeval_sec: Some(sec),
+            timeval_usec: Some(usec),
+            raw_len: 16,
+        }
     }
 
     #[inline(always)]
@@ -123,18 +141,23 @@ impl AppGetsockopt {
         let level_key = query.level as u8;
         *self.stats.per_level_counts.entry(level_key).or_insert(0) += 1;
         self.stats.total_queries += 1;
-        self.cached_options.entry(query.fd).or_insert_with(Vec::new).push(query);
+        self.cached_options
+            .entry(query.fd)
+            .or_insert_with(Vec::new)
+            .push(query);
     }
 
     #[inline]
     pub fn get_cached(&self, fd: u64, name: SockoptName) -> Option<&SockoptValue> {
-        self.cached_options.get(&fd).and_then(|opts| {
-            opts.iter().rev().find(|q| q.name == name).map(|q| &q.value)
-        })
+        self.cached_options
+            .get(&fd)
+            .and_then(|opts| opts.iter().rev().find(|q| q.name == name).map(|q| &q.value))
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &GetsockoptAppStats { &self.stats }
+    pub fn stats(&self) -> &GetsockoptAppStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -142,11 +165,25 @@ impl AppGetsockopt {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SockOptLevel { Socket, Tcp, Udp, Ipv4, Ipv6 }
+pub enum SockOptLevel {
+    Socket,
+    Tcp,
+    Udp,
+    Ipv4,
+    Ipv6,
+}
 
 /// Socket option name
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SockOptNameV2 { ReuseAddr, KeepAlive, NoDelay, RcvBuf, SndBuf, Linger, Error }
+pub enum SockOptNameV2 {
+    ReuseAddr,
+    KeepAlive,
+    NoDelay,
+    RcvBuf,
+    SndBuf,
+    Linger,
+    Error,
+}
 
 /// Getsockopt v2 request
 #[derive(Debug, Clone)]
@@ -157,27 +194,45 @@ pub struct GetsockoptV2Request {
 }
 
 impl GetsockoptV2Request {
-    pub fn new(fd: i32, level: SockOptLevel, name: SockOptNameV2) -> Self { Self { fd, level, name } }
+    pub fn new(fd: i32, level: SockOptLevel, name: SockOptNameV2) -> Self {
+        Self { fd, level, name }
+    }
 }
 
 /// Getsockopt v2 app stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct GetsockoptV2AppStats { pub total_queries: u64, pub socket_level: u64, pub tcp_level: u64, pub errors: u64 }
+pub struct GetsockoptV2AppStats {
+    pub total_queries: u64,
+    pub socket_level: u64,
+    pub tcp_level: u64,
+    pub errors: u64,
+}
 
 /// Main app getsockopt v2
 #[derive(Debug)]
-pub struct AppGetsockoptV2 { pub stats: GetsockoptV2AppStats }
+pub struct AppGetsockoptV2 {
+    pub stats: GetsockoptV2AppStats,
+}
 
 impl AppGetsockoptV2 {
-    pub fn new() -> Self { Self { stats: GetsockoptV2AppStats { total_queries: 0, socket_level: 0, tcp_level: 0, errors: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: GetsockoptV2AppStats {
+                total_queries: 0,
+                socket_level: 0,
+                tcp_level: 0,
+                errors: 0,
+            },
+        }
+    }
     #[inline]
     pub fn query(&mut self, req: &GetsockoptV2Request) -> u64 {
         self.stats.total_queries += 1;
         match req.level {
             SockOptLevel::Socket => self.stats.socket_level += 1,
             SockOptLevel::Tcp => self.stats.tcp_level += 1,
-            _ => {}
+            _ => {},
         }
         0
     }

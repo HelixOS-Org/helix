@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Ptrace request types
@@ -80,21 +79,37 @@ pub struct RegisterSnapshot {
 
 impl RegisterSnapshot {
     #[inline(always)]
-    pub fn syscall_nr(&self) -> u64 { self.orig_rax }
+    pub fn syscall_nr(&self) -> u64 {
+        self.orig_rax
+    }
     #[inline(always)]
-    pub fn syscall_return(&self) -> u64 { self.rax }
+    pub fn syscall_return(&self) -> u64 {
+        self.rax
+    }
     #[inline(always)]
-    pub fn arg0(&self) -> u64 { self.rdi }
+    pub fn arg0(&self) -> u64 {
+        self.rdi
+    }
     #[inline(always)]
-    pub fn arg1(&self) -> u64 { self.rsi }
+    pub fn arg1(&self) -> u64 {
+        self.rsi
+    }
     #[inline(always)]
-    pub fn arg2(&self) -> u64 { self.rdx }
+    pub fn arg2(&self) -> u64 {
+        self.rdx
+    }
     #[inline(always)]
-    pub fn arg3(&self) -> u64 { self.r10 }
+    pub fn arg3(&self) -> u64 {
+        self.r10
+    }
     #[inline(always)]
-    pub fn arg4(&self) -> u64 { self.r8 }
+    pub fn arg4(&self) -> u64 {
+        self.r8
+    }
     #[inline(always)]
-    pub fn arg5(&self) -> u64 { self.r9 }
+    pub fn arg5(&self) -> u64 {
+        self.r9
+    }
 }
 
 /// Breakpoint entry
@@ -173,7 +188,9 @@ pub struct Tracee {
 impl Tracee {
     pub fn new(pid: u64, tid: u64, tracer: u64, ts: u64) -> Self {
         Self {
-            pid, tid, tracer_pid: tracer,
+            pid,
+            tid,
+            tracer_pid: tracer,
             state: TraceeState::Running,
             regs: RegisterSnapshot::default(),
             breakpoints: Vec::new(),
@@ -198,8 +215,12 @@ impl Tracee {
         let id = self.next_bp_id;
         self.next_bp_id += 1;
         self.breakpoints.push(Breakpoint {
-            id, address: addr, original_byte: orig_byte,
-            enabled: true, hit_count: 0, condition: None,
+            id,
+            address: addr,
+            original_byte: orig_byte,
+            enabled: true,
+            hit_count: 0,
+            condition: None,
         });
         id
     }
@@ -209,8 +230,12 @@ impl Tracee {
         let id = self.next_wp_id;
         self.next_wp_id += 1;
         self.watchpoints.push(Watchpoint {
-            id, address: addr, size, watch_type: wtype,
-            enabled: true, hit_count: 0,
+            id,
+            address: addr,
+            size,
+            watch_type: wtype,
+            enabled: true,
+            hit_count: 0,
         });
         id
     }
@@ -220,7 +245,9 @@ impl Tracee {
         if let Some(idx) = self.breakpoints.iter().position(|b| b.id == id) {
             self.breakpoints.remove(idx);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -297,7 +324,9 @@ impl BridgePtraceBridge {
             tracee.state = TraceeState::Detached;
             self.emit_event(tracee.tracer_pid, tracee.pid, PtraceRequest::Detach, ts);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -349,7 +378,9 @@ impl BridgePtraceBridge {
             timestamp_ns: ts,
             ..Default::default()
         });
-        while self.events.len() > self.max_events { self.events.remove(0); }
+        while self.events.len() > self.max_events {
+            self.events.remove(0);
+        }
     }
 
     #[inline]
@@ -362,9 +393,13 @@ impl BridgePtraceBridge {
     }
 
     #[inline(always)]
-    pub fn tracee(&self, tid: u64) -> Option<&Tracee> { self.tracees.get(&tid) }
+    pub fn tracee(&self, tid: u64) -> Option<&Tracee> {
+        self.tracees.get(&tid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgePtraceStats { &self.stats }
+    pub fn stats(&self) -> &BridgePtraceStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -415,15 +450,30 @@ impl RegisterSet {
     #[inline]
     pub fn zeroed() -> Self {
         Self {
-            rax: 0, rbx: 0, rcx: 0, rdx: 0, rsi: 0, rdi: 0,
-            rbp: 0, rsp: 0, r8: 0, r9: 0, r10: 0, r11: 0,
-            r12: 0, r13: 0, r14: 0, r15: 0, rip: 0, rflags: 0,
-            cs: 0, ss: 0, orig_rax: 0,
+            rax: 0,
+            rbx: 0,
+            rcx: 0,
+            rdx: 0,
+            rsi: 0,
+            rdi: 0,
+            rbp: 0,
+            rsp: 0,
+            r8: 0,
+            r9: 0,
+            r10: 0,
+            r11: 0,
+            r12: 0,
+            r13: 0,
+            r14: 0,
+            r15: 0,
+            rip: 0,
+            rflags: 0,
+            cs: 0,
+            ss: 0,
+            orig_rax: 0,
         }
     }
 }
-
-
 
 /// Bridge stats
 #[derive(Debug, Clone)]
@@ -446,12 +496,18 @@ pub struct BridgePtraceV2 {
 
 impl BridgePtraceV2 {
     pub fn new() -> Self {
-        Self { tracees: BTreeMap::new(), events: VecDeque::new(), max_events: 4096 }
+        Self {
+            tracees: BTreeMap::new(),
+            events: VecDeque::new(),
+            max_events: 4096,
+        }
     }
 
     #[inline]
     pub fn attach(&mut self, pid: u64, tracer: u64, now: u64) -> bool {
-        if self.tracees.contains_key(&pid) { return false; }
+        if self.tracees.contains_key(&pid) {
+            return false;
+        }
         self.tracees.insert(pid, Tracee::new(pid, pid, tracer, now));
         self.record_event(pid, PtraceRequest::Attach, 0, now);
         true
@@ -463,7 +519,9 @@ impl BridgePtraceV2 {
             t.detach();
             self.record_event(pid, PtraceRequest::Detach, 0, now);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -476,7 +534,10 @@ impl BridgePtraceV2 {
                 PtraceStop::GroupStop => TraceeState::GroupStop,
                 _ => TraceeState::EventStop,
             };
-            let sig = match reason { PtraceStop::Signal(s) => Some(s), _ => None };
+            let sig = match reason {
+                PtraceStop::Signal(s) => Some(s),
+                _ => None,
+            };
             t.stop(state, sig);
         }
     }
@@ -485,7 +546,11 @@ impl BridgePtraceV2 {
     pub fn continue_tracee(&mut self, pid: u64, stepping: bool, now: u64) {
         if let Some(t) = self.tracees.get_mut(&pid) {
             t.resume();
-            let req = if stepping { PtraceRequest::SingleStep } else { PtraceRequest::Continue };
+            let req = if stepping {
+                PtraceRequest::SingleStep
+            } else {
+                PtraceRequest::Continue
+            };
             self.record_event(pid, req, 0, now);
         }
     }
@@ -496,18 +561,32 @@ impl BridgePtraceV2 {
     }
 
     fn record_event(&mut self, pid: u64, req: PtraceRequest, result: i64, now: u64) {
-        if self.events.len() >= self.max_events { self.events.drain(..self.max_events / 4); }
-        self.events.push_back(PtraceEvent { tracer_pid: 0, tracee_pid: pid, request: req, result, timestamp_ns: now });
+        if self.events.len() >= self.max_events {
+            self.events.drain(..self.max_events / 4);
+        }
+        self.events.push_back(PtraceEvent {
+            tracer_pid: 0,
+            tracee_pid: pid,
+            request: req,
+            result,
+            timestamp_ns: now,
+        });
     }
 
     #[inline]
     pub fn stats(&self) -> PtraceV2BridgeStats {
-        let active = self.tracees.values().filter(|t| t.state != TraceeState::Detached && t.state != TraceeState::Exited).count() as u32;
+        let active = self
+            .tracees
+            .values()
+            .filter(|t| t.state != TraceeState::Detached && t.state != TraceeState::Exited)
+            .count() as u32;
         let syscalls: u64 = self.tracees.values().map(|t| t.total_syscalls).sum();
         let stops: u64 = self.tracees.values().map(|t| t.total_stops).sum();
         PtraceV2BridgeStats {
-            total_tracees: self.tracees.len() as u32, active_tracees: active,
-            total_events: self.events.len() as u64, total_syscalls_traced: syscalls,
+            total_tracees: self.tracees.len() as u32,
+            active_tracees: active,
+            total_events: self.events.len() as u64,
+            total_syscalls_traced: syscalls,
             total_stops: stops,
         }
     }
@@ -568,7 +647,16 @@ pub struct PtraceV3Session {
 
 impl PtraceV3Session {
     pub fn new(tracer: u64, tracee: u64) -> Self {
-        Self { tracer, tracee, attached: true, events: VecDeque::new(), breakpoints: Vec::new(), watchpoints: Vec::new(), single_stepping: false, syscall_tracing: false }
+        Self {
+            tracer,
+            tracee,
+            attached: true,
+            events: VecDeque::new(),
+            breakpoints: Vec::new(),
+            watchpoints: Vec::new(),
+            single_stepping: false,
+            syscall_tracing: false,
+        }
     }
 }
 
@@ -591,32 +679,57 @@ pub struct BridgePtraceV3 {
 }
 
 impl BridgePtraceV3 {
-    pub fn new() -> Self { Self { sessions: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            sessions: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn attach(&mut self, tracer: u64, tracee: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.sessions.insert(id, PtraceV3Session::new(tracer, tracee));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.sessions
+            .insert(id, PtraceV3Session::new(tracer, tracee));
         id
     }
 
     #[inline(always)]
     pub fn detach(&mut self, id: u64) {
-        if let Some(s) = self.sessions.get_mut(&id) { s.attached = false; }
+        if let Some(s) = self.sessions.get_mut(&id) {
+            s.attached = false;
+        }
     }
 
     #[inline(always)]
     pub fn add_watchpoint(&mut self, id: u64, addr: u64, size: u64) {
-        if let Some(s) = self.sessions.get_mut(&id) { s.watchpoints.push((addr, size)); }
+        if let Some(s) = self.sessions.get_mut(&id) {
+            s.watchpoints.push((addr, size));
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> PtraceV3BridgeStats {
         let active = self.sessions.values().filter(|s| s.attached).count() as u32;
         let events: u64 = self.sessions.values().map(|s| s.events.len() as u64).sum();
-        let bps: u32 = self.sessions.values().map(|s| s.breakpoints.len() as u32).sum();
-        let wps: u32 = self.sessions.values().map(|s| s.watchpoints.len() as u32).sum();
-        PtraceV3BridgeStats { total_sessions: self.sessions.len() as u32, active_sessions: active, total_events: events, total_breakpoints: bps, total_watchpoints: wps }
+        let bps: u32 = self
+            .sessions
+            .values()
+            .map(|s| s.breakpoints.len() as u32)
+            .sum();
+        let wps: u32 = self
+            .sessions
+            .values()
+            .map(|s| s.watchpoints.len() as u32)
+            .sum();
+        PtraceV3BridgeStats {
+            total_sessions: self.sessions.len() as u32,
+            active_sessions: active,
+            total_events: events,
+            total_breakpoints: bps,
+            total_watchpoints: wps,
+        }
     }
 }
 
@@ -707,9 +820,17 @@ impl PtraceV4Tracee {
             tracer_pid: tracer,
             stop_reason: None,
             regs: PtraceV4Regs {
-                rax: 0, rbx: 0, rcx: 0, rdx: 0,
-                rsi: 0, rdi: 0, rbp: 0, rsp: 0,
-                rip: 0, rflags: 0, orig_rax: 0,
+                rax: 0,
+                rbx: 0,
+                rcx: 0,
+                rdx: 0,
+                rsi: 0,
+                rdi: 0,
+                rbp: 0,
+                rsp: 0,
+                rip: 0,
+                rflags: 0,
+                orig_rax: 0,
             },
             stopped: false,
             seized: false,
@@ -729,7 +850,7 @@ impl PtraceV4Tracee {
         match reason {
             PtraceV4Stop::SyscallEntry | PtraceV4Stop::SyscallExit => self.syscall_count += 1,
             PtraceV4Stop::SignalDelivery => self.signal_count += 1,
-            _ => {}
+            _ => {},
         }
     }
 
@@ -914,11 +1035,19 @@ pub struct PtraceV5HwBreakpoint {
 
 impl PtraceV5HwBreakpoint {
     pub fn new(bp_type: PtraceV5HwType, address: u64, length: u32) -> Self {
-        Self { bp_type, address, length, enabled: true, hit_count: 0 }
+        Self {
+            bp_type,
+            address,
+            length,
+            enabled: true,
+            hit_count: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn hit(&mut self) { self.hit_count += 1; }
+    pub fn hit(&mut self) {
+        self.hit_count += 1;
+    }
     #[inline(always)]
     pub fn contains_addr(&self, addr: u64) -> bool {
         addr >= self.address && addr < self.address + self.length as u64
@@ -954,7 +1083,9 @@ impl PtraceV5TraceeState {
 
     #[inline]
     pub fn add_hw_breakpoint(&mut self, bp: PtraceV5HwBreakpoint) -> bool {
-        if self.hw_breakpoints.len() >= 4 { return false; }
+        if self.hw_breakpoints.len() >= 4 {
+            return false;
+        }
         self.hw_breakpoints.push(bp);
         true
     }

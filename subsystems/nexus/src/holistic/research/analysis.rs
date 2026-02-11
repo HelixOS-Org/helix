@@ -19,11 +19,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::linear_map::LinearMap;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -241,15 +241,27 @@ impl HolisticAnalysisEngine {
     }
 
     /// Ingest a result from any subsystem
-    pub fn ingest_result(&mut self, source: SourceSubsystem, cat: ResultCategory,
-                         effect: f32, variance: f32, sample_size: u64, confidence: f32) {
-        let hash = fnv1a_hash(
-            &[source as u8, cat as u8, (self.tick & 0xFF) as u8],
-        );
+    pub fn ingest_result(
+        &mut self,
+        source: SourceSubsystem,
+        cat: ResultCategory,
+        effect: f32,
+        variance: f32,
+        sample_size: u64,
+        confidence: f32,
+    ) {
+        let hash = fnv1a_hash(&[source as u8, cat as u8, (self.tick & 0xFF) as u8]);
         let id = self.stats.total_results_ingested;
         let result = AnalysisResult {
-            id, source, category: cat, effect_size: effect,
-            variance, sample_size, confidence, tick: self.tick, hash,
+            id,
+            source,
+            category: cat,
+            effect_size: effect,
+            variance,
+            sample_size,
+            confidence,
+            tick: self.tick,
+            hash,
         };
         if self.results.len() >= MAX_RESULTS {
             self.results.remove(0);
@@ -260,16 +272,23 @@ impl HolisticAnalysisEngine {
 
     /// Run meta-analysis across all results for a given category
     pub fn meta_analysis(&mut self, cat: ResultCategory) -> MetaAnalysisOutcome {
-        let relevant: Vec<&AnalysisResult> = self.results.iter()
+        let relevant: Vec<&AnalysisResult> = self
+            .results
+            .iter()
             .filter(|r| r.category == cat && r.variance > 0.0)
             .collect();
         let n = relevant.len() as u64;
         if n == 0 {
             return MetaAnalysisOutcome {
-                category: cat, pooled_effect: 0.0, heterogeneity_i2: 0.0,
-                confidence_lower: 0.0, confidence_upper: 0.0,
-                contributing_results: 0, subsystem_count: 0,
-                is_significant: false, tick: self.tick,
+                category: cat,
+                pooled_effect: 0.0,
+                heterogeneity_i2: 0.0,
+                confidence_lower: 0.0,
+                confidence_upper: 0.0,
+                contributing_results: 0,
+                subsystem_count: 0,
+                is_significant: false,
+                tick: self.tick,
             };
         }
         let mut weight_sum = 0.0f32;
@@ -283,7 +302,11 @@ impl HolisticAnalysisEngine {
                 subsystems_seen.push(r.source);
             }
         }
-        let pooled = if weight_sum > 0.0 { weighted_effect / weight_sum } else { 0.0 };
+        let pooled = if weight_sum > 0.0 {
+            weighted_effect / weight_sum
+        } else {
+            0.0
+        };
         let mut q_stat = 0.0f32;
         for r in &relevant {
             let w = 1.0 / (r.variance + 0.001);
@@ -291,8 +314,16 @@ impl HolisticAnalysisEngine {
             q_stat += w * diff * diff;
         }
         let df = if n > 1 { (n - 1) as f32 } else { 1.0 };
-        let i_squared = if q_stat > df { (q_stat - df) / q_stat } else { 0.0 };
-        let se = if weight_sum > 0.0 { (1.0 / weight_sum).sqrt() } else { 1.0 };
+        let i_squared = if q_stat > df {
+            (q_stat - df) / q_stat
+        } else {
+            0.0
+        };
+        let se = if weight_sum > 0.0 {
+            (1.0 / weight_sum).sqrt()
+        } else {
+            1.0
+        };
         let z = 1.96;
         let ci_lower = pooled - z * se;
         let ci_upper = pooled + z * se;
@@ -308,11 +339,13 @@ impl HolisticAnalysisEngine {
             is_significant: is_sig,
             tick: self.tick,
         };
-        self.stats.avg_pooled_effect_ema = self.stats.avg_pooled_effect_ema
-            * (1.0 - EMA_ALPHA) + pooled.abs() * EMA_ALPHA;
-        self.stats.avg_heterogeneity_ema = self.stats.avg_heterogeneity_ema
-            * (1.0 - EMA_ALPHA) + i_squared * EMA_ALPHA;
-        if is_sig { self.stats.significant_findings += 1; }
+        self.stats.avg_pooled_effect_ema =
+            self.stats.avg_pooled_effect_ema * (1.0 - EMA_ALPHA) + pooled.abs() * EMA_ALPHA;
+        self.stats.avg_heterogeneity_ema =
+            self.stats.avg_heterogeneity_ema * (1.0 - EMA_ALPHA) + i_squared * EMA_ALPHA;
+        if is_sig {
+            self.stats.significant_findings += 1;
+        }
         self.stats.meta_analyses_run += 1;
         let key = fnv1a_hash(&[cat as u8, (self.tick & 0xFF) as u8]);
         self.meta_outcomes.insert(key, outcome.clone());
@@ -320,29 +353,40 @@ impl HolisticAnalysisEngine {
     }
 
     /// Cross-subsystem synthesis — combine signals from two subsystems
-    pub fn cross_subsystem_synthesis(&mut self, a: SourceSubsystem, b: SourceSubsystem)
-        -> CrossSynthesisRecord
-    {
-        let results_a: Vec<&AnalysisResult> = self.results.iter()
-            .filter(|r| r.source == a).collect();
-        let results_b: Vec<&AnalysisResult> = self.results.iter()
-            .filter(|r| r.source == b).collect();
-        let mean_a = if results_a.is_empty() { 0.0 } else {
+    pub fn cross_subsystem_synthesis(
+        &mut self,
+        a: SourceSubsystem,
+        b: SourceSubsystem,
+    ) -> CrossSynthesisRecord {
+        let results_a: Vec<&AnalysisResult> =
+            self.results.iter().filter(|r| r.source == a).collect();
+        let results_b: Vec<&AnalysisResult> =
+            self.results.iter().filter(|r| r.source == b).collect();
+        let mean_a = if results_a.is_empty() {
+            0.0
+        } else {
             results_a.iter().map(|r| r.effect_size).sum::<f32>() / results_a.len() as f32
         };
-        let mean_b = if results_b.is_empty() { 0.0 } else {
+        let mean_b = if results_b.is_empty() {
+            0.0
+        } else {
             results_b.iter().map(|r| r.effect_size).sum::<f32>() / results_b.len() as f32
         };
         let combined = (mean_a + mean_b) * 0.5;
         let interaction = (mean_a * mean_b).abs().sqrt();
         let noise = xorshift_f32(&mut self.rng_state) * 0.02;
-        let conf = ((results_a.len() + results_b.len()) as f32 /
-            (MAX_RESULTS as f32 * 0.1)).min(1.0) * (1.0 - noise);
+        let conf = ((results_a.len() + results_b.len()) as f32 / (MAX_RESULTS as f32 * 0.1))
+            .min(1.0)
+            * (1.0 - noise);
         let id = self.stats.cross_syntheses;
         let record = CrossSynthesisRecord {
-            id, subsystem_a: a, subsystem_b: b,
-            combined_effect: combined, interaction_term: interaction,
-            confidence: conf, tick: self.tick,
+            id,
+            subsystem_a: a,
+            subsystem_b: b,
+            combined_effect: combined,
+            interaction_term: interaction,
+            confidence: conf,
+            tick: self.tick,
         };
         let key = fnv1a_hash(&[a as u8, b as u8, (self.tick & 0xFF) as u8]);
         self.cross_syntheses.insert(key, record.clone());
@@ -352,13 +396,20 @@ impl HolisticAnalysisEngine {
 
     /// Compute the global effect size for a category using random-effects model
     pub fn global_effect_size(&mut self, cat: ResultCategory) -> GlobalEffectEstimate {
-        let relevant: Vec<&AnalysisResult> = self.results.iter()
-            .filter(|r| r.category == cat && r.variance > 0.0).collect();
+        let relevant: Vec<&AnalysisResult> = self
+            .results
+            .iter()
+            .filter(|r| r.category == cat && r.variance > 0.0)
+            .collect();
         if relevant.is_empty() {
             return GlobalEffectEstimate {
-                category: cat, global_effect: 0.0, weight_sum: 0.0,
-                heterogeneity: 0.0, prediction_interval: (0.0, 0.0),
-                tau_squared: 0.0, updated_tick: self.tick,
+                category: cat,
+                global_effect: 0.0,
+                weight_sum: 0.0,
+                heterogeneity: 0.0,
+                prediction_interval: (0.0, 0.0),
+                tau_squared: 0.0,
+                updated_tick: self.tick,
             };
         }
         let mut w_sum = 0.0f32;
@@ -378,7 +429,11 @@ impl HolisticAnalysisEngine {
         }
         let k = relevant.len() as f32;
         let c = w_sum - w2_sum / w_sum;
-        let tau2 = if q > k - 1.0 && c > 0.0 { (q - (k - 1.0)) / c } else { 0.0 };
+        let tau2 = if q > k - 1.0 && c > 0.0 {
+            (q - (k - 1.0)) / c
+        } else {
+            0.0
+        };
         let mut rw_sum = 0.0f32;
         let mut rwe_sum = 0.0f32;
         for r in &relevant {
@@ -387,13 +442,21 @@ impl HolisticAnalysisEngine {
             rwe_sum += rw * r.effect_size;
         }
         let global = if rw_sum > 0.0 { rwe_sum / rw_sum } else { 0.0 };
-        let se = if rw_sum > 0.0 { (1.0 / rw_sum).sqrt() } else { 1.0 };
+        let se = if rw_sum > 0.0 {
+            (1.0 / rw_sum).sqrt()
+        } else {
+            1.0
+        };
         let pred_se = (se * se + tau2).sqrt();
         let estimate = GlobalEffectEstimate {
             category: cat,
             global_effect: global,
             weight_sum: rw_sum,
-            heterogeneity: if q > 0.0 { ((q - (k - 1.0)).max(0.0)) / q } else { 0.0 },
+            heterogeneity: if q > 0.0 {
+                ((q - (k - 1.0)).max(0.0)) / q
+            } else {
+                0.0
+            },
             prediction_interval: (global - 1.96 * pred_se, global + 1.96 * pred_se),
             tau_squared: tau2,
             updated_tick: self.tick,
@@ -409,25 +472,29 @@ impl HolisticAnalysisEngine {
         if self.results.len() < 4 {
             return 0.0;
         }
-        let observed_mean: f32 = self.results.iter()
-            .map(|r| r.effect_size).sum::<f32>() / self.results.len() as f32;
+        let observed_mean: f32 =
+            self.results.iter().map(|r| r.effect_size).sum::<f32>() / self.results.len() as f32;
         let mut extreme_count = 0u64;
         let n = self.results.len();
         let rounds = PERMUTATION_ROUNDS.min(n as u64 * 10);
         for _ in 0..rounds {
             let idx_a = (xorshift64(&mut self.rng_state) as usize) % n;
             let idx_b = (xorshift64(&mut self.rng_state) as usize) % n;
-            let perm_mean = (self.results[idx_a].effect_size
-                + self.results[idx_b].effect_size) * 0.5;
+            let perm_mean =
+                (self.results[idx_a].effect_size + self.results[idx_b].effect_size) * 0.5;
             if perm_mean.abs() >= observed_mean.abs() {
                 extreme_count += 1;
             }
             self.stats.permutation_tests_run += 1;
         }
         let p_value = extreme_count as f32 / rounds as f32;
-        let sig_rate = if p_value < SIGNIFICANCE_ALPHA { 1.0 } else { 0.0 };
-        self.stats.system_significance_rate = self.stats.system_significance_rate
-            * (1.0 - EMA_ALPHA) + sig_rate * EMA_ALPHA;
+        let sig_rate = if p_value < SIGNIFICANCE_ALPHA {
+            1.0
+        } else {
+            0.0
+        };
+        self.stats.system_significance_rate =
+            self.stats.system_significance_rate * (1.0 - EMA_ALPHA) + sig_rate * EMA_ALPHA;
         self.stats.last_analysis_tick = self.tick;
         p_value
     }
@@ -435,40 +502,61 @@ impl HolisticAnalysisEngine {
     /// Map the power landscape — where do we need more data?
     pub fn power_landscape(&mut self) -> Vec<PowerCell> {
         let subsystems = [
-            SourceSubsystem::Bridge, SourceSubsystem::Application,
-            SourceSubsystem::Cooperation, SourceSubsystem::Memory,
-            SourceSubsystem::Scheduler, SourceSubsystem::Ipc,
-            SourceSubsystem::Trust, SourceSubsystem::Energy,
+            SourceSubsystem::Bridge,
+            SourceSubsystem::Application,
+            SourceSubsystem::Cooperation,
+            SourceSubsystem::Memory,
+            SourceSubsystem::Scheduler,
+            SourceSubsystem::Ipc,
+            SourceSubsystem::Trust,
+            SourceSubsystem::Energy,
         ];
         let categories = [
-            ResultCategory::Performance, ResultCategory::Latency,
-            ResultCategory::Throughput, ResultCategory::Fairness,
-            ResultCategory::Reliability, ResultCategory::Efficiency,
+            ResultCategory::Performance,
+            ResultCategory::Latency,
+            ResultCategory::Throughput,
+            ResultCategory::Fairness,
+            ResultCategory::Reliability,
+            ResultCategory::Efficiency,
         ];
         let mut landscape = Vec::new();
         for &sub in &subsystems {
             for &cat in &categories {
-                let matching: Vec<&AnalysisResult> = self.results.iter()
-                    .filter(|r| r.source == sub && r.category == cat).collect();
+                let matching: Vec<&AnalysisResult> = self
+                    .results
+                    .iter()
+                    .filter(|r| r.source == sub && r.category == cat)
+                    .collect();
                 let current_n = matching.len() as u64;
-                let avg_var = if matching.is_empty() { 1.0 } else {
-                    matching.iter().map(|r| r.variance).sum::<f32>()
-                        / matching.len() as f32
+                let avg_var = if matching.is_empty() {
+                    1.0
+                } else {
+                    matching.iter().map(|r| r.variance).sum::<f32>() / matching.len() as f32
                 };
                 let needed = if avg_var > 0.001 {
-                    ((1.96 * 1.96 * avg_var) / (EFFECT_SIZE_FLOOR * EFFECT_SIZE_FLOOR))
-                        as u64
-                } else { 10 };
+                    ((1.96 * 1.96 * avg_var) / (EFFECT_SIZE_FLOOR * EFFECT_SIZE_FLOOR)) as u64
+                } else {
+                    10
+                };
                 let current_power = (current_n as f32 / needed.max(1) as f32).min(1.0);
                 let deficit = (POWER_MINIMUM - current_power).max(0.0);
                 landscape.push(PowerCell {
-                    subsystem: sub, category: cat, current_power,
-                    samples_for_target: needed, current_samples: current_n, deficit,
+                    subsystem: sub,
+                    category: cat,
+                    current_power,
+                    samples_for_target: needed,
+                    current_samples: current_n,
+                    deficit,
                 });
             }
         }
-        let coverage = if landscape.is_empty() { 0.0 } else {
-            landscape.iter().filter(|c| c.current_power >= POWER_MINIMUM).count() as f32
+        let coverage = if landscape.is_empty() {
+            0.0
+        } else {
+            landscape
+                .iter()
+                .filter(|c| c.current_power >= POWER_MINIMUM)
+                .count() as f32
                 / landscape.len() as f32
         };
         self.stats.power_landscape_coverage = coverage;
@@ -482,36 +570,57 @@ impl HolisticAnalysisEngine {
     /// Compute analysis completeness across all dimensions
     pub fn analysis_completeness(&mut self) -> f32 {
         let subsystems = [
-            SourceSubsystem::Bridge, SourceSubsystem::Application,
-            SourceSubsystem::Cooperation, SourceSubsystem::Memory,
-            SourceSubsystem::Scheduler, SourceSubsystem::Ipc,
+            SourceSubsystem::Bridge,
+            SourceSubsystem::Application,
+            SourceSubsystem::Cooperation,
+            SourceSubsystem::Memory,
+            SourceSubsystem::Scheduler,
+            SourceSubsystem::Ipc,
         ];
         let categories = [
-            ResultCategory::Performance, ResultCategory::Latency,
-            ResultCategory::Throughput, ResultCategory::Fairness,
+            ResultCategory::Performance,
+            ResultCategory::Latency,
+            ResultCategory::Throughput,
+            ResultCategory::Fairness,
         ];
         let mut covered = 0u64;
         let mut total = 0u64;
         for &sub in &subsystems {
             for &cat in &categories {
                 total += 1;
-                let has_result = self.results.iter()
+                let has_result = self
+                    .results
+                    .iter()
                     .any(|r| r.source == sub && r.category == cat);
                 let coverage = if has_result {
-                    let count = self.results.iter()
-                        .filter(|r| r.source == sub && r.category == cat).count();
+                    let count = self
+                        .results
+                        .iter()
+                        .filter(|r| r.source == sub && r.category == cat)
+                        .count();
                     (count as f32 / 10.0).min(1.0)
-                } else { 0.0 };
+                } else {
+                    0.0
+                };
                 let gap = (1.0 - coverage).max(0.0);
                 let key = fnv1a_hash(&[sub as u8, cat as u8, 0xCC]);
                 self.completeness_map.insert(key, CompletenessDimension {
-                    subsystem: sub, category: cat, coverage,
-                    last_result_tick: self.tick, gap_severity: gap,
+                    subsystem: sub,
+                    category: cat,
+                    coverage,
+                    last_result_tick: self.tick,
+                    gap_severity: gap,
                 });
-                if coverage >= COMPLETENESS_TARGET { covered += 1; }
+                if coverage >= COMPLETENESS_TARGET {
+                    covered += 1;
+                }
             }
         }
-        let completeness = if total > 0 { covered as f32 / total as f32 } else { 0.0 };
+        let completeness = if total > 0 {
+            covered as f32 / total as f32
+        } else {
+            0.0
+        };
         self.stats.completeness_score = completeness;
         completeness
     }

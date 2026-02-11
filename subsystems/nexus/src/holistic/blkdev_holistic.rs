@@ -41,13 +41,23 @@ pub struct BlkPartition {
 
 impl BlkPartition {
     pub fn new(part_num: u32, start: u64, nr_sectors: u64) -> Self {
-        Self { part_num, start_sector: start, nr_sectors, fs_type_hash: 0, flags: 0 }
+        Self {
+            part_num,
+            start_sector: start,
+            nr_sectors,
+            fs_type_hash: 0,
+            flags: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn size_bytes(&self) -> u64 { self.nr_sectors * 512 }
+    pub fn size_bytes(&self) -> u64 {
+        self.nr_sectors * 512
+    }
     #[inline(always)]
-    pub fn end_sector(&self) -> u64 { self.start_sector + self.nr_sectors }
+    pub fn end_sector(&self) -> u64 {
+        self.start_sector + self.nr_sectors
+    }
 }
 
 /// Block device instance
@@ -70,28 +80,52 @@ pub struct BlkdevInstance {
 impl BlkdevInstance {
     pub fn new(dev_id: u64, name: &[u8], dev_type: BlkdevType, total_sectors: u64) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in name { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in name {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            dev_id, name_hash: h, dev_type, state: BlkdevState::Online,
-            sector_size: 512, total_sectors, queue_depth: 32, max_hw_sectors: 2048,
-            partitions: Vec::new(), read_bytes: 0, write_bytes: 0, io_ticks_ms: 0,
+            dev_id,
+            name_hash: h,
+            dev_type,
+            state: BlkdevState::Online,
+            sector_size: 512,
+            total_sectors,
+            queue_depth: 32,
+            max_hw_sectors: 2048,
+            partitions: Vec::new(),
+            read_bytes: 0,
+            write_bytes: 0,
+            io_ticks_ms: 0,
         }
     }
 
     #[inline(always)]
-    pub fn capacity_bytes(&self) -> u64 { self.total_sectors * self.sector_size as u64 }
+    pub fn capacity_bytes(&self) -> u64 {
+        self.total_sectors * self.sector_size as u64
+    }
     #[inline(always)]
-    pub fn add_partition(&mut self, part: BlkPartition) { self.partitions.push(part); }
+    pub fn add_partition(&mut self, part: BlkPartition) {
+        self.partitions.push(part);
+    }
     #[inline(always)]
-    pub fn is_rotational(&self) -> bool { self.dev_type == BlkdevType::Hdd }
-
-    #[inline(always)]
-    pub fn record_io(&mut self, read: bool, bytes: u64) {
-        if read { self.read_bytes += bytes; } else { self.write_bytes += bytes; }
+    pub fn is_rotational(&self) -> bool {
+        self.dev_type == BlkdevType::Hdd
     }
 
     #[inline(always)]
-    pub fn throughput_bytes(&self) -> u64 { self.read_bytes + self.write_bytes }
+    pub fn record_io(&mut self, read: bool, bytes: u64) {
+        if read {
+            self.read_bytes += bytes;
+        } else {
+            self.write_bytes += bytes;
+        }
+    }
+
+    #[inline(always)]
+    pub fn throughput_bytes(&self) -> u64 {
+        self.read_bytes + self.write_bytes
+    }
 }
 
 /// Blkdev holistic stats
@@ -115,7 +149,12 @@ impl HolisticBlkdev {
     pub fn new() -> Self {
         Self {
             devices: BTreeMap::new(),
-            stats: HolisticBlkdevStats { total_devices: 0, total_capacity_bytes: 0, total_read_bytes: 0, total_write_bytes: 0 },
+            stats: HolisticBlkdevStats {
+                total_devices: 0,
+                total_capacity_bytes: 0,
+                total_read_bytes: 0,
+                total_write_bytes: 0,
+            },
         }
     }
 
@@ -130,8 +169,11 @@ impl HolisticBlkdev {
     pub fn record_io(&mut self, dev_id: u64, read: bool, bytes: u64) {
         if let Some(dev) = self.devices.get_mut(&dev_id) {
             dev.record_io(read, bytes);
-            if read { self.stats.total_read_bytes += bytes; }
-            else { self.stats.total_write_bytes += bytes; }
+            if read {
+                self.stats.total_read_bytes += bytes;
+            } else {
+                self.stats.total_write_bytes += bytes;
+            }
         }
     }
 }

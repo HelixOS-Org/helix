@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -66,10 +65,15 @@ pub struct ZoneWatermarks {
 impl ZoneWatermarks {
     #[inline]
     pub fn current_level(&self, free: u64) -> WatermarkLevel {
-        if free <= self.min { WatermarkLevel::Min }
-        else if free <= self.low { WatermarkLevel::Low }
-        else if free <= self.high { WatermarkLevel::High }
-        else { WatermarkLevel::Above }
+        if free <= self.min {
+            WatermarkLevel::Min
+        } else if free <= self.low {
+            WatermarkLevel::Low
+        } else if free <= self.high {
+            WatermarkLevel::High
+        } else {
+            WatermarkLevel::Above
+        }
     }
 }
 
@@ -92,7 +96,10 @@ pub struct BuddyOrderStats {
 
 impl BuddyOrderStats {
     pub fn new() -> Self {
-        Self { free_count: [0; 11], total_free_pages: 0 }
+        Self {
+            free_count: [0; 11],
+            total_free_pages: 0,
+        }
     }
 
     #[inline(always)]
@@ -102,20 +109,28 @@ impl BuddyOrderStats {
 
     #[inline(always)]
     pub fn pages_at_order(&self, order: u8) -> u64 {
-        if (order as usize) < 11 { self.free_count[order as usize] << order } else { 0 }
+        if (order as usize) < 11 {
+            self.free_count[order as usize] << order
+        } else {
+            0
+        }
     }
 
     #[inline]
     pub fn highest_available_order(&self) -> u8 {
         for i in (0..11).rev() {
-            if self.free_count[i] > 0 { return i as u8; }
+            if self.free_count[i] > 0 {
+                return i as u8;
+            }
         }
         0
     }
 
     #[inline]
     pub fn fragmentation_ratio(&self) -> f64 {
-        if self.total_free_pages == 0 { return 1.0; }
+        if self.total_free_pages == 0 {
+            return 1.0;
+        }
         let high_order: u64 = (4..11).map(|i| self.free_count[i] << i).sum();
         1.0 - (high_order as f64 / self.total_free_pages as f64)
     }
@@ -144,12 +159,25 @@ pub struct ZoneAllocState {
 impl ZoneAllocState {
     pub fn new(zone_type: PageZoneType, zone_id: u32, name: String) -> Self {
         Self {
-            zone_type, zone_id, zone_name: name,
-            start_pfn: 0, spanned_pages: 0, present_pages: 0, managed_pages: 0,
-            watermarks: ZoneWatermarks { min: 0, low: 0, high: 0, boost: 0 },
+            zone_type,
+            zone_id,
+            zone_name: name,
+            start_pfn: 0,
+            spanned_pages: 0,
+            present_pages: 0,
+            managed_pages: 0,
+            watermarks: ZoneWatermarks {
+                min: 0,
+                low: 0,
+                high: 0,
+                boost: 0,
+            },
             buddy: BuddyOrderStats::new(),
-            nr_alloc: 0, nr_free: 0, nr_alloc_fail: 0,
-            per_cpu_pages: 0, per_cpu_batch: 0,
+            nr_alloc: 0,
+            nr_free: 0,
+            nr_alloc_fail: 0,
+            per_cpu_pages: 0,
+            per_cpu_batch: 0,
         }
     }
 
@@ -160,7 +188,9 @@ impl ZoneAllocState {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.managed_pages == 0 { return 0.0; }
+        if self.managed_pages == 0 {
+            return 0.0;
+        }
         1.0 - (self.free_pages() as f64 / self.managed_pages as f64)
     }
 
@@ -172,7 +202,9 @@ impl ZoneAllocState {
     #[inline]
     pub fn alloc_fail_rate(&self) -> f64 {
         let total = self.nr_alloc + self.nr_alloc_fail;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.nr_alloc_fail as f64 / total as f64
     }
 
@@ -223,9 +255,13 @@ impl HolisticPageAlloc {
             recent_allocs: VecDeque::new(),
             max_recent: 4096,
             stats: PageAllocStats {
-                total_allocs: 0, total_frees: 0, total_failures: 0,
-                high_order_allocs: 0, high_order_failures: 0,
-                avg_alloc_latency_ns: 0, zone_count: 0,
+                total_allocs: 0,
+                total_frees: 0,
+                total_failures: 0,
+                high_order_allocs: 0,
+                high_order_failures: 0,
+                avg_alloc_latency_ns: 0,
+                zone_count: 0,
             },
             zonelist: Vec::new(),
         }
@@ -241,17 +277,25 @@ impl HolisticPageAlloc {
 
     pub fn record_alloc(&mut self, req: AllocRequest) {
         self.stats.total_allocs += 1;
-        if req.order >= 4 { self.stats.high_order_allocs += 1; }
+        if req.order >= 4 {
+            self.stats.high_order_allocs += 1;
+        }
         if !req.success {
             self.stats.total_failures += 1;
-            if req.order >= 4 { self.stats.high_order_failures += 1; }
+            if req.order >= 4 {
+                self.stats.high_order_failures += 1;
+            }
         }
         let n = self.stats.total_allocs;
         self.stats.avg_alloc_latency_ns =
             ((self.stats.avg_alloc_latency_ns * (n - 1)) + req.latency_ns) / n;
 
         if let Some(zone) = self.zones.get_mut(&(req.zone_preference as u32)) {
-            if req.success { zone.nr_alloc += 1; } else { zone.nr_alloc_fail += 1; }
+            if req.success {
+                zone.nr_alloc += 1;
+            } else {
+                zone.nr_alloc_fail += 1;
+            }
         }
 
         if self.recent_allocs.len() >= self.max_recent {
@@ -271,10 +315,10 @@ impl HolisticPageAlloc {
     pub fn find_zone_for(&self, order: u8, gfp: GfpFlags) -> Option<u32> {
         for &zid in &self.zonelist {
             if let Some(zone) = self.zones.get(&zid) {
-                if gfp.contains(GfpFlags::DMA) && zone.zone_type != PageZoneType::Dma { continue; }
-                if zone.can_satisfy(order)
-                    && zone.watermark_level() >= WatermarkLevel::Low
-                {
+                if gfp.contains(GfpFlags::DMA) && zone.zone_type != PageZoneType::Dma {
+                    continue;
+                }
+                if zone.can_satisfy(order) && zone.watermark_level() >= WatermarkLevel::Low {
                     return Some(zid);
                 }
             }
@@ -284,7 +328,8 @@ impl HolisticPageAlloc {
 
     #[inline]
     pub fn zones_below_watermark(&self, level: WatermarkLevel) -> Vec<u32> {
-        self.zones.iter()
+        self.zones
+            .iter()
             .filter(|(_, z)| z.watermark_level() < level)
             .map(|(&id, _)| id)
             .collect()
@@ -303,7 +348,9 @@ impl HolisticPageAlloc {
     #[inline]
     pub fn system_utilization(&self) -> f64 {
         let managed = self.total_managed_pages();
-        if managed == 0 { return 0.0; }
+        if managed == 0 {
+            return 0.0;
+        }
         1.0 - (self.total_free_pages() as f64 / managed as f64)
     }
 

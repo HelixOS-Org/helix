@@ -23,10 +23,15 @@ pub enum AllocClass {
 impl AllocClass {
     #[inline]
     pub fn from_size(size: usize) -> Self {
-        if size <= 256 { Self::Small }
-        else if size <= 4096 { Self::Medium }
-        else if size <= 2 * 1024 * 1024 { Self::Large }
-        else { Self::Huge }
+        if size <= 256 {
+            Self::Small
+        } else if size <= 4096 {
+            Self::Medium
+        } else if size <= 2 * 1024 * 1024 {
+            Self::Large
+        } else {
+            Self::Huge
+        }
     }
 }
 
@@ -80,7 +85,12 @@ pub struct ClassBucket {
 
 impl ClassBucket {
     pub fn new() -> Self {
-        Self { active_count: 0, active_bytes: 0, total_allocs: 0, total_frees: 0 }
+        Self {
+            active_count: 0,
+            active_bytes: 0,
+            total_allocs: 0,
+            total_frees: 0,
+        }
     }
 
     #[inline]
@@ -148,18 +158,26 @@ impl CoopPool {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.total_capacity == 0 { return 0.0; }
+        if self.total_capacity == 0 {
+            return 0.0;
+        }
         self.used_bytes as f64 / self.total_capacity as f64
     }
 
     #[inline]
     pub fn pressure(&self) -> PoolPressure {
         let util = self.utilization();
-        if util > 0.95 { PoolPressure::Critical }
-        else if util > 0.85 { PoolPressure::High }
-        else if util > 0.70 { PoolPressure::Medium }
-        else if util > 0.50 { PoolPressure::Low }
-        else { PoolPressure::None }
+        if util > 0.95 {
+            PoolPressure::Critical
+        } else if util > 0.85 {
+            PoolPressure::High
+        } else if util > 0.70 {
+            PoolPressure::Medium
+        } else if util > 0.50 {
+            PoolPressure::Low
+        } else {
+            PoolPressure::None
+        }
     }
 
     #[inline(always)]
@@ -170,7 +188,9 @@ impl CoopPool {
     #[inline]
     pub fn fail_rate(&self) -> f64 {
         let total = self.alloc_count + self.alloc_fail_count;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.alloc_fail_count as f64 / total as f64
     }
 }
@@ -221,7 +241,9 @@ impl SubsystemBudget {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.budget_bytes == 0 { return 0.0; }
+        if self.budget_bytes == 0 {
+            return 0.0;
+        }
         self.used_bytes as f64 / self.budget_bytes as f64
     }
 }
@@ -280,11 +302,20 @@ impl CoopAlloc {
 
     #[inline(always)]
     pub fn create_budget(&mut self, subsystem: String, budget: usize, pool_id: u64) {
-        self.budgets.insert(subsystem.clone(), SubsystemBudget::new(subsystem, budget, pool_id));
+        self.budgets.insert(
+            subsystem.clone(),
+            SubsystemBudget::new(subsystem, budget, pool_id),
+        );
         self.stats.total_budgets += 1;
     }
 
-    pub fn allocate(&mut self, subsystem: &str, owner: u64, size: usize, now_ns: u64) -> Option<u64> {
+    pub fn allocate(
+        &mut self,
+        subsystem: &str,
+        owner: u64,
+        size: usize,
+        now_ns: u64,
+    ) -> Option<u64> {
         // Check budget first
         let pool_id = if let Some(budget) = self.budgets.get_mut(subsystem) {
             if !budget.allocate(size) {
@@ -341,7 +372,10 @@ impl CoopAlloc {
                 }
             }
             self.stats.total_frees += 1;
-            self.stats.total_bytes_active = self.stats.total_bytes_active.saturating_sub(rec.size as u64);
+            self.stats.total_bytes_active = self
+                .stats
+                .total_bytes_active
+                .saturating_sub(rec.size as u64);
             true
         } else {
             false
@@ -350,12 +384,16 @@ impl CoopAlloc {
 
     #[inline(always)]
     pub fn pool_pressure(&self) -> Vec<(u64, PoolPressure)> {
-        self.pools.iter().map(|(&id, p)| (id, p.pressure())).collect()
+        self.pools
+            .iter()
+            .map(|(&id, p)| (id, p.pressure()))
+            .collect()
     }
 
     #[inline]
     pub fn critical_pools(&self) -> Vec<u64> {
-        self.pools.iter()
+        self.pools
+            .iter()
             .filter(|(_, p)| matches!(p.pressure(), PoolPressure::Critical | PoolPressure::High))
             .map(|(&id, _)| id)
             .collect()
@@ -363,7 +401,8 @@ impl CoopAlloc {
 
     #[inline]
     pub fn budget_overcommit(&self) -> Vec<(&str, f64)> {
-        self.budgets.iter()
+        self.budgets
+            .iter()
             .filter(|(_, b)| b.utilization() > 0.9)
             .map(|(name, b)| (name.as_str(), b.utilization()))
             .collect()

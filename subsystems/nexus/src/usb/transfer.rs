@@ -2,8 +2,7 @@
 //!
 //! USB transfer tracking and device management.
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 

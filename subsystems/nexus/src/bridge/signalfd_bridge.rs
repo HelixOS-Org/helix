@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Signal set (bitmask for 64 signals)
@@ -13,11 +12,15 @@ pub struct SignalSet(pub u64);
 
 impl SignalSet {
     #[inline(always)]
-    pub fn empty() -> Self { Self(0) }
+    pub fn empty() -> Self {
+        Self(0)
+    }
 
     #[inline(always)]
     pub fn contains(&self, sig: u32) -> bool {
-        if sig == 0 || sig > 64 { return false; }
+        if sig == 0 || sig > 64 {
+            return false;
+        }
         self.0 & (1u64 << (sig - 1)) != 0
     }
 
@@ -89,16 +92,25 @@ pub struct SignalfdInstance {
 impl SignalfdInstance {
     pub fn new(fd: i32, owner: u32, mask: SignalSet, flags: SignalfdFlags, now: u64) -> Self {
         Self {
-            fd, owner_pid: owner, mask, flags,
-            pending: VecDeque::new(), max_pending: 256,
-            read_count: 0, delivered_count: 0, dropped_count: 0,
-            created: now, last_read: 0,
+            fd,
+            owner_pid: owner,
+            mask,
+            flags,
+            pending: VecDeque::new(),
+            max_pending: 256,
+            read_count: 0,
+            delivered_count: 0,
+            dropped_count: 0,
+            created: now,
+            last_read: 0,
         }
     }
 
     #[inline]
     pub fn deliver(&mut self, signal: PendingSignal) -> bool {
-        if !self.mask.contains(signal.signal) { return false; }
+        if !self.mask.contains(signal.signal) {
+            return false;
+        }
         if self.pending.len() >= self.max_pending {
             self.dropped_count += 1;
             return false;
@@ -110,7 +122,9 @@ impl SignalfdInstance {
 
     #[inline]
     pub fn read_signal(&mut self, now: u64) -> Option<PendingSignal> {
-        if self.pending.is_empty() { return None; }
+        if self.pending.is_empty() {
+            return None;
+        }
         self.read_count += 1;
         self.last_read = now;
         self.pending.remove(0)
@@ -129,7 +143,9 @@ impl SignalfdInstance {
     #[inline]
     pub fn drop_rate(&self) -> f64 {
         let total = self.delivered_count + self.dropped_count;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.dropped_count as f64 / total as f64
     }
 
@@ -184,8 +200,10 @@ impl BridgeSignalfd {
             events: VecDeque::new(),
             max_events: 2048,
             stats: SignalfdBridgeStats {
-                active_signalfds: 0, total_created: 0,
-                total_signals_delivered: 0, total_signals_read: 0,
+                active_signalfds: 0,
+                total_created: 0,
+                total_signals_delivered: 0,
+                total_signals_read: 0,
                 total_dropped: 0,
             },
         }
@@ -205,8 +223,10 @@ impl BridgeSignalfd {
         for inst in self.instances.values_mut() {
             if inst.owner_pid == target_pid && inst.mask.contains(sig) {
                 let s = PendingSignal {
-                    signal: signal.signal, sender_pid: signal.sender_pid,
-                    code: signal.code, value: signal.value,
+                    signal: signal.signal,
+                    sender_pid: signal.sender_pid,
+                    code: signal.code,
+                    value: signal.value,
                     timestamp: signal.timestamp,
                 };
                 if inst.deliver(s) {
@@ -223,7 +243,9 @@ impl BridgeSignalfd {
     #[inline]
     pub fn read_signal(&mut self, fd: i32, now: u64) -> Option<PendingSignal> {
         let sig = self.instances.get_mut(&fd)?.read_signal(now);
-        if sig.is_some() { self.stats.total_signals_read += 1; }
+        if sig.is_some() {
+            self.stats.total_signals_read += 1;
+        }
         sig
     }
 
@@ -237,20 +259,27 @@ impl BridgeSignalfd {
     #[inline]
     pub fn close(&mut self, fd: i32) -> bool {
         if self.instances.remove(&fd).is_some() {
-            if self.stats.active_signalfds > 0 { self.stats.active_signalfds -= 1; }
+            if self.stats.active_signalfds > 0 {
+                self.stats.active_signalfds -= 1;
+            }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn record_event(&mut self, event: SignalfdEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
+        if self.events.len() >= self.max_events {
+            self.events.remove(0);
+        }
         self.events.push_back(event);
     }
 
     #[inline]
     pub fn instances_with_pending(&self) -> Vec<(i32, usize)> {
-        self.instances.iter()
+        self.instances
+            .iter()
             .filter(|(_, inst)| inst.is_readable())
             .map(|(&fd, inst)| (fd, inst.pending_count()))
             .collect()
@@ -258,7 +287,9 @@ impl BridgeSignalfd {
 
     #[inline]
     pub fn highest_drop_rates(&self, n: usize) -> Vec<(i32, f64)> {
-        let mut v: Vec<_> = self.instances.iter()
+        let mut v: Vec<_> = self
+            .instances
+            .iter()
             .filter(|(_, inst)| inst.dropped_count > 0)
             .map(|(&fd, inst)| (fd, inst.drop_rate()))
             .collect();
@@ -509,7 +540,13 @@ pub struct SignalfdV3Record {
 
 impl SignalfdV3Record {
     pub fn new(op: SignalfdV3Op) -> Self {
-        Self { op, fd: -1, mask_bits: 0, signals_read: 0, pid: 0 }
+        Self {
+            op,
+            fd: -1,
+            mask_bits: 0,
+            signals_read: 0,
+            pid: 0,
+        }
     }
 }
 
@@ -531,7 +568,14 @@ pub struct BridgeSignalfdV3 {
 
 impl BridgeSignalfdV3 {
     pub fn new() -> Self {
-        Self { stats: SignalfdV3BridgeStats { total_ops: 0, fds_created: 0, signals_read: 0, mask_updates: 0 } }
+        Self {
+            stats: SignalfdV3BridgeStats {
+                total_ops: 0,
+                fds_created: 0,
+                signals_read: 0,
+                mask_updates: 0,
+            },
+        }
     }
 
     #[inline]
@@ -541,7 +585,7 @@ impl BridgeSignalfdV3 {
             SignalfdV3Op::Create => self.stats.fds_created += 1,
             SignalfdV3Op::Read => self.stats.signals_read += rec.signals_read as u64,
             SignalfdV3Op::UpdateMask => self.stats.mask_updates += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

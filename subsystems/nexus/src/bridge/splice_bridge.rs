@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Splice operation type
@@ -29,11 +28,17 @@ impl SpliceFlags {
     pub const MORE: u32 = 4;
     pub const GIFT: u32 = 8;
 
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u32) -> bool {
+        self.bits & flag != 0
+    }
     #[inline(always)]
-    pub fn is_nonblock(&self) -> bool { self.has(Self::NONBLOCK) }
+    pub fn is_nonblock(&self) -> bool {
+        self.has(Self::NONBLOCK)
+    }
 }
 
 /// Splice endpoint type
@@ -59,11 +64,19 @@ pub struct PipeBuffer {
 
 impl PipeBuffer {
     pub fn new(page_id: u64, offset: u32, len: u32) -> Self {
-        Self { page_id, offset, len, flags: 0, ref_count: 1 }
+        Self {
+            page_id,
+            offset,
+            len,
+            flags: 0,
+            ref_count: 1,
+        }
     }
 
     #[inline(always)]
-    pub fn is_zero_copy(&self) -> bool { self.ref_count > 1 }
+    pub fn is_zero_copy(&self) -> bool {
+        self.ref_count > 1
+    }
 }
 
 /// Splice transfer record
@@ -87,10 +100,19 @@ pub struct SpliceTransfer {
 impl SpliceTransfer {
     pub fn new(id: u64, op: SpliceOp, src_fd: i32, dst_fd: i32, bytes: u64, now: u64) -> Self {
         Self {
-            id, op, flags: SpliceFlags::new(0),
-            src_type: EndpointType::Pipe, dst_type: EndpointType::Pipe,
-            src_fd, dst_fd, requested_bytes: bytes, transferred_bytes: 0,
-            pages_moved: 0, zero_copy: false, started_at: now, completed_at: 0,
+            id,
+            op,
+            flags: SpliceFlags::new(0),
+            src_type: EndpointType::Pipe,
+            dst_type: EndpointType::Pipe,
+            src_fd,
+            dst_fd,
+            requested_bytes: bytes,
+            transferred_bytes: 0,
+            pages_moved: 0,
+            zero_copy: false,
+            started_at: now,
+            completed_at: 0,
         }
     }
 
@@ -104,13 +126,17 @@ impl SpliceTransfer {
     #[inline]
     pub fn throughput_mbps(&self) -> f64 {
         let lat = self.completed_at.saturating_sub(self.started_at);
-        if lat == 0 { return 0.0; }
+        if lat == 0 {
+            return 0.0;
+        }
         (self.transferred_bytes as f64 * 1_000_000_000.0) / (lat as f64 * 1024.0 * 1024.0)
     }
 
     #[inline(always)]
     pub fn efficiency(&self) -> f64 {
-        if self.requested_bytes == 0 { return 0.0; }
+        if self.requested_bytes == 0 {
+            return 0.0;
+        }
         self.transferred_bytes as f64 / self.requested_bytes as f64
     }
 }
@@ -138,14 +164,27 @@ pub struct BridgeSplice {
 
 impl BridgeSplice {
     pub fn new() -> Self {
-        Self { history: Vec::new(), active: BTreeMap::new(), next_id: 1, max_history: 4096 }
+        Self {
+            history: Vec::new(),
+            active: BTreeMap::new(),
+            next_id: 1,
+            max_history: 4096,
+        }
     }
 
     #[inline]
-    pub fn begin_splice(&mut self, op: SpliceOp, src_fd: i32, dst_fd: i32, bytes: u64, now: u64) -> u64 {
+    pub fn begin_splice(
+        &mut self,
+        op: SpliceOp,
+        src_fd: i32,
+        dst_fd: i32,
+        bytes: u64,
+        now: u64,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.active.insert(id, SpliceTransfer::new(id, op, src_fd, dst_fd, bytes, now));
+        self.active
+            .insert(id, SpliceTransfer::new(id, op, src_fd, dst_fd, bytes, now));
         id
     }
 
@@ -153,10 +192,14 @@ impl BridgeSplice {
     pub fn complete_splice(&mut self, id: u64, transferred: u64, pages: u32, now: u64) -> bool {
         if let Some(mut transfer) = self.active.remove(&id) {
             transfer.complete(transferred, pages, now);
-            if self.history.len() >= self.max_history { self.history.drain(..self.max_history / 4); }
+            if self.history.len() >= self.max_history {
+                self.history.drain(..self.max_history / 4);
+            }
             self.history.push(transfer);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn stats(&self) -> SpliceBridgeStats {
@@ -164,13 +207,27 @@ impl BridgeSplice {
         let total_pages: u64 = self.history.iter().map(|t| t.pages_moved as u64).sum();
         let zc = self.history.iter().filter(|t| t.zero_copy).count() as u64;
         let mut by_type = BTreeMap::new();
-        for t in &self.history { *by_type.entry(t.op as u8).or_insert(0u64) += 1; }
-        let tps: Vec<f64> = self.history.iter().filter(|t| t.completed_at > 0).map(|t| t.throughput_mbps()).collect();
-        let avg_tp = if tps.is_empty() { 0.0 } else { tps.iter().sum::<f64>() / tps.len() as f64 };
+        for t in &self.history {
+            *by_type.entry(t.op as u8).or_insert(0u64) += 1;
+        }
+        let tps: Vec<f64> = self
+            .history
+            .iter()
+            .filter(|t| t.completed_at > 0)
+            .map(|t| t.throughput_mbps())
+            .collect();
+        let avg_tp = if tps.is_empty() {
+            0.0
+        } else {
+            tps.iter().sum::<f64>() / tps.len() as f64
+        };
         SpliceBridgeStats {
-            total_operations: self.history.len() as u64, total_bytes,
-            total_pages_moved: total_pages, zero_copy_ops: zc,
-            ops_by_type: by_type, avg_throughput_mbps: avg_tp,
+            total_operations: self.history.len() as u64,
+            total_bytes,
+            total_pages_moved: total_pages,
+            zero_copy_ops: zc,
+            ops_by_type: by_type,
+            avg_throughput_mbps: avg_tp,
         }
     }
 }
@@ -187,11 +244,17 @@ impl SpliceV2Flags {
     pub const NONBLOCK: u32 = 2;
     pub const MORE: u32 = 4;
     pub const GIFT: u32 = 8;
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn set(&mut self, f: u32) { self.0 |= f; }
+    pub fn set(&mut self, f: u32) {
+        self.0 |= f;
+    }
     #[inline(always)]
-    pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u32) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Splice v2 operation type
@@ -217,11 +280,24 @@ pub struct PipeV2Buffer {
 }
 
 impl PipeV2Buffer {
-    pub fn new(id: u64, capacity: usize) -> Self { Self { id, capacity, used: 0, pages: (capacity / 4096) as u32, readers: 0, writers: 0 } }
+    pub fn new(id: u64, capacity: usize) -> Self {
+        Self {
+            id,
+            capacity,
+            used: 0,
+            pages: (capacity / 4096) as u32,
+            readers: 0,
+            writers: 0,
+        }
+    }
     #[inline(always)]
-    pub fn available(&self) -> usize { self.capacity - self.used }
+    pub fn available(&self) -> usize {
+        self.capacity - self.used
+    }
     #[inline(always)]
-    pub fn utilization(&self) -> f64 { self.used as f64 / self.capacity as f64 }
+    pub fn utilization(&self) -> f64 {
+        self.used as f64 / self.capacity as f64
+    }
 }
 
 /// Transfer record
@@ -259,33 +335,69 @@ pub struct BridgeSpliceV2 {
 }
 
 impl BridgeSpliceV2 {
-    pub fn new() -> Self { Self { pipes: BTreeMap::new(), transfers: Vec::new(), next_pipe_id: 1, max_transfers: 4096 } }
+    pub fn new() -> Self {
+        Self {
+            pipes: BTreeMap::new(),
+            transfers: Vec::new(),
+            next_pipe_id: 1,
+            max_transfers: 4096,
+        }
+    }
 
     #[inline]
     pub fn create_pipe(&mut self, capacity: usize) -> u64 {
-        let id = self.next_pipe_id; self.next_pipe_id += 1;
+        let id = self.next_pipe_id;
+        self.next_pipe_id += 1;
         self.pipes.insert(id, PipeV2Buffer::new(id, capacity));
         id
     }
 
     #[inline(always)]
-    pub fn destroy_pipe(&mut self, id: u64) { self.pipes.remove(&id); }
+    pub fn destroy_pipe(&mut self, id: u64) {
+        self.pipes.remove(&id);
+    }
 
     #[inline(always)]
     pub fn record_transfer(&mut self, transfer: SpliceV2Transfer) {
-        if self.transfers.len() >= self.max_transfers { self.transfers.drain(..self.max_transfers / 2); }
+        if self.transfers.len() >= self.max_transfers {
+            self.transfers.drain(..self.max_transfers / 2);
+        }
         self.transfers.push(transfer);
     }
 
     #[inline]
     pub fn stats(&self) -> SpliceV2BridgeStats {
         let bytes: u64 = self.transfers.iter().map(|t| t.bytes_moved).sum();
-        let splice = self.transfers.iter().filter(|t| t.op == SpliceV2Op::Splice).count() as u64;
-        let tee = self.transfers.iter().filter(|t| t.op == SpliceV2Op::Tee).count() as u64;
-        let sf = self.transfers.iter().filter(|t| t.op == SpliceV2Op::SendFile).count() as u64;
+        let splice = self
+            .transfers
+            .iter()
+            .filter(|t| t.op == SpliceV2Op::Splice)
+            .count() as u64;
+        let tee = self
+            .transfers
+            .iter()
+            .filter(|t| t.op == SpliceV2Op::Tee)
+            .count() as u64;
+        let sf = self
+            .transfers
+            .iter()
+            .filter(|t| t.op == SpliceV2Op::SendFile)
+            .count() as u64;
         let dur_sum: u64 = self.transfers.iter().map(|t| t.duration_ns).sum();
-        let avg_tp = if dur_sum == 0 { 0.0 } else { bytes as f64 / (dur_sum as f64 / 1_000_000_000.0) };
-        SpliceV2BridgeStats { total_pipes: self.pipes.len() as u32, total_transfers: self.transfers.len() as u64, total_bytes: bytes, splice_ops: splice, tee_ops: tee, sendfile_ops: sf, avg_throughput: avg_tp }
+        let avg_tp = if dur_sum == 0 {
+            0.0
+        } else {
+            bytes as f64 / (dur_sum as f64 / 1_000_000_000.0)
+        };
+        SpliceV2BridgeStats {
+            total_pipes: self.pipes.len() as u32,
+            total_transfers: self.transfers.len() as u64,
+            total_bytes: bytes,
+            splice_ops: splice,
+            tee_ops: tee,
+            sendfile_ops: sf,
+            avg_throughput: avg_tp,
+        }
     }
 }
 
@@ -356,12 +468,24 @@ pub struct BridgeSpliceV3 {
 
 impl BridgeSpliceV3 {
     pub fn new() -> Self {
-        Self { pipe_buffers: BTreeMap::new(), total_splices: 0, total_tees: 0, total_vmsplices: 0, total_bytes: 0, zero_copy_bytes: 0 }
+        Self {
+            pipe_buffers: BTreeMap::new(),
+            total_splices: 0,
+            total_tees: 0,
+            total_vmsplices: 0,
+            total_bytes: 0,
+            zero_copy_bytes: 0,
+        }
     }
 
     #[inline(always)]
     pub fn register_pipe(&mut self, id: u64, cap: u32) {
-        self.pipe_buffers.insert(id, PipeV3Buffer { pipe_id: id, capacity: cap, used: 0, pages: 0 });
+        self.pipe_buffers.insert(id, PipeV3Buffer {
+            pipe_id: id,
+            capacity: cap,
+            used: 0,
+            pages: 0,
+        });
     }
 
     #[inline]
@@ -372,15 +496,25 @@ impl BridgeSpliceV3 {
             SpliceV3Op::Vmsplice => self.total_vmsplices += 1,
         }
         self.total_bytes += xfer.bytes_transferred;
-        if xfer.zero_copy { self.zero_copy_bytes += xfer.bytes_transferred; }
+        if xfer.zero_copy {
+            self.zero_copy_bytes += xfer.bytes_transferred;
+        }
     }
 
     #[inline(always)]
-    pub fn unregister_pipe(&mut self, id: u64) { self.pipe_buffers.remove(&id); }
+    pub fn unregister_pipe(&mut self, id: u64) {
+        self.pipe_buffers.remove(&id);
+    }
 
     #[inline(always)]
     pub fn stats(&self) -> SpliceV3BridgeStats {
-        SpliceV3BridgeStats { total_splices: self.total_splices, total_tees: self.total_tees, total_vmsplices: self.total_vmsplices, total_bytes: self.total_bytes, zero_copy_bytes: self.zero_copy_bytes }
+        SpliceV3BridgeStats {
+            total_splices: self.total_splices,
+            total_tees: self.total_tees,
+            total_vmsplices: self.total_vmsplices,
+            total_bytes: self.total_bytes,
+            zero_copy_bytes: self.zero_copy_bytes,
+        }
     }
 }
 
@@ -592,13 +726,7 @@ impl BridgeSpliceV4 {
         id
     }
 
-    pub fn start_splice(
-        &mut self,
-        src_fd: i32,
-        dst_fd: i32,
-        length: u64,
-        op: SpliceV4Op,
-    ) -> u64 {
+    pub fn start_splice(&mut self, src_fd: i32, dst_fd: i32, length: u64, op: SpliceV4Op) -> u64 {
         let id = self.next_transfer_id;
         self.next_transfer_id += 1;
         let mut xfer = SpliceV4Transfer::new(id, op, src_fd, dst_fd);
@@ -609,7 +737,7 @@ impl BridgeSpliceV4 {
             SpliceV4Op::Tee => self.stats.total_tees += 1,
             SpliceV4Op::Vmsplice => self.stats.total_vmsplices += 1,
             SpliceV4Op::FanOut => self.stats.total_fanouts += 1,
-            _ => {}
+            _ => {},
         }
         id
     }
@@ -790,8 +918,11 @@ impl SpliceV5Pipe {
 
     #[inline(always)]
     pub fn zero_copy_rate(&self) -> f64 {
-        if self.total_bytes == 0 { 0.0 }
-        else { (self.zero_copy_bytes + self.dma_bytes) as f64 / self.total_bytes as f64 }
+        if self.total_bytes == 0 {
+            0.0
+        } else {
+            (self.zero_copy_bytes + self.dma_bytes) as f64 / self.total_bytes as f64
+        }
     }
 }
 
@@ -839,13 +970,23 @@ impl BridgeSpliceV5 {
         id
     }
 
-    pub fn splice(&mut self, pipe_id: u32, bytes: u32, page_id: u64, zero_copy: bool, dma: bool) -> u32 {
+    pub fn splice(
+        &mut self,
+        pipe_id: u32,
+        bytes: u32,
+        page_id: u64,
+        zero_copy: bool,
+        dma: bool,
+    ) -> u32 {
         if let Some(pipe) = self.pipes.get_mut(&pipe_id) {
             let transferred = pipe.splice_in(bytes, page_id, zero_copy, dma);
             self.stats.total_ops += 1;
             self.stats.total_bytes += transferred as u64;
-            if dma { self.stats.dma_bytes += transferred as u64; }
-            else if zero_copy { self.stats.zero_copy_bytes += transferred as u64; }
+            if dma {
+                self.stats.dma_bytes += transferred as u64;
+            } else if zero_copy {
+                self.stats.zero_copy_bytes += transferred as u64;
+            }
             transferred
         } else {
             0

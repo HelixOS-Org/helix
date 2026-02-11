@@ -191,7 +191,8 @@ impl HolisticBtrfsCow {
             old.add_ref();
             let new_id = self.next_extent_id;
             self.next_extent_id += 1;
-            let mut new_ext = BtrfsCowExtent::new(new_id, old.logical_addr, new_physical, old.length);
+            let mut new_ext =
+                BtrfsCowExtent::new(new_id, old.logical_addr, new_physical, old.length);
             new_ext.generation = self.current_generation;
             new_ext.state = BtrfsCowExtentState::Cow;
             self.space.cow_bytes += new_ext.length;

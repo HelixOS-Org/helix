@@ -152,7 +152,10 @@ impl HolisticInodeCache {
 
     #[inline]
     pub fn insert(&mut self, sb_id: u32, itype: InodeCacheType) -> u64 {
-        let part = self.partitions.entry(sb_id).or_insert_with(|| InodeSuperBlockPartition::new(sb_id));
+        let part = self
+            .partitions
+            .entry(sb_id)
+            .or_insert_with(|| InodeSuperBlockPartition::new(sb_id));
         let ino = part.next_ino;
         part.next_ino += 1;
         part.inode_count += 1;

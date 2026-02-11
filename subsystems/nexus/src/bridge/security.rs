@@ -402,7 +402,10 @@ impl SyscallBehaviorProfile {
         let alpha = 0.1; // EMA alpha
 
         // Update type frequency
-        let entry = self.expected_types.entry(syscall_type.disc()).or_insert(0.0);
+        let entry = self
+            .expected_types
+            .entry(syscall_type.disc())
+            .or_insert(0.0);
         *entry = *entry * (1.0 - alpha) + alpha;
 
         // Decay others

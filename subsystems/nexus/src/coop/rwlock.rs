@@ -49,18 +49,25 @@ pub struct RwLockInstance {
 impl RwLockInstance {
     pub fn new(id: u64, fairness: RwLockFairness) -> Self {
         Self {
-            id, state: RwLockState::Free, fairness,
-            reader_count: 0, writer_id: None,
+            id,
+            state: RwLockState::Free,
+            fairness,
+            reader_count: 0,
+            writer_id: None,
             waiters: Vec::new(),
-            read_acquisitions: 0, write_acquisitions: 0,
-            contention_count: 0, max_readers: 0,
+            read_acquisitions: 0,
+            write_acquisitions: 0,
+            contention_count: 0,
+            max_readers: 0,
         }
     }
 
     pub fn try_read(&mut self, _tid: u64) -> bool {
         match self.state {
             RwLockState::Free | RwLockState::ReadLocked => {
-                if self.fairness == RwLockFairness::WriterPreferred && self.waiters.iter().any(|w| w.wants_write) {
+                if self.fairness == RwLockFairness::WriterPreferred
+                    && self.waiters.iter().any(|w| w.wants_write)
+                {
                     return false;
                 }
                 self.state = RwLockState::ReadLocked;
@@ -70,11 +77,11 @@ impl RwLockInstance {
                     self.max_readers = self.reader_count;
                 }
                 true
-            }
+            },
             _ => {
                 self.contention_count += 1;
                 false
-            }
+            },
         }
     }
 
@@ -134,9 +141,12 @@ impl CoopRwLock {
             locks: BTreeMap::new(),
             next_id: 1,
             stats: RwLockStats {
-                locks_created: 0, read_acquisitions: 0,
-                write_acquisitions: 0, contentions: 0,
-                deadlocks_detected: 0, max_concurrent_readers: 0,
+                locks_created: 0,
+                read_acquisitions: 0,
+                write_acquisitions: 0,
+                contentions: 0,
+                deadlocks_detected: 0,
+                max_concurrent_readers: 0,
             },
         }
     }
@@ -267,11 +277,11 @@ impl RwLockV2Instance {
                     self.max_reader_count = count;
                 }
                 true
-            }
+            },
             _ => {
                 self.waiting_readers += 1;
                 false
-            }
+            },
         }
     }
 

@@ -45,7 +45,12 @@ pub struct PrctlRecord {
 
 impl PrctlRecord {
     pub fn new(option: PrctlOption) -> Self {
-        Self { option, result: PrctlResult::Success, arg2: 0, pid: 0 }
+        Self {
+            option,
+            result: PrctlResult::Success,
+            arg2: 0,
+            pid: 0,
+        }
     }
 }
 
@@ -67,19 +72,32 @@ pub struct AppPrctl {
 
 impl AppPrctl {
     pub fn new() -> Self {
-        Self { stats: PrctlAppStats { total_ops: 0, gets: 0, sets: 0, errors: 0 } }
+        Self {
+            stats: PrctlAppStats {
+                total_ops: 0,
+                gets: 0,
+                sets: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn record(&mut self, rec: &PrctlRecord) {
         self.stats.total_ops += 1;
         match rec.option {
-            PrctlOption::GetName | PrctlOption::GetDumpable | PrctlOption::GetSeccomp |
-            PrctlOption::GetNoNewPrivs | PrctlOption::GetKeepCaps | PrctlOption::GetTimerSlack |
-            PrctlOption::GetPdeathsig => self.stats.gets += 1,
+            PrctlOption::GetName
+            | PrctlOption::GetDumpable
+            | PrctlOption::GetSeccomp
+            | PrctlOption::GetNoNewPrivs
+            | PrctlOption::GetKeepCaps
+            | PrctlOption::GetTimerSlack
+            | PrctlOption::GetPdeathsig => self.stats.gets += 1,
             _ => self.stats.sets += 1,
         }
-        if rec.result != PrctlResult::Success { self.stats.errors += 1; }
+        if rec.result != PrctlResult::Success {
+            self.stats.errors += 1;
+        }
     }
 }
 

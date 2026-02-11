@@ -36,7 +36,9 @@ pub enum AppMemPressure {
 }
 
 impl Default for AppMemPressure {
-    fn default() -> Self { AppMemPressure::None }
+    fn default() -> Self {
+        AppMemPressure::None
+    }
 }
 
 /// OOM kill reason
@@ -69,16 +71,31 @@ pub struct ProcessOomState {
 impl ProcessOomState {
     pub fn new(pid: u64) -> Self {
         Self {
-            pid, rss_bytes: 0, swap_bytes: 0, oom_score: 0, oom_score_adj: 0,
-            oom_badness: 0, is_unkillable: false, cgroup_id: 0,
-            last_reclaim_ts: 0, reclaim_attempts: 0, voluntary_reclaim_bytes: 0,
+            pid,
+            rss_bytes: 0,
+            swap_bytes: 0,
+            oom_score: 0,
+            oom_score_adj: 0,
+            oom_badness: 0,
+            is_unkillable: false,
+            cgroup_id: 0,
+            last_reclaim_ts: 0,
+            reclaim_attempts: 0,
+            voluntary_reclaim_bytes: 0,
         }
     }
 
     #[inline]
     pub fn compute_badness(&mut self, total_mem: u64) {
-        if self.is_unkillable || self.oom_score_adj == -1000 { self.oom_badness = 0; return; }
-        let points = if total_mem == 0 { 0 } else { (self.rss_bytes + self.swap_bytes) * 1000 / total_mem };
+        if self.is_unkillable || self.oom_score_adj == -1000 {
+            self.oom_badness = 0;
+            return;
+        }
+        let points = if total_mem == 0 {
+            0
+        } else {
+            (self.rss_bytes + self.swap_bytes) * 1000 / total_mem
+        };
         let adj = self.oom_score_adj as i64;
         let adjusted = (points as i64 + adj).max(0) as u64;
         self.oom_badness = adjusted.min(1000);
@@ -86,7 +103,9 @@ impl ProcessOomState {
     }
 
     #[inline(always)]
-    pub fn total_mem(&self) -> u64 { self.rss_bytes + self.swap_bytes }
+    pub fn total_mem(&self) -> u64 {
+        self.rss_bytes + self.swap_bytes
+    }
 }
 
 /// OOM kill record
@@ -146,20 +165,31 @@ pub struct AppsOomHandler {
 impl AppsOomHandler {
     pub fn new(total_mem: u64) -> Self {
         Self {
-            processes: BTreeMap::new(), kill_history: Vec::new(), events: Vec::new(),
-            total_memory: total_mem, pressure: AppMemPressure::None, stats: AppOomStats::default(),
+            processes: BTreeMap::new(),
+            kill_history: Vec::new(),
+            events: Vec::new(),
+            total_memory: total_mem,
+            pressure: AppMemPressure::None,
+            stats: AppOomStats::default(),
         }
     }
 
     #[inline(always)]
-    pub fn track(&mut self, pid: u64) { self.processes.entry(pid).or_insert_with(|| ProcessOomState::new(pid)); }
+    pub fn track(&mut self, pid: u64) {
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessOomState::new(pid));
+    }
     #[inline(always)]
-    pub fn untrack(&mut self, pid: u64) { self.processes.remove(&pid); }
+    pub fn untrack(&mut self, pid: u64) {
+        self.processes.remove(&pid);
+    }
 
     #[inline]
     pub fn update(&mut self, pid: u64, rss: u64, swap: u64) {
         if let Some(p) = self.processes.get_mut(&pid) {
-            p.rss_bytes = rss; p.swap_bytes = swap;
+            p.rss_bytes = rss;
+            p.swap_bytes = swap;
             p.compute_badness(self.total_memory);
         }
     }
@@ -174,20 +204,28 @@ impl AppsOomHandler {
 
     #[inline(always)]
     pub fn set_unkillable(&mut self, pid: u64, unkillable: bool) {
-        if let Some(p) = self.processes.get_mut(&pid) { p.is_unkillable = unkillable; }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.is_unkillable = unkillable;
+        }
     }
 
     #[inline]
     pub fn set_pressure(&mut self, pressure: AppMemPressure, available: u64, ts: u64) {
         if pressure != self.pressure {
             self.pressure = pressure;
-            self.events.push(OomEvent { kind: OomEventKind::PressureChange, ts, pressure, available_bytes: available });
+            self.events.push(OomEvent {
+                kind: OomEventKind::PressureChange,
+                ts,
+                pressure,
+                available_bytes: available,
+            });
         }
     }
 
     #[inline]
     pub fn select_victim(&self) -> Option<u64> {
-        self.processes.values()
+        self.processes
+            .values()
             .filter(|p| !p.is_unkillable && p.oom_score_adj != -1000)
             .max_by_key(|p| p.oom_badness)
             .map(|p| p.pid)
@@ -195,7 +233,9 @@ impl AppsOomHandler {
 
     #[inline]
     pub fn select_victims(&self, count: usize) -> Vec<u64> {
-        let mut candidates: Vec<&ProcessOomState> = self.processes.values()
+        let mut candidates: Vec<&ProcessOomState> = self
+            .processes
+            .values()
             .filter(|p| !p.is_unkillable && p.oom_score_adj != -1000)
             .collect();
         candidates.sort_by(|a, b| b.oom_badness.cmp(&a.oom_badness));
@@ -206,12 +246,22 @@ impl AppsOomHandler {
     pub fn record_kill(&mut self, pid: u64, reason: OomKillReason, ts: u64) {
         if let Some(p) = self.processes.get(&pid) {
             self.kill_history.push(AppOomKillRecord {
-                victim_pid: pid, rss_freed: p.rss_bytes, swap_freed: p.swap_bytes,
-                oom_score: p.oom_score, reason, ts, cgroup_id: p.cgroup_id,
+                victim_pid: pid,
+                rss_freed: p.rss_bytes,
+                swap_freed: p.swap_bytes,
+                oom_score: p.oom_score,
+                reason,
+                ts,
+                cgroup_id: p.cgroup_id,
             });
         }
         self.processes.remove(&pid);
-        self.events.push(OomEvent { kind: OomEventKind::KillComplete, ts, pressure: self.pressure, available_bytes: 0 });
+        self.events.push(OomEvent {
+            kind: OomEventKind::KillComplete,
+            ts,
+            pressure: self.pressure,
+            available_bytes: 0,
+        });
     }
 
     #[inline]
@@ -219,16 +269,39 @@ impl AppsOomHandler {
         self.stats.tracked_processes = self.processes.len();
         self.stats.current_pressure = self.pressure;
         self.stats.total_kills = self.kill_history.len() as u64;
-        self.stats.bytes_killed = self.kill_history.iter().map(|k| k.rss_freed + k.swap_freed).sum();
-        self.stats.highest_oom_score = self.processes.values().map(|p| p.oom_score).max().unwrap_or(0);
-        self.stats.total_reclaims = self.processes.values().map(|p| p.reclaim_attempts as u64).sum();
-        self.stats.bytes_reclaimed = self.processes.values().map(|p| p.voluntary_reclaim_bytes).sum();
+        self.stats.bytes_killed = self
+            .kill_history
+            .iter()
+            .map(|k| k.rss_freed + k.swap_freed)
+            .sum();
+        self.stats.highest_oom_score = self
+            .processes
+            .values()
+            .map(|p| p.oom_score)
+            .max()
+            .unwrap_or(0);
+        self.stats.total_reclaims = self
+            .processes
+            .values()
+            .map(|p| p.reclaim_attempts as u64)
+            .sum();
+        self.stats.bytes_reclaimed = self
+            .processes
+            .values()
+            .map(|p| p.voluntary_reclaim_bytes)
+            .sum();
     }
 
     #[inline(always)]
-    pub fn process(&self, pid: u64) -> Option<&ProcessOomState> { self.processes.get(&pid) }
+    pub fn process(&self, pid: u64) -> Option<&ProcessOomState> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn kill_history(&self) -> &[AppOomKillRecord] { &self.kill_history }
+    pub fn kill_history(&self) -> &[AppOomKillRecord] {
+        &self.kill_history
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppOomStats { &self.stats }
+    pub fn stats(&self) -> &AppOomStats {
+        &self.stats
+    }
 }

@@ -25,7 +25,13 @@ pub struct CapCoopRecord {
 
 impl CapCoopRecord {
     pub fn new(event: CapCoopEvent, cap_id: u32) -> Self {
-        Self { event, cap_id, source_pid: 0, target_pid: 0, effective: true }
+        Self {
+            event,
+            cap_id,
+            source_pid: 0,
+            target_pid: 0,
+            effective: true,
+        }
     }
 }
 
@@ -47,7 +53,14 @@ pub struct CoopCapability {
 
 impl CoopCapability {
     pub fn new() -> Self {
-        Self { stats: CapCoopStats { total_events: 0, inherits: 0, propagations: 0, drops: 0 } }
+        Self {
+            stats: CapCoopStats {
+                total_events: 0,
+                inherits: 0,
+                propagations: 0,
+                drops: 0,
+            },
+        }
     }
 
     #[inline]
@@ -55,9 +68,11 @@ impl CoopCapability {
         self.stats.total_events += 1;
         match rec.event {
             CapCoopEvent::BoundingSetInherit => self.stats.inherits += 1,
-            CapCoopEvent::AmbientPropagate | CapCoopEvent::CapDelegate => self.stats.propagations += 1,
+            CapCoopEvent::AmbientPropagate | CapCoopEvent::CapDelegate => {
+                self.stats.propagations += 1
+            },
             CapCoopEvent::CapDrop => self.stats.drops += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

@@ -17,8 +17,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -292,23 +291,28 @@ impl BridgeEmotionEngine {
 
     /// Evaluate an emotional signal from a bridge observation
     #[inline]
-    pub fn evaluate_emotion(
-        &mut self,
-        emotion: BridgeEmotion,
-        raw_intensity: f32,
-        trigger: &str,
-    ) {
+    pub fn evaluate_emotion(&mut self, emotion: BridgeEmotion, raw_intensity: f32, trigger: &str) {
         self.current_tick += 1;
         self.total_evaluations += 1;
         let intensity = raw_intensity.clamp(0.0, 1.0);
 
         // Update EMA for this emotion
         match emotion {
-            BridgeEmotion::Stress => self.stress_ema = ema_update(self.stress_ema, intensity, EMA_ALPHA),
-            BridgeEmotion::Confidence => self.confidence_ema = ema_update(self.confidence_ema, intensity, EMA_ALPHA),
-            BridgeEmotion::Curiosity => self.curiosity_ema = ema_update(self.curiosity_ema, intensity, EMA_ALPHA),
-            BridgeEmotion::Satisfaction => self.satisfaction_ema = ema_update(self.satisfaction_ema, intensity, EMA_ALPHA),
-            BridgeEmotion::Urgency => self.urgency_ema = ema_update(self.urgency_ema, intensity, EMA_ALPHA),
+            BridgeEmotion::Stress => {
+                self.stress_ema = ema_update(self.stress_ema, intensity, EMA_ALPHA)
+            },
+            BridgeEmotion::Confidence => {
+                self.confidence_ema = ema_update(self.confidence_ema, intensity, EMA_ALPHA)
+            },
+            BridgeEmotion::Curiosity => {
+                self.curiosity_ema = ema_update(self.curiosity_ema, intensity, EMA_ALPHA)
+            },
+            BridgeEmotion::Satisfaction => {
+                self.satisfaction_ema = ema_update(self.satisfaction_ema, intensity, EMA_ALPHA)
+            },
+            BridgeEmotion::Urgency => {
+                self.urgency_ema = ema_update(self.urgency_ema, intensity, EMA_ALPHA)
+            },
             BridgeEmotion::Calm => self.calm_ema = ema_update(self.calm_ema, intensity, EMA_ALPHA),
         }
 
@@ -317,12 +321,8 @@ impl BridgeEmotionEngine {
         if let Some(existing) = self.active_emotions.get_mut(&key) {
             existing.reinforce(intensity * 0.5);
         } else if self.active_emotions.len() < MAX_ACTIVE_EMOTIONS {
-            let state = EmotionState::new(
-                emotion,
-                intensity,
-                String::from(trigger),
-                self.current_tick,
-            );
+            let state =
+                EmotionState::new(emotion, intensity, String::from(trigger), self.current_tick);
             self.active_emotions.insert(key, state);
         }
 
@@ -409,8 +409,8 @@ impl BridgeEmotionEngine {
                 None => best = Some((es.emotion, es.intensity)),
                 Some((_, bi)) if es.intensity > bi => {
                     best = Some((es.emotion, es.intensity));
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
         if let Some((emo, _)) = best {

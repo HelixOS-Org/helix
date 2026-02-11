@@ -9,9 +9,10 @@
 //! - Trust decay and recovery
 //! - Trust-based access control
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // TRUST DIMENSIONS
@@ -83,13 +84,9 @@ pub enum TrustEvidence {
         weight: f64,
     },
     /// Hint was accurate
-    AccurateHint {
-        accuracy: f64,
-    },
+    AccurateHint { accuracy: f64 },
     /// Hint was inaccurate
-    InaccurateHint {
-        error_magnitude: f64,
-    },
+    InaccurateHint { error_magnitude: f64 },
     /// Resource used efficiently
     EfficientResourceUse {
         dimension: TrustDimension,
@@ -101,21 +98,13 @@ pub enum TrustEvidence {
         waste_factor: f64,
     },
     /// Cooperative action with another process
-    CooperativeAction {
-        partner_pid: u64,
-    },
+    CooperativeAction { partner_pid: u64 },
     /// Uncooperative action
-    UncooperativeAction {
-        victim_pid: u64,
-    },
+    UncooperativeAction { victim_pid: u64 },
     /// Security violation
-    SecurityViolation {
-        severity: f64,
-    },
+    SecurityViolation { severity: f64 },
     /// Time-based trust accumulation
-    TimePassed {
-        seconds: u64,
-    },
+    TimePassed { seconds: u64 },
 }
 
 // ============================================================================
@@ -263,10 +252,7 @@ impl ProcessTrust {
             TrustDimension::Temporal as u8,
             DimensionScore::new(0.0, 0.10),
         );
-        dimensions.insert(
-            TrustDimension::Social as u8,
-            DimensionScore::new(0.5, 0.15),
-        );
+        dimensions.insert(TrustDimension::Social as u8, DimensionScore::new(0.5, 0.15));
         dimensions.insert(
             TrustDimension::Security as u8,
             DimensionScore::new(0.5, 0.10),
@@ -290,26 +276,28 @@ impl ProcessTrust {
                 if let Some(dim) = self.dimensions.get_mut(&(dimension as u8)) {
                     dim.positive(weight, timestamp);
                 }
-            }
+            },
             TrustEvidence::AdvisoryIgnored { dimension, weight } => {
                 if let Some(dim) = self.dimensions.get_mut(&(dimension as u8)) {
                     dim.negative(weight, timestamp);
                 }
-            }
+            },
             TrustEvidence::AccurateHint { accuracy } => {
-                if let Some(dim) =
-                    self.dimensions.get_mut(&(TrustDimension::Communication as u8))
+                if let Some(dim) = self
+                    .dimensions
+                    .get_mut(&(TrustDimension::Communication as u8))
                 {
                     dim.positive(accuracy, timestamp);
                 }
-            }
+            },
             TrustEvidence::InaccurateHint { error_magnitude } => {
-                if let Some(dim) =
-                    self.dimensions.get_mut(&(TrustDimension::Communication as u8))
+                if let Some(dim) = self
+                    .dimensions
+                    .get_mut(&(TrustDimension::Communication as u8))
                 {
                     dim.negative(error_magnitude, timestamp);
                 }
-            }
+            },
             TrustEvidence::EfficientResourceUse {
                 dimension,
                 efficiency,
@@ -317,7 +305,7 @@ impl ProcessTrust {
                 if let Some(dim) = self.dimensions.get_mut(&(dimension as u8)) {
                     dim.positive(efficiency, timestamp);
                 }
-            }
+            },
             TrustEvidence::ResourceWaste {
                 dimension,
                 waste_factor,
@@ -325,34 +313,30 @@ impl ProcessTrust {
                 if let Some(dim) = self.dimensions.get_mut(&(dimension as u8)) {
                     dim.negative(waste_factor, timestamp);
                 }
-            }
+            },
             TrustEvidence::CooperativeAction { partner_pid } => {
                 if let Some(dim) = self.dimensions.get_mut(&(TrustDimension::Social as u8)) {
                     dim.positive(0.5, timestamp);
                 }
                 self.interactions.add(partner_pid, 1);
-            }
+            },
             TrustEvidence::UncooperativeAction { victim_pid: _ } => {
                 if let Some(dim) = self.dimensions.get_mut(&(TrustDimension::Social as u8)) {
                     dim.negative(0.7, timestamp);
                 }
-            }
+            },
             TrustEvidence::SecurityViolation { severity } => {
-                if let Some(dim) =
-                    self.dimensions.get_mut(&(TrustDimension::Security as u8))
-                {
+                if let Some(dim) = self.dimensions.get_mut(&(TrustDimension::Security as u8)) {
                     dim.negative(severity, timestamp);
                 }
-            }
+            },
             TrustEvidence::TimePassed { seconds } => {
-                if let Some(dim) =
-                    self.dimensions.get_mut(&(TrustDimension::Temporal as u8))
-                {
+                if let Some(dim) = self.dimensions.get_mut(&(TrustDimension::Temporal as u8)) {
                     // Time trust grows slowly
                     let growth = (seconds as f64 * 0.0001).min(0.1);
                     dim.positive(growth, timestamp);
                 }
-            }
+            },
         }
 
         self.recalculate_overall();
@@ -432,7 +416,9 @@ impl TrustManager {
     /// Register a process
     #[inline(always)]
     pub fn register(&mut self, pid: u64, timestamp: u64) {
-        self.profiles.entry(pid).or_insert_with(|| ProcessTrust::new(pid, timestamp));
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ProcessTrust::new(pid, timestamp));
         self.update_level_counts();
     }
 
@@ -445,12 +431,7 @@ impl TrustManager {
 
     /// Submit trust evidence
     #[inline]
-    pub fn submit_evidence(
-        &mut self,
-        pid: u64,
-        evidence: TrustEvidence,
-        timestamp: u64,
-    ) {
+    pub fn submit_evidence(&mut self, pid: u64, evidence: TrustEvidence, timestamp: u64) {
         if let Some(profile) = self.profiles.get_mut(&pid) {
             profile.apply_evidence(evidence, timestamp);
             self.total_evidence += 1;
@@ -493,9 +474,7 @@ impl TrustManager {
     /// Get overall trust score
     #[inline]
     pub fn trust_score(&self, pid: u64) -> f64 {
-        self.profiles
-            .get(&pid)
-            .map_or(0.0, |p| p.overall)
+        self.profiles.get(&pid).map_or(0.0, |p| p.overall)
     }
 
     /// Get trust level

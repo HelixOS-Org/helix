@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// AIO operation type
@@ -55,15 +54,27 @@ pub struct AioIocb {
 impl AioIocb {
     pub fn new(id: u64, ctx: u64, op: AioOp, fd: i32, offset: u64, nbytes: u64, ts: u64) -> Self {
         Self {
-            iocb_id: id, ctx_id: ctx, op, state: AioState::Submitted,
-            fd, offset, nbytes, result: 0, submit_ts: ts,
-            complete_ts: 0, priority: 0,
+            iocb_id: id,
+            ctx_id: ctx,
+            op,
+            state: AioState::Submitted,
+            fd,
+            offset,
+            nbytes,
+            result: 0,
+            submit_ts: ts,
+            complete_ts: 0,
+            priority: 0,
         }
     }
 
     #[inline]
     pub fn complete(&mut self, result: i64, ts: u64) {
-        self.state = if result >= 0 { AioState::Completed } else { AioState::Error };
+        self.state = if result >= 0 {
+            AioState::Completed
+        } else {
+            AioState::Error
+        };
         self.result = result;
         self.complete_ts = ts;
     }
@@ -76,7 +87,11 @@ impl AioIocb {
 
     #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
-        if self.complete_ts > self.submit_ts { self.complete_ts - self.submit_ts } else { 0 }
+        if self.complete_ts > self.submit_ts {
+            self.complete_ts - self.submit_ts
+        } else {
+            0
+        }
     }
 
     #[inline(always)]
@@ -111,9 +126,16 @@ pub struct AioContext {
 impl AioContext {
     pub fn new(id: u64, owner: u64, max_events: u32, ts: u64) -> Self {
         Self {
-            ctx_id: id, owner_pid: owner, max_events, outstanding: 0,
-            total_submitted: 0, total_completed: 0, total_cancelled: 0,
-            total_errors: 0, created_ts: ts, destroyed: false,
+            ctx_id: id,
+            owner_pid: owner,
+            max_events,
+            outstanding: 0,
+            total_submitted: 0,
+            total_completed: 0,
+            total_cancelled: 0,
+            total_errors: 0,
+            created_ts: ts,
+            destroyed: false,
             completion_mode: 0,
             in_flight: 0,
             iocbs: alloc::vec::Vec::new(),
@@ -124,7 +146,9 @@ impl AioContext {
 
     #[inline]
     pub fn submit(&mut self) -> bool {
-        if self.outstanding >= self.max_events { return false; }
+        if self.outstanding >= self.max_events {
+            return false;
+        }
         self.outstanding += 1;
         self.total_submitted += 1;
         true
@@ -133,7 +157,11 @@ impl AioContext {
     #[inline(always)]
     pub fn complete(&mut self, success: bool) {
         self.outstanding = self.outstanding.saturating_sub(1);
-        if success { self.total_completed += 1; } else { self.total_errors += 1; }
+        if success {
+            self.total_completed += 1;
+        } else {
+            self.total_errors += 1;
+        }
     }
 
     #[inline(always)]
@@ -144,7 +172,11 @@ impl AioContext {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.max_events == 0 { 0.0 } else { self.outstanding as f64 / self.max_events as f64 }
+        if self.max_events == 0 {
+            0.0
+        } else {
+            self.outstanding as f64 / self.max_events as f64
+        }
     }
 }
 
@@ -187,9 +219,12 @@ pub struct BridgeAioBridge {
 impl BridgeAioBridge {
     pub fn new() -> Self {
         Self {
-            contexts: BTreeMap::new(), iocbs: BTreeMap::new(),
-            events: VecDeque::new(), max_events: 2048,
-            next_ctx_id: 1, next_iocb_id: 1,
+            contexts: BTreeMap::new(),
+            iocbs: BTreeMap::new(),
+            events: VecDeque::new(),
+            max_events: 2048,
+            next_ctx_id: 1,
+            next_iocb_id: 1,
             stats: AioBridgeStats::default(),
         }
     }
@@ -198,24 +233,40 @@ impl BridgeAioBridge {
     pub fn io_setup(&mut self, owner: u64, max_events: u32, ts: u64) -> u64 {
         let id = self.next_ctx_id;
         self.next_ctx_id += 1;
-        self.contexts.insert(id, AioContext::new(id, owner, max_events, ts));
+        self.contexts
+            .insert(id, AioContext::new(id, owner, max_events, ts));
         id
     }
 
     #[inline(always)]
     pub fn io_destroy(&mut self, ctx_id: u64) {
-        if let Some(c) = self.contexts.get_mut(&ctx_id) { c.destroyed = true; }
+        if let Some(c) = self.contexts.get_mut(&ctx_id) {
+            c.destroyed = true;
+        }
     }
 
     #[inline]
-    pub fn io_submit(&mut self, ctx_id: u64, op: AioOp, fd: i32, offset: u64, nbytes: u64, ts: u64) -> Option<u64> {
+    pub fn io_submit(
+        &mut self,
+        ctx_id: u64,
+        op: AioOp,
+        fd: i32,
+        offset: u64,
+        nbytes: u64,
+        ts: u64,
+    ) -> Option<u64> {
         if let Some(c) = self.contexts.get_mut(&ctx_id) {
-            if !c.submit() { return None; }
+            if !c.submit() {
+                return None;
+            }
             let id = self.next_iocb_id;
             self.next_iocb_id += 1;
-            self.iocbs.insert(id, AioIocb::new(id, ctx_id, op, fd, offset, nbytes, ts));
+            self.iocbs
+                .insert(id, AioIocb::new(id, ctx_id, op, fd, offset, nbytes, ts));
             Some(id)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -223,12 +274,19 @@ impl BridgeAioBridge {
         if let Some(iocb) = self.iocbs.get_mut(&iocb_id) {
             let ctx_id = iocb.ctx_id;
             iocb.complete(result, ts);
-            self.events.push_back(AioEvent { iocb_id, result, result2: 0, timestamp: ts });
+            self.events.push_back(AioEvent {
+                iocb_id,
+                result,
+                result2: 0,
+                timestamp: ts,
+            });
             if let Some(c) = self.contexts.get_mut(&ctx_id) {
                 c.complete(result >= 0);
             }
         }
-        if self.events.len() > self.max_events { self.events.remove(0); }
+        if self.events.len() > self.max_events {
+            self.events.remove(0);
+        }
     }
 
     #[inline]
@@ -236,15 +294,23 @@ impl BridgeAioBridge {
         if let Some(iocb) = self.iocbs.get_mut(&iocb_id) {
             let ctx_id = iocb.ctx_id;
             iocb.cancel(ts);
-            if let Some(c) = self.contexts.get_mut(&ctx_id) { c.cancel_one(); }
+            if let Some(c) = self.contexts.get_mut(&ctx_id) {
+                c.cancel_one();
+            }
         }
     }
 
     #[inline]
     pub fn io_getevents(&self, ctx_id: u64) -> Vec<&AioEvent> {
-        self.events.iter().filter(|e| {
-            self.iocbs.get(&e.iocb_id).map(|i| i.ctx_id == ctx_id).unwrap_or(false)
-        }).collect()
+        self.events
+            .iter()
+            .filter(|e| {
+                self.iocbs
+                    .get(&e.iocb_id)
+                    .map(|i| i.ctx_id == ctx_id)
+                    .unwrap_or(false)
+            })
+            .collect()
     }
 
     pub fn recompute(&mut self) {
@@ -254,18 +320,41 @@ impl BridgeAioBridge {
         self.stats.total_submitted = self.contexts.values().map(|c| c.total_submitted).sum();
         self.stats.total_completed = self.contexts.values().map(|c| c.total_completed).sum();
         self.stats.total_errors = self.contexts.values().map(|c| c.total_errors).sum();
-        let lats: Vec<u64> = self.iocbs.values().filter(|i| !i.is_pending()).map(|i| i.latency_ns()).collect();
-        self.stats.avg_latency_ns = if lats.is_empty() { 0 } else { lats.iter().sum::<u64>() / lats.len() as u64 };
-        self.stats.read_ops = self.iocbs.values().filter(|i| matches!(i.op, AioOp::Read | AioOp::ReadV)).count() as u64;
-        self.stats.write_ops = self.iocbs.values().filter(|i| matches!(i.op, AioOp::Write | AioOp::WriteV)).count() as u64;
+        let lats: Vec<u64> = self
+            .iocbs
+            .values()
+            .filter(|i| !i.is_pending())
+            .map(|i| i.latency_ns())
+            .collect();
+        self.stats.avg_latency_ns = if lats.is_empty() {
+            0
+        } else {
+            lats.iter().sum::<u64>() / lats.len() as u64
+        };
+        self.stats.read_ops = self
+            .iocbs
+            .values()
+            .filter(|i| matches!(i.op, AioOp::Read | AioOp::ReadV))
+            .count() as u64;
+        self.stats.write_ops = self
+            .iocbs
+            .values()
+            .filter(|i| matches!(i.op, AioOp::Write | AioOp::WriteV))
+            .count() as u64;
     }
 
     #[inline(always)]
-    pub fn context(&self, id: u64) -> Option<&AioContext> { self.contexts.get(&id) }
+    pub fn context(&self, id: u64) -> Option<&AioContext> {
+        self.contexts.get(&id)
+    }
     #[inline(always)]
-    pub fn iocb(&self, id: u64) -> Option<&AioIocb> { self.iocbs.get(&id) }
+    pub fn iocb(&self, id: u64) -> Option<&AioIocb> {
+        self.iocbs.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AioBridgeStats { &self.stats }
+    pub fn stats(&self) -> &AioBridgeStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -318,7 +407,18 @@ pub struct Iocb {
 
 impl Iocb {
     pub fn new(id: u64, op: AioV2Op, fd: i32, offset: u64, length: u64, now: u64) -> Self {
-        Self { id, op, fd, offset, length, priority: 0, submitted_at: now, completed_at: 0, result: 0, in_flight: true }
+        Self {
+            id,
+            op,
+            fd,
+            offset,
+            length,
+            priority: 0,
+            submitted_at: now,
+            completed_at: 0,
+            result: 0,
+            in_flight: true,
+        }
     }
 
     #[inline]
@@ -330,11 +430,13 @@ impl Iocb {
 
     #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
-        if self.completed_at > 0 { self.completed_at - self.submitted_at } else { 0 }
+        if self.completed_at > 0 {
+            self.completed_at - self.submitted_at
+        } else {
+            0
+        }
     }
 }
-
-
 
 /// Stats
 #[derive(Debug, Clone)]
@@ -357,20 +459,41 @@ pub struct BridgeAioV2 {
 }
 
 impl BridgeAioV2 {
-    pub fn new() -> Self { Self { contexts: BTreeMap::new(), next_id: 1, next_iocb_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            contexts: BTreeMap::new(),
+            next_id: 1,
+            next_iocb_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create_context(&mut self, max_events: u32) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.contexts.insert(id, AioContext::new(id, 0, max_events, 0));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.contexts
+            .insert(id, AioContext::new(id, 0, max_events, 0));
         id
     }
 
     #[inline]
-    pub fn submit(&mut self, ctx: u64, op: AioV2Op, fd: i32, offset: u64, length: u64, now: u64) -> Option<u64> {
-        let iocb_id = self.next_iocb_id; self.next_iocb_id += 1;
+    pub fn submit(
+        &mut self,
+        ctx: u64,
+        op: AioV2Op,
+        fd: i32,
+        offset: u64,
+        length: u64,
+        now: u64,
+    ) -> Option<u64> {
+        let iocb_id = self.next_iocb_id;
+        self.next_iocb_id += 1;
         let _iocb = Iocb::new(iocb_id, op, fd, offset, length, now);
-        if self.contexts.get_mut(&ctx)?.submit() { Some(iocb_id) } else { None }
+        if self.contexts.get_mut(&ctx)?.submit() {
+            Some(iocb_id)
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -379,9 +502,26 @@ impl BridgeAioV2 {
         let submitted: u64 = self.contexts.values().map(|c| c.total_submitted).sum();
         let completed: u64 = self.contexts.values().map(|c| c.total_completed).sum();
         let bytes: u64 = self.contexts.values().map(|c| c.total_bytes).sum();
-        let lats: Vec<u64> = self.contexts.values().flat_map(|c| &c.iocbs).filter(|i| !i.in_flight).map(|i| i.latency_ns()).collect();
-        let avg = if lats.is_empty() { 0 } else { lats.iter().sum::<u64>() / lats.len() as u64 };
-        AioV2BridgeStats { total_contexts: self.contexts.len() as u32, total_in_flight: in_flight, total_submitted: submitted, total_completed: completed, total_bytes: bytes, avg_latency_ns: avg }
+        let lats: Vec<u64> = self
+            .contexts
+            .values()
+            .flat_map(|c| &c.iocbs)
+            .filter(|i| !i.in_flight)
+            .map(|i| i.latency_ns())
+            .collect();
+        let avg = if lats.is_empty() {
+            0
+        } else {
+            lats.iter().sum::<u64>() / lats.len() as u64
+        };
+        AioV2BridgeStats {
+            total_contexts: self.contexts.len() as u32,
+            total_in_flight: in_flight,
+            total_submitted: submitted,
+            total_completed: completed,
+            total_bytes: bytes,
+            avg_latency_ns: avg,
+        }
     }
 }
 
@@ -435,7 +575,14 @@ pub struct AioV3Ring {
 
 impl AioV3Ring {
     pub fn new(ctx_id: u64, max: u32) -> Self {
-        Self { ctx_id, max_events: max, submissions: Vec::new(), completions: Vec::new(), total_submitted: 0, total_completed: 0 }
+        Self {
+            ctx_id,
+            max_events: max,
+            submissions: Vec::new(),
+            completions: Vec::new(),
+            total_submitted: 0,
+            total_completed: 0,
+        }
     }
 }
 
@@ -456,14 +603,23 @@ pub struct BridgeAioV3 {
 }
 
 impl BridgeAioV3 {
-    pub fn new() -> Self { Self { rings: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            rings: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn create_ring(&mut self, ctx_id: u64, max: u32) { self.rings.insert(ctx_id, AioV3Ring::new(ctx_id, max)); }
+    pub fn create_ring(&mut self, ctx_id: u64, max: u32) {
+        self.rings.insert(ctx_id, AioV3Ring::new(ctx_id, max));
+    }
 
     #[inline(always)]
     pub fn submit(&mut self, ctx: u64, sub: AioV3Submission) {
-        if let Some(r) = self.rings.get_mut(&ctx) { r.total_submitted += 1; r.submissions.push(sub); }
+        if let Some(r) = self.rings.get_mut(&ctx) {
+            r.total_submitted += 1;
+            r.submissions.push(sub);
+        }
     }
 
     #[inline]
@@ -479,8 +635,17 @@ impl BridgeAioV3 {
     pub fn stats(&self) -> AioV3BridgeStats {
         let submitted: u64 = self.rings.values().map(|r| r.total_submitted).sum();
         let completed: u64 = self.rings.values().map(|r| r.total_completed).sum();
-        let pending: u32 = self.rings.values().map(|r| r.submissions.len() as u32).sum();
-        AioV3BridgeStats { total_rings: self.rings.len() as u32, total_submitted: submitted, total_completed: completed, pending }
+        let pending: u32 = self
+            .rings
+            .values()
+            .map(|r| r.submissions.len() as u32)
+            .sum();
+        AioV3BridgeStats {
+            total_rings: self.rings.len() as u32,
+            total_submitted: submitted,
+            total_completed: completed,
+            pending,
+        }
     }
 }
 
@@ -881,13 +1046,24 @@ pub struct AioV5Ring {
 
 impl AioV5Ring {
     pub fn new(ring_id: u32, capacity: u32) -> Self {
-        Self { ring_id, capacity, head: 0, tail: 0, completed: 0, overflows: 0, batch_completions: 0 }
+        Self {
+            ring_id,
+            capacity,
+            head: 0,
+            tail: 0,
+            completed: 0,
+            overflows: 0,
+            batch_completions: 0,
+        }
     }
 
     #[inline]
     pub fn push(&mut self) -> bool {
         let next = (self.tail + 1) % self.capacity;
-        if next == self.head { self.overflows += 1; return false; }
+        if next == self.head {
+            self.overflows += 1;
+            return false;
+        }
         self.tail = next;
         self.completed += 1;
         true
@@ -895,14 +1071,20 @@ impl AioV5Ring {
 
     #[inline]
     pub fn pop(&mut self) -> bool {
-        if self.head == self.tail { return false; }
+        if self.head == self.tail {
+            return false;
+        }
         self.head = (self.head + 1) % self.capacity;
         true
     }
 
     #[inline(always)]
     pub fn pending(&self) -> u32 {
-        if self.tail >= self.head { self.tail - self.head } else { self.capacity - self.head + self.tail }
+        if self.tail >= self.head {
+            self.tail - self.head
+        } else {
+            self.capacity - self.head + self.tail
+        }
     }
 }
 
@@ -936,7 +1118,9 @@ impl AioV5Context {
 
     #[inline]
     pub fn submit(&mut self) -> bool {
-        if self.pending >= self.max_events { return false; }
+        if self.pending >= self.max_events {
+            return false;
+        }
         self.pending += 1;
         true
     }
@@ -947,18 +1131,28 @@ impl AioV5Context {
         self.completed += 1;
         self.total_bytes += bytes;
         self.total_latency_ns += latency_ns;
-        if missed_deadline { self.deadline_misses += 1; }
+        if missed_deadline {
+            self.deadline_misses += 1;
+        }
         self.ring.push();
     }
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.completed == 0 { 0 } else { self.total_latency_ns / self.completed }
+        if self.completed == 0 {
+            0
+        } else {
+            self.total_latency_ns / self.completed
+        }
     }
 
     #[inline(always)]
     pub fn deadline_miss_rate(&self) -> f64 {
-        if self.completed == 0 { 0.0 } else { self.deadline_misses as f64 / self.completed as f64 }
+        if self.completed == 0 {
+            0.0
+        } else {
+            self.deadline_misses as f64 / self.completed as f64
+        }
     }
 }
 

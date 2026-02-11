@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Lock strategy
@@ -47,17 +46,32 @@ pub struct SpinParams {
 impl SpinParams {
     #[inline(always)]
     pub fn default_params() -> Self {
-        Self { max_spins: 1000, backoff_base: 1, backoff_max: 128, yield_after: 500 }
+        Self {
+            max_spins: 1000,
+            backoff_base: 1,
+            backoff_max: 128,
+            yield_after: 500,
+        }
     }
 
     #[inline(always)]
     pub fn aggressive() -> Self {
-        Self { max_spins: 5000, backoff_base: 1, backoff_max: 64, yield_after: 2000 }
+        Self {
+            max_spins: 5000,
+            backoff_base: 1,
+            backoff_max: 64,
+            yield_after: 2000,
+        }
     }
 
     #[inline(always)]
     pub fn conservative() -> Self {
-        Self { max_spins: 100, backoff_base: 4, backoff_max: 256, yield_after: 50 }
+        Self {
+            max_spins: 100,
+            backoff_base: 4,
+            backoff_max: 256,
+            yield_after: 50,
+        }
     }
 }
 
@@ -85,12 +99,21 @@ pub struct AdaptiveLockInstance {
 impl AdaptiveLockInstance {
     pub fn new(id: u64, strategy: LockStrategy) -> Self {
         Self {
-            id, state: AdaptiveLockState::Unlocked, strategy,
+            id,
+            state: AdaptiveLockState::Unlocked,
+            strategy,
             spin_params: SpinParams::default_params(),
-            owner: None, waiters: VecDeque::new(),
-            acquire_count: 0, spin_count: 0, sleep_count: 0,
-            contention_events: 0, total_hold_ns: 0, total_wait_ns: 0,
-            max_hold_ns: 0, max_wait_ns: 0, last_acquire: 0,
+            owner: None,
+            waiters: VecDeque::new(),
+            acquire_count: 0,
+            spin_count: 0,
+            sleep_count: 0,
+            contention_events: 0,
+            total_hold_ns: 0,
+            total_wait_ns: 0,
+            max_hold_ns: 0,
+            max_wait_ns: 0,
+            last_acquire: 0,
             adapt_threshold: 500,
         }
     }
@@ -111,14 +134,18 @@ impl AdaptiveLockInstance {
     pub fn release(&mut self, now: u64) -> Option<u32> {
         let hold_time = now.saturating_sub(self.last_acquire);
         self.total_hold_ns += hold_time;
-        if hold_time > self.max_hold_ns { self.max_hold_ns = hold_time; }
+        if hold_time > self.max_hold_ns {
+            self.max_hold_ns = hold_time;
+        }
         self.owner = None;
         self.state = AdaptiveLockState::Unlocked;
 
         // Wake first waiter
         if !self.waiters.is_empty() {
             Some(self.waiters.remove(0).unwrap())
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -135,46 +162,65 @@ impl AdaptiveLockInstance {
             LockStrategy::SleepOnly => false,
             LockStrategy::Adaptive | LockStrategy::Hybrid => {
                 self.contention_events < self.adapt_threshold as u64
-            }
+            },
         }
     }
 
     #[inline]
     pub fn contention_level(&self) -> ContentionLevel {
-        if self.contention_events == 0 { return ContentionLevel::None; }
+        if self.contention_events == 0 {
+            return ContentionLevel::None;
+        }
         let rate = if self.acquire_count > 0 {
             self.contention_events as f64 / self.acquire_count as f64
-        } else { 0.0 };
-        if rate < 0.05 { ContentionLevel::Low }
-        else if rate < 0.20 { ContentionLevel::Medium }
-        else if rate < 0.50 { ContentionLevel::High }
-        else { ContentionLevel::Extreme }
+        } else {
+            0.0
+        };
+        if rate < 0.05 {
+            ContentionLevel::Low
+        } else if rate < 0.20 {
+            ContentionLevel::Medium
+        } else if rate < 0.50 {
+            ContentionLevel::High
+        } else {
+            ContentionLevel::Extreme
+        }
     }
 
     #[inline(always)]
     pub fn avg_hold_ns(&self) -> u64 {
-        if self.acquire_count == 0 { 0 } else { self.total_hold_ns / self.acquire_count }
+        if self.acquire_count == 0 {
+            0
+        } else {
+            self.total_hold_ns / self.acquire_count
+        }
     }
 
     #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
         let total_waits = self.spin_count + self.sleep_count;
-        if total_waits == 0 { 0 } else { self.total_wait_ns / total_waits }
+        if total_waits == 0 {
+            0
+        } else {
+            self.total_wait_ns / total_waits
+        }
     }
 
     pub fn adapt_strategy(&mut self) {
-        if self.strategy != LockStrategy::Adaptive { return; }
+        if self.strategy != LockStrategy::Adaptive {
+            return;
+        }
         let level = self.contention_level();
         match level {
             ContentionLevel::None | ContentionLevel::Low => {
                 self.spin_params = SpinParams::aggressive();
-            }
+            },
             ContentionLevel::Medium => {
                 self.spin_params = SpinParams::default_params();
-            }
+            },
             ContentionLevel::High | ContentionLevel::Extreme => {
                 self.spin_params = SpinParams::conservative();
-            }
+            },
         }
     }
 }
@@ -201,14 +247,20 @@ pub struct CoopAdaptiveLock {
 
 impl CoopAdaptiveLock {
     pub fn new() -> Self {
-        Self { locks: BTreeMap::new(), next_id: 1, total_acquires: 0, total_contentions: 0 }
+        Self {
+            locks: BTreeMap::new(),
+            next_id: 1,
+            total_acquires: 0,
+            total_contentions: 0,
+        }
     }
 
     #[inline]
     pub fn create_lock(&mut self, strategy: LockStrategy) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.locks.insert(id, AdaptiveLockInstance::new(id, strategy));
+        self.locks
+            .insert(id, AdaptiveLockInstance::new(id, strategy));
         id
     }
 
@@ -216,10 +268,15 @@ impl CoopAdaptiveLock {
     pub fn try_acquire(&mut self, lock_id: u64, tid: u32, now: u64) -> bool {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             let acquired = lock.try_acquire(tid, now);
-            if acquired { self.total_acquires += 1; }
-            else { self.total_contentions += 1; }
+            if acquired {
+                self.total_acquires += 1;
+            } else {
+                self.total_contentions += 1;
+            }
             acquired
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -234,7 +291,9 @@ impl CoopAdaptiveLock {
 
     #[inline]
     pub fn hottest_locks(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut v: Vec<_> = self.locks.iter()
+        let mut v: Vec<_> = self
+            .locks
+            .iter()
             .map(|(&id, l)| (id, l.contention_events))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
@@ -251,7 +310,11 @@ impl CoopAdaptiveLock {
             total_contentions: self.total_contentions,
             spin_acquires: self.locks.values().map(|l| l.spin_count).sum(),
             sleep_acquires: self.locks.values().map(|l| l.sleep_count).sum(),
-            avg_hold_ns: if total_acq > 0 { total_hold / total_acq } else { 0 },
+            avg_hold_ns: if total_acq > 0 {
+                total_hold / total_acq
+            } else {
+                0
+            },
         }
     }
 }
@@ -296,7 +359,18 @@ pub struct AdaptiveLockEntryV2 {
 
 impl AdaptiveLockEntryV2 {
     pub fn new(id: u64) -> Self {
-        Self { id, strategy: LockStrategyV2::Adaptive, contention: ContentionLevelV2::None, spin_count: 0, yield_count: 0, acquire_count: 0, total_wait_ns: 0, max_wait_ns: 0, spin_threshold: 100, adapt_interval: 64 }
+        Self {
+            id,
+            strategy: LockStrategyV2::Adaptive,
+            contention: ContentionLevelV2::None,
+            spin_count: 0,
+            yield_count: 0,
+            acquire_count: 0,
+            total_wait_ns: 0,
+            max_wait_ns: 0,
+            spin_threshold: 100,
+            adapt_interval: 64,
+        }
     }
 
     #[inline]
@@ -305,22 +379,45 @@ impl AdaptiveLockEntryV2 {
         self.spin_count += spins;
         self.yield_count += yields;
         self.total_wait_ns += wait_ns;
-        if wait_ns > self.max_wait_ns { self.max_wait_ns = wait_ns; }
-        if self.acquire_count % self.adapt_interval as u64 == 0 { self.adapt(); }
+        if wait_ns > self.max_wait_ns {
+            self.max_wait_ns = wait_ns;
+        }
+        if self.acquire_count % self.adapt_interval as u64 == 0 {
+            self.adapt();
+        }
     }
 
     fn adapt(&mut self) {
-        let avg = if self.acquire_count == 0 { 0 } else { self.total_wait_ns / self.acquire_count };
-        if avg < 100 { self.contention = ContentionLevelV2::None; self.strategy = LockStrategyV2::SpinOnly; }
-        else if avg < 1000 { self.contention = ContentionLevelV2::Low; self.strategy = LockStrategyV2::SpinThenYield; }
-        else if avg < 10000 { self.contention = ContentionLevelV2::Medium; self.strategy = LockStrategyV2::Adaptive; }
-        else if avg < 100000 { self.contention = ContentionLevelV2::High; self.strategy = LockStrategyV2::YieldOnly; }
-        else { self.contention = ContentionLevelV2::Extreme; self.strategy = LockStrategyV2::BackoffSpin; }
+        let avg = if self.acquire_count == 0 {
+            0
+        } else {
+            self.total_wait_ns / self.acquire_count
+        };
+        if avg < 100 {
+            self.contention = ContentionLevelV2::None;
+            self.strategy = LockStrategyV2::SpinOnly;
+        } else if avg < 1000 {
+            self.contention = ContentionLevelV2::Low;
+            self.strategy = LockStrategyV2::SpinThenYield;
+        } else if avg < 10000 {
+            self.contention = ContentionLevelV2::Medium;
+            self.strategy = LockStrategyV2::Adaptive;
+        } else if avg < 100000 {
+            self.contention = ContentionLevelV2::High;
+            self.strategy = LockStrategyV2::YieldOnly;
+        } else {
+            self.contention = ContentionLevelV2::Extreme;
+            self.strategy = LockStrategyV2::BackoffSpin;
+        }
     }
 
     #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
-        if self.acquire_count == 0 { 0 } else { self.total_wait_ns / self.acquire_count }
+        if self.acquire_count == 0 {
+            0
+        } else {
+            self.total_wait_ns / self.acquire_count
+        }
     }
 }
 
@@ -340,25 +437,49 @@ pub struct CoopAdaptiveLockV2 {
 }
 
 impl CoopAdaptiveLockV2 {
-    pub fn new() -> Self { Self { locks: BTreeMap::new() } }
-
-    #[inline(always)]
-    pub fn register(&mut self, id: u64) { self.locks.insert(id, AdaptiveLockEntryV2::new(id)); }
-
-    #[inline(always)]
-    pub fn record_acquire(&mut self, id: u64, wait_ns: u64, spins: u64, yields: u64) {
-        if let Some(l) = self.locks.get_mut(&id) { l.record_acquire(wait_ns, spins, yields); }
+    pub fn new() -> Self {
+        Self {
+            locks: BTreeMap::new(),
+        }
     }
 
     #[inline(always)]
-    pub fn unregister(&mut self, id: u64) { self.locks.remove(&id); }
+    pub fn register(&mut self, id: u64) {
+        self.locks.insert(id, AdaptiveLockEntryV2::new(id));
+    }
+
+    #[inline(always)]
+    pub fn record_acquire(&mut self, id: u64, wait_ns: u64, spins: u64, yields: u64) {
+        if let Some(l) = self.locks.get_mut(&id) {
+            l.record_acquire(wait_ns, spins, yields);
+        }
+    }
+
+    #[inline(always)]
+    pub fn unregister(&mut self, id: u64) {
+        self.locks.remove(&id);
+    }
 
     #[inline]
     pub fn stats(&self) -> AdaptiveLockV2Stats {
         let acqs: u64 = self.locks.values().map(|l| l.acquire_count).sum();
         let wait: u64 = self.locks.values().map(|l| l.total_wait_ns).sum();
-        let high = self.locks.values().filter(|l| matches!(l.contention, ContentionLevelV2::High | ContentionLevelV2::Extreme)).count() as u32;
+        let high = self
+            .locks
+            .values()
+            .filter(|l| {
+                matches!(
+                    l.contention,
+                    ContentionLevelV2::High | ContentionLevelV2::Extreme
+                )
+            })
+            .count() as u32;
         let avg = if acqs == 0 { 0 } else { wait / acqs };
-        AdaptiveLockV2Stats { total_locks: self.locks.len() as u32, total_acquires: acqs, avg_wait_ns: avg, high_contention: high }
+        AdaptiveLockV2Stats {
+            total_locks: self.locks.len() as u32,
+            total_acquires: acqs,
+            avg_wait_ns: avg,
+            high_contention: high,
+        }
     }
 }

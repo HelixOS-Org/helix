@@ -77,7 +77,10 @@ impl GracePeriod {
 
     #[inline(always)]
     pub fn is_active(&self) -> bool {
-        matches!(self.state, GracePeriodState::Started | GracePeriodState::WaitingForReaders)
+        matches!(
+            self.state,
+            GracePeriodState::Started | GracePeriodState::WaitingForReaders
+        )
     }
 }
 
@@ -168,7 +171,12 @@ pub struct SrcuDomain {
 
 impl SrcuDomain {
     pub fn new(id: u64) -> Self {
-        Self { id, active_readers: 0, completed_gp: 0, pending_gp: 0 }
+        Self {
+            id,
+            active_readers: 0,
+            completed_gp: 0,
+            pending_gp: 0,
+        }
     }
 
     #[inline(always)]
@@ -257,7 +265,8 @@ impl CoopRcuV2 {
     pub fn start_grace_period(&mut self, flavor: RcuFlavor, now_ns: u64) -> u64 {
         let id = self.next_gp_id;
         self.next_gp_id += 1;
-        self.grace_periods.push(GracePeriod::new(id, flavor, now_ns));
+        self.grace_periods
+            .push(GracePeriod::new(id, flavor, now_ns));
         self.active_gp = Some(id);
         self.stats.total_grace_periods += 1;
         id
@@ -356,7 +365,9 @@ impl CoopRcuV2 {
 
     #[inline]
     pub fn heaviest_callback_cpus(&self, top: usize) -> Vec<(u32, u32)> {
-        let mut v: Vec<(u32, u32)> = self.cpus.iter()
+        let mut v: Vec<(u32, u32)> = self
+            .cpus
+            .iter()
             .map(|(&cpu_id, c)| (cpu_id, c.callbacks_pending))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));

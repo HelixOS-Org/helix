@@ -60,9 +60,15 @@ impl CStateLevel {
     #[inline]
     pub fn depth(&self) -> u8 {
         match self {
-            CStateLevel::C0 => 0, CStateLevel::C1 => 1, CStateLevel::C1e => 2,
-            CStateLevel::C2 => 3, CStateLevel::C3 => 4, CStateLevel::C6 => 5,
-            CStateLevel::C7 => 6, CStateLevel::C8 => 7, CStateLevel::C10 => 8,
+            CStateLevel::C0 => 0,
+            CStateLevel::C1 => 1,
+            CStateLevel::C1e => 2,
+            CStateLevel::C2 => 3,
+            CStateLevel::C3 => 4,
+            CStateLevel::C6 => 5,
+            CStateLevel::C7 => 6,
+            CStateLevel::C8 => 7,
+            CStateLevel::C10 => 8,
         }
     }
 }
@@ -123,12 +129,20 @@ pub struct CpuIdleState {
 impl CpuIdleState {
     pub fn new(cpu_id: u32) -> Self {
         Self {
-            cpu_id, current_state: CStateLevel::C0, governor: IdleGovernor::Menu,
-            residency_us: BTreeMap::new(), entry_count: BTreeMap::new(),
-            predicted_us: 0, actual_us: 0, last_wake: WakeSource::Unknown,
-            total_idle_us: 0, total_active_us: 0,
-            deepest_allowed: CStateLevel::C10, disable_mask: 0,
-            prediction_history: alloc::vec![0u64; 8], history_idx: 0,
+            cpu_id,
+            current_state: CStateLevel::C0,
+            governor: IdleGovernor::Menu,
+            residency_us: BTreeMap::new(),
+            entry_count: BTreeMap::new(),
+            predicted_us: 0,
+            actual_us: 0,
+            last_wake: WakeSource::Unknown,
+            total_idle_us: 0,
+            total_active_us: 0,
+            deepest_allowed: CStateLevel::C10,
+            disable_mask: 0,
+            prediction_history: alloc::vec![0u64; 8],
+            history_idx: 0,
             ..Default::default()
         }
     }
@@ -156,45 +170,97 @@ impl CpuIdleState {
     #[inline(always)]
     pub fn idle_pct(&self) -> f64 {
         let total = self.total_idle_us + self.total_active_us;
-        if total == 0 { 0.0 } else { self.total_idle_us as f64 / total as f64 * 100.0 }
+        if total == 0 {
+            0.0
+        } else {
+            self.total_idle_us as f64 / total as f64 * 100.0
+        }
     }
 
     #[inline]
     pub fn prediction_accuracy(&self) -> f64 {
-        if self.predicted_us == 0 || self.actual_us == 0 { return 0.0; }
-        let diff = if self.predicted_us > self.actual_us { self.predicted_us - self.actual_us } else { self.actual_us - self.predicted_us };
-        let max = if self.predicted_us > self.actual_us { self.predicted_us } else { self.actual_us };
-        if max == 0 { 0.0 } else { (1.0 - diff as f64 / max as f64) * 100.0 }
+        if self.predicted_us == 0 || self.actual_us == 0 {
+            return 0.0;
+        }
+        let diff = if self.predicted_us > self.actual_us {
+            self.predicted_us - self.actual_us
+        } else {
+            self.actual_us - self.predicted_us
+        };
+        let max = if self.predicted_us > self.actual_us {
+            self.predicted_us
+        } else {
+            self.actual_us
+        };
+        if max == 0 {
+            0.0
+        } else {
+            (1.0 - diff as f64 / max as f64) * 100.0
+        }
     }
 
     #[inline(always)]
     pub fn avg_idle_us(&self) -> u64 {
-        let non_zero: Vec<u64> = self.prediction_history.iter().copied().filter(|&v| v > 0).collect();
-        if non_zero.is_empty() { 0 } else { non_zero.iter().sum::<u64>() / non_zero.len() as u64 }
+        let non_zero: Vec<u64> = self
+            .prediction_history
+            .iter()
+            .copied()
+            .filter(|&v| v > 0)
+            .collect();
+        if non_zero.is_empty() {
+            0
+        } else {
+            non_zero.iter().sum::<u64>() / non_zero.len() as u64
+        }
     }
 
     #[inline(always)]
-    pub fn is_disabled(&self, state: CStateLevel) -> bool { (self.disable_mask >> state.depth()) & 1 != 0 }
+    pub fn is_disabled(&self, state: CStateLevel) -> bool {
+        (self.disable_mask >> state.depth()) & 1 != 0
+    }
     #[inline(always)]
-    pub fn disable_state(&mut self, state: CStateLevel) { self.disable_mask |= 1 << state.depth(); }
+    pub fn disable_state(&mut self, state: CStateLevel) {
+        self.disable_mask |= 1 << state.depth();
+    }
     #[inline(always)]
-    pub fn enable_state(&mut self, state: CStateLevel) { self.disable_mask &= !(1 << state.depth()); }
+    pub fn enable_state(&mut self, state: CStateLevel) {
+        self.disable_mask &= !(1 << state.depth());
+    }
 
     /// Idle ratio (0.0 to 1.0) using V2 nanosecond fields
     #[inline(always)]
     pub fn idle_ratio(&self) -> f64 {
         let total = self.total_idle_ns + self.total_active_ns;
-        if total == 0 { 0.0 } else { self.total_idle_ns as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.total_idle_ns as f64 / total as f64
+        }
     }
 
     #[inline]
     pub fn select_state(&self) -> CStateLevel {
         let avg = self.avg_idle_us();
-        let states = [CStateLevel::C10, CStateLevel::C8, CStateLevel::C7, CStateLevel::C6, CStateLevel::C3, CStateLevel::C2, CStateLevel::C1e, CStateLevel::C1];
+        let states = [
+            CStateLevel::C10,
+            CStateLevel::C8,
+            CStateLevel::C7,
+            CStateLevel::C6,
+            CStateLevel::C3,
+            CStateLevel::C2,
+            CStateLevel::C1e,
+            CStateLevel::C1,
+        ];
         for &s in &states {
-            if s > self.deepest_allowed { continue; }
-            if self.is_disabled(s) { continue; }
-            if avg >= s.exit_latency_us() * 3 { return s; }
+            if s > self.deepest_allowed {
+                continue;
+            }
+            if self.is_disabled(s) {
+                continue;
+            }
+            if avg >= s.exit_latency_us() * 3 {
+                return s;
+            }
         }
         CStateLevel::C0
     }
@@ -213,7 +279,13 @@ pub struct PackageCState {
 
 impl PackageCState {
     pub fn new(pkg: u32) -> Self {
-        Self { package_id: pkg, cpu_ids: Vec::new(), deepest_pkg: CStateLevel::C0, residency_us: BTreeMap::new(), all_idle: false }
+        Self {
+            package_id: pkg,
+            cpu_ids: Vec::new(),
+            deepest_pkg: CStateLevel::C0,
+            residency_us: BTreeMap::new(),
+            all_idle: false,
+        }
     }
 }
 
@@ -240,19 +312,30 @@ pub struct HolisticCpuIdle {
 
 impl HolisticCpuIdle {
     pub fn new() -> Self {
-        Self { cpus: BTreeMap::new(), packages: BTreeMap::new(), stats: CpuIdleStats::default(), global_governor: IdleGovernor::Menu }
+        Self {
+            cpus: BTreeMap::new(),
+            packages: BTreeMap::new(),
+            stats: CpuIdleStats::default(),
+            global_governor: IdleGovernor::Menu,
+        }
     }
 
     #[inline(always)]
     pub fn add_cpu(&mut self, id: u32, pkg: u32) {
         self.cpus.insert(id, CpuIdleState::new(id));
-        self.packages.entry(pkg).or_insert_with(|| PackageCState::new(pkg)).cpu_ids.push(id);
+        self.packages
+            .entry(pkg)
+            .or_insert_with(|| PackageCState::new(pkg))
+            .cpu_ids
+            .push(id);
     }
 
     #[inline(always)]
     pub fn set_governor(&mut self, gov: IdleGovernor) {
         self.global_governor = gov;
-        for c in self.cpus.values_mut() { c.governor = gov; }
+        for c in self.cpus.values_mut() {
+            c.governor = gov;
+        }
     }
 
     #[inline]
@@ -265,23 +348,51 @@ impl HolisticCpuIdle {
 
     #[inline(always)]
     pub fn exit_idle(&mut self, cpu: u32, actual: u64, wake: WakeSource) {
-        if let Some(c) = self.cpus.get_mut(&cpu) { c.exit_idle(actual, wake); }
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.exit_idle(actual, wake);
+        }
     }
 
     #[inline(always)]
-    pub fn disable_state(&mut self, cpu: u32, state: CStateLevel) { if let Some(c) = self.cpus.get_mut(&cpu) { c.disable_state(state); } }
+    pub fn disable_state(&mut self, cpu: u32, state: CStateLevel) {
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.disable_state(state);
+        }
+    }
     #[inline(always)]
-    pub fn enable_state(&mut self, cpu: u32, state: CStateLevel) { if let Some(c) = self.cpus.get_mut(&cpu) { c.enable_state(state); } }
+    pub fn enable_state(&mut self, cpu: u32, state: CStateLevel) {
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.enable_state(state);
+        }
+    }
 
     #[inline(always)]
-    pub fn set_max_depth(&mut self, cpu: u32, max: CStateLevel) { if let Some(c) = self.cpus.get_mut(&cpu) { c.deepest_allowed = max; } }
+    pub fn set_max_depth(&mut self, cpu: u32, max: CStateLevel) {
+        if let Some(c) = self.cpus.get_mut(&cpu) {
+            c.deepest_allowed = max;
+        }
+    }
 
     pub fn update_packages(&mut self) {
-        let cpu_snap: BTreeMap<u32, (CStateLevel, u64)> = self.cpus.iter().map(|(&id, c)| (id, (c.current_state, c.total_idle_us))).collect();
+        let cpu_snap: BTreeMap<u32, (CStateLevel, u64)> = self
+            .cpus
+            .iter()
+            .map(|(&id, c)| (id, (c.current_state, c.total_idle_us)))
+            .collect();
         for pkg in self.packages.values_mut() {
-            pkg.all_idle = pkg.cpu_ids.iter().all(|id| cpu_snap.get(id).map(|(s, _)| *s != CStateLevel::C0).unwrap_or(false));
+            pkg.all_idle = pkg.cpu_ids.iter().all(|id| {
+                cpu_snap
+                    .get(id)
+                    .map(|(s, _)| *s != CStateLevel::C0)
+                    .unwrap_or(false)
+            });
             if pkg.all_idle {
-                let min = pkg.cpu_ids.iter().filter_map(|id| cpu_snap.get(id).map(|(s, _)| *s)).min().unwrap_or(CStateLevel::C0);
+                let min = pkg
+                    .cpu_ids
+                    .iter()
+                    .filter_map(|id| cpu_snap.get(id).map(|(s, _)| *s))
+                    .min()
+                    .unwrap_or(CStateLevel::C0);
                 pkg.deepest_pkg = min;
             } else {
                 pkg.deepest_pkg = CStateLevel::C0;
@@ -293,19 +404,41 @@ impl HolisticCpuIdle {
     pub fn recompute(&mut self) {
         self.stats.total_cpus = self.cpus.len();
         if !self.cpus.is_empty() {
-            self.stats.avg_idle_pct = self.cpus.values().map(|c| c.idle_pct()).sum::<f64>() / self.cpus.len() as f64;
-            self.stats.avg_prediction_accuracy = self.cpus.values().map(|c| c.prediction_accuracy()).sum::<f64>() / self.cpus.len() as f64;
+            self.stats.avg_idle_pct =
+                self.cpus.values().map(|c| c.idle_pct()).sum::<f64>() / self.cpus.len() as f64;
+            self.stats.avg_prediction_accuracy = self
+                .cpus
+                .values()
+                .map(|c| c.prediction_accuracy())
+                .sum::<f64>()
+                / self.cpus.len() as f64;
         }
-        self.stats.total_idle_entries = self.cpus.values().flat_map(|c| c.entry_count.values()).sum();
-        self.stats.deepest_used = self.cpus.values().flat_map(|c| c.residency_us.keys()).copied().max().unwrap_or(0);
+        self.stats.total_idle_entries = self
+            .cpus
+            .values()
+            .flat_map(|c| c.entry_count.values())
+            .sum();
+        self.stats.deepest_used = self
+            .cpus
+            .values()
+            .flat_map(|c| c.residency_us.keys())
+            .copied()
+            .max()
+            .unwrap_or(0);
     }
 
     #[inline(always)]
-    pub fn cpu(&self, id: u32) -> Option<&CpuIdleState> { self.cpus.get(&id) }
+    pub fn cpu(&self, id: u32) -> Option<&CpuIdleState> {
+        self.cpus.get(&id)
+    }
     #[inline(always)]
-    pub fn package(&self, id: u32) -> Option<&PackageCState> { self.packages.get(&id) }
+    pub fn package(&self, id: u32) -> Option<&PackageCState> {
+        self.packages.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &CpuIdleStats { &self.stats }
+    pub fn stats(&self) -> &CpuIdleStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -324,8 +457,6 @@ pub enum CState {
     C8,  // Package C8
     C10, // Package C10
 }
-
-
 
 /// C-state latency table
 #[derive(Debug, Clone)]
@@ -359,13 +490,46 @@ pub struct HolisticCpuIdleV2 {
 impl HolisticCpuIdleV2 {
     pub fn new() -> Self {
         let table = alloc::vec![
-            CStateLatency { cstate: CState::C1, entry_latency_ns: 1_000, exit_latency_ns: 1_000, target_residency_ns: 10_000, power_mw: 800 },
-            CStateLatency { cstate: CState::C1E, entry_latency_ns: 10_000, exit_latency_ns: 20_000, target_residency_ns: 100_000, power_mw: 500 },
-            CStateLatency { cstate: CState::C3, entry_latency_ns: 100_000, exit_latency_ns: 200_000, target_residency_ns: 1_000_000, power_mw: 200 },
-            CStateLatency { cstate: CState::C6, entry_latency_ns: 500_000, exit_latency_ns: 1_000_000, target_residency_ns: 5_000_000, power_mw: 50 },
-            CStateLatency { cstate: CState::C7, entry_latency_ns: 1_000_000, exit_latency_ns: 2_000_000, target_residency_ns: 10_000_000, power_mw: 20 },
+            CStateLatency {
+                cstate: CState::C1,
+                entry_latency_ns: 1_000,
+                exit_latency_ns: 1_000,
+                target_residency_ns: 10_000,
+                power_mw: 800
+            },
+            CStateLatency {
+                cstate: CState::C1E,
+                entry_latency_ns: 10_000,
+                exit_latency_ns: 20_000,
+                target_residency_ns: 100_000,
+                power_mw: 500
+            },
+            CStateLatency {
+                cstate: CState::C3,
+                entry_latency_ns: 100_000,
+                exit_latency_ns: 200_000,
+                target_residency_ns: 1_000_000,
+                power_mw: 200
+            },
+            CStateLatency {
+                cstate: CState::C6,
+                entry_latency_ns: 500_000,
+                exit_latency_ns: 1_000_000,
+                target_residency_ns: 5_000_000,
+                power_mw: 50
+            },
+            CStateLatency {
+                cstate: CState::C7,
+                entry_latency_ns: 1_000_000,
+                exit_latency_ns: 2_000_000,
+                target_residency_ns: 10_000_000,
+                power_mw: 20
+            },
         ];
-        Self { cpus: BTreeMap::new(), latency_table: table }
+        Self {
+            cpus: BTreeMap::new(),
+            latency_table: table,
+        }
     }
 
     #[inline(always)]
@@ -377,25 +541,52 @@ impl HolisticCpuIdleV2 {
 
     #[inline(always)]
     pub fn enter_idle(&mut self, cpu_id: u32, _target: CState, predicted: u64, _now: u64) {
-        if let Some(cpu) = self.cpus.get_mut(&cpu_id) { cpu.enter_idle(cpu.select_state(), predicted); }
+        if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
+            cpu.enter_idle(cpu.select_state(), predicted);
+        }
     }
 
     #[inline(always)]
     pub fn exit_idle(&mut self, cpu_id: u32, now: u64) {
-        if let Some(cpu) = self.cpus.get_mut(&cpu_id) { cpu.exit_idle(now, WakeSource::Unknown); }
+        if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
+            cpu.exit_idle(now, WakeSource::Unknown);
+        }
     }
 
     pub fn stats(&self) -> CpuIdleV2Stats {
-        let idle = self.cpus.values().filter(|c| c.current_state != CStateLevel::C0).count() as u32;
+        let idle = self
+            .cpus
+            .values()
+            .filter(|c| c.current_state != CStateLevel::C0)
+            .count() as u32;
         let ratios: Vec<f64> = self.cpus.values().map(|c| c.idle_ratio()).collect();
-        let avg_idle = if ratios.is_empty() { 0.0 } else { ratios.iter().sum::<f64>() / ratios.len() as f64 };
-        let accs: Vec<f64> = self.cpus.values().map(|c| c.prediction_accuracy()).collect();
-        let avg_acc = if accs.is_empty() { 1.0 } else { accs.iter().sum::<f64>() / accs.len() as f64 };
-        let entries: u64 = self.cpus.values().flat_map(|c| c.entry_count.values()).sum();
+        let avg_idle = if ratios.is_empty() {
+            0.0
+        } else {
+            ratios.iter().sum::<f64>() / ratios.len() as f64
+        };
+        let accs: Vec<f64> = self
+            .cpus
+            .values()
+            .map(|c| c.prediction_accuracy())
+            .collect();
+        let avg_acc = if accs.is_empty() {
+            1.0
+        } else {
+            accs.iter().sum::<f64>() / accs.len() as f64
+        };
+        let entries: u64 = self
+            .cpus
+            .values()
+            .flat_map(|c| c.entry_count.values())
+            .sum();
         CpuIdleV2Stats {
-            total_cpus: self.cpus.len() as u32, idle_cpus: idle,
-            avg_idle_ratio: avg_idle, avg_prediction_accuracy: avg_acc,
-            deepest_cstate_used: CState::C7, total_idle_entries: entries,
+            total_cpus: self.cpus.len() as u32,
+            idle_cpus: idle,
+            avg_idle_ratio: avg_idle,
+            avg_prediction_accuracy: avg_acc,
+            deepest_cstate_used: CState::C7,
+            total_idle_entries: entries,
         }
     }
 }

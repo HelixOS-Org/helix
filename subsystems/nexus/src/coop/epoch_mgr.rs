@@ -12,7 +12,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-
 /// Epoch value
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
@@ -42,9 +41,13 @@ pub struct EpochParticipant {
 impl EpochParticipant {
     pub fn new(id: u64, epoch: Epoch, ts: u64) -> Self {
         Self {
-            id, state: ParticipantState::Quiescent,
-            pinned_epoch: epoch, local_epoch: epoch,
-            enter_count: 0, exit_count: 0, last_activity_ts: ts,
+            id,
+            state: ParticipantState::Quiescent,
+            pinned_epoch: epoch,
+            local_epoch: epoch,
+            enter_count: 0,
+            exit_count: 0,
+            last_activity_ts: ts,
         }
     }
 
@@ -65,9 +68,13 @@ impl EpochParticipant {
     }
 
     #[inline(always)]
-    pub fn is_pinned(&self) -> bool { self.state == ParticipantState::Pinned }
+    pub fn is_pinned(&self) -> bool {
+        self.state == ParticipantState::Pinned
+    }
     #[inline(always)]
-    pub fn is_quiescent(&self) -> bool { self.state == ParticipantState::Quiescent }
+    pub fn is_quiescent(&self) -> bool {
+        self.state == ParticipantState::Quiescent
+    }
 }
 
 /// Deferred cleanup entry
@@ -126,20 +133,26 @@ pub struct CoopEpochMgr {
 impl CoopEpochMgr {
     pub fn new() -> Self {
         Self {
-            global_epoch: 1, participants: BTreeMap::new(),
-            deferred: Vec::new(), next_cleanup_id: 1,
-            max_deferred: 4096, stats: EpochMgrStats::default(),
+            global_epoch: 1,
+            participants: BTreeMap::new(),
+            deferred: Vec::new(),
+            next_cleanup_id: 1,
+            max_deferred: 4096,
+            stats: EpochMgrStats::default(),
         }
     }
 
     #[inline(always)]
     pub fn register(&mut self, id: u64, ts: u64) {
-        self.participants.insert(id, EpochParticipant::new(id, self.global_epoch, ts));
+        self.participants
+            .insert(id, EpochParticipant::new(id, self.global_epoch, ts));
     }
 
     #[inline(always)]
     pub fn unregister(&mut self, id: u64) {
-        if let Some(p) = self.participants.get_mut(&id) { p.state = ParticipantState::Offline; }
+        if let Some(p) = self.participants.get_mut(&id) {
+            p.state = ParticipantState::Offline;
+        }
     }
 
     #[inline]
@@ -161,18 +174,26 @@ impl CoopEpochMgr {
         let id = self.next_cleanup_id;
         self.next_cleanup_id += 1;
         self.deferred.push(DeferredCleanup {
-            id, retire_epoch: self.global_epoch, cleanup_type, data_id, deferred_ts: ts,
+            id,
+            retire_epoch: self.global_epoch,
+            cleanup_type,
+            data_id,
+            deferred_ts: ts,
         });
         id
     }
 
     pub fn try_advance(&mut self) -> Option<AdvanceResult> {
         // Can advance if all participants have observed current epoch
-        let all_caught_up = self.participants.values()
+        let all_caught_up = self
+            .participants
+            .values()
             .filter(|p| p.state != ParticipantState::Offline)
             .all(|p| p.is_quiescent() || p.local_epoch >= self.global_epoch);
 
-        if !all_caught_up { return None; }
+        if !all_caught_up {
+            return None;
+        }
 
         let old = self.global_epoch;
         self.global_epoch += 1;
@@ -183,7 +204,10 @@ impl CoopEpochMgr {
             new_epoch: self.global_epoch,
             old_epoch: old,
             reclaimable_count: reclaimable,
-            all_quiescent: self.participants.values().all(|p| p.is_quiescent() || p.state == ParticipantState::Offline),
+            all_quiescent: self
+                .participants
+                .values()
+                .all(|p| p.is_quiescent() || p.state == ParticipantState::Offline),
         })
     }
 
@@ -197,7 +221,8 @@ impl CoopEpochMgr {
     }
 
     fn min_pinned_epoch(&self) -> Epoch {
-        self.participants.values()
+        self.participants
+            .values()
             .filter(|p| p.is_pinned())
             .map(|p| p.pinned_epoch)
             .min()
@@ -208,18 +233,29 @@ impl CoopEpochMgr {
     pub fn recompute(&mut self) {
         self.stats.current_epoch = self.global_epoch;
         self.stats.participants = self.participants.len();
-        self.stats.active_participants = self.participants.values().filter(|p| p.state != ParticipantState::Offline).count();
-        self.stats.pinned_participants = self.participants.values().filter(|p| p.is_pinned()).count();
+        self.stats.active_participants = self
+            .participants
+            .values()
+            .filter(|p| p.state != ParticipantState::Offline)
+            .count();
+        self.stats.pinned_participants =
+            self.participants.values().filter(|p| p.is_pinned()).count();
         self.stats.deferred_cleanups = self.deferred.len();
         self.stats.min_pinned_epoch = self.min_pinned_epoch();
     }
 
     #[inline(always)]
-    pub fn global_epoch(&self) -> Epoch { self.global_epoch }
+    pub fn global_epoch(&self) -> Epoch {
+        self.global_epoch
+    }
     #[inline(always)]
-    pub fn participant(&self, id: u64) -> Option<&EpochParticipant> { self.participants.get(&id) }
+    pub fn participant(&self, id: u64) -> Option<&EpochParticipant> {
+        self.participants.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &EpochMgrStats { &self.stats }
+    pub fn stats(&self) -> &EpochMgrStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -235,9 +271,21 @@ pub enum EpochV2 {
 
 impl EpochV2 {
     #[inline(always)]
-    pub fn next(self) -> Self { match self { Self::Zero => Self::One, Self::One => Self::Two, Self::Two => Self::Zero } }
+    pub fn next(self) -> Self {
+        match self {
+            Self::Zero => Self::One,
+            Self::One => Self::Two,
+            Self::Two => Self::Zero,
+        }
+    }
     #[inline(always)]
-    pub fn as_u8(self) -> u8 { match self { Self::Zero => 0, Self::One => 1, Self::Two => 2 } }
+    pub fn as_u8(self) -> u8 {
+        match self {
+            Self::Zero => 0,
+            Self::One => 1,
+            Self::Two => 2,
+        }
+    }
 }
 
 /// Thread epoch state
@@ -251,13 +299,29 @@ pub struct EpochV2Thread {
 }
 
 impl EpochV2Thread {
-    pub fn new(tid: u64) -> Self { Self { tid, local_epoch: EpochV2::Zero, active: false, pin_count: 0, gc_count: 0 } }
+    pub fn new(tid: u64) -> Self {
+        Self {
+            tid,
+            local_epoch: EpochV2::Zero,
+            active: false,
+            pin_count: 0,
+            gc_count: 0,
+        }
+    }
     #[inline(always)]
-    pub fn pin(&mut self, global: EpochV2) { self.active = true; self.local_epoch = global; self.pin_count += 1; }
+    pub fn pin(&mut self, global: EpochV2) {
+        self.active = true;
+        self.local_epoch = global;
+        self.pin_count += 1;
+    }
     #[inline(always)]
-    pub fn unpin(&mut self) { self.active = false; }
+    pub fn unpin(&mut self) {
+        self.active = false;
+    }
     #[inline(always)]
-    pub fn is_pinned(&self) -> bool { self.active }
+    pub fn is_pinned(&self) -> bool {
+        self.active
+    }
 }
 
 /// Garbage entry
@@ -293,31 +357,50 @@ pub struct CoopEpochMgrV2 {
 
 impl CoopEpochMgrV2 {
     pub fn new() -> Self {
-        Self { global_epoch: EpochV2::Zero, threads: BTreeMap::new(), garbage: [Vec::new(), Vec::new(), Vec::new()], total_reclaimed: 0, advance_count: 0 }
+        Self {
+            global_epoch: EpochV2::Zero,
+            threads: BTreeMap::new(),
+            garbage: [Vec::new(), Vec::new(), Vec::new()],
+            total_reclaimed: 0,
+            advance_count: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn register(&mut self, tid: u64) { self.threads.insert(tid, EpochV2Thread::new(tid)); }
+    pub fn register(&mut self, tid: u64) {
+        self.threads.insert(tid, EpochV2Thread::new(tid));
+    }
 
     #[inline(always)]
     pub fn pin(&mut self, tid: u64) {
         let epoch = self.global_epoch;
-        if let Some(t) = self.threads.get_mut(&tid) { t.pin(epoch); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.pin(epoch);
+        }
     }
 
     #[inline(always)]
     pub fn unpin(&mut self, tid: u64) {
-        if let Some(t) = self.threads.get_mut(&tid) { t.unpin(); }
+        if let Some(t) = self.threads.get_mut(&tid) {
+            t.unpin();
+        }
     }
 
     #[inline(always)]
     pub fn retire(&mut self, addr: u64, size: u64, now: u64) {
         let idx = self.global_epoch.as_u8() as usize;
-        self.garbage[idx].push(GarbageEntry { addr, size, epoch: self.global_epoch, queued_at: now });
+        self.garbage[idx].push(GarbageEntry {
+            addr,
+            size,
+            epoch: self.global_epoch,
+            queued_at: now,
+        });
     }
 
     pub fn try_advance(&mut self) -> bool {
-        let all_caught_up = self.threads.values()
+        let all_caught_up = self
+            .threads
+            .values()
             .filter(|t| t.active)
             .all(|t| t.local_epoch == self.global_epoch);
         if all_caught_up {
@@ -329,7 +412,9 @@ impl CoopEpochMgrV2 {
             self.global_epoch = self.global_epoch.next();
             self.advance_count += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -337,8 +422,21 @@ impl CoopEpochMgrV2 {
         let active = self.threads.values().filter(|t| t.active).count() as u32;
         let pins: u64 = self.threads.values().map(|t| t.pin_count).sum();
         let pending: u32 = self.garbage.iter().map(|g| g.len() as u32).sum();
-        let bytes: u64 = self.garbage.iter().flat_map(|g| g.iter()).map(|e| e.size).sum();
-        EpochV2MgrStats { global_epoch: self.global_epoch.as_u8(), total_threads: self.threads.len() as u32, active_threads: active, total_pins: pins, garbage_pending: pending, garbage_bytes: bytes, total_reclaimed: self.total_reclaimed }
+        let bytes: u64 = self
+            .garbage
+            .iter()
+            .flat_map(|g| g.iter())
+            .map(|e| e.size)
+            .sum();
+        EpochV2MgrStats {
+            global_epoch: self.global_epoch.as_u8(),
+            total_threads: self.threads.len() as u32,
+            active_threads: active,
+            total_pins: pins,
+            garbage_pending: pending,
+            garbage_bytes: bytes,
+            total_reclaimed: self.total_reclaimed,
+        }
     }
 }
 
@@ -383,10 +481,13 @@ pub struct EpochV3ThreadState {
 impl EpochV3ThreadState {
     pub fn new(thread_id: u32) -> Self {
         Self {
-            thread_id, local_epoch: 0,
+            thread_id,
+            local_epoch: 0,
             state: EpochV3State::Offline,
-            pin_count: 0, unpin_count: 0,
-            gc_count: 0, garbage: Vec::new(),
+            pin_count: 0,
+            unpin_count: 0,
+            gc_count: 0,
+            garbage: Vec::new(),
         }
     }
 
@@ -405,7 +506,11 @@ impl EpochV3ThreadState {
 
     #[inline(always)]
     pub fn defer_free(&mut self, addr: u64, size: u32, epoch: u64) {
-        self.garbage.push(EpochV3Garbage { addr, size, retire_epoch: epoch });
+        self.garbage.push(EpochV3Garbage {
+            addr,
+            size,
+            retire_epoch: epoch,
+        });
     }
 
     #[inline]
@@ -419,7 +524,9 @@ impl EpochV3ThreadState {
     }
 
     #[inline(always)]
-    pub fn pending_garbage(&self) -> usize { self.garbage.len() }
+    pub fn pending_garbage(&self) -> usize {
+        self.garbage.len()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -448,9 +555,12 @@ impl CoopEpochMgrV3 {
             global_epoch: AtomicU64::new(0),
             gc_policy: policy,
             stats: EpochV3Stats {
-                global_epoch: 0, total_threads: 0,
-                total_pins: 0, total_unpins: 0,
-                total_collected: 0, total_deferred: 0,
+                global_epoch: 0,
+                total_threads: 0,
+                total_pins: 0,
+                total_unpins: 0,
+                total_collected: 0,
+                total_deferred: 0,
                 pending_garbage: 0,
             },
         }
@@ -482,14 +592,18 @@ impl CoopEpochMgrV3 {
     #[inline]
     pub fn try_advance(&mut self) -> bool {
         let current = self.global_epoch.load(Ordering::Acquire);
-        let all_quiescent = self.threads.values()
-            .all(|t| t.state == EpochV3State::Quiescent || t.state == EpochV3State::Offline
-                 || t.local_epoch == current);
+        let all_quiescent = self.threads.values().all(|t| {
+            t.state == EpochV3State::Quiescent
+                || t.state == EpochV3State::Offline
+                || t.local_epoch == current
+        });
         if all_quiescent {
             self.global_epoch.fetch_add(1, Ordering::Release);
             self.stats.global_epoch = current + 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -505,5 +619,7 @@ impl CoopEpochMgrV3 {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &EpochV3Stats { &self.stats }
+    pub fn stats(&self) -> &EpochV3Stats {
+        &self.stats
+    }
 }

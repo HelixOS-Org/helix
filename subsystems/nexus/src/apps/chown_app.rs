@@ -67,9 +67,14 @@ impl AppChown {
             history: VecDeque::new(),
             max_history,
             stats: ChownAppStats {
-                total_calls: 0, chown_calls: 0, fchown_calls: 0,
-                lchown_calls: 0, successful: 0, permission_denied: 0,
-                uid_changes: 0, gid_changes: 0,
+                total_calls: 0,
+                chown_calls: 0,
+                fchown_calls: 0,
+                lchown_calls: 0,
+                successful: 0,
+                permission_denied: 0,
+                uid_changes: 0,
+                gid_changes: 0,
             },
         }
     }
@@ -83,7 +88,17 @@ impl AppChown {
         h
     }
 
-    pub fn chown(&mut self, path: &str, old_uid: u32, new_uid: u32, old_gid: u32, new_gid: u32, pid: u64, variant: ChownVariant, tick: u64) -> ChownResult {
+    pub fn chown(
+        &mut self,
+        path: &str,
+        old_uid: u32,
+        new_uid: u32,
+        old_gid: u32,
+        new_gid: u32,
+        pid: u64,
+        variant: ChownVariant,
+        tick: u64,
+    ) -> ChownResult {
         self.stats.total_calls += 1;
         match variant {
             ChownVariant::Chown | ChownVariant::FchownAt => self.stats.chown_calls += 1,
@@ -91,13 +106,23 @@ impl AppChown {
             ChownVariant::Lchown => self.stats.lchown_calls += 1,
         }
         self.stats.successful += 1;
-        if old_uid != new_uid { self.stats.uid_changes += 1; }
-        if old_gid != new_gid { self.stats.gid_changes += 1; }
+        if old_uid != new_uid {
+            self.stats.uid_changes += 1;
+        }
+        if old_gid != new_gid {
+            self.stats.gid_changes += 1;
+        }
 
         let record = ChownRecord {
             path_hash: Self::hash_path(path),
-            old_uid, new_uid, old_gid, new_gid,
-            pid, variant, result: ChownResult::Success, tick,
+            old_uid,
+            new_uid,
+            old_gid,
+            new_gid,
+            pid,
+            variant,
+            result: ChownResult::Success,
+            tick,
         };
         if self.history.len() >= self.max_history {
             self.history.remove(0);

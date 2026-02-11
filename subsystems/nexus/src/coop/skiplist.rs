@@ -26,13 +26,24 @@ pub struct SkiplistNode {
 impl SkiplistNode {
     pub fn new(key: u64, value: u64, height: u32) -> Self {
         let forward = (0..height).map(|_| None).collect();
-        Self { key, value, height, forward, marked: false, fully_linked: false }
+        Self {
+            key,
+            value,
+            height,
+            forward,
+            marked: false,
+            fully_linked: false,
+        }
     }
 
     #[inline(always)]
-    pub fn link(&mut self) { self.fully_linked = true; }
+    pub fn link(&mut self) {
+        self.fully_linked = true;
+    }
     #[inline(always)]
-    pub fn mark_for_removal(&mut self) { self.marked = true; }
+    pub fn mark_for_removal(&mut self) {
+        self.marked = true;
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -52,7 +63,11 @@ pub struct SkiplistConfig {
 impl SkiplistConfig {
     #[inline(always)]
     pub fn default_config() -> Self {
-        Self { max_height: 32, probability: 50, seed: 0x12345678 }
+        Self {
+            max_height: 32,
+            probability: 50,
+            seed: 0x12345678,
+        }
     }
 
     pub fn random_height(&self, mut seed: u64) -> u32 {
@@ -99,16 +114,21 @@ impl CoopSkiplist {
             current_height: 1,
             rng_state: seed,
             stats: SkiplistStats {
-                total_nodes: 0, max_height_used: 1,
-                total_inserts: 0, total_removes: 0,
-                total_finds: 0, total_traversals: 0,
+                total_nodes: 0,
+                max_height_used: 1,
+                total_inserts: 0,
+                total_removes: 0,
+                total_finds: 0,
+                total_traversals: 0,
                 avg_search_length: 0,
             },
         }
     }
 
     pub fn insert(&mut self, key: u64, value: u64) -> bool {
-        if self.nodes.contains_key(&key) { return false; }
+        if self.nodes.contains_key(&key) {
+            return false;
+        }
         self.rng_state ^= self.rng_state << 13;
         self.rng_state ^= self.rng_state >> 7;
         self.rng_state ^= self.rng_state << 17;
@@ -136,9 +156,13 @@ impl CoopSkiplist {
             node.mark_for_removal();
             self.stats.total_removes += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &SkiplistStats { &self.stats }
+    pub fn stats(&self) -> &SkiplistStats {
+        &self.stats
+    }
 }

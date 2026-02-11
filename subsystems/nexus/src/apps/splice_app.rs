@@ -36,7 +36,13 @@ pub struct PipeBufferState {
 
 impl PipeBufferState {
     pub fn new(fd: u64, cap: u64, max_pg: u32) -> Self {
-        Self { pipe_fd: fd, capacity: cap, used: 0, pages: 0, max_pages: max_pg }
+        Self {
+            pipe_fd: fd,
+            capacity: cap,
+            used: 0,
+            pages: 0,
+            max_pages: max_pg,
+        }
     }
 }
 
@@ -80,12 +86,21 @@ pub struct AppSplice {
 
 impl AppSplice {
     pub fn new() -> Self {
-        Self { transfers: Vec::new(), pipe_buffers: BTreeMap::new(), splice_count: 0, tee_count: 0, vmsplice_count: 0, total_bytes: 0, zero_copy_bytes: 0 }
+        Self {
+            transfers: Vec::new(),
+            pipe_buffers: BTreeMap::new(),
+            splice_count: 0,
+            tee_count: 0,
+            vmsplice_count: 0,
+            total_bytes: 0,
+            zero_copy_bytes: 0,
+        }
     }
 
     #[inline(always)]
     pub fn track_pipe(&mut self, fd: u64, capacity: u64, max_pg: u32) {
-        self.pipe_buffers.insert(fd, PipeBufferState::new(fd, capacity, max_pg));
+        self.pipe_buffers
+            .insert(fd, PipeBufferState::new(fd, capacity, max_pg));
     }
 
     #[inline]
@@ -96,18 +111,25 @@ impl AppSplice {
             SpliceOpType::Vmsplice => self.vmsplice_count += 1,
         }
         self.total_bytes += xfer.transferred;
-        if xfer.zero_copy { self.zero_copy_bytes += xfer.transferred; }
+        if xfer.zero_copy {
+            self.zero_copy_bytes += xfer.transferred;
+        }
         self.transfers.push(xfer);
     }
 
     #[inline(always)]
-    pub fn untrack_pipe(&mut self, fd: u64) { self.pipe_buffers.remove(&fd); }
+    pub fn untrack_pipe(&mut self, fd: u64) {
+        self.pipe_buffers.remove(&fd);
+    }
 
     #[inline]
     pub fn stats(&self) -> SpliceAppStats {
         SpliceAppStats {
-            splice_count: self.splice_count, tee_count: self.tee_count, vmsplice_count: self.vmsplice_count,
-            total_bytes: self.total_bytes, zero_copy_bytes: self.zero_copy_bytes,
+            splice_count: self.splice_count,
+            tee_count: self.tee_count,
+            vmsplice_count: self.vmsplice_count,
+            total_bytes: self.total_bytes,
+            zero_copy_bytes: self.zero_copy_bytes,
             pipe_buffers_tracked: self.pipe_buffers.len() as u32,
         }
     }

@@ -11,9 +11,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // CONSTANTS
@@ -74,7 +75,7 @@ impl Distribution {
             Distribution::Uniform { low, high } => {
                 let r = rand_f32(rng);
                 low + r * (high - low)
-            }
+            },
             Distribution::Normal { mean, stddev } => {
                 // Approximate normal: average of 12 uniform samples minus 6
                 let mut sum = 0.0f32;
@@ -82,21 +83,21 @@ impl Distribution {
                     sum += rand_f32(rng);
                 }
                 mean + stddev * (sum - 6.0)
-            }
+            },
             Distribution::Exponential { rate } => {
                 let u = rand_f32(rng).max(0.0001);
                 // -ln(u) / rate, approximate ln via: ln(x) ≈ (x-1) - (x-1)^2/2 for x near 1
                 // Better: use bit manipulation approximation
                 let ln_u = ln_approx(u);
                 -ln_u / rate.max(0.0001)
-            }
+            },
             Distribution::Empirical { values } => {
                 if values.is_empty() {
                     return 0.0;
                 }
                 let idx = (xorshift64(rng) as usize) % values.len();
                 values[idx]
-            }
+            },
         }
     }
 }
@@ -260,8 +261,8 @@ impl BridgeMonteCarlo {
             + weights.2 * (1.0 - contention.max(0.0).min(1.0));
         let normalized = score / (weights.0 + weights.1 + weights.2).max(0.001);
 
-        let is_rare = normalized < RARE_EVENT_THRESHOLD
-            || normalized > (1.0 - RARE_EVENT_THRESHOLD);
+        let is_rare =
+            normalized < RARE_EVENT_THRESHOLD || normalized > (1.0 - RARE_EVENT_THRESHOLD);
 
         self.rng_state = local_rng;
 
@@ -295,17 +296,17 @@ impl BridgeMonteCarlo {
         let sim_id = fnv1a_hash(&self.total_simulations.to_le_bytes());
 
         // Sort by score for percentile computation
-        samples.sort_by(|a, b|
-            a.outcome_score.partial_cmp(&b.outcome_score)
-                .unwrap_or(core::cmp::Ordering::Equal));
+        samples.sort_by(|a, b| {
+            a.outcome_score
+                .partial_cmp(&b.outcome_score)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
 
         let scores: Vec<f32> = samples.iter().map(|s| s.outcome_score).collect();
         let n_f = n as f32;
 
         let mean = scores.iter().sum::<f32>() / n_f;
-        let variance = scores.iter()
-            .map(|&s| (s - mean) * (s - mean))
-            .sum::<f32>() / n_f;
+        let variance = scores.iter().map(|&s| (s - mean) * (s - mean)).sum::<f32>() / n_f;
         let std_dev = sqrt_approx(variance);
         let median = scores[n / 2];
         let min_score = scores.first().copied().unwrap_or(0.0);
@@ -334,7 +335,10 @@ impl BridgeMonteCarlo {
         self.avg_mean_ema = EMA_ALPHA * mean + (1.0 - EMA_ALPHA) * self.avg_mean_ema;
         self.avg_stddev_ema = EMA_ALPHA * std_dev + (1.0 - EMA_ALPHA) * self.avg_stddev_ema;
 
-        if let Some(ci95) = confidence_intervals.iter().find(|c| (c.level - 0.95).abs() < 0.01) {
+        if let Some(ci95) = confidence_intervals
+            .iter()
+            .find(|c| (c.level - 0.95).abs() < 0.01)
+        {
             self.avg_ci_width_ema =
                 EMA_ALPHA * ci95.width + (1.0 - EMA_ALPHA) * self.avg_ci_width_ema;
         }
@@ -366,7 +370,12 @@ impl BridgeMonteCarlo {
     pub fn confidence_interval(&self, sorted_scores: &[f32], level: f32) -> ConfidenceInterval {
         let n = sorted_scores.len();
         if n == 0 {
-            return ConfidenceInterval { level, lower: 0.0, upper: 0.0, width: 0.0 };
+            return ConfidenceInterval {
+                level,
+                lower: 0.0,
+                upper: 0.0,
+                width: 0.0,
+            };
         }
         let alpha = 1.0 - level;
         let lower_idx = ((alpha / 2.0) * n as f32) as usize;
@@ -394,9 +403,7 @@ impl BridgeMonteCarlo {
             return events;
         }
 
-        let rare_samples: Vec<&FutureSample> = samples.iter()
-            .filter(|s| s.is_rare)
-            .collect();
+        let rare_samples: Vec<&FutureSample> = samples.iter().filter(|s| s.is_rare).collect();
 
         if rare_samples.is_empty() {
             return events;

@@ -461,7 +461,7 @@ impl ValidationEngine {
                     findings: Vec::new(),
                     validation_time_ns: 5,
                 };
-            }
+            },
         };
 
         let mut findings = Vec::new();
@@ -514,7 +514,7 @@ impl ValidationEngine {
                             }
                         }
                     }
-                }
+                },
                 ArgType::FileDescriptor => {
                     if value > ctx.max_fds as u64 {
                         findings.push(ValidationFinding {
@@ -525,7 +525,7 @@ impl ValidationEngine {
                         });
                         worst = ValidationResult::Invalid;
                     }
-                }
+                },
                 ArgType::Flags => {
                     if let Some(allowed) = rule.allowed_flags {
                         if value & !allowed != 0 {
@@ -538,7 +538,7 @@ impl ValidationEngine {
                             worst = ValidationResult::Invalid;
                         }
                     }
-                }
+                },
                 ArgType::Size => {
                     if let Some(max) = rule.max_value {
                         if value > max {
@@ -551,7 +551,7 @@ impl ValidationEngine {
                             worst = ValidationResult::Invalid;
                         }
                     }
-                }
+                },
                 ArgType::Integer | ArgType::UnsignedInteger => {
                     if let Some(min) = rule.min_value {
                         if value < min {
@@ -575,8 +575,8 @@ impl ValidationEngine {
                             worst = ValidationResult::Invalid;
                         }
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -584,7 +584,7 @@ impl ValidationEngine {
             ValidationResult::Valid => self.stats.valid += 1,
             ValidationResult::Invalid => self.stats.invalid += 1,
             ValidationResult::Warning => self.stats.warnings += 1,
-            _ => {}
+            _ => {},
         }
 
         for f in &findings {
@@ -594,7 +594,8 @@ impl ValidationEngine {
         // Cache result for trusted processes
         if ctx.trust_level >= self.cache_bypass_trust {
             let sig = self.compute_arg_signature(args);
-            self.cache.insert(ctx.pid, syscall_nr, sig, worst, timestamp);
+            self.cache
+                .insert(ctx.pid, syscall_nr, sig, worst, timestamp);
         }
 
         // Update cache hit rate

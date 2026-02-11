@@ -16,11 +16,11 @@ use alloc::vec::Vec;
 /// Size class for slab allocation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SizeClass {
-    Tiny,    // 8-32 bytes
-    Small,   // 33-128 bytes
-    Medium,  // 129-512 bytes
-    Large,   // 513-2048 bytes
-    Huge,    // 2049-8192 bytes
+    Tiny,   // 8-32 bytes
+    Small,  // 33-128 bytes
+    Medium, // 129-512 bytes
+    Large,  // 513-2048 bytes
+    Huge,   // 2049-8192 bytes
     Custom(usize),
 }
 
@@ -89,9 +89,14 @@ pub struct CpuCache {
 impl CpuCache {
     pub fn new(cpu: u32, class: SizeClass, capacity: usize) -> Self {
         Self {
-            cpu_id: cpu, size_class: class, freelist: Vec::new(),
-            cache_capacity: capacity, allocs: 0, frees: 0,
-            refills: 0, flushes: 0,
+            cpu_id: cpu,
+            size_class: class,
+            freelist: Vec::new(),
+            cache_capacity: capacity,
+            allocs: 0,
+            frees: 0,
+            refills: 0,
+            flushes: 0,
         }
     }
 
@@ -104,7 +109,9 @@ impl CpuCache {
 
     #[inline]
     pub fn try_free(&mut self, addr: u64) -> bool {
-        if self.freelist.len() >= self.cache_capacity { return false; }
+        if self.freelist.len() >= self.cache_capacity {
+            return false;
+        }
         self.freelist.push(addr);
         self.frees += 1;
         true
@@ -112,7 +119,9 @@ impl CpuCache {
 
     #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
-        if self.cache_capacity == 0 { return 0.0; }
+        if self.cache_capacity == 0 {
+            return 0.0;
+        }
         self.freelist.len() as f64 / self.cache_capacity as f64
     }
 }
@@ -132,22 +141,30 @@ impl SlabPage {
         let obj_size = class.slab_size();
         let total = if obj_size > 0 { 4096 / obj_size } else { 0 };
         Self {
-            page_addr: addr, size_class: class,
-            objects_total: total as u32, objects_used: 0,
+            page_addr: addr,
+            size_class: class,
+            objects_total: total as u32,
+            objects_used: 0,
             fragmentation: 0.0,
         }
     }
 
     #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
-        if self.objects_total == 0 { return 0.0; }
+        if self.objects_total == 0 {
+            return 0.0;
+        }
         self.objects_used as f64 / self.objects_total as f64
     }
 
     #[inline(always)]
-    pub fn is_full(&self) -> bool { self.objects_used >= self.objects_total }
+    pub fn is_full(&self) -> bool {
+        self.objects_used >= self.objects_total
+    }
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.objects_used == 0 }
+    pub fn is_empty(&self) -> bool {
+        self.objects_used == 0
+    }
 }
 
 /// Emergency reserve
@@ -161,13 +178,22 @@ pub struct EmergencyReserve {
 
 impl EmergencyReserve {
     pub fn new(pages: u32) -> Self {
-        Self { reserved_pages: pages, used_pages: 0, min_pages: pages / 4, emergency_allocs: 0 }
+        Self {
+            reserved_pages: pages,
+            used_pages: 0,
+            min_pages: pages / 4,
+            emergency_allocs: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn can_allocate(&self) -> bool { self.used_pages < self.reserved_pages }
+    pub fn can_allocate(&self) -> bool {
+        self.used_pages < self.reserved_pages
+    }
     #[inline(always)]
-    pub fn is_critical(&self) -> bool { self.reserved_pages - self.used_pages <= self.min_pages }
+    pub fn is_critical(&self) -> bool {
+        self.reserved_pages - self.used_pages <= self.min_pages
+    }
 }
 
 /// Leak suspect
@@ -213,9 +239,12 @@ pub struct HolisticKcallocPool {
 impl HolisticKcallocPool {
     pub fn new(reserve_pages: u32) -> Self {
         Self {
-            slabs: BTreeMap::new(), objects: BTreeMap::new(),
-            cpu_caches: BTreeMap::new(), reserve: EmergencyReserve::new(reserve_pages),
-            cache_hits: 0, cache_misses: 0,
+            slabs: BTreeMap::new(),
+            objects: BTreeMap::new(),
+            cpu_caches: BTreeMap::new(),
+            reserve: EmergencyReserve::new(reserve_pages),
+            cache_hits: 0,
+            cache_misses: 0,
             leak_threshold_ns: 300_000_000_000, // 5 minutes
             stats: KcallocPoolStats::default(),
         }
@@ -224,7 +253,8 @@ impl HolisticKcallocPool {
     #[inline(always)]
     pub fn init_cpu_cache(&mut self, cpu: u32, class: SizeClass, capacity: usize) {
         let key = (cpu, class.slab_size());
-        self.cpu_caches.insert(key, CpuCache::new(cpu, class, capacity));
+        self.cpu_caches
+            .insert(key, CpuCache::new(cpu, class, capacity));
     }
 
     pub fn allocate(&mut self, size: usize, cpu: u32, pid: u32, site: u64, ts: u64) -> Option<u64> {
@@ -236,8 +266,14 @@ impl HolisticKcallocPool {
             if let Some(addr) = cache.try_alloc() {
                 self.cache_hits += 1;
                 self.objects.insert(addr, ObjectHeader {
-                    addr, size, state: AllocState::Allocated, alloc_ts: ts,
-                    free_ts: None, alloc_cpu: cpu, owner_pid: pid, alloc_site: site,
+                    addr,
+                    size,
+                    state: AllocState::Allocated,
+                    alloc_ts: ts,
+                    free_ts: None,
+                    alloc_cpu: cpu,
+                    owner_pid: pid,
+                    alloc_site: site,
                 });
                 return Some(addr);
             }
@@ -247,8 +283,14 @@ impl HolisticKcallocPool {
         // Allocate from slab (simulated: use next available address)
         let addr = (self.objects.len() as u64 + 1) * 0x1000 + size as u64;
         self.objects.insert(addr, ObjectHeader {
-            addr, size, state: AllocState::Allocated, alloc_ts: ts,
-            free_ts: None, alloc_cpu: cpu, owner_pid: pid, alloc_site: site,
+            addr,
+            size,
+            state: AllocState::Allocated,
+            alloc_ts: ts,
+            free_ts: None,
+            alloc_cpu: cpu,
+            owner_pid: pid,
+            alloc_site: site,
         });
         Some(addr)
     }
@@ -268,31 +310,54 @@ impl HolisticKcallocPool {
 
     #[inline]
     pub fn detect_leaks(&self, now: u64) -> Vec<LeakSuspect> {
-        self.objects.values()
-            .filter(|o| o.state == AllocState::Allocated && now.saturating_sub(o.alloc_ts) > self.leak_threshold_ns)
+        self.objects
+            .values()
+            .filter(|o| {
+                o.state == AllocState::Allocated
+                    && now.saturating_sub(o.alloc_ts) > self.leak_threshold_ns
+            })
             .map(|o| LeakSuspect {
-                addr: o.addr, size: o.size, alloc_ts: o.alloc_ts,
-                age_ns: now.saturating_sub(o.alloc_ts), alloc_site: o.alloc_site, pid: o.owner_pid,
+                addr: o.addr,
+                size: o.size,
+                alloc_ts: o.alloc_ts,
+                age_ns: now.saturating_sub(o.alloc_ts),
+                alloc_site: o.alloc_site,
+                pid: o.owner_pid,
             })
             .collect()
     }
 
     pub fn recompute(&mut self) {
-        let active: Vec<&ObjectHeader> = self.objects.values().filter(|o| o.state == AllocState::Allocated).collect();
+        let active: Vec<&ObjectHeader> = self
+            .objects
+            .values()
+            .filter(|o| o.state == AllocState::Allocated)
+            .collect();
         self.stats.active_objects = active.len() as u64;
         self.stats.active_bytes = active.iter().map(|o| o.size as u64).sum();
         self.stats.total_allocated = self.objects.len() as u64;
-        self.stats.total_freed = self.objects.values().filter(|o| o.state == AllocState::Free).count() as u64;
+        self.stats.total_freed = self
+            .objects
+            .values()
+            .filter(|o| o.state == AllocState::Free)
+            .count() as u64;
         self.stats.slab_pages = self.slabs.len();
         self.stats.cpu_caches = self.cpu_caches.len();
         let total_cache_ops = self.cache_hits + self.cache_misses;
-        self.stats.cache_hit_rate = if total_cache_ops > 0 { self.cache_hits as f64 / total_cache_ops as f64 } else { 0.0 };
+        self.stats.cache_hit_rate = if total_cache_ops > 0 {
+            self.cache_hits as f64 / total_cache_ops as f64
+        } else {
+            0.0
+        };
         if !self.slabs.is_empty() {
-            self.stats.avg_fragmentation = self.slabs.values().map(|s| s.fragmentation).sum::<f64>() / self.slabs.len() as f64;
+            self.stats.avg_fragmentation =
+                self.slabs.values().map(|s| s.fragmentation).sum::<f64>() / self.slabs.len() as f64;
         }
         self.stats.emergency_allocs = self.reserve.emergency_allocs;
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &KcallocPoolStats { &self.stats }
+    pub fn stats(&self) -> &KcallocPoolStats {
+        &self.stats
+    }
 }

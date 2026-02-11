@@ -29,7 +29,7 @@ pub enum GroupSchedPolicy {
 /// Bandwidth parameters (quota/period)
 #[derive(Debug, Clone)]
 pub struct BandwidthParams {
-    pub quota_us: i64,   // -1 = unlimited,
+    pub quota_us: i64, // -1 = unlimited,
     pub period_us: u64,
     pub burst_us: u64,
 }
@@ -37,12 +37,20 @@ pub struct BandwidthParams {
 impl BandwidthParams {
     #[inline(always)]
     pub fn unlimited() -> Self {
-        Self { quota_us: -1, period_us: 100_000, burst_us: 0 }
+        Self {
+            quota_us: -1,
+            period_us: 100_000,
+            burst_us: 0,
+        }
     }
 
     #[inline(always)]
     pub fn limited(quota_us: u64, period_us: u64) -> Self {
-        Self { quota_us: quota_us as i64, period_us, burst_us: 0 }
+        Self {
+            quota_us: quota_us as i64,
+            period_us,
+            burst_us: 0,
+        }
     }
 
     #[inline(always)]
@@ -53,8 +61,12 @@ impl BandwidthParams {
     /// Max utilization this bandwidth allows
     #[inline]
     pub fn max_utilization(&self) -> f64 {
-        if self.quota_us < 0 { return f64::MAX; }
-        if self.period_us == 0 { return 0.0; }
+        if self.quota_us < 0 {
+            return f64::MAX;
+        }
+        if self.period_us == 0 {
+            return 0.0;
+        }
         self.quota_us as f64 / self.period_us as f64
     }
 }
@@ -85,7 +97,9 @@ impl BandwidthRuntime {
     /// Consume runtime. Returns true if still within budget
     pub fn consume(&mut self, us: u64) -> bool {
         self.total_runtime_us += us;
-        if self.remaining_quota_us < 0 { return true; } // unlimited
+        if self.remaining_quota_us < 0 {
+            return true;
+        } // unlimited
 
         self.remaining_quota_us -= us as i64;
         if self.remaining_quota_us <= 0 {
@@ -175,9 +189,13 @@ impl SchedGroup {
 
     #[inline]
     pub fn utilization(&self) -> f64 {
-        if self.runtime.periods_elapsed == 0 { return 0.0; }
+        if self.runtime.periods_elapsed == 0 {
+            return 0.0;
+        }
         let period_total = self.runtime.periods_elapsed as f64 * self.bandwidth.period_us as f64;
-        if period_total < 1.0 { return 0.0; }
+        if period_total < 1.0 {
+            return 0.0;
+        }
         self.runtime.total_runtime_us as f64 / period_total
     }
 }
@@ -232,7 +250,9 @@ impl HolisticSchedGroup {
         if let Some(parent) = self.groups.get_mut(&parent_id) {
             parent.children.push(group_id);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     /// Set bandwidth for a group
@@ -305,13 +325,18 @@ impl HolisticSchedGroup {
             if let Some(group) = self.groups.get(&gid) {
                 // Sibling total weight at this level
                 let siblings = if let Some(pid) = group.parent_id {
-                    self.groups.get(&pid)
-                        .map(|p| p.children.iter()
-                            .filter_map(|&cid| self.groups.get(&cid).map(|c| c.weight as f64))
-                            .sum::<f64>())
+                    self.groups
+                        .get(&pid)
+                        .map(|p| {
+                            p.children
+                                .iter()
+                                .filter_map(|&cid| self.groups.get(&cid).map(|c| c.weight as f64))
+                                .sum::<f64>()
+                        })
                         .unwrap_or(1.0)
                 } else {
-                    self.root_groups.iter()
+                    self.root_groups
+                        .iter()
                         .filter_map(|&rid| self.groups.get(&rid).map(|r| r.weight as f64))
                         .sum::<f64>()
                 };
@@ -340,7 +365,9 @@ impl HolisticSchedGroup {
             self.root_groups.retain(|&r| r != group_id);
             self.recompute();
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     fn recompute(&mut self) {
@@ -349,7 +376,9 @@ impl HolisticSchedGroup {
         let throttled = self.groups.values().filter(|g| g.is_throttled()).count();
         let total_throttles: u64 = self.groups.values().map(|g| g.runtime.throttle_count).sum();
 
-        let avg_util = if self.groups.is_empty() { 0.0 } else {
+        let avg_util = if self.groups.is_empty() {
+            0.0
+        } else {
             self.groups.values().map(|g| g.utilization()).sum::<f64>() / self.groups.len() as f64
         };
 

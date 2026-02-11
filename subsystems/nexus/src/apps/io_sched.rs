@@ -49,15 +49,27 @@ pub struct AppIoRequest {
 impl AppIoRequest {
     pub fn new(id: u64, pid: u64, dir: IoDirection, offset: u64, size: u64, ts: u64) -> Self {
         Self {
-            id, process_id: pid, direction: dir, offset, size,
-            io_class: AppIoClass::BestEffort, io_prio: 4,
-            submit_ns: ts, complete_ns: 0, merged: false, device_id: 0,
+            id,
+            process_id: pid,
+            direction: dir,
+            offset,
+            size,
+            io_class: AppIoClass::BestEffort,
+            io_prio: 4,
+            submit_ns: ts,
+            complete_ns: 0,
+            merged: false,
+            device_id: 0,
         }
     }
 
     #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
-        if self.complete_ns > self.submit_ns { self.complete_ns - self.submit_ns } else { 0 }
+        if self.complete_ns > self.submit_ns {
+            self.complete_ns - self.submit_ns
+        } else {
+            0
+        }
     }
 
     #[inline]
@@ -84,34 +96,47 @@ pub struct AppIoBandwidth {
 impl AppIoBandwidth {
     pub fn new(ts: u64, window: u64) -> Self {
         Self {
-            read_bytes: 0, write_bytes: 0, read_ops: 0, write_ops: 0,
-            read_merged: 0, write_merged: 0,
-            window_start_ns: ts, window_duration_ns: window,
+            read_bytes: 0,
+            write_bytes: 0,
+            read_ops: 0,
+            write_ops: 0,
+            read_merged: 0,
+            write_merged: 0,
+            window_start_ns: ts,
+            window_duration_ns: window,
         }
     }
 
     #[inline(always)]
     pub fn read_bw_bps(&self) -> f64 {
-        if self.window_duration_ns == 0 { return 0.0; }
+        if self.window_duration_ns == 0 {
+            return 0.0;
+        }
         self.read_bytes as f64 / (self.window_duration_ns as f64 / 1_000_000_000.0)
     }
 
     #[inline(always)]
     pub fn write_bw_bps(&self) -> f64 {
-        if self.window_duration_ns == 0 { return 0.0; }
+        if self.window_duration_ns == 0 {
+            return 0.0;
+        }
         self.write_bytes as f64 / (self.window_duration_ns as f64 / 1_000_000_000.0)
     }
 
     #[inline(always)]
     pub fn total_iops(&self) -> f64 {
-        if self.window_duration_ns == 0 { return 0.0; }
+        if self.window_duration_ns == 0 {
+            return 0.0;
+        }
         (self.read_ops + self.write_ops) as f64 / (self.window_duration_ns as f64 / 1_000_000_000.0)
     }
 
     #[inline]
     pub fn merge_ratio(&self) -> f64 {
         let total = self.read_ops + self.write_ops;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         (self.read_merged + self.write_merged) as f64 / total as f64
     }
 }
@@ -131,9 +156,13 @@ pub struct ReadAheadConfig {
 impl ReadAheadConfig {
     pub fn new(pages: u32) -> Self {
         Self {
-            pages, async_pages: pages / 4,
-            adaptive: true, sequential_threshold: 4,
-            hit_rate: 0.0, miss_count: 0, hit_count: 0,
+            pages,
+            async_pages: pages / 4,
+            adaptive: true,
+            sequential_threshold: 4,
+            hit_rate: 0.0,
+            miss_count: 0,
+            hit_count: 0,
         }
     }
 
@@ -151,12 +180,16 @@ impl ReadAheadConfig {
 
     fn update_rate(&mut self) {
         let total = self.hit_count + self.miss_count;
-        if total > 0 { self.hit_rate = self.hit_count as f64 / total as f64; }
+        if total > 0 {
+            self.hit_rate = self.hit_count as f64 / total as f64;
+        }
     }
 
     #[inline]
     pub fn adapt(&mut self) {
-        if !self.adaptive { return; }
+        if !self.adaptive {
+            return;
+        }
         if self.hit_rate > 0.8 && self.pages < 256 {
             self.pages *= 2;
         } else if self.hit_rate < 0.3 && self.pages > 4 {
@@ -201,9 +234,15 @@ impl AppIoSchedState {
     #[inline]
     pub fn submit_io(&mut self, req: AppIoRequest) {
         match req.direction {
-            IoDirection::Read => { self.bandwidth.read_ops += 1; self.bandwidth.read_bytes += req.size; }
-            IoDirection::Write => { self.bandwidth.write_ops += 1; self.bandwidth.write_bytes += req.size; }
-            _ => {}
+            IoDirection::Read => {
+                self.bandwidth.read_ops += 1;
+                self.bandwidth.read_bytes += req.size;
+            },
+            IoDirection::Write => {
+                self.bandwidth.write_ops += 1;
+                self.bandwidth.write_bytes += req.size;
+            },
+            _ => {},
         }
         self.pending_requests.push(req);
     }
@@ -216,13 +255,19 @@ impl AppIoSchedState {
             let lat = req.latency_ns();
             self.latency_sum_ns += lat;
             self.latency_count += 1;
-            if lat > self.max_latency_ns { self.max_latency_ns = lat; }
+            if lat > self.max_latency_ns {
+                self.max_latency_ns = lat;
+            }
         }
     }
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.latency_count == 0 { 0 } else { self.latency_sum_ns / self.latency_count }
+        if self.latency_count == 0 {
+            0
+        } else {
+            self.latency_sum_ns / self.latency_count
+        }
     }
 }
 
@@ -255,7 +300,9 @@ impl AppsIoSchedBridge {
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64, ts: u64) {
-        self.states.entry(pid).or_insert_with(|| AppIoSchedState::new(pid, ts));
+        self.states
+            .entry(pid)
+            .or_insert_with(|| AppIoSchedState::new(pid, ts));
     }
 
     #[inline]
@@ -271,17 +318,23 @@ impl AppsIoSchedBridge {
         let id = self.next_io_id;
         self.next_io_id += 1;
         let req = AppIoRequest::new(id, pid, dir, offset, size, ts);
-        if let Some(state) = self.states.get_mut(&pid) { state.submit_io(req); }
+        if let Some(state) = self.states.get_mut(&pid) {
+            state.submit_io(req);
+        }
         id
     }
 
     #[inline(always)]
     pub fn complete(&mut self, pid: u64, io_id: u64, ts: u64) {
-        if let Some(state) = self.states.get_mut(&pid) { state.complete_io(io_id, ts); }
+        if let Some(state) = self.states.get_mut(&pid) {
+            state.complete_io(io_id, ts);
+        }
     }
 
     #[inline(always)]
-    pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
+    pub fn remove_process(&mut self, pid: u64) {
+        self.states.remove(&pid);
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
@@ -291,11 +344,19 @@ impl AppsIoSchedBridge {
         self.stats.total_write_bytes = self.states.values().map(|s| s.bandwidth.write_bytes).sum();
         let total_lat: u64 = self.states.values().map(|s| s.latency_sum_ns).sum();
         let total_count: u64 = self.states.values().map(|s| s.latency_count).sum();
-        self.stats.avg_latency_ns = if total_count > 0 { total_lat / total_count } else { 0 };
+        self.stats.avg_latency_ns = if total_count > 0 {
+            total_lat / total_count
+        } else {
+            0
+        };
     }
 
     #[inline(always)]
-    pub fn app_state(&self, pid: u64) -> Option<&AppIoSchedState> { self.states.get(&pid) }
+    pub fn app_state(&self, pid: u64) -> Option<&AppIoSchedState> {
+        self.states.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsIoSchedStats { &self.stats }
+    pub fn stats(&self) -> &AppsIoSchedStats {
+        &self.stats
+    }
 }

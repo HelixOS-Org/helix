@@ -4,10 +4,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-
+use alloc::string::String;
 /// Open flag
 use core::sync::atomic::AtomicU64;
-use alloc::string::String;
 use core::sync::atomic::Ordering;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpenFlag {
@@ -57,7 +56,17 @@ pub struct FdEntry {
 
 impl FdEntry {
     pub fn new(fd: u64, inode: u64, flags: u32, mode: u32, now: u64) -> Self {
-        Self { fd, inode_hash: inode, flags, mode, opened_at: now, read_count: 0, write_count: 0, read_bytes: 0, write_bytes: 0 }
+        Self {
+            fd,
+            inode_hash: inode,
+            flags,
+            mode,
+            opened_at: now,
+            read_count: 0,
+            write_count: 0,
+            read_bytes: 0,
+            write_bytes: 0,
+        }
     }
 }
 
@@ -73,7 +82,13 @@ pub struct ProcessFdTracker {
 
 impl ProcessFdTracker {
     pub fn new(pid: u64) -> Self {
-        Self { pid, fds: BTreeMap::new(), total_opens: 0, total_closes: 0, total_failures: 0 }
+        Self {
+            pid,
+            fds: BTreeMap::new(),
+            total_opens: 0,
+            total_closes: 0,
+            total_failures: 0,
+        }
     }
 }
 
@@ -94,9 +109,15 @@ pub struct AppOpen {
 }
 
 impl AppOpen {
-    pub fn new() -> Self { Self { procs: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            procs: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn track(&mut self, pid: u64) { self.procs.insert(pid, ProcessFdTracker::new(pid)); }
+    pub fn track(&mut self, pid: u64) {
+        self.procs.insert(pid, ProcessFdTracker::new(pid));
+    }
 
     #[inline]
     pub fn open_file(&mut self, pid: u64, fd: u64, inode: u64, flags: u32, mode: u32, now: u64) {
@@ -108,16 +129,23 @@ impl AppOpen {
 
     #[inline(always)]
     pub fn close_file(&mut self, pid: u64, fd: u64) {
-        if let Some(p) = self.procs.get_mut(&pid) { p.fds.remove(&fd); p.total_closes += 1; }
+        if let Some(p) = self.procs.get_mut(&pid) {
+            p.fds.remove(&fd);
+            p.total_closes += 1;
+        }
     }
 
     #[inline(always)]
     pub fn record_failure(&mut self, pid: u64) {
-        if let Some(p) = self.procs.get_mut(&pid) { p.total_failures += 1; }
+        if let Some(p) = self.procs.get_mut(&pid) {
+            p.total_failures += 1;
+        }
     }
 
     #[inline(always)]
-    pub fn untrack(&mut self, pid: u64) { self.procs.remove(&pid); }
+    pub fn untrack(&mut self, pid: u64) {
+        self.procs.remove(&pid);
+    }
 
     #[inline]
     pub fn stats(&self) -> OpenAppStats {
@@ -125,7 +153,13 @@ impl AppOpen {
         let opens: u64 = self.procs.values().map(|p| p.total_opens).sum();
         let closes: u64 = self.procs.values().map(|p| p.total_closes).sum();
         let fails: u64 = self.procs.values().map(|p| p.total_failures).sum();
-        OpenAppStats { tracked_procs: self.procs.len() as u32, total_fds: fds, total_opens: opens, total_closes: closes, total_failures: fails }
+        OpenAppStats {
+            tracked_procs: self.procs.len() as u32,
+            total_fds: fds,
+            total_opens: opens,
+            total_closes: closes,
+            total_failures: fails,
+        }
     }
 }
 

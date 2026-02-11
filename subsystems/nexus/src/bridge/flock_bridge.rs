@@ -3,10 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Lock type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,13 +60,25 @@ pub struct FileLock {
 }
 
 impl FileLock {
-    pub fn new(id: u64, inode: u64, lock_type: FlockType, mechanism: LockMechanism, pid: u32) -> Self {
+    pub fn new(
+        id: u64,
+        inode: u64,
+        lock_type: FlockType,
+        mechanism: LockMechanism,
+        pid: u32,
+    ) -> Self {
         Self {
-            id, inode, lock_type, mechanism,
+            id,
+            inode,
+            lock_type,
+            mechanism,
             state: LockState::Waiting,
-            pid, fd: -1,
-            start: 0, end: u64::MAX,
-            timestamp: 0, wait_time_ns: 0,
+            pid,
+            fd: -1,
+            start: 0,
+            end: u64::MAX,
+            timestamp: 0,
+            wait_time_ns: 0,
         }
     }
 
@@ -82,8 +94,12 @@ impl FileLock {
 
     #[inline]
     pub fn conflicts_with(&self, other: &FileLock) -> bool {
-        if self.inode != other.inode { return false; }
-        if !self.overlaps(other.start, other.end) { return false; }
+        if self.inode != other.inode {
+            return false;
+        }
+        if !self.overlaps(other.start, other.end) {
+            return false;
+        }
         // shared-shared is ok
         if self.lock_type == FlockType::Shared && other.lock_type == FlockType::Shared {
             return false;
@@ -146,9 +162,11 @@ pub struct InodeLockState {
 impl InodeLockState {
     pub fn new(inode: u64) -> Self {
         Self {
-            inode, active_locks: Vec::new(),
+            inode,
+            active_locks: Vec::new(),
             waiting_locks: Vec::new(),
-            reader_count: 0, writer_count: 0,
+            reader_count: 0,
+            writer_count: 0,
             contention_count: 0,
         }
     }
@@ -197,27 +215,41 @@ impl BridgeFlock {
             max_ops: 4096,
             next_id: 1,
             stats: FlockBridgeStats {
-                active_locks: 0, waiting_locks: 0,
-                total_lock_ops: 0, total_contention: 0,
-                deadlocks_detected: 0, avg_wait_time_ns: 0,
+                active_locks: 0,
+                waiting_locks: 0,
+                total_lock_ops: 0,
+                total_contention: 0,
+                deadlocks_detected: 0,
+                avg_wait_time_ns: 0,
                 peak_wait_time_ns: 0,
             },
         }
     }
 
-    pub fn request_lock(&mut self, inode: u64, lock_type: FlockType,
-                         mechanism: LockMechanism, pid: u32, now: u64) -> u64 {
+    pub fn request_lock(
+        &mut self,
+        inode: u64,
+        lock_type: FlockType,
+        mechanism: LockMechanism,
+        pid: u32,
+        now: u64,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let mut lock = FileLock::new(id, inode, lock_type, mechanism, pid);
         lock.timestamp = now;
 
-        let inode_state = self.inodes.entry(inode)
+        let inode_state = self
+            .inodes
+            .entry(inode)
             .or_insert_with(|| InodeLockState::new(inode));
 
         // check conflicts
         let has_conflict = inode_state.active_locks.iter().any(|&lid| {
-            self.locks.get(&lid).map(|l| l.conflicts_with(&lock)).unwrap_or(false)
+            self.locks
+                .get(&lid)
+                .map(|l| l.conflicts_with(&lock))
+                .unwrap_or(false)
         });
 
         if has_conflict {
@@ -232,7 +264,7 @@ impl BridgeFlock {
             match lock_type {
                 FlockType::Shared => inode_state.reader_count += 1,
                 FlockType::Exclusive => inode_state.writer_count += 1,
-                FlockType::Unlock => {}
+                FlockType::Unlock => {},
             }
             self.stats.active_locks += 1;
         }
@@ -255,16 +287,22 @@ impl BridgeFlock {
                 inode_state.waiting_locks.retain(|&id| id != lock_id);
                 match lock.lock_type {
                     FlockType::Shared => {
-                        if inode_state.reader_count > 0 { inode_state.reader_count -= 1; }
-                    }
+                        if inode_state.reader_count > 0 {
+                            inode_state.reader_count -= 1;
+                        }
+                    },
                     FlockType::Exclusive => {
-                        if inode_state.writer_count > 0 { inode_state.writer_count -= 1; }
-                    }
-                    FlockType::Unlock => {}
+                        if inode_state.writer_count > 0 {
+                            inode_state.writer_count -= 1;
+                        }
+                    },
+                    FlockType::Unlock => {},
                 }
             }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -275,13 +313,16 @@ impl BridgeFlock {
         if op.latency_ns > self.stats.peak_wait_time_ns {
             self.stats.peak_wait_time_ns = op.latency_ns;
         }
-        if self.ops.len() >= self.max_ops { self.ops.remove(0); }
+        if self.ops.len() >= self.max_ops {
+            self.ops.remove(0);
+        }
         self.ops.push_back(op);
     }
 
     #[inline]
     pub fn contended_inodes(&self) -> Vec<(u64, u64)> {
-        self.inodes.iter()
+        self.inodes
+            .iter()
             .filter(|(_, s)| s.is_contended())
             .map(|(&ino, s)| (ino, s.contention_count))
             .collect()
@@ -329,33 +370,72 @@ pub struct PosixLock {
 }
 
 impl PosixLock {
-    pub fn new(id: u64, pid: u64, fd: i32, inode: u64, ltype: FlockV2Type, start: u64, len: u64, now: u64) -> Self {
-        Self { id, pid, fd, inode, lock_type: ltype, start, length: len, state: FlockV2State::Waiting, wait_start: now, granted_at: 0 }
+    pub fn new(
+        id: u64,
+        pid: u64,
+        fd: i32,
+        inode: u64,
+        ltype: FlockV2Type,
+        start: u64,
+        len: u64,
+        now: u64,
+    ) -> Self {
+        Self {
+            id,
+            pid,
+            fd,
+            inode,
+            lock_type: ltype,
+            start,
+            length: len,
+            state: FlockV2State::Waiting,
+            wait_start: now,
+            granted_at: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn grant(&mut self, now: u64) { self.state = FlockV2State::Granted; self.granted_at = now; }
+    pub fn grant(&mut self, now: u64) {
+        self.state = FlockV2State::Granted;
+        self.granted_at = now;
+    }
     #[inline(always)]
-    pub fn release(&mut self) { self.state = FlockV2State::Released; }
+    pub fn release(&mut self) {
+        self.state = FlockV2State::Released;
+    }
 
     #[inline]
     pub fn overlaps(&self, start: u64, len: u64) -> bool {
-        let end = if self.length == 0 { u64::MAX } else { self.start + self.length };
+        let end = if self.length == 0 {
+            u64::MAX
+        } else {
+            self.start + self.length
+        };
         let other_end = if len == 0 { u64::MAX } else { start + len };
         self.start < other_end && start < end
     }
 
     #[inline]
     pub fn conflicts(&self, other: &PosixLock) -> bool {
-        if self.inode != other.inode { return false; }
-        if !self.overlaps(other.start, other.length) { return false; }
-        matches!((self.lock_type, other.lock_type),
-            (FlockV2Type::ExclusiveWrite, _) | (_, FlockV2Type::ExclusiveWrite))
+        if self.inode != other.inode {
+            return false;
+        }
+        if !self.overlaps(other.start, other.length) {
+            return false;
+        }
+        matches!(
+            (self.lock_type, other.lock_type),
+            (FlockV2Type::ExclusiveWrite, _) | (_, FlockV2Type::ExclusiveWrite)
+        )
     }
 
     #[inline(always)]
     pub fn wait_time_ns(&self, now: u64) -> u64 {
-        if self.state == FlockV2State::Waiting { now.saturating_sub(self.wait_start) } else { 0 }
+        if self.state == FlockV2State::Waiting {
+            now.saturating_sub(self.wait_start)
+        } else {
+            0
+        }
     }
 }
 
@@ -389,18 +469,40 @@ pub struct BridgeFlockV2 {
 }
 
 impl BridgeFlockV2 {
-    pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1, deadlocks: 0 } }
+    pub fn new() -> Self {
+        Self {
+            locks: BTreeMap::new(),
+            next_id: 1,
+            deadlocks: 0,
+        }
+    }
 
-    pub fn lock(&mut self, pid: u64, fd: i32, inode: u64, ltype: FlockV2Type, start: u64, len: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+    pub fn lock(
+        &mut self,
+        pid: u64,
+        fd: i32,
+        inode: u64,
+        ltype: FlockV2Type,
+        start: u64,
+        len: u64,
+        now: u64,
+    ) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
         let mut lock = PosixLock::new(id, pid, fd, inode, ltype, start, len, now);
 
-        let conflicts: Vec<u64> = self.locks.values()
+        let conflicts: Vec<u64> = self
+            .locks
+            .values()
             .filter(|l| l.state == FlockV2State::Granted && l.pid != pid && lock.conflicts(l))
-            .map(|l| l.id).collect();
+            .map(|l| l.id)
+            .collect();
 
-        if conflicts.is_empty() { lock.grant(now); }
-        else { lock.state = FlockV2State::Blocked; }
+        if conflicts.is_empty() {
+            lock.grant(now);
+        } else {
+            lock.state = FlockV2State::Blocked;
+        }
 
         self.locks.insert(id, lock);
         id
@@ -408,20 +510,47 @@ impl BridgeFlockV2 {
 
     #[inline(always)]
     pub fn unlock(&mut self, id: u64) {
-        if let Some(lock) = self.locks.get_mut(&id) { lock.release(); }
+        if let Some(lock) = self.locks.get_mut(&id) {
+            lock.release();
+        }
     }
 
     pub fn stats(&self) -> FlockV2BridgeStats {
-        let granted = self.locks.values().filter(|l| l.state == FlockV2State::Granted).count() as u32;
-        let waiting = self.locks.values().filter(|l| matches!(l.state, FlockV2State::Waiting | FlockV2State::Blocked)).count() as u32;
+        let granted = self
+            .locks
+            .values()
+            .filter(|l| l.state == FlockV2State::Granted)
+            .count() as u32;
+        let waiting = self
+            .locks
+            .values()
+            .filter(|l| matches!(l.state, FlockV2State::Waiting | FlockV2State::Blocked))
+            .count() as u32;
         let total_granted = self.locks.values().filter(|l| l.granted_at > 0).count() as u64;
-        let released = self.locks.values().filter(|l| l.state == FlockV2State::Released).count() as u64;
-        let waits: Vec<u64> = self.locks.values().filter(|l| l.granted_at > l.wait_start).map(|l| l.granted_at - l.wait_start).collect();
-        let avg = if waits.is_empty() { 0 } else { waits.iter().sum::<u64>() / waits.len() as u64 };
+        let released = self
+            .locks
+            .values()
+            .filter(|l| l.state == FlockV2State::Released)
+            .count() as u64;
+        let waits: Vec<u64> = self
+            .locks
+            .values()
+            .filter(|l| l.granted_at > l.wait_start)
+            .map(|l| l.granted_at - l.wait_start)
+            .collect();
+        let avg = if waits.is_empty() {
+            0
+        } else {
+            waits.iter().sum::<u64>() / waits.len() as u64
+        };
         FlockV2BridgeStats {
-            total_locks: self.locks.len() as u32, granted, waiting,
-            total_granted, total_released: released,
-            deadlocks_detected: self.deadlocks, avg_wait_ns: avg,
+            total_locks: self.locks.len() as u32,
+            granted,
+            waiting,
+            total_granted,
+            total_released: released,
+            deadlocks_detected: self.deadlocks,
+            avg_wait_ns: avg,
         }
     }
 }
@@ -461,8 +590,27 @@ pub struct FileLockV3 {
 }
 
 impl FileLockV3 {
-    pub fn new(id: u64, fd: u64, pid: u64, lt: FlockV3Type, scope: LockScopeV3, start: u64, end: u64, now: u64) -> Self {
-        Self { id, fd, pid, lock_type: lt, scope, start, end, acquired_at: now, blocking: false }
+    pub fn new(
+        id: u64,
+        fd: u64,
+        pid: u64,
+        lt: FlockV3Type,
+        scope: LockScopeV3,
+        start: u64,
+        end: u64,
+        now: u64,
+    ) -> Self {
+        Self {
+            id,
+            fd,
+            pid,
+            lock_type: lt,
+            scope,
+            start,
+            end,
+            acquired_at: now,
+            blocking: false,
+        }
     }
 }
 
@@ -475,23 +623,37 @@ pub struct DeadlockDetector {
 }
 
 impl DeadlockDetector {
-    pub fn new() -> Self { Self { wait_graph: LinearMap::new(), detected_cycles: 0 } }
+    pub fn new() -> Self {
+        Self {
+            wait_graph: LinearMap::new(),
+            detected_cycles: 0,
+        }
+    }
 
     pub fn add_wait(&mut self, waiter: u64, holder: u64) -> bool {
         self.wait_graph.insert(waiter, holder);
         let mut visited = Vec::new();
         let mut current = waiter;
         loop {
-            if visited.contains(&current) { self.detected_cycles += 1; self.wait_graph.remove(waiter); return true; }
+            if visited.contains(&current) {
+                self.detected_cycles += 1;
+                self.wait_graph.remove(waiter);
+                return true;
+            }
             visited.push(current);
-            if let Some(next) = self.wait_graph.get(current) { current = next; }
-            else { break; }
+            if let Some(next) = self.wait_graph.get(current) {
+                current = next;
+            } else {
+                break;
+            }
         }
         false
     }
 
     #[inline(always)]
-    pub fn remove_wait(&mut self, waiter: u64) { self.wait_graph.remove(waiter); }
+    pub fn remove_wait(&mut self, waiter: u64) {
+        self.wait_graph.remove(waiter);
+    }
 }
 
 /// Stats
@@ -513,23 +675,55 @@ pub struct BridgeFlockV3 {
 }
 
 impl BridgeFlockV3 {
-    pub fn new() -> Self { Self { locks: BTreeMap::new(), detector: DeadlockDetector::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            locks: BTreeMap::new(),
+            detector: DeadlockDetector::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
-    pub fn lock(&mut self, fd: u64, pid: u64, lt: FlockV3Type, scope: LockScopeV3, start: u64, end: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.locks.insert(id, FileLockV3::new(id, fd, pid, lt, scope, start, end, now));
+    pub fn lock(
+        &mut self,
+        fd: u64,
+        pid: u64,
+        lt: FlockV3Type,
+        scope: LockScopeV3,
+        start: u64,
+        end: u64,
+        now: u64,
+    ) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.locks
+            .insert(id, FileLockV3::new(id, fd, pid, lt, scope, start, end, now));
         id
     }
 
     #[inline(always)]
-    pub fn unlock(&mut self, id: u64) { self.locks.remove(&id); }
+    pub fn unlock(&mut self, id: u64) {
+        self.locks.remove(&id);
+    }
 
     #[inline]
     pub fn stats(&self) -> FlockV3BridgeStats {
-        let shared = self.locks.values().filter(|l| l.lock_type == FlockV3Type::SharedRead).count() as u32;
-        let excl = self.locks.values().filter(|l| l.lock_type == FlockV3Type::ExclusiveWrite).count() as u32;
-        FlockV3BridgeStats { active_locks: self.locks.len() as u32, shared_locks: shared, exclusive_locks: excl, deadlocks_detected: self.detector.detected_cycles }
+        let shared = self
+            .locks
+            .values()
+            .filter(|l| l.lock_type == FlockV3Type::SharedRead)
+            .count() as u32;
+        let excl = self
+            .locks
+            .values()
+            .filter(|l| l.lock_type == FlockV3Type::ExclusiveWrite)
+            .count() as u32;
+        FlockV3BridgeStats {
+            active_locks: self.locks.len() as u32,
+            shared_locks: shared,
+            exclusive_locks: excl,
+            deadlocks_detected: self.detector.detected_cycles,
+        }
     }
 }
 
@@ -579,17 +773,33 @@ pub struct FlockV4BridgeRecord {
 
 impl FlockV4BridgeRecord {
     pub fn new(op: FlockV4Op, fd: i32, inode: u64) -> Self {
-        Self { op, result: FlockV4Result::Granted, fd, inode, pid: 0, start: 0, end: u64::MAX, wait_ns: 0, lease_type: 0 }
+        Self {
+            op,
+            result: FlockV4Result::Granted,
+            fd,
+            inode,
+            pid: 0,
+            start: 0,
+            end: u64::MAX,
+            wait_ns: 0,
+            lease_type: 0,
+        }
     }
 
     #[inline(always)]
     pub fn is_lease_op(&self) -> bool {
-        matches!(self.op, FlockV4Op::LeaseSet | FlockV4Op::LeaseGet | FlockV4Op::LeaseBreak)
+        matches!(
+            self.op,
+            FlockV4Op::LeaseSet | FlockV4Op::LeaseGet | FlockV4Op::LeaseBreak
+        )
     }
 
     #[inline(always)]
     pub fn is_ofd(&self) -> bool {
-        matches!(self.op, FlockV4Op::OfdSetlk | FlockV4Op::OfdSetlkw | FlockV4Op::OfdGetlk)
+        matches!(
+            self.op,
+            FlockV4Op::OfdSetlk | FlockV4Op::OfdSetlkw | FlockV4Op::OfdGetlk
+        )
     }
 }
 
@@ -614,26 +824,43 @@ pub struct BridgeFlockV4 {
 
 impl BridgeFlockV4 {
     pub fn new() -> Self {
-        Self { stats: FlockV4BridgeStats { total_ops: 0, locks_granted: 0, would_blocks: 0, deadlocks: 0, lease_ops: 0, lease_breaks: 0, total_wait_ns: 0 } }
+        Self {
+            stats: FlockV4BridgeStats {
+                total_ops: 0,
+                locks_granted: 0,
+                would_blocks: 0,
+                deadlocks: 0,
+                lease_ops: 0,
+                lease_breaks: 0,
+                total_wait_ns: 0,
+            },
+        }
     }
 
     pub fn record(&mut self, rec: &FlockV4BridgeRecord) {
         self.stats.total_ops += 1;
         self.stats.total_wait_ns += rec.wait_ns;
-        if rec.is_lease_op() { self.stats.lease_ops += 1; }
-        if matches!(rec.op, FlockV4Op::LeaseBreak) { self.stats.lease_breaks += 1; }
+        if rec.is_lease_op() {
+            self.stats.lease_ops += 1;
+        }
+        if matches!(rec.op, FlockV4Op::LeaseBreak) {
+            self.stats.lease_breaks += 1;
+        }
         match rec.result {
             FlockV4Result::Granted => self.stats.locks_granted += 1,
             FlockV4Result::WouldBlock => self.stats.would_blocks += 1,
             FlockV4Result::Deadlock => self.stats.deadlocks += 1,
-            _ => {}
+            _ => {},
         }
     }
 
     #[inline(always)]
     pub fn contention_rate(&self) -> f64 {
-        if self.stats.total_ops == 0 { 0.0 }
-        else { (self.stats.would_blocks + self.stats.deadlocks) as f64 / self.stats.total_ops as f64 }
+        if self.stats.total_ops == 0 {
+            0.0
+        } else {
+            (self.stats.would_blocks + self.stats.deadlocks) as f64 / self.stats.total_ops as f64
+        }
     }
 }
 
@@ -642,7 +869,12 @@ impl BridgeFlockV4 {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FlockV5Type { SharedRead, ExclusiveWrite, Unlock, TestLock }
+pub enum FlockV5Type {
+    SharedRead,
+    ExclusiveWrite,
+    Unlock,
+    TestLock,
+}
 
 /// Flock v5 record
 #[derive(Debug, Clone)]
@@ -656,20 +888,45 @@ pub struct FlockV5Record {
 }
 
 impl FlockV5Record {
-    pub fn new(lock_type: FlockV5Type, fd: i32) -> Self { Self { lock_type, fd, inode: 0, start: 0, len: 0, pid: 0 } }
+    pub fn new(lock_type: FlockV5Type, fd: i32) -> Self {
+        Self {
+            lock_type,
+            fd,
+            inode: 0,
+            start: 0,
+            len: 0,
+            pid: 0,
+        }
+    }
 }
 
 /// Flock v5 bridge stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct FlockV5BridgeStats { pub total_ops: u64, pub shared: u64, pub exclusive: u64, pub unlocks: u64 }
+pub struct FlockV5BridgeStats {
+    pub total_ops: u64,
+    pub shared: u64,
+    pub exclusive: u64,
+    pub unlocks: u64,
+}
 
 /// Main bridge flock v5
 #[derive(Debug)]
-pub struct BridgeFlockV5 { pub stats: FlockV5BridgeStats }
+pub struct BridgeFlockV5 {
+    pub stats: FlockV5BridgeStats,
+}
 
 impl BridgeFlockV5 {
-    pub fn new() -> Self { Self { stats: FlockV5BridgeStats { total_ops: 0, shared: 0, exclusive: 0, unlocks: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: FlockV5BridgeStats {
+                total_ops: 0,
+                shared: 0,
+                exclusive: 0,
+                unlocks: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &FlockV5Record) {
         self.stats.total_ops += 1;
@@ -677,7 +934,7 @@ impl BridgeFlockV5 {
             FlockV5Type::SharedRead => self.stats.shared += 1,
             FlockV5Type::ExclusiveWrite => self.stats.exclusive += 1,
             FlockV5Type::Unlock => self.stats.unlocks += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

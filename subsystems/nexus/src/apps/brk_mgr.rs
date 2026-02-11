@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Heap growth direction
@@ -100,7 +99,9 @@ impl ProcessBrkState {
 
     #[inline]
     pub fn watermark_ratio(&self) -> f64 {
-        if self.max_brk == self.initial_brk { return 0.0; }
+        if self.max_brk == self.initial_brk {
+            return 0.0;
+        }
         let max_heap = self.max_brk - self.initial_brk;
         self.heap_size() as f64 / max_heap as f64
     }
@@ -112,7 +113,9 @@ impl ProcessBrkState {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.brk_limit == 0 { return 0.0; }
+        if self.brk_limit == 0 {
+            return 0.0;
+        }
         self.current_brk as f64 / self.brk_limit as f64
     }
 
@@ -193,23 +196,31 @@ impl ProcessBrkState {
 
     #[inline]
     pub fn avg_expand_size(&self) -> u64 {
-        let expand_changes: VecDeque<&BrkChange> = self.changes.iter()
+        let expand_changes: VecDeque<&BrkChange> = self
+            .changes
+            .iter()
             .filter(|c| c.op == BrkOp::Expand)
             .collect();
-        if expand_changes.is_empty() { return 0; }
+        if expand_changes.is_empty() {
+            return 0;
+        }
         let total: u64 = expand_changes.iter().map(|c| c.pages_changed).sum();
         total / expand_changes.len() as u64
     }
 
     /// Predict next brk size based on recent growth pattern
     pub fn predict_next_size(&self) -> u64 {
-        let recent_expands: Vec<u64> = self.changes.iter()
+        let recent_expands: Vec<u64> = self
+            .changes
+            .iter()
             .rev()
             .filter(|c| c.op == BrkOp::Expand)
             .take(8)
             .map(|c| c.pages_changed * 4096)
             .collect();
-        if recent_expands.is_empty() { return 4096; }
+        if recent_expands.is_empty() {
+            return 4096;
+        }
         let avg = recent_expands.iter().sum::<u64>() / recent_expands.len() as u64;
         // Return 1.5x the average
         avg + avg / 2
@@ -256,13 +267,16 @@ impl AppBrkMgr {
     #[inline]
     pub fn register_process(&mut self, pid: u64, initial_brk: u64, limit: Option<u64>) {
         let lim = limit.unwrap_or(initial_brk.saturating_add(self.default_limit));
-        self.processes.insert(pid, ProcessBrkState::new(pid, initial_brk, lim));
+        self.processes
+            .insert(pid, ProcessBrkState::new(pid, initial_brk, lim));
         self.stats.processes_tracked += 1;
     }
 
     #[inline(always)]
     pub fn unregister_process(&mut self, pid: u64) -> Option<(u64, u64)> {
-        self.processes.remove(&pid).map(|p| (p.heap_size(), p.total_pages_allocated))
+        self.processes
+            .remove(&pid)
+            .map(|p| (p.heap_size(), p.total_pages_allocated))
     }
 
     pub fn sys_brk(&mut self, pid: u64, new_brk: u64, timestamp_ns: u64) -> Option<u64> {
@@ -272,16 +286,18 @@ impl AppBrkMgr {
         match op {
             BrkOp::Expand => {
                 self.stats.total_expands += 1;
-                self.stats.total_pages_allocated += proc_state.changes.back().map_or(0, |c| c.pages_changed);
-            }
+                self.stats.total_pages_allocated +=
+                    proc_state.changes.back().map_or(0, |c| c.pages_changed);
+            },
             BrkOp::Contract => {
                 self.stats.total_contracts += 1;
-                self.stats.total_pages_freed += proc_state.changes.back().map_or(0, |c| c.pages_changed);
-            }
+                self.stats.total_pages_freed +=
+                    proc_state.changes.back().map_or(0, |c| c.pages_changed);
+            },
             BrkOp::Failed => {
                 self.stats.total_failures += 1;
-            }
-            BrkOp::Query => {}
+            },
+            BrkOp::Query => {},
         }
         Some(proc_state.current_brk)
     }
@@ -293,7 +309,9 @@ impl AppBrkMgr {
 
     #[inline]
     pub fn largest_heaps(&self, top_n: usize) -> Vec<(u64, u64)> {
-        let mut heaps: Vec<(u64, u64)> = self.processes.iter()
+        let mut heaps: Vec<(u64, u64)> = self
+            .processes
+            .iter()
             .map(|(pid, p)| (*pid, p.heap_size()))
             .collect();
         heaps.sort_by(|a, b| b.1.cmp(&a.1));

@@ -15,8 +15,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -323,8 +322,7 @@ impl BridgeConscience {
         // Check for resource hoarding
         if self.total_resources_allocated > 0 {
             if let Some(beneficiary) = self.processes.get(&beneficiary_pid) {
-                let share =
-                    beneficiary.total_served as f32 / self.total_resources_allocated as f32;
+                let share = beneficiary.total_served as f32 / self.total_resources_allocated as f32;
                 if share > HOARDING_THRESHOLD_RATIO {
                     violations_detected.push(String::from("resource_hoarding"));
                     recommendations.push(String::from("distribute_resources_more_evenly"));
@@ -436,7 +434,13 @@ impl BridgeConscience {
         self.processes
             .iter()
             .filter(|(_, p)| p.is_starving(self.current_tick))
-            .map(|(&pid, p)| (pid, p.process_name.clone(), p.ticks_since_served(self.current_tick)))
+            .map(|(&pid, p)| {
+                (
+                    pid,
+                    p.process_name.clone(),
+                    p.ticks_since_served(self.current_tick),
+                )
+            })
             .collect()
     }
 
@@ -477,10 +481,7 @@ impl BridgeConscience {
     #[inline]
     pub fn moral_weight(&self, principle: &str) -> f32 {
         let hash = fnv1a_hash(principle.as_bytes());
-        self.principles
-            .get(&hash)
-            .map(|r| r.weight)
-            .unwrap_or(0.0)
+        self.principles.get(&hash).map(|r| r.weight).unwrap_or(0.0)
     }
 
     /// Is the conscience clear? (No active violations, high fairness)
@@ -503,8 +504,7 @@ impl BridgeConscience {
             priority_inversions: self.priority_inversions,
             conscience_score: self.fairness_ema
                 * (1.0
-                    - (self.total_violations as f32
-                        / (self.total_checks as f32 + 1.0).max(1.0))
+                    - (self.total_violations as f32 / (self.total_checks as f32 + 1.0).max(1.0))
                         .clamp(0.0, 1.0)),
         }
     }

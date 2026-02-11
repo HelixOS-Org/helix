@@ -68,7 +68,11 @@ impl CoopCloneManager {
     pub fn clone_cooperative(&mut self, parent: u64) -> CoopCloneResult {
         let child = self.next_id;
         self.next_id += 1;
-        let policy = self.policy_map.get(&parent).cloned().unwrap_or(CoopCloneSharingPolicy::ShareVm);
+        let policy = self
+            .policy_map
+            .get(&parent)
+            .cloned()
+            .unwrap_or(CoopCloneSharingPolicy::ShareVm);
         let (shared, private) = match policy {
             CoopCloneSharingPolicy::ShareAll => (8, 0),
             CoopCloneSharingPolicy::ShareNothing => (0, 8),
@@ -88,7 +92,7 @@ impl CoopCloneManager {
             CoopCloneSharingPolicy::ShareAll => self.stats.share_all += 1,
             CoopCloneSharingPolicy::ShareNothing => self.stats.share_nothing += 1,
             CoopCloneSharingPolicy::Custom => self.stats.custom_sharing += 1,
-            _ => {}
+            _ => {},
         }
         result
     }

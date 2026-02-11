@@ -43,10 +43,15 @@ pub struct Counter {
 impl Counter {
     pub fn new(name: String, ctype: CounterType, now: u64) -> Self {
         Self {
-            name, counter_type: ctype, value: 0,
-            min_value: i64::MIN, max_value: i64::MAX,
+            name,
+            counter_type: ctype,
+            value: 0,
+            min_value: i64::MIN,
+            max_value: i64::MAX,
             overflow_policy: OverflowPolicy::Saturate,
-            update_count: 0, last_update: now, created_at: now,
+            update_count: 0,
+            last_update: now,
+            created_at: now,
             per_cpu: false,
         }
     }
@@ -56,14 +61,21 @@ impl Counter {
         self.value = match self.overflow_policy {
             OverflowPolicy::Saturate => new_val.min(self.max_value).max(self.min_value),
             OverflowPolicy::Wrap => {
-                if new_val > self.max_value { self.min_value }
-                else if new_val < self.min_value { self.max_value }
-                else { new_val }
-            }
+                if new_val > self.max_value {
+                    self.min_value
+                } else if new_val < self.min_value {
+                    self.max_value
+                } else {
+                    new_val
+                }
+            },
             OverflowPolicy::Reset => {
-                if new_val > self.max_value || new_val < self.min_value { 0 }
-                else { new_val }
-            }
+                if new_val > self.max_value || new_val < self.min_value {
+                    0
+                } else {
+                    new_val
+                }
+            },
         };
         self.update_count += 1;
         self.last_update = now;
@@ -100,7 +112,11 @@ pub struct PerCpuCounter {
 
 impl PerCpuCounter {
     pub fn new(name: String, cpu_count: u32) -> Self {
-        Self { name, cpu_values: alloc::vec![0i64; cpu_count as usize], cpu_count }
+        Self {
+            name,
+            cpu_values: alloc::vec![0i64; cpu_count as usize],
+            cpu_count,
+        }
     }
 
     #[inline]
@@ -117,7 +133,9 @@ impl PerCpuCounter {
 
     #[inline]
     pub fn max_cpu(&self) -> (u32, i64) {
-        self.cpu_values.iter().enumerate()
+        self.cpu_values
+            .iter()
+            .enumerate()
             .max_by_key(|&(_, &v)| v)
             .map(|(i, &v)| (i as u32, v))
             .unwrap_or((0, 0))
@@ -136,17 +154,24 @@ pub struct CounterSet {
 
 impl CounterSet {
     pub fn new(name: String, now: u64) -> Self {
-        Self { name, counters: BTreeMap::new(), per_cpu_counters: BTreeMap::new(), created_at: now }
+        Self {
+            name,
+            counters: BTreeMap::new(),
+            per_cpu_counters: BTreeMap::new(),
+            created_at: now,
+        }
     }
 
     #[inline(always)]
     pub fn add_counter(&mut self, name: String, ctype: CounterType, now: u64) {
-        self.counters.insert(name.clone(), Counter::new(name, ctype, now));
+        self.counters
+            .insert(name.clone(), Counter::new(name, ctype, now));
     }
 
     #[inline(always)]
     pub fn add_per_cpu_counter(&mut self, name: String, cpu_count: u32) {
-        self.per_cpu_counters.insert(name.clone(), PerCpuCounter::new(name, cpu_count));
+        self.per_cpu_counters
+            .insert(name.clone(), PerCpuCounter::new(name, cpu_count));
     }
 
     #[inline(always)]
@@ -159,7 +184,9 @@ impl CounterSet {
         if let Some(c) = self.counters.get_mut(name) {
             c.increment(delta, now);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -170,8 +197,12 @@ impl CounterSet {
     #[inline]
     pub fn snapshot(&self) -> BTreeMap<String, i64> {
         let mut snap = BTreeMap::new();
-        for (k, c) in &self.counters { snap.insert(k.clone(), c.value); }
-        for (k, c) in &self.per_cpu_counters { snap.insert(k.clone(), c.total()); }
+        for (k, c) in &self.counters {
+            snap.insert(k.clone(), c.value);
+        }
+        for (k, c) in &self.per_cpu_counters {
+            snap.insert(k.clone(), c.total());
+        }
         snap
     }
 }
@@ -195,7 +226,10 @@ pub struct CoopCounterSet {
 
 impl CoopCounterSet {
     pub fn new() -> Self {
-        Self { sets: BTreeMap::new(), total_updates: 0 }
+        Self {
+            sets: BTreeMap::new(),
+            total_updates: 0,
+        }
     }
 
     #[inline(always)]
@@ -209,11 +243,19 @@ impl CoopCounterSet {
     }
 
     #[inline]
-    pub fn add_counter(&mut self, set_name: &str, counter_name: String, ctype: CounterType, now: u64) -> bool {
+    pub fn add_counter(
+        &mut self,
+        set_name: &str,
+        counter_name: String,
+        ctype: CounterType,
+        now: u64,
+    ) -> bool {
         if let Some(s) = self.sets.get_mut(set_name) {
             s.add_counter(counter_name, ctype, now);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -221,7 +263,9 @@ impl CoopCounterSet {
         self.total_updates += 1;
         if let Some(s) = self.sets.get_mut(set_name) {
             s.increment(counter_name, delta, now)
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -239,7 +283,11 @@ impl CoopCounterSet {
         CounterSetStats {
             total_sets: self.sets.len() as u32,
             total_counters: self.sets.values().map(|s| s.counters.len() as u64).sum(),
-            total_per_cpu: self.sets.values().map(|s| s.per_cpu_counters.len() as u64).sum(),
+            total_per_cpu: self
+                .sets
+                .values()
+                .map(|s| s.per_cpu_counters.len() as u64)
+                .sum(),
             total_updates: self.total_updates,
         }
     }

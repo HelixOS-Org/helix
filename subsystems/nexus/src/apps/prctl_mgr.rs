@@ -11,8 +11,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 
 /// Known prctl operations
@@ -44,28 +43,52 @@ pub enum PrctlOp {
 impl PrctlOp {
     #[inline]
     pub fn is_set(&self) -> bool {
-        matches!(self,
-            Self::SetName | Self::SetDumpable | Self::SetSeccomp | Self::SetNoNewPrivs |
-            Self::SetChildSubreaper | Self::SetPdeathsig | Self::SetTimerSlack |
-            Self::SetKeepCaps | Self::SetSecureBits | Self::SetThpDisable
+        matches!(
+            self,
+            Self::SetName
+                | Self::SetDumpable
+                | Self::SetSeccomp
+                | Self::SetNoNewPrivs
+                | Self::SetChildSubreaper
+                | Self::SetPdeathsig
+                | Self::SetTimerSlack
+                | Self::SetKeepCaps
+                | Self::SetSecureBits
+                | Self::SetThpDisable
         )
     }
 
     #[inline]
     pub fn is_get(&self) -> bool {
-        matches!(self,
-            Self::GetName | Self::GetDumpable | Self::GetSeccomp | Self::GetNoNewPrivs |
-            Self::GetChildSubreaper | Self::GetPdeathsig | Self::GetTimerSlack |
-            Self::GetKeepCaps | Self::GetSecureBits | Self::GetThpDisable
+        matches!(
+            self,
+            Self::GetName
+                | Self::GetDumpable
+                | Self::GetSeccomp
+                | Self::GetNoNewPrivs
+                | Self::GetChildSubreaper
+                | Self::GetPdeathsig
+                | Self::GetTimerSlack
+                | Self::GetKeepCaps
+                | Self::GetSecureBits
+                | Self::GetThpDisable
         )
     }
 
     #[inline]
     pub fn is_security_related(&self) -> bool {
-        matches!(self,
-            Self::SetSeccomp | Self::GetSeccomp | Self::SetNoNewPrivs | Self::GetNoNewPrivs |
-            Self::SetDumpable | Self::GetDumpable | Self::SetKeepCaps | Self::GetKeepCaps |
-            Self::SetSecureBits | Self::GetSecureBits
+        matches!(
+            self,
+            Self::SetSeccomp
+                | Self::GetSeccomp
+                | Self::SetNoNewPrivs
+                | Self::GetNoNewPrivs
+                | Self::SetDumpable
+                | Self::GetDumpable
+                | Self::SetKeepCaps
+                | Self::GetKeepCaps
+                | Self::SetSecureBits
+                | Self::GetSecureBits
         )
     }
 }
@@ -94,19 +117,33 @@ pub struct ProcessPrctlState {
 impl ProcessPrctlState {
     pub fn new(pid: u64) -> Self {
         Self {
-            pid, name: String::new(), dumpable: 1, seccomp_mode: 0,
-            no_new_privs: false, child_subreaper: false, pdeathsig: 0,
-            timer_slack_ns: 50000, keep_caps: false, secure_bits: 0,
-            thp_disable: false, op_count: 0, set_count: 0,
-            security_ops: 0, last_op_ts: 0,
+            pid,
+            name: String::new(),
+            dumpable: 1,
+            seccomp_mode: 0,
+            no_new_privs: false,
+            child_subreaper: false,
+            pdeathsig: 0,
+            timer_slack_ns: 50000,
+            keep_caps: false,
+            secure_bits: 0,
+            thp_disable: false,
+            op_count: 0,
+            set_count: 0,
+            security_ops: 0,
+            last_op_ts: 0,
         }
     }
 
     pub fn apply_op(&mut self, op: PrctlOp, arg: u64, ts: u64) {
         self.op_count += 1;
         self.last_op_ts = ts;
-        if op.is_set() { self.set_count += 1; }
-        if op.is_security_related() { self.security_ops += 1; }
+        if op.is_set() {
+            self.set_count += 1;
+        }
+        if op.is_security_related() {
+            self.security_ops += 1;
+        }
 
         match op {
             PrctlOp::SetDumpable => self.dumpable = arg as u8,
@@ -118,7 +155,7 @@ impl ProcessPrctlState {
             PrctlOp::SetKeepCaps => self.keep_caps = arg != 0,
             PrctlOp::SetSecureBits => self.secure_bits = arg as u32,
             PrctlOp::SetThpDisable => self.thp_disable = arg != 0,
-            _ => {}
+            _ => {},
         }
     }
 
@@ -128,7 +165,9 @@ impl ProcessPrctlState {
     }
 
     #[inline(always)]
-    pub fn is_reaper(&self) -> bool { self.child_subreaper }
+    pub fn is_reaper(&self) -> bool {
+        self.child_subreaper
+    }
 }
 
 /// Prctl operation record
@@ -165,29 +204,49 @@ pub struct AppsPrctlMgr {
 impl AppsPrctlMgr {
     pub fn new() -> Self {
         Self {
-            processes: BTreeMap::new(), records: VecDeque::new(),
-            max_records: 512, stats: PrctlMgrStats::default(),
+            processes: BTreeMap::new(),
+            records: VecDeque::new(),
+            max_records: 512,
+            stats: PrctlMgrStats::default(),
         }
     }
 
     #[inline]
     pub fn record_op(&mut self, pid: u64, op: PrctlOp, arg: u64, success: bool, ts: u64) {
-        let state = self.processes.entry(pid).or_insert_with(|| ProcessPrctlState::new(pid));
-        if success { state.apply_op(op, arg, ts); }
-        self.records.push_back(PrctlRecord { pid, op, arg, timestamp: ts, success });
-        if self.records.len() > self.max_records { self.records.remove(0); }
+        let state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessPrctlState::new(pid));
+        if success {
+            state.apply_op(op, arg, ts);
+        }
+        self.records.push_back(PrctlRecord {
+            pid,
+            op,
+            arg,
+            timestamp: ts,
+            success,
+        });
+        if self.records.len() > self.max_records {
+            self.records.remove(0);
+        }
     }
 
     #[inline]
     pub fn set_name(&mut self, pid: u64, name: String, ts: u64) {
-        let state = self.processes.entry(pid).or_insert_with(|| ProcessPrctlState::new(pid));
+        let state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessPrctlState::new(pid));
         state.name = name;
         state.op_count += 1;
         state.last_op_ts = ts;
     }
 
     #[inline(always)]
-    pub fn process_exit(&mut self, pid: u64) { self.processes.remove(&pid); }
+    pub fn process_exit(&mut self, pid: u64) {
+        self.processes.remove(&pid);
+    }
 
     pub fn fork_inherit(&mut self, parent: u64, child: u64) {
         if let Some(p) = self.processes.get(&parent) {
@@ -209,12 +268,20 @@ impl AppsPrctlMgr {
         self.stats.security_ops = self.processes.values().map(|p| p.security_ops).sum();
         self.stats.hardened_processes = self.processes.values().filter(|p| p.is_hardened()).count();
         self.stats.reaper_processes = self.processes.values().filter(|p| p.is_reaper()).count();
-        self.stats.seccomp_enabled = self.processes.values().filter(|p| p.seccomp_mode > 0).count();
+        self.stats.seccomp_enabled = self
+            .processes
+            .values()
+            .filter(|p| p.seccomp_mode > 0)
+            .count();
         self.stats.no_new_privs_set = self.processes.values().filter(|p| p.no_new_privs).count();
     }
 
     #[inline(always)]
-    pub fn process(&self, pid: u64) -> Option<&ProcessPrctlState> { self.processes.get(&pid) }
+    pub fn process(&self, pid: u64) -> Option<&ProcessPrctlState> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &PrctlMgrStats { &self.stats }
+    pub fn stats(&self) -> &PrctlMgrStats {
+        &self.stats
+    }
 }

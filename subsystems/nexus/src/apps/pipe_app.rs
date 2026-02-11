@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-
 /// Pipe state
 use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,12 +33,27 @@ pub struct PipeAppInstance {
 
 impl PipeAppInstance {
     pub fn new(rfd: u64, wfd: u64, cap: u32) -> Self {
-        Self { read_fd: rfd, write_fd: wfd, state: PipeAppState::Open, capacity: cap, used: 0, flags: 0, total_writes: 0, total_reads: 0, total_bytes_written: 0, total_bytes_read: 0, reader_pid: 0, writer_pid: 0 }
+        Self {
+            read_fd: rfd,
+            write_fd: wfd,
+            state: PipeAppState::Open,
+            capacity: cap,
+            used: 0,
+            flags: 0,
+            total_writes: 0,
+            total_reads: 0,
+            total_bytes_written: 0,
+            total_bytes_read: 0,
+            reader_pid: 0,
+            writer_pid: 0,
+        }
     }
 
     #[inline]
     pub fn write(&mut self, bytes: u32) -> bool {
-        if self.used + bytes > self.capacity { return false; }
+        if self.used + bytes > self.capacity {
+            return false;
+        }
         self.used += bytes;
         self.total_writes += 1;
         self.total_bytes_written += bytes as u64;
@@ -74,46 +88,78 @@ pub struct AppPipe {
 }
 
 impl AppPipe {
-    pub fn new() -> Self { Self { pipes: BTreeMap::new(), next_fd: 1 } }
+    pub fn new() -> Self {
+        Self {
+            pipes: BTreeMap::new(),
+            next_fd: 1,
+        }
+    }
 
     #[inline]
     pub fn create_pipe(&mut self, capacity: u32) -> (u64, u64) {
-        let rfd = self.next_fd; self.next_fd += 1;
-        let wfd = self.next_fd; self.next_fd += 1;
-        self.pipes.insert(rfd, PipeAppInstance::new(rfd, wfd, capacity));
+        let rfd = self.next_fd;
+        self.next_fd += 1;
+        let wfd = self.next_fd;
+        self.next_fd += 1;
+        self.pipes
+            .insert(rfd, PipeAppInstance::new(rfd, wfd, capacity));
         (rfd, wfd)
     }
 
     #[inline(always)]
     pub fn write(&mut self, rfd: u64, bytes: u32) -> bool {
-        if let Some(p) = self.pipes.get_mut(&rfd) { p.write(bytes) } else { false }
+        if let Some(p) = self.pipes.get_mut(&rfd) {
+            p.write(bytes)
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn read(&mut self, rfd: u64, bytes: u32) -> u32 {
-        if let Some(p) = self.pipes.get_mut(&rfd) { p.read(bytes) } else { 0 }
+        if let Some(p) = self.pipes.get_mut(&rfd) {
+            p.read(bytes)
+        } else {
+            0
+        }
     }
 
     #[inline(always)]
     pub fn close_read(&mut self, rfd: u64) {
-        if let Some(p) = self.pipes.get_mut(&rfd) { p.state = PipeAppState::ReadClosed; }
+        if let Some(p) = self.pipes.get_mut(&rfd) {
+            p.state = PipeAppState::ReadClosed;
+        }
     }
 
     #[inline(always)]
     pub fn close_write(&mut self, rfd: u64) {
-        if let Some(p) = self.pipes.get_mut(&rfd) { p.state = PipeAppState::WriteClosed; }
+        if let Some(p) = self.pipes.get_mut(&rfd) {
+            p.state = PipeAppState::WriteClosed;
+        }
     }
 
     #[inline(always)]
-    pub fn destroy(&mut self, rfd: u64) { self.pipes.remove(&rfd); }
+    pub fn destroy(&mut self, rfd: u64) {
+        self.pipes.remove(&rfd);
+    }
 
     #[inline]
     pub fn stats(&self) -> PipeAppStats {
-        let open = self.pipes.values().filter(|p| p.state == PipeAppState::Open).count() as u32;
+        let open = self
+            .pipes
+            .values()
+            .filter(|p| p.state == PipeAppState::Open)
+            .count() as u32;
         let writes: u64 = self.pipes.values().map(|p| p.total_writes).sum();
         let reads: u64 = self.pipes.values().map(|p| p.total_reads).sum();
         let bytes: u64 = self.pipes.values().map(|p| p.total_bytes_written).sum();
-        PipeAppStats { total_pipes: self.pipes.len() as u32, open_pipes: open, total_writes: writes, total_reads: reads, total_bytes: bytes }
+        PipeAppStats {
+            total_pipes: self.pipes.len() as u32,
+            open_pipes: open,
+            total_writes: writes,
+            total_reads: reads,
+            total_bytes: bytes,
+        }
     }
 }
 
@@ -317,11 +363,20 @@ impl AppPipeV2 {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PipeV3Op { Create, SetSize, GetSize }
+pub enum PipeV3Op {
+    Create,
+    SetSize,
+    GetSize,
+}
 
 /// Pipe v3 flag
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PipeV3Flag { None, Nonblock, Cloexec, Direct }
+pub enum PipeV3Flag {
+    None,
+    Nonblock,
+    Cloexec,
+    Direct,
+}
 
 /// Pipe v3 record
 #[derive(Debug, Clone)]
@@ -334,27 +389,49 @@ pub struct PipeV3Record {
 }
 
 impl PipeV3Record {
-    pub fn new(op: PipeV3Op) -> Self { Self { op, flags: 0, capacity: 65536, fds: [-1, -1], pid: 0 } }
+    pub fn new(op: PipeV3Op) -> Self {
+        Self {
+            op,
+            flags: 0,
+            capacity: 65536,
+            fds: [-1, -1],
+            pid: 0,
+        }
+    }
 }
 
 /// Pipe v3 app stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct PipeV3AppStats { pub total_ops: u64, pub created: u64, pub resized: u64 }
+pub struct PipeV3AppStats {
+    pub total_ops: u64,
+    pub created: u64,
+    pub resized: u64,
+}
 
 /// Main app pipe v3
 #[derive(Debug)]
-pub struct AppPipeV3 { pub stats: PipeV3AppStats }
+pub struct AppPipeV3 {
+    pub stats: PipeV3AppStats,
+}
 
 impl AppPipeV3 {
-    pub fn new() -> Self { Self { stats: PipeV3AppStats { total_ops: 0, created: 0, resized: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: PipeV3AppStats {
+                total_ops: 0,
+                created: 0,
+                resized: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &PipeV3Record) {
         self.stats.total_ops += 1;
         match rec.op {
             PipeV3Op::Create => self.stats.created += 1,
             PipeV3Op::SetSize => self.stats.resized += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

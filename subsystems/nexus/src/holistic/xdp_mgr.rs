@@ -67,7 +67,13 @@ pub struct XdpMap {
 }
 
 impl XdpMap {
-    pub fn new(map_id: u32, map_type: XdpMapType, key_size: u32, value_size: u32, max_entries: u32) -> Self {
+    pub fn new(
+        map_id: u32,
+        map_type: XdpMapType,
+        key_size: u32,
+        value_size: u32,
+        max_entries: u32,
+    ) -> Self {
         Self {
             map_id,
             map_type,
@@ -203,7 +209,11 @@ impl XdpProgram {
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.run_count == 0 { 0 } else { self.run_time_ns / self.run_count }
+        if self.run_count == 0 {
+            0
+        } else {
+            self.run_time_ns / self.run_count
+        }
     }
 
     #[inline]
@@ -292,10 +302,19 @@ impl HolisticXdpMgr {
     }
 
     #[inline]
-    pub fn create_map(&mut self, map_type: XdpMapType, key_size: u32, value_size: u32, max_entries: u32) -> u32 {
+    pub fn create_map(
+        &mut self,
+        map_type: XdpMapType,
+        key_size: u32,
+        value_size: u32,
+        max_entries: u32,
+    ) -> u32 {
         let id = self.next_map_id;
         self.next_map_id += 1;
-        self.maps.insert(id, XdpMap::new(id, map_type, key_size, value_size, max_entries));
+        self.maps.insert(
+            id,
+            XdpMap::new(id, map_type, key_size, value_size, max_entries),
+        );
         self.stats.total_maps += 1;
         id
     }

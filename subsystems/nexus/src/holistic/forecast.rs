@@ -166,7 +166,12 @@ impl ForecastSeries {
         let n = self.values.len();
 
         // Compute variance
-        let var: f64 = self.values.iter().map(|v| (v - mean) * (v - mean)).sum::<f64>() / n as f64;
+        let var: f64 = self
+            .values
+            .iter()
+            .map(|v| (v - mean) * (v - mean))
+            .sum::<f64>()
+            / n as f64;
         if var < 1e-10 {
             return None;
         }
@@ -187,11 +192,7 @@ impl ForecastSeries {
             }
         }
 
-        if best_lag > 0 {
-            Some(best_lag)
-        } else {
-            None
-        }
+        if best_lag > 0 { Some(best_lag) } else { None }
     }
 }
 

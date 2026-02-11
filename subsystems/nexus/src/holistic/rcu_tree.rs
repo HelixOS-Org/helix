@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-
 /// RCU flavor
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
@@ -46,10 +45,16 @@ pub struct RcuCpuData {
 impl RcuCpuData {
     pub fn new(cpu_id: u32, node_id: u32) -> Self {
         Self {
-            cpu_id, node_id, quiescent_state: false,
-            qs_pending: true, gp_seq: 0,
-            callbacks_ready: 0, callbacks_pending: 0,
-            callbacks_invoked: 0, qs_reported: 0, last_qs: 0,
+            cpu_id,
+            node_id,
+            quiescent_state: false,
+            qs_pending: true,
+            gp_seq: 0,
+            callbacks_ready: 0,
+            callbacks_pending: 0,
+            callbacks_invoked: 0,
+            qs_reported: 0,
+            last_qs: 0,
         }
     }
 
@@ -71,7 +76,9 @@ impl RcuCpuData {
     }
 
     #[inline(always)]
-    pub fn add_callback(&mut self) { self.callbacks_pending += 1; }
+    pub fn add_callback(&mut self) {
+        self.callbacks_pending += 1;
+    }
 
     #[inline]
     pub fn invoke_callbacks(&mut self) -> u32 {
@@ -99,10 +106,15 @@ pub struct RcuTreeNode {
 impl RcuTreeNode {
     pub fn new(id: u32, level: u32) -> Self {
         Self {
-            id, level, parent_id: None,
+            id,
+            level,
+            parent_id: None,
             state: RcuNodeState::Idle,
-            qsmask: 0, qsmaskinit: 0, gp_seq: 0,
-            children: Vec::new(), cpu_ids: Vec::new(),
+            qsmask: 0,
+            qsmaskinit: 0,
+            gp_seq: 0,
+            children: Vec::new(),
+            cpu_ids: Vec::new(),
         }
     }
 
@@ -117,7 +129,9 @@ impl RcuTreeNode {
 
     #[inline(always)]
     pub fn report_qs(&mut self, bit: u32) -> bool {
-        if bit < 64 { self.qsmask &= !(1 << bit); }
+        if bit < 64 {
+            self.qsmask &= !(1 << bit);
+        }
         self.qsmask == 0
     }
 
@@ -129,7 +143,9 @@ impl RcuTreeNode {
     }
 
     #[inline(always)]
-    pub fn all_reported(&self) -> bool { self.qsmask == 0 }
+    pub fn all_reported(&self) -> bool {
+        self.qsmask == 0
+    }
 }
 
 /// Grace period state
@@ -154,7 +170,13 @@ pub struct GracePeriodInfo {
 
 impl GracePeriodInfo {
     pub fn new(seq: u64, now: u64) -> Self {
-        Self { seq, state: GpState::Init, started_at: now, completed_at: 0, duration_ns: 0 }
+        Self {
+            seq,
+            state: GpState::Init,
+            started_at: now,
+            completed_at: 0,
+            duration_ns: 0,
+        }
     }
 
     #[inline]
@@ -198,9 +220,15 @@ impl HolisticRcuTree {
         let mut nodes = BTreeMap::new();
         nodes.insert(root, RcuTreeNode::new(root, 0));
         Self {
-            flavor, nodes, cpu_data: BTreeMap::new(),
-            gp_seq: 0, gp_history: Vec::new(), current_gp: None,
-            max_gp_history: 2048, root_node: root, next_node_id: 2,
+            flavor,
+            nodes,
+            cpu_data: BTreeMap::new(),
+            gp_seq: 0,
+            gp_history: Vec::new(),
+            current_gp: None,
+            max_gp_history: 2048,
+            root_node: root,
+            next_node_id: 2,
         }
     }
 
@@ -210,62 +238,100 @@ impl HolisticRcuTree {
         self.next_node_id += 1;
         let mut node = RcuTreeNode::new(id, level);
         node.parent_id = Some(parent_id);
-        let bit = self.nodes.get(&parent_id).map(|p| p.children.len() as u32).unwrap_or(0);
-        if let Some(parent) = self.nodes.get_mut(&parent_id) { parent.add_child(id, bit); }
+        let bit = self
+            .nodes
+            .get(&parent_id)
+            .map(|p| p.children.len() as u32)
+            .unwrap_or(0);
+        if let Some(parent) = self.nodes.get_mut(&parent_id) {
+            parent.add_child(id, bit);
+        }
         self.nodes.insert(id, node);
         id
     }
 
     #[inline(always)]
     pub fn add_cpu(&mut self, cpu_id: u32, node_id: u32) {
-        self.cpu_data.insert(cpu_id, RcuCpuData::new(cpu_id, node_id));
-        if let Some(node) = self.nodes.get_mut(&node_id) { node.cpu_ids.push(cpu_id); }
+        self.cpu_data
+            .insert(cpu_id, RcuCpuData::new(cpu_id, node_id));
+        if let Some(node) = self.nodes.get_mut(&node_id) {
+            node.cpu_ids.push(cpu_id);
+        }
     }
 
     #[inline]
     pub fn start_gp(&mut self, now: u64) -> u64 {
         self.gp_seq += 1;
         let gp = GracePeriodInfo::new(self.gp_seq, now);
-        for node in self.nodes.values_mut() { node.new_gp(self.gp_seq); }
-        for cpu in self.cpu_data.values_mut() { cpu.new_gp(self.gp_seq); }
+        for node in self.nodes.values_mut() {
+            node.new_gp(self.gp_seq);
+        }
+        for cpu in self.cpu_data.values_mut() {
+            cpu.new_gp(self.gp_seq);
+        }
         self.current_gp = Some(gp);
         self.gp_seq
     }
 
     pub fn report_qs(&mut self, cpu_id: u32, now: u64) {
         let node_id = match self.cpu_data.get_mut(&cpu_id) {
-            Some(cpu) => { cpu.report_qs(now); cpu.node_id },
+            Some(cpu) => {
+                cpu.report_qs(now);
+                cpu.node_id
+            },
             None => return,
         };
         // Propagate up the tree
         let mut current = node_id;
         loop {
-            let all_done = self.nodes.get_mut(&current).map(|n| n.report_qs(0)).unwrap_or(true);
-            if !all_done { break; }
+            let all_done = self
+                .nodes
+                .get_mut(&current)
+                .map(|n| n.report_qs(0))
+                .unwrap_or(true);
+            if !all_done {
+                break;
+            }
             let parent = self.nodes.get(&current).and_then(|n| n.parent_id);
-            match parent { Some(p) => current = p, None => break }
+            match parent {
+                Some(p) => current = p,
+                None => break,
+            }
         }
     }
 
     pub fn check_gp_complete(&mut self, now: u64) -> bool {
-        let root_done = self.nodes.get(&self.root_node).map(|n| n.all_reported()).unwrap_or(false);
+        let root_done = self
+            .nodes
+            .get(&self.root_node)
+            .map(|n| n.all_reported())
+            .unwrap_or(false);
         if root_done {
             if let Some(mut gp) = self.current_gp.take() {
                 gp.complete(now);
-                if self.gp_history.len() >= self.max_gp_history { self.gp_history.drain(..self.max_gp_history / 4); }
+                if self.gp_history.len() >= self.max_gp_history {
+                    self.gp_history.drain(..self.max_gp_history / 4);
+                }
                 self.gp_history.push(gp);
             }
             // Invoke callbacks
-            for cpu in self.cpu_data.values_mut() { cpu.invoke_callbacks(); }
+            for cpu in self.cpu_data.values_mut() {
+                cpu.invoke_callbacks();
+            }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn stats(&self) -> RcuTreeStats {
         let max_level = self.nodes.values().map(|n| n.level).max().unwrap_or(0);
         let total_cbs: u64 = self.cpu_data.values().map(|c| c.callbacks_invoked).sum();
-        let avg_dur = if self.gp_history.is_empty() { 0 } else {
-            self.gp_history.iter().map(|g| g.duration_ns).sum::<u64>() / self.gp_history.len() as u64
+        let avg_dur = if self.gp_history.is_empty() {
+            0
+        } else {
+            self.gp_history.iter().map(|g| g.duration_ns).sum::<u64>()
+                / self.gp_history.len() as u64
         };
         RcuTreeStats {
             total_cpus: self.cpu_data.len() as u32,
@@ -291,8 +357,6 @@ pub enum RcuNodeLevel {
     Root,
 }
 
-
-
 /// Grace period state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GpStateV2 {
@@ -314,12 +378,27 @@ pub struct GpTrackerV2 {
 }
 
 impl GpTrackerV2 {
-    pub fn new() -> Self { Self { gp_seq: 0, state: GpStateV2::Idle, start_time: 0, completed: 0, fqs_count: 0 } }
+    pub fn new() -> Self {
+        Self {
+            gp_seq: 0,
+            state: GpStateV2::Idle,
+            start_time: 0,
+            completed: 0,
+            fqs_count: 0,
+        }
+    }
 
     #[inline(always)]
-    pub fn start(&mut self, now: u64) { self.gp_seq += 1; self.state = GpStateV2::Init; self.start_time = now; }
+    pub fn start(&mut self, now: u64) {
+        self.gp_seq += 1;
+        self.state = GpStateV2::Init;
+        self.start_time = now;
+    }
     #[inline(always)]
-    pub fn complete(&mut self) { self.state = GpStateV2::Idle; self.completed += 1; }
+    pub fn complete(&mut self) {
+        self.state = GpStateV2::Idle;
+        self.completed += 1;
+    }
 }
 
 /// Stats
@@ -340,7 +419,12 @@ pub struct HolisticRcuTreeV2 {
 }
 
 impl HolisticRcuTreeV2 {
-    pub fn new() -> Self { Self { nodes: BTreeMap::new(), gp: GpTrackerV2::new() } }
+    pub fn new() -> Self {
+        Self {
+            nodes: BTreeMap::new(),
+            gp: GpTrackerV2::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn add_node(&mut self, id: u32, level: RcuNodeLevel) {
@@ -355,23 +439,45 @@ impl HolisticRcuTreeV2 {
     #[inline(always)]
     pub fn start_gp(&mut self, now: u64) {
         self.gp.start(now);
-        for n in self.nodes.values_mut() { n.qsmask = n.qsmaskinit; n.gp_seq = self.gp.gp_seq; }
+        for n in self.nodes.values_mut() {
+            n.qsmask = n.qsmaskinit;
+            n.gp_seq = self.gp.gp_seq;
+        }
     }
 
     #[inline(always)]
     pub fn report_qs(&mut self, node_id: u32, cpu_bit: u64) -> bool {
-        if let Some(n) = self.nodes.get_mut(&node_id) { n.report_qs(cpu_bit as u32) } else { false }
+        if let Some(n) = self.nodes.get_mut(&node_id) {
+            n.report_qs(cpu_bit as u32)
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn check_complete(&mut self) -> bool {
-        let root_done = self.nodes.values().filter(|n| n.level == 0).all(|n| n.qsmask == 0);
-        if root_done { self.gp.complete(); true } else { false }
+        let root_done = self
+            .nodes
+            .values()
+            .filter(|n| n.level == 0)
+            .all(|n| n.qsmask == 0);
+        if root_done {
+            self.gp.complete();
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn stats(&self) -> RcuTreeV2Stats {
-        RcuTreeV2Stats { total_nodes: self.nodes.len() as u32, current_gp: self.gp.gp_seq, completed_gps: self.gp.completed, fqs_count: self.gp.fqs_count, gp_state: self.gp.state }
+        RcuTreeV2Stats {
+            total_nodes: self.nodes.len() as u32,
+            current_gp: self.gp.gp_seq,
+            completed_gps: self.gp.completed,
+            fqs_count: self.gp.fqs_count,
+            gp_state: self.gp.state,
+        }
     }
 }
 

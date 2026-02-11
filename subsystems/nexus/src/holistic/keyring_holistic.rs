@@ -26,13 +26,24 @@ pub struct KeyringHolisticFinding {
 
 impl KeyringHolisticFinding {
     pub fn new(metric: KeyringHolisticMetric) -> Self {
-        Self { metric, score: 0, total_keys: 0, expired_keys: 0, orphaned_keys: 0, quota_used_pct: 0 }
+        Self {
+            metric,
+            score: 0,
+            total_keys: 0,
+            expired_keys: 0,
+            orphaned_keys: 0,
+            quota_used_pct: 0,
+        }
     }
 
     #[inline]
     pub fn health_score(&self) -> f64 {
-        if self.total_keys == 0 { return 1.0; }
-        let healthy = self.total_keys.saturating_sub(self.expired_keys + self.orphaned_keys);
+        if self.total_keys == 0 {
+            return 1.0;
+        }
+        let healthy = self
+            .total_keys
+            .saturating_sub(self.expired_keys + self.orphaned_keys);
         healthy as f64 / self.total_keys as f64
     }
 }
@@ -55,14 +66,27 @@ pub struct HolisticKeyring {
 
 impl HolisticKeyring {
     pub fn new() -> Self {
-        Self { stats: KeyringHolisticStats { total_analyses: 0, expiry_warnings: 0, orphan_detections: 0, quota_alerts: 0 } }
+        Self {
+            stats: KeyringHolisticStats {
+                total_analyses: 0,
+                expiry_warnings: 0,
+                orphan_detections: 0,
+                quota_alerts: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn analyze(&mut self, finding: &KeyringHolisticFinding) {
         self.stats.total_analyses += 1;
-        if finding.expired_keys > 0 { self.stats.expiry_warnings += 1; }
-        if finding.orphaned_keys > 0 { self.stats.orphan_detections += 1; }
-        if finding.quota_used_pct > 80 { self.stats.quota_alerts += 1; }
+        if finding.expired_keys > 0 {
+            self.stats.expiry_warnings += 1;
+        }
+        if finding.orphaned_keys > 0 {
+            self.stats.orphan_detections += 1;
+        }
+        if finding.quota_used_pct > 80 {
+            self.stats.quota_alerts += 1;
+        }
     }
 }

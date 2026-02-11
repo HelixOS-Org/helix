@@ -26,7 +26,14 @@ pub struct SigqueueRecord {
 
 impl SigqueueRecord {
     pub fn new(signal_nr: u32) -> Self {
-        Self { signal_nr, result: SigqueueResult::Queued, sender_pid: 0, target_pid: 0, value: 0, queue_depth: 0 }
+        Self {
+            signal_nr,
+            result: SigqueueResult::Queued,
+            sender_pid: 0,
+            target_pid: 0,
+            value: 0,
+            queue_depth: 0,
+        }
     }
 }
 
@@ -48,7 +55,14 @@ pub struct BridgeSigqueue {
 
 impl BridgeSigqueue {
     pub fn new() -> Self {
-        Self { stats: SigqueueBridgeStats { total_ops: 0, queued: 0, queue_full: 0, denied: 0 } }
+        Self {
+            stats: SigqueueBridgeStats {
+                total_ops: 0,
+                queued: 0,
+                queue_full: 0,
+                denied: 0,
+            },
+        }
     }
 
     #[inline]
@@ -58,7 +72,7 @@ impl BridgeSigqueue {
             SigqueueResult::Queued => self.stats.queued += 1,
             SigqueueResult::QueueFull => self.stats.queue_full += 1,
             SigqueueResult::PermissionDenied => self.stats.denied += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

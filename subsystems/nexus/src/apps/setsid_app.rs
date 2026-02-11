@@ -2,8 +2,9 @@
 //! NEXUS Apps — Setsid (session management application interface)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Session entry
 #[derive(Debug, Clone)]

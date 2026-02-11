@@ -9,9 +9,10 @@
 //! - Shared memory bandwidth monitoring
 
 extern crate alloc;
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 #[derive(Debug, Clone)]
 pub struct GlobalShmSegment {
@@ -52,7 +53,8 @@ impl NumaPlacement {
     }
     #[inline]
     pub fn total_remote_accesses(&self) -> u64 {
-        self.access_from_nodes.iter()
+        self.access_from_nodes
+            .iter()
             .filter(|(n, _)| *n as u32 != self.current_node)
             .map(|(_, c)| c)
             .sum()
@@ -97,14 +99,18 @@ impl ShmHolisticManager {
         let id = seg.segment_id;
         self.stats.total_bytes += seg.size;
         self.stats.total_segments += 1;
-        self.content_index.entry(hash).or_insert_with(Vec::new).push(id);
+        self.content_index
+            .entry(hash)
+            .or_insert_with(Vec::new)
+            .push(id);
         self.segments.insert(id, seg);
     }
 
     /// Find segments with identical content
     #[inline]
     pub fn find_duplicates(&self) -> Vec<(u64, Vec<u64>)> {
-        self.content_index.iter()
+        self.content_index
+            .iter()
             .filter(|(_, ids)| ids.len() > 1)
             .map(|(&hash, ids)| (hash, ids.clone()))
             .collect()
@@ -112,7 +118,9 @@ impl ShmHolisticManager {
 
     /// Run orphan garbage collection
     pub fn gc_orphans(&mut self, now: u64) -> u64 {
-        let orphans: Vec<u64> = self.segments.iter()
+        let orphans: Vec<u64> = self
+            .segments
+            .iter()
             .filter(|(_, s)| s.is_orphan(now, self.orphan_threshold))
             .map(|(id, _)| *id)
             .collect();
@@ -146,28 +154,35 @@ impl ShmHolisticManager {
     pub fn update_bandwidth(&mut self, segment_id: u64, bps: u64) {
         if let Some(seg) = self.segments.get_mut(&segment_id) {
             seg.bandwidth_bps = seg.bandwidth_bps / 2 + bps / 2; // EMA
-            self.stats.total_bandwidth = self.segments.values()
-                .map(|s| s.bandwidth_bps).sum();
+            self.stats.total_bandwidth = self.segments.values().map(|s| s.bandwidth_bps).sum();
         }
     }
 
     /// Update NUMA access tracking
     pub fn record_numa_access(&mut self, segment_id: u64, from_node: u32) {
         let placement = self.placements.entry(segment_id).or_insert(NumaPlacement {
-            segment_id, current_node: 0, optimal_node: 0,
-            access_from_nodes: ArrayMap::new(0), migration_cost: 0,
+            segment_id,
+            current_node: 0,
+            optimal_node: 0,
+            access_from_nodes: ArrayMap::new(0),
+            migration_cost: 0,
         });
-        *placement.access_from_nodes.entry(from_node as usize).or_insert(0) += 1;
+        *placement
+            .access_from_nodes
+            .entry(from_node as usize)
+            .or_insert(0) += 1;
         // Recompute optimal: node with most accesses
-        if let Some((best, _)) = placement.access_from_nodes.iter()
-            .max_by_key(|(_, c)| *c)
-        {
+        if let Some((best, _)) = placement.access_from_nodes.iter().max_by_key(|(_, c)| *c) {
             placement.optimal_node = best as u32;
         }
     }
 
     #[inline(always)]
-    pub fn segment(&self, id: u64) -> Option<&GlobalShmSegment> { self.segments.get(&id) }
+    pub fn segment(&self, id: u64) -> Option<&GlobalShmSegment> {
+        self.segments.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &ShmHolisticStats { &self.stats }
+    pub fn stats(&self) -> &ShmHolisticStats {
+        &self.stats
+    }
 }

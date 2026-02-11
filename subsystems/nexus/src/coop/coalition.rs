@@ -185,9 +185,7 @@ impl Coalition {
         self.members.insert(pid, member);
 
         // Check if we have enough members to activate
-        if self.state == CoalitionState::Forming
-            && self.active_count() >= self.min_members
-        {
+        if self.state == CoalitionState::Forming && self.active_count() >= self.min_members {
             self.state = CoalitionState::Active;
         }
         true
@@ -200,9 +198,7 @@ impl Coalition {
             member.deactivate();
         }
         // Check if we've lost quorum
-        if self.state == CoalitionState::Active
-            && self.active_count() < self.min_members
-        {
+        if self.state == CoalitionState::Active && self.active_count() < self.min_members {
             self.state = CoalitionState::Degraded;
         }
     }
@@ -255,9 +251,8 @@ impl Coalition {
         let total_pool = self.pooled_resources;
         for member in self.members.values_mut() {
             if member.active && member.contribution > 0 {
-                let share =
-                    (total_pool as f64 * member.contribution as f64 / total_contribution as f64)
-                        as u64;
+                let share = (total_pool as f64 * member.contribution as f64
+                    / total_contribution as f64) as u64;
                 member.receive_benefit(share);
             }
         }

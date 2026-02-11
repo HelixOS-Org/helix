@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Preemption model
@@ -68,51 +67,75 @@ pub struct CpuPreemptState {
 impl CpuPreemptState {
     pub fn new(cpu: u32) -> Self {
         Self {
-            cpu_id: cpu, preempt_count: 0, disable_stack: Vec::new(),
-            voluntary_preempts: 0, involuntary_preempts: 0,
-            total_disable_ns: 0, max_disable_ns: 0,
-            current_disable_start: None, need_resched: false,
+            cpu_id: cpu,
+            preempt_count: 0,
+            disable_stack: Vec::new(),
+            voluntary_preempts: 0,
+            involuntary_preempts: 0,
+            total_disable_ns: 0,
+            max_disable_ns: 0,
+            current_disable_start: None,
+            need_resched: false,
             need_resched_lazy: false,
         }
     }
 
     #[inline]
     pub fn disable(&mut self, reason: DisableReason, site: u64, ts: u64) {
-        if self.preempt_count == 0 { self.current_disable_start = Some(ts); }
+        if self.preempt_count == 0 {
+            self.current_disable_start = Some(ts);
+        }
         self.preempt_count += 1;
         self.disable_stack.push(PreemptDisableEntry {
-            reason, nesting: self.preempt_count, start_ts: ts, site,
+            reason,
+            nesting: self.preempt_count,
+            start_ts: ts,
+            site,
         });
     }
 
     pub fn enable(&mut self, ts: u64) {
-        if self.preempt_count == 0 { return; }
+        if self.preempt_count == 0 {
+            return;
+        }
         self.preempt_count -= 1;
         self.disable_stack.pop();
         if self.preempt_count == 0 {
             if let Some(start) = self.current_disable_start.take() {
                 let duration = ts.saturating_sub(start);
                 self.total_disable_ns += duration;
-                if duration > self.max_disable_ns { self.max_disable_ns = duration; }
+                if duration > self.max_disable_ns {
+                    self.max_disable_ns = duration;
+                }
             }
         }
     }
 
     #[inline(always)]
-    pub fn is_preemptible(&self) -> bool { self.preempt_count == 0 }
+    pub fn is_preemptible(&self) -> bool {
+        self.preempt_count == 0
+    }
 
     #[inline(always)]
-    pub fn current_nesting(&self) -> u32 { self.preempt_count }
+    pub fn current_nesting(&self) -> u32 {
+        self.preempt_count
+    }
 
     #[inline(always)]
-    pub fn record_voluntary(&mut self) { self.voluntary_preempts += 1; }
+    pub fn record_voluntary(&mut self) {
+        self.voluntary_preempts += 1;
+    }
     #[inline(always)]
-    pub fn record_involuntary(&mut self) { self.involuntary_preempts += 1; }
+    pub fn record_involuntary(&mut self) {
+        self.involuntary_preempts += 1;
+    }
 
     #[inline]
     pub fn voluntary_ratio(&self) -> f64 {
         let total = self.voluntary_preempts + self.involuntary_preempts;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.voluntary_preempts as f64 / total as f64
     }
 }
@@ -142,13 +165,24 @@ pub struct LatencyBudget {
 
 impl LatencyBudget {
     pub fn new(task: u64, preempt_ns: u64, irq_ns: u64) -> Self {
-        Self { task_id: task, max_preempt_latency_ns: preempt_ns, max_irq_latency_ns: irq_ns, violations: 0, worst_observed_ns: 0 }
+        Self {
+            task_id: task,
+            max_preempt_latency_ns: preempt_ns,
+            max_irq_latency_ns: irq_ns,
+            violations: 0,
+            worst_observed_ns: 0,
+        }
     }
 
     #[inline]
     pub fn check(&mut self, observed_ns: u64) -> bool {
-        if observed_ns > self.worst_observed_ns { self.worst_observed_ns = observed_ns; }
-        if observed_ns > self.max_preempt_latency_ns { self.violations += 1; return false; }
+        if observed_ns > self.worst_observed_ns {
+            self.worst_observed_ns = observed_ns;
+        }
+        if observed_ns > self.max_preempt_latency_ns {
+            self.violations += 1;
+            return false;
+        }
         true
     }
 }
@@ -166,7 +200,9 @@ pub struct PreemptHotspot {
 impl PreemptHotspot {
     #[inline(always)]
     pub fn avg_duration_ns(&self) -> f64 {
-        if self.occurrences == 0 { return 0.0; }
+        if self.occurrences == 0 {
+            return 0.0;
+        }
         self.total_duration_ns as f64 / self.occurrences as f64
     }
 }
@@ -202,53 +238,82 @@ pub struct HolisticPreemptCtrl {
 impl HolisticPreemptCtrl {
     pub fn new(model: PreemptModel) -> Self {
         Self {
-            cpus: BTreeMap::new(), sections: VecDeque::new(),
-            budgets: BTreeMap::new(), hotspots: BTreeMap::new(),
-            model, next_section_id: 1, max_sections: 10_000,
+            cpus: BTreeMap::new(),
+            sections: VecDeque::new(),
+            budgets: BTreeMap::new(),
+            hotspots: BTreeMap::new(),
+            model,
+            next_section_id: 1,
+            max_sections: 10_000,
             stats: PreemptCtrlStats::default(),
         }
     }
 
     #[inline(always)]
-    pub fn init_cpu(&mut self, cpu: u32) { self.cpus.insert(cpu, CpuPreemptState::new(cpu)); }
+    pub fn init_cpu(&mut self, cpu: u32) {
+        self.cpus.insert(cpu, CpuPreemptState::new(cpu));
+    }
 
     #[inline]
     pub fn preempt_disable(&mut self, cpu: u32, reason: DisableReason, site: u64, ts: u64) {
         if let Some(state) = self.cpus.get_mut(&cpu) {
             state.disable(reason, site, ts);
-            let sid = self.next_section_id; self.next_section_id += 1;
+            let sid = self.next_section_id;
+            self.next_section_id += 1;
             self.sections.push_back(CriticalSection {
-                section_id: sid, cpu_id: cpu, reason, start_ts: ts,
-                end_ts: None, duration_ns: 0, site, depth: state.preempt_count,
+                section_id: sid,
+                cpu_id: cpu,
+                reason,
+                start_ts: ts,
+                end_ts: None,
+                duration_ns: 0,
+                site,
+                depth: state.preempt_count,
             });
-            if self.sections.len() > self.max_sections { self.sections.remove(0); }
+            if self.sections.len() > self.max_sections {
+                self.sections.remove(0);
+            }
         }
     }
 
     pub fn preempt_enable(&mut self, cpu: u32, ts: u64) {
         if let Some(state) = self.cpus.get_mut(&cpu) {
             let site = state.disable_stack.last().map(|e| e.site).unwrap_or(0);
-            let reason = state.disable_stack.last().map(|e| e.reason).unwrap_or(DisableReason::Explicit);
+            let reason = state
+                .disable_stack
+                .last()
+                .map(|e| e.reason)
+                .unwrap_or(DisableReason::Explicit);
             let start = state.current_disable_start.unwrap_or(ts);
             let duration = ts.saturating_sub(start);
             state.enable(ts);
 
             // Update hotspot
             let hs = self.hotspots.entry(site).or_insert_with(|| PreemptHotspot {
-                site, reason, occurrences: 0, total_duration_ns: 0, max_duration_ns: 0,
+                site,
+                reason,
+                occurrences: 0,
+                total_duration_ns: 0,
+                max_duration_ns: 0,
             });
             hs.occurrences += 1;
             hs.total_duration_ns += duration;
-            if duration > hs.max_duration_ns { hs.max_duration_ns = duration; }
+            if duration > hs.max_duration_ns {
+                hs.max_duration_ns = duration;
+            }
 
             // Check budgets
-            for budget in self.budgets.values_mut() { budget.check(duration); }
+            for budget in self.budgets.values_mut() {
+                budget.check(duration);
+            }
         }
     }
 
     #[inline(always)]
     pub fn set_need_resched(&mut self, cpu: u32) {
-        if let Some(state) = self.cpus.get_mut(&cpu) { state.need_resched = true; }
+        if let Some(state) = self.cpus.get_mut(&cpu) {
+            state.need_resched = true;
+        }
     }
 
     #[inline(always)]
@@ -269,20 +334,36 @@ impl HolisticPreemptCtrl {
         self.stats.preempt_model = self.model as u8;
         self.stats.total_voluntary = self.cpus.values().map(|c| c.voluntary_preempts).sum();
         self.stats.total_involuntary = self.cpus.values().map(|c| c.involuntary_preempts).sum();
-        self.stats.global_max_disable_ns = self.cpus.values().map(|c| c.max_disable_ns).max().unwrap_or(0);
+        self.stats.global_max_disable_ns = self
+            .cpus
+            .values()
+            .map(|c| c.max_disable_ns)
+            .max()
+            .unwrap_or(0);
         if !self.cpus.is_empty() {
-            let total_avg: f64 = self.cpus.values().map(|c| {
-                let total = c.voluntary_preempts + c.involuntary_preempts;
-                if total == 0 { 0.0 } else { c.total_disable_ns as f64 / total as f64 }
-            }).sum();
+            let total_avg: f64 = self
+                .cpus
+                .values()
+                .map(|c| {
+                    let total = c.voluntary_preempts + c.involuntary_preempts;
+                    if total == 0 {
+                        0.0
+                    } else {
+                        c.total_disable_ns as f64 / total as f64
+                    }
+                })
+                .sum();
             self.stats.avg_disable_ns = total_avg / self.cpus.len() as f64;
         }
         self.stats.active_budgets = self.budgets.len();
         self.stats.budget_violations = self.budgets.values().map(|b| b.violations).sum();
         self.stats.hotspot_count = self.hotspots.len();
-        self.stats.currently_disabled_cpus = self.cpus.values().filter(|c| !c.is_preemptible()).count();
+        self.stats.currently_disabled_cpus =
+            self.cpus.values().filter(|c| !c.is_preemptible()).count();
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &PreemptCtrlStats { &self.stats }
+    pub fn stats(&self) -> &PreemptCtrlStats {
+        &self.stats
+    }
 }

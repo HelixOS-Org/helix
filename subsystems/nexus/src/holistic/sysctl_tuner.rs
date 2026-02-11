@@ -50,7 +50,13 @@ pub struct ParamBounds {
 
 impl ParamBounds {
     pub fn new(min: i64, max: i64, default: i64) -> Self {
-        Self { min_value: min, max_value: max, default_value: default, safe_min: min, safe_max: max }
+        Self {
+            min_value: min,
+            max_value: max,
+            default_value: default,
+            safe_min: min,
+            safe_max: max,
+        }
     }
 
     #[inline]
@@ -88,10 +94,15 @@ pub struct SysctlParam {
 impl SysctlParam {
     pub fn new(name: String, cat: ParamCategory, ptype: ParamType, bounds: ParamBounds) -> Self {
         Self {
-            name, category: cat, param_type: ptype,
-            current_value: bounds.default_value, bounds,
-            dependencies: Vec::new(), impact_score: 1.0,
-            change_count: 0, last_change_ts: 0,
+            name,
+            category: cat,
+            param_type: ptype,
+            current_value: bounds.default_value,
+            bounds,
+            dependencies: Vec::new(),
+            impact_score: 1.0,
+            change_count: 0,
+            last_change_ts: 0,
         }
     }
 
@@ -103,18 +114,27 @@ impl SysctlParam {
             self.change_count += 1;
             self.last_change_ts = ts;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn is_default(&self) -> bool { self.current_value == self.bounds.default_value }
+    pub fn is_default(&self) -> bool {
+        self.current_value == self.bounds.default_value
+    }
     #[inline(always)]
-    pub fn is_safe(&self) -> bool { self.bounds.is_safe(self.current_value) }
+    pub fn is_safe(&self) -> bool {
+        self.bounds.is_safe(self.current_value)
+    }
     #[inline]
     pub fn deviation_pct(&self) -> f64 {
         let range = (self.bounds.max_value - self.bounds.min_value) as f64;
-        if range <= 0.0 { 0.0 }
-        else { libm::fabs((self.current_value - self.bounds.default_value) as f64) / range * 100.0 }
+        if range <= 0.0 {
+            0.0
+        } else {
+            libm::fabs((self.current_value - self.bounds.default_value) as f64) / range * 100.0
+        }
     }
 }
 
@@ -185,8 +205,10 @@ pub struct HolisticSysctlTuner {
 impl HolisticSysctlTuner {
     pub fn new() -> Self {
         Self {
-            params: BTreeMap::new(), history: Vec::new(),
-            max_history: 1000, recommendations: Vec::new(),
+            params: BTreeMap::new(),
+            history: Vec::new(),
+            max_history: 1000,
+            recommendations: Vec::new(),
             current_profile: WorkloadProfile::Balanced,
             stats: SysctlTunerStats::default(),
         }
@@ -203,8 +225,11 @@ impl HolisticSysctlTuner {
             let old = p.current_value;
             if p.set_value(value, ts) {
                 self.history.push(ParamChange {
-                    param_name: name_string, old_value: old, new_value: p.current_value,
-                    timestamp: ts, reason,
+                    param_name: name_string,
+                    old_value: old,
+                    new_value: p.current_value,
+                    timestamp: ts,
+                    reason,
                 });
                 if self.history.len() > self.max_history {
                     self.history.remove(0);
@@ -223,8 +248,11 @@ impl HolisticSysctlTuner {
                 p.change_count += 1;
                 p.last_change_ts = ts;
                 self.history.push(ParamChange {
-                    param_name: name, old_value: change.new_value,
-                    new_value: change.old_value, timestamp: ts, reason: ChangeReason::Rollback,
+                    param_name: name,
+                    old_value: change.new_value,
+                    new_value: change.old_value,
+                    timestamp: ts,
+                    reason: ChangeReason::Rollback,
                 });
                 return true;
             }
@@ -242,15 +270,23 @@ impl HolisticSysctlTuner {
         for (name, param) in &self.params {
             let rec_value = match (self.current_profile, param.category) {
                 (WorkloadProfile::Throughput, ParamCategory::Vm) => param.bounds.max_value * 3 / 4,
-                (WorkloadProfile::Latency, ParamCategory::Sched) => param.bounds.min_value + (param.bounds.max_value - param.bounds.min_value) / 4,
-                (WorkloadProfile::MemoryIntensive, ParamCategory::Vm) => param.bounds.max_value * 9 / 10,
-                (WorkloadProfile::IoIntensive, ParamCategory::Fs) => param.bounds.max_value * 8 / 10,
+                (WorkloadProfile::Latency, ParamCategory::Sched) => {
+                    param.bounds.min_value + (param.bounds.max_value - param.bounds.min_value) / 4
+                },
+                (WorkloadProfile::MemoryIntensive, ParamCategory::Vm) => {
+                    param.bounds.max_value * 9 / 10
+                },
+                (WorkloadProfile::IoIntensive, ParamCategory::Fs) => {
+                    param.bounds.max_value * 8 / 10
+                },
                 _ => param.bounds.default_value,
             };
             if rec_value != param.current_value {
                 self.recommendations.push(TuningRecommendation {
-                    param_name: name.clone(), recommended_value: rec_value,
-                    profile: self.current_profile, confidence: 0.7,
+                    param_name: name.clone(),
+                    recommended_value: rec_value,
+                    profile: self.current_profile,
+                    confidence: 0.7,
                 });
             }
         }
@@ -261,7 +297,12 @@ impl HolisticSysctlTuner {
         let recs: Vec<_> = self.recommendations.drain(..).collect();
         for rec in recs {
             if rec.confidence >= 0.5 {
-                self.set_value(&rec.param_name, rec.recommended_value, ts, ChangeReason::AutoTune);
+                self.set_value(
+                    &rec.param_name,
+                    rec.recommended_value,
+                    ts,
+                    ChangeReason::AutoTune,
+                );
             }
         }
     }
@@ -277,17 +318,35 @@ impl HolisticSysctlTuner {
         self.stats.modified_params = self.params.values().filter(|p| !p.is_default()).count();
         self.stats.unsafe_params = self.params.values().filter(|p| !p.is_safe()).count();
         self.stats.total_changes = self.history.len() as u64;
-        self.stats.auto_tuned_changes = self.history.iter().filter(|h| h.reason == ChangeReason::AutoTune).count() as u64;
-        self.stats.rollbacks = self.history.iter().filter(|h| h.reason == ChangeReason::Rollback).count() as u64;
+        self.stats.auto_tuned_changes = self
+            .history
+            .iter()
+            .filter(|h| h.reason == ChangeReason::AutoTune)
+            .count() as u64;
+        self.stats.rollbacks = self
+            .history
+            .iter()
+            .filter(|h| h.reason == ChangeReason::Rollback)
+            .count() as u64;
         let impacts: Vec<f64> = self.params.values().map(|p| p.impact_score).collect();
-        self.stats.avg_impact_score = if impacts.is_empty() { 0.0 } else { impacts.iter().sum::<f64>() / impacts.len() as f64 };
+        self.stats.avg_impact_score = if impacts.is_empty() {
+            0.0
+        } else {
+            impacts.iter().sum::<f64>() / impacts.len() as f64
+        };
         self.stats.active_profile = self.current_profile as u8;
     }
 
     #[inline(always)]
-    pub fn param(&self, name: &str) -> Option<&SysctlParam> { self.params.get(&String::from(name)) }
+    pub fn param(&self, name: &str) -> Option<&SysctlParam> {
+        self.params.get(&String::from(name))
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &SysctlTunerStats { &self.stats }
+    pub fn stats(&self) -> &SysctlTunerStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn history(&self) -> &[ParamChange] { &self.history }
+    pub fn history(&self) -> &[ParamChange] {
+        &self.history
+    }
 }

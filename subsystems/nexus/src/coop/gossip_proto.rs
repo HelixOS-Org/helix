@@ -3,9 +3,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Gossip message type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,8 +45,12 @@ pub struct GossipNode {
 impl GossipNode {
     pub fn new(id: u64, now: u64) -> Self {
         Self {
-            id, generation: 1, state: GossipNodeState::Alive,
-            heartbeat_seq: 0, last_heartbeat: now, suspicion_start: 0,
+            id,
+            generation: 1,
+            state: GossipNodeState::Alive,
+            heartbeat_seq: 0,
+            last_heartbeat: now,
+            suspicion_start: 0,
             metadata: LinearMap::new(),
         }
     }
@@ -66,13 +71,18 @@ impl GossipNode {
     }
 
     #[inline(always)]
-    pub fn declare_dead(&mut self) { self.state = GossipNodeState::Dead; }
+    pub fn declare_dead(&mut self) {
+        self.state = GossipNodeState::Dead;
+    }
     #[inline(always)]
-    pub fn leave(&mut self) { self.state = GossipNodeState::Left; }
+    pub fn leave(&mut self) {
+        self.state = GossipNodeState::Left;
+    }
 
     #[inline(always)]
     pub fn is_suspect_timeout(&self, now: u64, timeout: u64) -> bool {
-        self.state == GossipNodeState::Suspected && now.saturating_sub(self.suspicion_start) > timeout
+        self.state == GossipNodeState::Suspected
+            && now.saturating_sub(self.suspicion_start) > timeout
     }
 }
 
@@ -125,15 +135,22 @@ impl CoopGossipProto {
         let mut nodes = BTreeMap::new();
         nodes.insert(local_id, GossipNode::new(local_id, 0));
         Self {
-            local_id, nodes, messages: Vec::new(), style,
-            fanout: 3, suspicion_timeout: 5_000_000_000,
-            total_rounds: 0, prng_state: local_id.wrapping_mul(6364136223846793005) | 1,
+            local_id,
+            nodes,
+            messages: Vec::new(),
+            style,
+            fanout: 3,
+            suspicion_timeout: 5_000_000_000,
+            total_rounds: 0,
+            prng_state: local_id.wrapping_mul(6364136223846793005) | 1,
         }
     }
 
     fn xorshift64(&mut self) -> u64 {
         let mut x = self.prng_state;
-        x ^= x << 13; x ^= x >> 7; x ^= x << 17;
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
         self.prng_state = x;
         x
     }
@@ -145,48 +162,87 @@ impl CoopGossipProto {
 
     #[inline(always)]
     pub fn heartbeat(&mut self, now: u64) {
-        if let Some(local) = self.nodes.get_mut(&self.local_id) { local.heartbeat(now); }
+        if let Some(local) = self.nodes.get_mut(&self.local_id) {
+            local.heartbeat(now);
+        }
     }
 
     pub fn gossip_round(&mut self, now: u64) {
         self.total_rounds += 1;
-        let node_ids: Vec<u64> = self.nodes.keys().filter(|&&id| id != self.local_id).copied().collect();
-        if node_ids.is_empty() { return; }
+        let node_ids: Vec<u64> = self
+            .nodes
+            .keys()
+            .filter(|&&id| id != self.local_id)
+            .copied()
+            .collect();
+        if node_ids.is_empty() {
+            return;
+        }
 
         // Pick fanout random targets
-        let targets: Vec<u64> = (0..self.fanout).map(|_| {
-            let idx = (self.xorshift64() % node_ids.len() as u64) as usize;
-            node_ids[idx]
-        }).collect();
+        let targets: Vec<u64> = (0..self.fanout)
+            .map(|_| {
+                let idx = (self.xorshift64() % node_ids.len() as u64) as usize;
+                node_ids[idx]
+            })
+            .collect();
 
-        let local_seq = self.nodes.get(&self.local_id).map(|n| n.heartbeat_seq).unwrap_or(0);
+        let local_seq = self
+            .nodes
+            .get(&self.local_id)
+            .map(|n| n.heartbeat_seq)
+            .unwrap_or(0);
         for target in targets {
             self.messages.push(GossipMessage {
-                msg_type: GossipMsgType::Heartbeat, sender_id: self.local_id,
-                target_id: target, generation: 1, seq: local_seq,
-                payload_hash: 0, timestamp: now,
+                msg_type: GossipMsgType::Heartbeat,
+                sender_id: self.local_id,
+                target_id: target,
+                generation: 1,
+                seq: local_seq,
+                payload_hash: 0,
+                timestamp: now,
             });
         }
 
         // Check suspicions
         let timeout = self.suspicion_timeout;
-        let suspect_list: Vec<u64> = self.nodes.iter()
+        let suspect_list: Vec<u64> = self
+            .nodes
+            .iter()
             .filter(|&(&id, n)| id != self.local_id && n.is_suspect_timeout(now, timeout))
-            .map(|(&id, _)| id).collect();
+            .map(|(&id, _)| id)
+            .collect();
         for id in suspect_list {
-            if let Some(node) = self.nodes.get_mut(&id) { node.declare_dead(); }
+            if let Some(node) = self.nodes.get_mut(&id) {
+                node.declare_dead();
+            }
         }
     }
 
     #[inline]
     pub fn stats(&self) -> GossipProtoStats {
-        let alive = self.nodes.values().filter(|n| n.state == GossipNodeState::Alive).count() as u32;
-        let suspected = self.nodes.values().filter(|n| n.state == GossipNodeState::Suspected).count() as u32;
-        let dead = self.nodes.values().filter(|n| n.state == GossipNodeState::Dead).count() as u32;
+        let alive = self
+            .nodes
+            .values()
+            .filter(|n| n.state == GossipNodeState::Alive)
+            .count() as u32;
+        let suspected = self
+            .nodes
+            .values()
+            .filter(|n| n.state == GossipNodeState::Suspected)
+            .count() as u32;
+        let dead = self
+            .nodes
+            .values()
+            .filter(|n| n.state == GossipNodeState::Dead)
+            .count() as u32;
         GossipProtoStats {
-            total_nodes: self.nodes.len() as u32, alive_nodes: alive,
-            suspected_nodes: suspected, dead_nodes: dead,
-            total_messages: self.messages.len() as u64, total_rounds: self.total_rounds,
+            total_nodes: self.nodes.len() as u32,
+            alive_nodes: alive,
+            suspected_nodes: suspected,
+            dead_nodes: dead,
+            total_messages: self.messages.len() as u64,
+            total_rounds: self.total_rounds,
         }
     }
 }

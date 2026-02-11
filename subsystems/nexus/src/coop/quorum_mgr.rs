@@ -34,11 +34,25 @@ pub struct QuorumMember {
 }
 
 impl QuorumMember {
-    pub fn new(id: u64, weight: u32) -> Self { Self { id, weight, vote: None, voted_at: 0, total_votes: 0 } }
+    pub fn new(id: u64, weight: u32) -> Self {
+        Self {
+            id,
+            weight,
+            vote: None,
+            voted_at: 0,
+            total_votes: 0,
+        }
+    }
     #[inline(always)]
-    pub fn cast_vote(&mut self, vote: VoteResult, now: u64) { self.vote = Some(vote); self.voted_at = now; self.total_votes += 1; }
+    pub fn cast_vote(&mut self, vote: VoteResult, now: u64) {
+        self.vote = Some(vote);
+        self.voted_at = now;
+        self.total_votes += 1;
+    }
     #[inline(always)]
-    pub fn reset(&mut self) { self.vote = None; }
+    pub fn reset(&mut self) {
+        self.vote = None;
+    }
 }
 
 /// Quorum proposal
@@ -56,15 +70,28 @@ pub struct QuorumProposal {
 
 impl QuorumProposal {
     pub fn new(id: u64, proposer: u64, qtype: QuorumType, threshold: f64, now: u64) -> Self {
-        Self { id, proposer, quorum_type: qtype, members: Vec::new(), threshold, created_at: now, decided: false, accepted: false }
+        Self {
+            id,
+            proposer,
+            quorum_type: qtype,
+            members: Vec::new(),
+            threshold,
+            created_at: now,
+            decided: false,
+            accepted: false,
+        }
     }
 
     #[inline(always)]
-    pub fn add_member(&mut self, id: u64, weight: u32) { self.members.push(QuorumMember::new(id, weight)); }
+    pub fn add_member(&mut self, id: u64, weight: u32) {
+        self.members.push(QuorumMember::new(id, weight));
+    }
 
     #[inline(always)]
     pub fn vote(&mut self, member_id: u64, result: VoteResult, now: u64) {
-        if let Some(m) = self.members.iter_mut().find(|m| m.id == member_id) { m.cast_vote(result, now); }
+        if let Some(m) = self.members.iter_mut().find(|m| m.id == member_id) {
+            m.cast_vote(result, now);
+        }
     }
 
     pub fn check_quorum(&mut self) -> Option<bool> {
@@ -72,9 +99,15 @@ impl QuorumProposal {
         let voted: Vec<&QuorumMember> = self.members.iter().filter(|m| m.vote.is_some()).collect();
         let voted_weight: u32 = voted.iter().map(|m| m.weight).sum();
 
-        if (voted_weight as f64 / total_weight as f64) < self.threshold { return None; }
+        if (voted_weight as f64 / total_weight as f64) < self.threshold {
+            return None;
+        }
 
-        let accept_weight: u32 = voted.iter().filter(|m| m.vote == Some(VoteResult::Accept)).map(|m| m.weight).sum();
+        let accept_weight: u32 = voted
+            .iter()
+            .filter(|m| m.vote == Some(VoteResult::Accept))
+            .map(|m| m.weight)
+            .sum();
         let result = match self.quorum_type {
             QuorumType::Simple => accept_weight * 2 > voted_weight,
             QuorumType::SuperMajority => accept_weight * 3 > voted_weight * 2,
@@ -106,18 +139,27 @@ pub struct CoopQuorumMgr {
 }
 
 impl CoopQuorumMgr {
-    pub fn new() -> Self { Self { proposals: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            proposals: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn propose(&mut self, proposer: u64, qtype: QuorumType, threshold: f64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.proposals.insert(id, QuorumProposal::new(id, proposer, qtype, threshold, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.proposals
+            .insert(id, QuorumProposal::new(id, proposer, qtype, threshold, now));
         id
     }
 
     #[inline(always)]
     pub fn vote(&mut self, proposal: u64, member: u64, result: VoteResult, now: u64) {
-        if let Some(p) = self.proposals.get_mut(&proposal) { p.vote(member, result, now); }
+        if let Some(p) = self.proposals.get_mut(&proposal) {
+            p.vote(member, result, now);
+        }
     }
 
     pub fn stats(&self) -> QuorumMgrStats {
@@ -125,12 +167,31 @@ impl CoopQuorumMgr {
         let accepted = self.proposals.values().filter(|p| p.accepted).count() as u32;
         let rejected = decided - accepted;
         let pending = self.proposals.values().filter(|p| !p.decided).count() as u32;
-        let parts: Vec<f64> = self.proposals.values().map(|p| {
-            let voted = p.members.iter().filter(|m| m.vote.is_some()).count();
-            if p.members.is_empty() { 0.0 } else { voted as f64 / p.members.len() as f64 }
-        }).collect();
-        let avg = if parts.is_empty() { 0.0 } else { parts.iter().sum::<f64>() / parts.len() as f64 };
-        QuorumMgrStats { total_proposals: self.proposals.len() as u32, decided, accepted, rejected, pending, avg_participation: avg }
+        let parts: Vec<f64> = self
+            .proposals
+            .values()
+            .map(|p| {
+                let voted = p.members.iter().filter(|m| m.vote.is_some()).count();
+                if p.members.is_empty() {
+                    0.0
+                } else {
+                    voted as f64 / p.members.len() as f64
+                }
+            })
+            .collect();
+        let avg = if parts.is_empty() {
+            0.0
+        } else {
+            parts.iter().sum::<f64>() / parts.len() as f64
+        };
+        QuorumMgrStats {
+            total_proposals: self.proposals.len() as u32,
+            decided,
+            accepted,
+            rejected,
+            pending,
+            avg_participation: avg,
+        }
     }
 }
 
@@ -169,11 +230,21 @@ pub struct QuorumMemberV2 {
 
 impl QuorumMemberV2 {
     pub fn new(id: u64, weight: u32) -> Self {
-        Self { id, status: MemberStatusV2::Active, weight, last_heartbeat: 0, votes_cast: 0, responses: 0 }
+        Self {
+            id,
+            status: MemberStatusV2::Active,
+            weight,
+            last_heartbeat: 0,
+            votes_cast: 0,
+            responses: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn heartbeat(&mut self, now: u64) { self.last_heartbeat = now; self.status = MemberStatusV2::Active; }
+    pub fn heartbeat(&mut self, now: u64) {
+        self.last_heartbeat = now;
+        self.status = MemberStatusV2::Active;
+    }
 }
 
 /// Quorum configuration
@@ -186,17 +257,34 @@ pub struct QuorumConfigV2 {
 
 impl QuorumConfigV2 {
     pub fn new(qt: QuorumTypeV2, threshold_ms: u64) -> Self {
-        Self { quorum_type: qt, members: BTreeMap::new(), failure_threshold_ms: threshold_ms }
+        Self {
+            quorum_type: qt,
+            members: BTreeMap::new(),
+            failure_threshold_ms: threshold_ms,
+        }
     }
 
     #[inline(always)]
-    pub fn add_member(&mut self, id: u64, weight: u32) { self.members.insert(id, QuorumMemberV2::new(id, weight)); }
+    pub fn add_member(&mut self, id: u64, weight: u32) {
+        self.members.insert(id, QuorumMemberV2::new(id, weight));
+    }
 
     #[inline(always)]
-    pub fn active_count(&self) -> u32 { self.members.values().filter(|m| m.status == MemberStatusV2::Active).count() as u32 }
+    pub fn active_count(&self) -> u32 {
+        self.members
+            .values()
+            .filter(|m| m.status == MemberStatusV2::Active)
+            .count() as u32
+    }
 
     #[inline(always)]
-    pub fn total_weight(&self) -> u32 { self.members.values().filter(|m| m.status == MemberStatusV2::Active).map(|m| m.weight).sum() }
+    pub fn total_weight(&self) -> u32 {
+        self.members
+            .values()
+            .filter(|m| m.status == MemberStatusV2::Active)
+            .map(|m| m.weight)
+            .sum()
+    }
 
     #[inline]
     pub fn has_quorum(&self) -> bool {
@@ -207,14 +295,20 @@ impl QuorumConfigV2 {
             QuorumTypeV2::Majority => active > total / 2,
             QuorumTypeV2::SuperMajority => active * 3 > total * 2,
             QuorumTypeV2::Unanimous => active == total,
-            QuorumTypeV2::Weighted => { let tw = self.total_weight(); let full: u32 = self.members.values().map(|m| m.weight).sum(); tw > full / 2 }
+            QuorumTypeV2::Weighted => {
+                let tw = self.total_weight();
+                let full: u32 = self.members.values().map(|m| m.weight).sum();
+                tw > full / 2
+            },
         }
     }
 
     #[inline]
     pub fn detect_failures(&mut self, now: u64) {
         for m in self.members.values_mut() {
-            if m.status == MemberStatusV2::Active && now.saturating_sub(m.last_heartbeat) > self.failure_threshold_ms * 1_000_000 {
+            if m.status == MemberStatusV2::Active
+                && now.saturating_sub(m.last_heartbeat) > self.failure_threshold_ms * 1_000_000
+            {
                 m.status = MemberStatusV2::Suspected;
             }
         }
@@ -238,23 +332,44 @@ pub struct CoopQuorumMgrV2 {
 }
 
 impl CoopQuorumMgrV2 {
-    pub fn new() -> Self { Self { configs: Vec::new() } }
+    pub fn new() -> Self {
+        Self {
+            configs: Vec::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn create(&mut self, qt: QuorumTypeV2, threshold_ms: u64) -> usize {
-        let idx = self.configs.len(); self.configs.push(QuorumConfigV2::new(qt, threshold_ms)); idx
+        let idx = self.configs.len();
+        self.configs.push(QuorumConfigV2::new(qt, threshold_ms));
+        idx
     }
 
     #[inline(always)]
     pub fn add_member(&mut self, idx: usize, id: u64, weight: u32) {
-        if let Some(c) = self.configs.get_mut(idx) { c.add_member(id, weight); }
+        if let Some(c) = self.configs.get_mut(idx) {
+            c.add_member(id, weight);
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> Vec<QuorumMgrV2Stats> {
-        self.configs.iter().map(|c| {
-            let suspected = c.members.values().filter(|m| m.status == MemberStatusV2::Suspected).count() as u32;
-            QuorumMgrV2Stats { total_members: c.members.len() as u32, active_members: c.active_count(), suspected, has_quorum: c.has_quorum(), total_weight: c.total_weight() }
-        }).collect()
+        self.configs
+            .iter()
+            .map(|c| {
+                let suspected = c
+                    .members
+                    .values()
+                    .filter(|m| m.status == MemberStatusV2::Suspected)
+                    .count() as u32;
+                QuorumMgrV2Stats {
+                    total_members: c.members.len() as u32,
+                    active_members: c.active_count(),
+                    suspected,
+                    has_quorum: c.has_quorum(),
+                    total_weight: c.total_weight(),
+                }
+            })
+            .collect()
     }
 }

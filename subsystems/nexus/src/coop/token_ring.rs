@@ -382,11 +382,14 @@ pub struct TokenRingV2Instance {
 impl TokenRingV2Instance {
     pub fn new(id: u64) -> Self {
         Self {
-            id, participants: Vec::new(),
+            id,
+            participants: Vec::new(),
             current_holder: None,
             token_state: TokenV2State::Free,
-            rotations: 0, max_hold_ticks: 100,
-            total_passes: 0, lost_tokens: 0,
+            rotations: 0,
+            max_hold_ticks: 100,
+            total_passes: 0,
+            lost_tokens: 0,
         }
     }
 
@@ -394,25 +397,36 @@ impl TokenRingV2Instance {
     pub fn add_participant(&mut self, pid: u64) -> u32 {
         let pos = self.participants.len() as u32;
         self.participants.push(TokenV2Participant {
-            id: pid, position: pos,
-            tokens_held: 0, tokens_passed: 0,
-            hold_ticks: 0, active: true,
+            id: pid,
+            position: pos,
+            tokens_held: 0,
+            tokens_passed: 0,
+            hold_ticks: 0,
+            active: true,
         });
         pos
     }
 
     pub fn pass_token(&mut self) -> Option<u32> {
-        if self.participants.is_empty() { return None; }
+        if self.participants.is_empty() {
+            return None;
+        }
         let next_pos = if let Some(current) = self.current_holder {
             let mut next = (current + 1) % self.participants.len() as u32;
             let start = next;
             loop {
-                if self.participants[next as usize].active { break; }
+                if self.participants[next as usize].active {
+                    break;
+                }
                 next = (next + 1) % self.participants.len() as u32;
-                if next == start { return None; }
+                if next == start {
+                    return None;
+                }
             }
             next
-        } else { 0 };
+        } else {
+            0
+        };
 
         if let Some(old) = self.current_holder {
             self.participants[old as usize].tokens_passed += 1;
@@ -421,7 +435,9 @@ impl TokenRingV2Instance {
         self.participants[next_pos as usize].tokens_held += 1;
         self.token_state = TokenV2State::Held;
         self.total_passes += 1;
-        if next_pos == 0 { self.rotations += 1; }
+        if next_pos == 0 {
+            self.rotations += 1;
+        }
         Some(next_pos)
     }
 }
@@ -451,8 +467,10 @@ impl CoopTokenRingV2 {
             rings: BTreeMap::new(),
             next_id: 1,
             stats: TokenRingV2Stats {
-                rings_created: 0, total_passes: 0,
-                total_rotations: 0, lost_tokens: 0,
+                rings_created: 0,
+                total_passes: 0,
+                total_rotations: 0,
+                lost_tokens: 0,
                 participants_total: 0,
             },
         }
@@ -473,7 +491,9 @@ impl CoopTokenRingV2 {
             let pos = ring.add_participant(pid);
             self.stats.participants_total += 1;
             Some(pos)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -484,7 +504,9 @@ impl CoopTokenRingV2 {
                 self.stats.total_passes += 1;
             }
             result
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline(always)]

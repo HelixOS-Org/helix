@@ -10,11 +10,12 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
+use crate::fast::linear_map::LinearMap;
 
 /// IRQ trigger type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,32 +86,68 @@ pub struct IrqDesc {
 impl IrqDesc {
     pub fn new(irq: u32, hwirq: u64, name: String, itype: IrqType) -> Self {
         Self {
-            irq, hwirq, name, irq_type: itype, trigger: IrqTrigger::None,
-            chip_name: String::new(), domain_id: 0, affinity_mask: u64::MAX,
-            effective_affinity: 1, handler_count: 0, spurious_count: 0,
-            thread_count: 0, flags: Vec::new(), depth: 0,
-            last_unhandled: 0, wakeup_enabled: false,
+            irq,
+            hwirq,
+            name,
+            irq_type: itype,
+            trigger: IrqTrigger::None,
+            chip_name: String::new(),
+            domain_id: 0,
+            affinity_mask: u64::MAX,
+            effective_affinity: 1,
+            handler_count: 0,
+            spurious_count: 0,
+            thread_count: 0,
+            flags: Vec::new(),
+            depth: 0,
+            last_unhandled: 0,
+            wakeup_enabled: false,
         }
     }
 
     #[inline(always)]
-    pub fn enable(&mut self) { self.flags.retain(|f| *f != IrqStateFlag::Disabled); self.depth = 0; }
+    pub fn enable(&mut self) {
+        self.flags.retain(|f| *f != IrqStateFlag::Disabled);
+        self.depth = 0;
+    }
     #[inline(always)]
-    pub fn disable(&mut self) { if !self.flags.contains(&IrqStateFlag::Disabled) { self.flags.push(IrqStateFlag::Disabled); } self.depth += 1; }
+    pub fn disable(&mut self) {
+        if !self.flags.contains(&IrqStateFlag::Disabled) {
+            self.flags.push(IrqStateFlag::Disabled);
+        }
+        self.depth += 1;
+    }
     #[inline(always)]
-    pub fn is_disabled(&self) -> bool { self.flags.contains(&IrqStateFlag::Disabled) }
+    pub fn is_disabled(&self) -> bool {
+        self.flags.contains(&IrqStateFlag::Disabled)
+    }
     #[inline(always)]
-    pub fn mask(&mut self) { if !self.flags.contains(&IrqStateFlag::Masked) { self.flags.push(IrqStateFlag::Masked); } }
+    pub fn mask(&mut self) {
+        if !self.flags.contains(&IrqStateFlag::Masked) {
+            self.flags.push(IrqStateFlag::Masked);
+        }
+    }
     #[inline(always)]
-    pub fn unmask(&mut self) { self.flags.retain(|f| *f != IrqStateFlag::Masked); }
+    pub fn unmask(&mut self) {
+        self.flags.retain(|f| *f != IrqStateFlag::Masked);
+    }
     #[inline(always)]
-    pub fn set_affinity(&mut self, mask: u64) { self.affinity_mask = mask; }
+    pub fn set_affinity(&mut self, mask: u64) {
+        self.affinity_mask = mask;
+    }
     #[inline(always)]
-    pub fn handle(&mut self) { self.handler_count += 1; }
+    pub fn handle(&mut self) {
+        self.handler_count += 1;
+    }
     #[inline(always)]
-    pub fn spurious(&mut self, ts: u64) { self.spurious_count += 1; self.last_unhandled = ts; }
+    pub fn spurious(&mut self, ts: u64) {
+        self.spurious_count += 1;
+        self.last_unhandled = ts;
+    }
     #[inline(always)]
-    pub fn is_spurious_prone(&self) -> bool { self.handler_count > 0 && self.spurious_count * 100 / (self.handler_count + 1) > 5 }
+    pub fn is_spurious_prone(&self) -> bool {
+        self.handler_count > 0 && self.spurious_count * 100 / (self.handler_count + 1) > 5
+    }
 }
 
 /// IRQ domain
@@ -127,15 +164,30 @@ pub struct IrqDomain {
 
 impl IrqDomain {
     pub fn new(id: u64, name: String, hwirq_max: u64) -> Self {
-        Self { id, name, parent_id: None, hwirq_max, mapped: LinearMap::new(), revmap_size: 0 }
+        Self {
+            id,
+            name,
+            parent_id: None,
+            hwirq_max,
+            mapped: LinearMap::new(),
+            revmap_size: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn map(&mut self, hwirq: u64, virq: u32) { self.mapped.insert(hwirq, virq); self.revmap_size = self.mapped.len() as u32; }
+    pub fn map(&mut self, hwirq: u64, virq: u32) {
+        self.mapped.insert(hwirq, virq);
+        self.revmap_size = self.mapped.len() as u32;
+    }
     #[inline(always)]
-    pub fn unmap(&mut self, hwirq: u64) { self.mapped.remove(hwirq); self.revmap_size = self.mapped.len() as u32; }
+    pub fn unmap(&mut self, hwirq: u64) {
+        self.mapped.remove(hwirq);
+        self.revmap_size = self.mapped.len() as u32;
+    }
     #[inline(always)]
-    pub fn resolve(&self, hwirq: u64) -> Option<u32> { self.mapped.get(hwirq) }
+    pub fn resolve(&self, hwirq: u64) -> Option<u32> {
+        self.mapped.get(hwirq)
+    }
 }
 
 /// Per-CPU IRQ stats
@@ -153,7 +205,15 @@ pub struct CpuIrqStats {
 
 impl CpuIrqStats {
     pub fn new(cpu: u32) -> Self {
-        Self { cpu_id: cpu, total_irqs: 0, total_softirqs: 0, nmi_count: 0, ipi_count: 0, timer_count: 0, per_irq: ArrayMap::new(0) }
+        Self {
+            cpu_id: cpu,
+            total_irqs: 0,
+            total_softirqs: 0,
+            nmi_count: 0,
+            ipi_count: 0,
+            timer_count: 0,
+            per_irq: ArrayMap::new(0),
+        }
     }
 
     #[inline(always)]
@@ -188,51 +248,88 @@ pub struct BridgeIrqBridge {
 
 impl BridgeIrqBridge {
     pub fn new() -> Self {
-        Self { descs: BTreeMap::new(), domains: BTreeMap::new(), cpu_stats: BTreeMap::new(), stats: IrqBridgeStats::default(), next_domain: 1, next_virq: 32 }
+        Self {
+            descs: BTreeMap::new(),
+            domains: BTreeMap::new(),
+            cpu_stats: BTreeMap::new(),
+            stats: IrqBridgeStats::default(),
+            next_domain: 1,
+            next_virq: 32,
+        }
     }
 
     #[inline]
     pub fn create_domain(&mut self, name: String, hwirq_max: u64) -> u64 {
-        let id = self.next_domain; self.next_domain += 1;
+        let id = self.next_domain;
+        self.next_domain += 1;
         self.domains.insert(id, IrqDomain::new(id, name, hwirq_max));
         id
     }
 
     #[inline]
     pub fn alloc_irq(&mut self, hwirq: u64, name: String, itype: IrqType, domain: u64) -> u32 {
-        let virq = self.next_virq; self.next_virq += 1;
+        let virq = self.next_virq;
+        self.next_virq += 1;
         let mut desc = IrqDesc::new(virq, hwirq, name, itype);
         desc.domain_id = domain;
         self.descs.insert(virq, desc);
-        if let Some(d) = self.domains.get_mut(&domain) { d.map(hwirq, virq); }
+        if let Some(d) = self.domains.get_mut(&domain) {
+            d.map(hwirq, virq);
+        }
         virq
     }
 
     #[inline]
     pub fn free_irq(&mut self, virq: u32) {
         if let Some(desc) = self.descs.remove(&virq) {
-            if let Some(d) = self.domains.get_mut(&desc.domain_id) { d.unmap(desc.hwirq); }
+            if let Some(d) = self.domains.get_mut(&desc.domain_id) {
+                d.unmap(desc.hwirq);
+            }
         }
     }
 
     #[inline]
     pub fn handle_irq(&mut self, virq: u32, cpu: u32) -> IrqReturn {
         if let Some(desc) = self.descs.get_mut(&virq) {
-            if desc.is_disabled() { return IrqReturn::None; }
+            if desc.is_disabled() {
+                return IrqReturn::None;
+            }
             desc.handle();
-            if let Some(cs) = self.cpu_stats.get_mut(&cpu) { cs.record(virq); }
-            if desc.thread_count > 0 { IrqReturn::WakeThread } else { IrqReturn::Handled }
-        } else { IrqReturn::None }
+            if let Some(cs) = self.cpu_stats.get_mut(&cpu) {
+                cs.record(virq);
+            }
+            if desc.thread_count > 0 {
+                IrqReturn::WakeThread
+            } else {
+                IrqReturn::Handled
+            }
+        } else {
+            IrqReturn::None
+        }
     }
 
     #[inline(always)]
-    pub fn set_affinity(&mut self, virq: u32, mask: u64) { if let Some(d) = self.descs.get_mut(&virq) { d.set_affinity(mask); } }
+    pub fn set_affinity(&mut self, virq: u32, mask: u64) {
+        if let Some(d) = self.descs.get_mut(&virq) {
+            d.set_affinity(mask);
+        }
+    }
     #[inline(always)]
-    pub fn enable(&mut self, virq: u32) { if let Some(d) = self.descs.get_mut(&virq) { d.enable(); } }
+    pub fn enable(&mut self, virq: u32) {
+        if let Some(d) = self.descs.get_mut(&virq) {
+            d.enable();
+        }
+    }
     #[inline(always)]
-    pub fn disable(&mut self, virq: u32) { if let Some(d) = self.descs.get_mut(&virq) { d.disable(); } }
+    pub fn disable(&mut self, virq: u32) {
+        if let Some(d) = self.descs.get_mut(&virq) {
+            d.disable();
+        }
+    }
     #[inline(always)]
-    pub fn add_cpu(&mut self, cpu: u32) { self.cpu_stats.insert(cpu, CpuIrqStats::new(cpu)); }
+    pub fn add_cpu(&mut self, cpu: u32) {
+        self.cpu_stats.insert(cpu, CpuIrqStats::new(cpu));
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
@@ -241,13 +338,23 @@ impl BridgeIrqBridge {
         self.stats.total_handled = self.descs.values().map(|d| d.handler_count).sum();
         self.stats.total_spurious = self.descs.values().map(|d| d.spurious_count).sum();
         self.stats.disabled_count = self.descs.values().filter(|d| d.is_disabled()).count();
-        self.stats.msi_count = self.descs.values().filter(|d| d.irq_type == IrqType::Msi || d.irq_type == IrqType::MsiX).count();
+        self.stats.msi_count = self
+            .descs
+            .values()
+            .filter(|d| d.irq_type == IrqType::Msi || d.irq_type == IrqType::MsiX)
+            .count();
     }
 
     #[inline(always)]
-    pub fn desc(&self, virq: u32) -> Option<&IrqDesc> { self.descs.get(&virq) }
+    pub fn desc(&self, virq: u32) -> Option<&IrqDesc> {
+        self.descs.get(&virq)
+    }
     #[inline(always)]
-    pub fn domain(&self, id: u64) -> Option<&IrqDomain> { self.domains.get(&id) }
+    pub fn domain(&self, id: u64) -> Option<&IrqDomain> {
+        self.domains.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &IrqBridgeStats { &self.stats }
+    pub fn stats(&self) -> &IrqBridgeStats {
+        &self.stats
+    }
 }

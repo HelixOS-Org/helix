@@ -131,7 +131,9 @@ impl CoopJournalManager {
     }
 
     pub fn checkpoint(&mut self) -> usize {
-        let committed: Vec<u64> = self.transactions.iter()
+        let committed: Vec<u64> = self
+            .transactions
+            .iter()
             .filter(|(_, tx)| tx.state == CoopJournalTxState::Committed)
             .map(|(&id, _)| id)
             .collect();

@@ -11,10 +11,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -198,24 +199,12 @@ impl GateChecker {
     }
 
     fn all_passed(&self, discovery_id: u64) -> bool {
-        self.regression_results
-            .get(discovery_id)
-            
-            .unwrap_or(false)
-            && self
-                .safety_results
-                .get(discovery_id)
-                
-                .unwrap_or(false)
-            && self
-                .significance_results
-                .get(discovery_id)
-                
-                .unwrap_or(false)
+        self.regression_results.get(discovery_id).unwrap_or(false)
+            && self.safety_results.get(discovery_id).unwrap_or(false)
+            && self.significance_results.get(discovery_id).unwrap_or(false)
             && self
                 .reproducibility_results
                 .get(discovery_id)
-                
                 .unwrap_or(false)
     }
 }
@@ -431,7 +420,6 @@ impl BridgeDiscoveryValidator {
                 .gate_checker
                 .safety_results
                 .get(discovery_id)
-                
                 .unwrap_or(false);
         // If no safety checks were run, run with empty (auto-pass)
         let safety_passed = if self
@@ -533,25 +521,21 @@ impl BridgeDiscoveryValidator {
                 .gate_checker
                 .regression_results
                 .get(discovery_id)
-                
                 .unwrap_or(false),
             safety_passed: self
                 .gate_checker
                 .safety_results
                 .get(discovery_id)
-                
                 .unwrap_or(false),
             significance_passed: self
                 .gate_checker
                 .significance_results
                 .get(discovery_id)
-                
                 .unwrap_or(false),
             reproducibility_passed: self
                 .gate_checker
                 .reproducibility_results
                 .get(discovery_id)
-                
                 .unwrap_or(false),
             observed_improvement: avg_improvement,
             reproducibility_rate: repro_rate,

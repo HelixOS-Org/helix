@@ -92,7 +92,10 @@ impl SyscallClassifier {
     /// Classify syscall
     #[inline(always)]
     pub fn classify(&self, syscall_nr: u32) -> SyscallSchedClass {
-        self.classifications.get(&syscall_nr).copied().unwrap_or(self.default_class)
+        self.classifications
+            .get(&syscall_nr)
+            .copied()
+            .unwrap_or(self.default_class)
     }
 
     /// Get scheduling hint
@@ -137,7 +140,14 @@ pub struct BlockedSyscall {
 }
 
 impl BlockedSyscall {
-    pub fn new(pid: u64, tid: u64, syscall_nr: u32, class: SyscallSchedClass, priority: u8, now: u64) -> Self {
+    pub fn new(
+        pid: u64,
+        tid: u64,
+        syscall_nr: u32,
+        class: SyscallSchedClass,
+        priority: u8,
+        now: u64,
+    ) -> Self {
         Self {
             pid,
             tid,
@@ -219,7 +229,11 @@ impl ClassLatencyTracker {
     /// Average
     #[inline(always)]
     pub fn avg_ns(&self) -> u64 {
-        if self.count == 0 { 0 } else { self.total_ns / self.count }
+        if self.count == 0 {
+            0
+        } else {
+            self.total_ns / self.count
+        }
     }
 }
 
@@ -341,7 +355,8 @@ impl BridgeSchedBridge {
         if let Some(entry) = self.blocked.remove(&key) {
             let latency = entry.block_duration(now);
             let class_key = entry.class as u8;
-            self.latencies.entry(class_key)
+            self.latencies
+                .entry(class_key)
                 .or_insert_with(ClassLatencyTracker::new)
                 .record(latency);
         }
@@ -350,7 +365,13 @@ impl BridgeSchedBridge {
 
     /// Apply priority inheritance
     #[inline]
-    pub fn apply_pi(&mut self, blocked_pid: u64, blocked_tid: u64, waiter_pid: u64, waiter_priority: u8) {
+    pub fn apply_pi(
+        &mut self,
+        blocked_pid: u64,
+        blocked_tid: u64,
+        waiter_pid: u64,
+        waiter_priority: u8,
+    ) {
         let key = Self::block_key(blocked_pid, blocked_tid);
         if let Some(entry) = self.blocked.get_mut(&key) {
             entry.add_waiter(waiter_pid, waiter_priority);
@@ -362,11 +383,12 @@ impl BridgeSchedBridge {
     #[inline]
     pub fn enter_no_preempt(&mut self, pid: u64, tid: u64, syscall_nr: u32, now: u64) {
         let max_ns = match self.classifier.classify(syscall_nr) {
-            SyscallSchedClass::FastPath => 10_000, // 10us
+            SyscallSchedClass::FastPath => 10_000,      // 10us
             SyscallSchedClass::CpuIntensive => 100_000, // 100us
-            _ => 50_000, // 50us
+            _ => 50_000,                                // 50us
         };
-        self.regions.push(PreemptionRegion::new(pid, tid, syscall_nr, now, max_ns));
+        self.regions
+            .push(PreemptionRegion::new(pid, tid, syscall_nr, now, max_ns));
         self.stats.preempt_regions = self.regions.len();
     }
 
@@ -428,7 +450,15 @@ pub struct SchedV2Attr {
 
 impl SchedV2Attr {
     pub fn new(policy: SchedV2Policy) -> Self {
-        Self { policy, priority: 0, nice: 0, runtime_ns: 0, deadline_ns: 0, period_ns: 0, flags: 0 }
+        Self {
+            policy,
+            priority: 0,
+            nice: 0,
+            runtime_ns: 0,
+            deadline_ns: 0,
+            period_ns: 0,
+            flags: 0,
+        }
     }
 }
 
@@ -447,14 +477,25 @@ pub struct ProcessSchedV2 {
 
 impl ProcessSchedV2 {
     pub fn new(pid: u64, policy: SchedV2Policy) -> Self {
-        Self { pid, attr: SchedV2Attr::new(policy), vruntime: 0, total_runtime_ns: 0, nr_switches: 0, nr_migrations: 0, wait_time_ns: 0, last_cpu: 0 }
+        Self {
+            pid,
+            attr: SchedV2Attr::new(policy),
+            vruntime: 0,
+            total_runtime_ns: 0,
+            nr_switches: 0,
+            nr_migrations: 0,
+            wait_time_ns: 0,
+            last_cpu: 0,
+        }
     }
 
     #[inline]
     pub fn context_switch(&mut self, runtime_ns: u64, cpu: u32) {
         self.total_runtime_ns += runtime_ns;
         self.nr_switches += 1;
-        if self.last_cpu != cpu && self.nr_switches > 1 { self.nr_migrations += 1; }
+        if self.last_cpu != cpu && self.nr_switches > 1 {
+            self.nr_migrations += 1;
+        }
         self.last_cpu = cpu;
     }
 }
@@ -476,7 +517,11 @@ pub struct BridgeSchedV2 {
 }
 
 impl BridgeSchedV2 {
-    pub fn new() -> Self { Self { tasks: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            tasks: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn add_task(&mut self, pid: u64, policy: SchedV2Policy) {
@@ -485,16 +530,22 @@ impl BridgeSchedV2 {
 
     #[inline(always)]
     pub fn context_switch(&mut self, pid: u64, runtime: u64, cpu: u32) {
-        if let Some(t) = self.tasks.get_mut(&pid) { t.context_switch(runtime, cpu); }
+        if let Some(t) = self.tasks.get_mut(&pid) {
+            t.context_switch(runtime, cpu);
+        }
     }
 
     #[inline(always)]
     pub fn set_nice(&mut self, pid: u64, nice: i32) {
-        if let Some(t) = self.tasks.get_mut(&pid) { t.attr.nice = nice; }
+        if let Some(t) = self.tasks.get_mut(&pid) {
+            t.attr.nice = nice;
+        }
     }
 
     #[inline(always)]
-    pub fn remove_task(&mut self, pid: u64) { self.tasks.remove(&pid); }
+    pub fn remove_task(&mut self, pid: u64) {
+        self.tasks.remove(&pid);
+    }
 
     #[inline]
     pub fn stats(&self) -> SchedV2BridgeStats {
@@ -502,7 +553,12 @@ impl BridgeSchedV2 {
         let migrations: u64 = self.tasks.values().map(|t| t.nr_migrations).sum();
         let runtime: u64 = self.tasks.values().map(|t| t.total_runtime_ns).sum();
         let avg = if switches == 0 { 0 } else { runtime / switches };
-        SchedV2BridgeStats { total_tasks: self.tasks.len() as u32, total_switches: switches, total_migrations: migrations, avg_runtime_ns: avg }
+        SchedV2BridgeStats {
+            total_tasks: self.tasks.len() as u32,
+            total_switches: switches,
+            total_migrations: migrations,
+            avg_runtime_ns: avg,
+        }
     }
 }
 
@@ -541,7 +597,11 @@ pub struct SchedV3DeadlineParams {
 impl SchedV3DeadlineParams {
     #[inline(always)]
     pub fn utilization_pct(&self) -> u64 {
-        if self.period_ns == 0 { 0 } else { (self.runtime_ns * 100) / self.period_ns }
+        if self.period_ns == 0 {
+            0
+        } else {
+            (self.runtime_ns * 100) / self.period_ns
+        }
     }
 
     #[inline(always)]
@@ -562,12 +622,22 @@ pub struct SchedV3EevdfState {
 
 impl SchedV3EevdfState {
     pub fn new() -> Self {
-        Self { vruntime: 0, vdeadline: 0, slice_ns: 4_000_000, lag: 0, eligible: true }
+        Self {
+            vruntime: 0,
+            vdeadline: 0,
+            slice_ns: 4_000_000,
+            lag: 0,
+            eligible: true,
+        }
     }
 
     #[inline]
     pub fn update_vruntime(&mut self, delta_ns: u64, weight: u32) {
-        let weighted = if weight > 0 { (delta_ns * 1024) / weight as u64 } else { delta_ns };
+        let weighted = if weight > 0 {
+            (delta_ns * 1024) / weight as u64
+        } else {
+            delta_ns
+        };
         self.vruntime = self.vruntime.wrapping_add(weighted);
         self.vdeadline = self.vruntime.wrapping_add(self.slice_ns);
     }
@@ -593,7 +663,10 @@ pub struct SchedV3ExtOps {
 impl SchedV3ExtOps {
     pub fn new(name: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for &b in name { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for &b in name {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
             ops_name_hash: h,
             dispatch_count: 0,
@@ -607,8 +680,12 @@ impl SchedV3ExtOps {
 
     #[inline(always)]
     pub fn total_ops(&self) -> u64 {
-        self.dispatch_count + self.select_cpu_count + self.enqueue_count
-            + self.dequeue_count + self.running_count + self.stopping_count
+        self.dispatch_count
+            + self.select_cpu_count
+            + self.enqueue_count
+            + self.dequeue_count
+            + self.running_count
+            + self.stopping_count
     }
 }
 
@@ -640,11 +717,20 @@ impl SchedV3TaskState {
             _ => 1024,
         };
         Self {
-            pid, policy, priority: 0, nice: 0, weight,
-            util_clamp_min: 0, util_clamp_max: 1024, lat_nice: 0,
-            eevdf: SchedV3EevdfState::new(), dl_params: None,
-            cpu_affinity_mask: u64::MAX, total_runtime_ns: 0,
-            nr_switches: 0, nr_wakeups: 0,
+            pid,
+            policy,
+            priority: 0,
+            nice: 0,
+            weight,
+            util_clamp_min: 0,
+            util_clamp_max: 1024,
+            lat_nice: 0,
+            eevdf: SchedV3EevdfState::new(),
+            dl_params: None,
+            cpu_affinity_mask: u64::MAX,
+            total_runtime_ns: 0,
+            nr_switches: 0,
+            nr_wakeups: 0,
         }
     }
 
@@ -656,11 +742,17 @@ impl SchedV3TaskState {
     }
 
     #[inline(always)]
-    pub fn wakeup(&mut self) { self.nr_wakeups += 1; }
+    pub fn wakeup(&mut self) {
+        self.nr_wakeups += 1;
+    }
 
     #[inline(always)]
     pub fn avg_timeslice_ns(&self) -> u64 {
-        if self.nr_switches == 0 { 0 } else { self.total_runtime_ns / self.nr_switches }
+        if self.nr_switches == 0 {
+            0
+        } else {
+            self.total_runtime_ns / self.nr_switches
+        }
     }
 }
 
@@ -689,8 +781,12 @@ impl BridgeSchedV3 {
             tasks: BTreeMap::new(),
             ext_ops: None,
             stats: SchedV3BridgeStats {
-                total_tasks: 0, total_switches: 0, dl_tasks: 0,
-                rt_tasks: 0, ext_tasks: 0, total_migrations: 0,
+                total_tasks: 0,
+                total_switches: 0,
+                dl_tasks: 0,
+                rt_tasks: 0,
+                ext_tasks: 0,
+                total_migrations: 0,
                 total_wakeups: 0,
             },
         }
@@ -705,7 +801,7 @@ impl BridgeSchedV3 {
             SchedV3Policy::Deadline => self.stats.dl_tasks += 1,
             SchedV3Policy::Fifo | SchedV3Policy::RoundRobin => self.stats.rt_tasks += 1,
             SchedV3Policy::Ext => self.stats.ext_tasks += 1,
-            _ => {}
+            _ => {},
         }
     }
 

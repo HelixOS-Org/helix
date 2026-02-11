@@ -119,13 +119,18 @@ impl ReadaheadContext {
     #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
-        if total == 0 { 0.0 } else { self.hits as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.hits as f64 / total as f64
+        }
     }
 
     #[inline]
     pub fn waste_pct(&self) -> f64 {
-        if self.pages_fetched == 0 { 0.0 }
-        else {
+        if self.pages_fetched == 0 {
+            0.0
+        } else {
             let unused = self.pages_fetched.saturating_sub(self.pages_used);
             (unused as f64 / self.pages_fetched as f64) * 100.0
         }
@@ -170,7 +175,8 @@ impl BridgeReadahead {
     #[inline]
     pub fn get_or_create(&mut self, fd: i32) -> &mut ReadaheadContext {
         if !self.contexts.contains_key(&fd) {
-            self.contexts.insert(fd, ReadaheadContext::new(fd, self.default_max_window));
+            self.contexts
+                .insert(fd, ReadaheadContext::new(fd, self.default_max_window));
             self.stats.total_files += 1;
         }
         self.contexts.get_mut(&fd).unwrap()
@@ -194,6 +200,10 @@ impl BridgeReadahead {
     #[inline(always)]
     pub fn overall_hit_rate(&self) -> f64 {
         let total = self.stats.total_hits + self.stats.total_misses;
-        if total == 0 { 0.0 } else { self.stats.total_hits as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.stats.total_hits as f64 / total as f64
+        }
     }
 }

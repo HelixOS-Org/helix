@@ -11,10 +11,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-
 /// TTY type
 use alloc::string::String;
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TtyType {
     Console,
@@ -54,9 +53,17 @@ pub struct TermiosAttrs {
 impl Default for TermiosAttrs {
     fn default() -> Self {
         Self {
-            iflag: 0x2500, oflag: 0x0005, cflag: 0x00bf, lflag: 0x8a3b,
-            ispeed: 38400, ospeed: 38400, vmin: 1, vtime: 0,
-            echo: true, canonical: true, raw_mode: false,
+            iflag: 0x2500,
+            oflag: 0x0005,
+            cflag: 0x00bf,
+            lflag: 0x8a3b,
+            ispeed: 38400,
+            ospeed: 38400,
+            vmin: 1,
+            vtime: 0,
+            echo: true,
+            canonical: true,
+            raw_mode: false,
         }
     }
 }
@@ -82,7 +89,14 @@ pub struct WinSize {
 }
 
 impl Default for WinSize {
-    fn default() -> Self { Self { rows: 24, cols: 80, xpixel: 0, ypixel: 0 } }
+    fn default() -> Self {
+        Self {
+            rows: 24,
+            cols: 80,
+            xpixel: 0,
+            ypixel: 0,
+        }
+    }
 }
 
 /// TTY device
@@ -111,27 +125,54 @@ pub struct TtyDevice {
 impl TtyDevice {
     pub fn new(id: u32, ttype: TtyType) -> Self {
         Self {
-            tty_id: id, tty_type: ttype, major: 136, minor: id,
-            ldisc: LineDiscipline::N_TTY, attrs: TermiosAttrs::default(),
-            winsize: WinSize::default(), session_id: 0, fg_pgrp: 0,
-            master_fd: None, slave_fd: None, bytes_in: 0, bytes_out: 0,
-            read_count: 0, write_count: 0, ioctl_count: 0, open_count: 0,
+            tty_id: id,
+            tty_type: ttype,
+            major: 136,
+            minor: id,
+            ldisc: LineDiscipline::N_TTY,
+            attrs: TermiosAttrs::default(),
+            winsize: WinSize::default(),
+            session_id: 0,
+            fg_pgrp: 0,
+            master_fd: None,
+            slave_fd: None,
+            bytes_in: 0,
+            bytes_out: 0,
+            read_count: 0,
+            write_count: 0,
+            ioctl_count: 0,
+            open_count: 0,
             hung_up: false,
         }
     }
 
     #[inline(always)]
-    pub fn read(&mut self, bytes: u64) { self.bytes_in += bytes; self.read_count += 1; }
+    pub fn read(&mut self, bytes: u64) {
+        self.bytes_in += bytes;
+        self.read_count += 1;
+    }
     #[inline(always)]
-    pub fn write(&mut self, bytes: u64) { self.bytes_out += bytes; self.write_count += 1; }
+    pub fn write(&mut self, bytes: u64) {
+        self.bytes_out += bytes;
+        self.write_count += 1;
+    }
     #[inline(always)]
-    pub fn ioctl(&mut self) { self.ioctl_count += 1; }
+    pub fn ioctl(&mut self) {
+        self.ioctl_count += 1;
+    }
     #[inline(always)]
-    pub fn hangup(&mut self) { self.hung_up = true; }
+    pub fn hangup(&mut self) {
+        self.hung_up = true;
+    }
     #[inline(always)]
-    pub fn set_winsize(&mut self, ws: WinSize) { self.winsize = ws; }
+    pub fn set_winsize(&mut self, ws: WinSize) {
+        self.winsize = ws;
+    }
     #[inline(always)]
-    pub fn set_session(&mut self, sid: u64, pgrp: u64) { self.session_id = sid; self.fg_pgrp = pgrp; }
+    pub fn set_session(&mut self, sid: u64, pgrp: u64) {
+        self.session_id = sid;
+        self.fg_pgrp = pgrp;
+    }
 }
 
 /// PTY pair
@@ -146,7 +187,13 @@ pub struct PtyPair {
 
 impl PtyPair {
     pub fn new(master: u32, slave: u32, pts: u32, owner: u64, ts: u64) -> Self {
-        Self { master_id: master, slave_id: slave, pts_number: pts, created_ts: ts, owner_pid: owner }
+        Self {
+            master_id: master,
+            slave_id: slave,
+            pts_number: pts,
+            created_ts: ts,
+            owner_pid: owner,
+        }
     }
 }
 
@@ -176,7 +223,13 @@ pub struct BridgeTtyBridge {
 
 impl BridgeTtyBridge {
     pub fn new() -> Self {
-        Self { ttys: BTreeMap::new(), pty_pairs: Vec::new(), next_tty_id: 1, next_pts: 0, stats: TtyBridgeStats::default() }
+        Self {
+            ttys: BTreeMap::new(),
+            pty_pairs: Vec::new(),
+            next_tty_id: 1,
+            next_pts: 0,
+            stats: TtyBridgeStats::default(),
+        }
     }
 
     #[inline]
@@ -193,50 +246,69 @@ impl BridgeTtyBridge {
         let slave = self.create_tty(TtyType::PtySlave);
         let pts = self.next_pts;
         self.next_pts += 1;
-        self.pty_pairs.push(PtyPair::new(master, slave, pts, owner, ts));
+        self.pty_pairs
+            .push(PtyPair::new(master, slave, pts, owner, ts));
         (master, slave)
     }
 
     #[inline(always)]
     pub fn read(&mut self, tty_id: u32, bytes: u64) {
-        if let Some(t) = self.ttys.get_mut(&tty_id) { t.read(bytes); }
+        if let Some(t) = self.ttys.get_mut(&tty_id) {
+            t.read(bytes);
+        }
     }
 
     #[inline(always)]
     pub fn write(&mut self, tty_id: u32, bytes: u64) {
-        if let Some(t) = self.ttys.get_mut(&tty_id) { t.write(bytes); }
+        if let Some(t) = self.ttys.get_mut(&tty_id) {
+            t.write(bytes);
+        }
     }
 
     #[inline(always)]
     pub fn ioctl(&mut self, tty_id: u32) {
-        if let Some(t) = self.ttys.get_mut(&tty_id) { t.ioctl(); }
+        if let Some(t) = self.ttys.get_mut(&tty_id) {
+            t.ioctl();
+        }
     }
 
     #[inline(always)]
     pub fn set_attrs(&mut self, tty_id: u32, attrs: TermiosAttrs) {
-        if let Some(t) = self.ttys.get_mut(&tty_id) { t.attrs = attrs; }
+        if let Some(t) = self.ttys.get_mut(&tty_id) {
+            t.attrs = attrs;
+        }
     }
 
     #[inline(always)]
     pub fn set_raw(&mut self, tty_id: u32) {
-        if let Some(t) = self.ttys.get_mut(&tty_id) { t.attrs.set_raw(); }
+        if let Some(t) = self.ttys.get_mut(&tty_id) {
+            t.attrs.set_raw();
+        }
     }
 
     #[inline(always)]
     pub fn set_winsize(&mut self, tty_id: u32, ws: WinSize) {
-        if let Some(t) = self.ttys.get_mut(&tty_id) { t.set_winsize(ws); }
+        if let Some(t) = self.ttys.get_mut(&tty_id) {
+            t.set_winsize(ws);
+        }
     }
 
     #[inline(always)]
     pub fn hangup(&mut self, tty_id: u32) {
-        if let Some(t) = self.ttys.get_mut(&tty_id) { t.hangup(); }
+        if let Some(t) = self.ttys.get_mut(&tty_id) {
+            t.hangup();
+        }
     }
 
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_ttys = self.ttys.len();
         self.stats.pty_pairs = self.pty_pairs.len();
-        self.stats.consoles = self.ttys.values().filter(|t| t.tty_type == TtyType::Console).count();
+        self.stats.consoles = self
+            .ttys
+            .values()
+            .filter(|t| t.tty_type == TtyType::Console)
+            .count();
         self.stats.total_bytes_in = self.ttys.values().map(|t| t.bytes_in).sum();
         self.stats.total_bytes_out = self.ttys.values().map(|t| t.bytes_out).sum();
         self.stats.total_ioctls = self.ttys.values().map(|t| t.ioctl_count).sum();
@@ -245,9 +317,13 @@ impl BridgeTtyBridge {
     }
 
     #[inline(always)]
-    pub fn tty(&self, id: u32) -> Option<&TtyDevice> { self.ttys.get(&id) }
+    pub fn tty(&self, id: u32) -> Option<&TtyDevice> {
+        self.ttys.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &TtyBridgeStats { &self.stats }
+    pub fn stats(&self) -> &TtyBridgeStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -283,10 +359,10 @@ pub struct TtyV2Termios {
 impl TtyV2Termios {
     pub fn default_termios() -> Self {
         Self {
-            iflag: 0x0500,  // ICRNL | IXON
-            oflag: 0x0005,  // OPOST | ONLCR
-            cflag: 0x00BF,  // CS8 | CREAD | HUPCL
-            lflag: 0x8A3B,  // ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN
+            iflag: 0x0500, // ICRNL | IXON
+            oflag: 0x0005, // OPOST | ONLCR
+            cflag: 0x00BF, // CS8 | CREAD | HUPCL
+            lflag: 0x8A3B, // ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN
             ispeed: 38400,
             ospeed: 38400,
             echo: true,

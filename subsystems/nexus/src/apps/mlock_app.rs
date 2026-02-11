@@ -14,9 +14,13 @@ impl MlockFlags {
     pub const CURRENT: u32 = 1;
     pub const FUTURE: u32 = 2;
     pub const ONFAULT: u32 = 4;
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u32) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Locked region
@@ -30,9 +34,13 @@ pub struct LockedRegion {
 
 impl LockedRegion {
     #[inline(always)]
-    pub fn pages(&self) -> u64 { (self.length + 4095) / 4096 }
+    pub fn pages(&self) -> u64 {
+        (self.length + 4095) / 4096
+    }
     #[inline(always)]
-    pub fn overlaps(&self, start: u64, len: u64) -> bool { self.start < start + len && start < self.start + self.length }
+    pub fn overlaps(&self, start: u64, len: u64) -> bool {
+        self.start < start + len && start < self.start + self.length
+    }
 }
 
 /// Process mlock state
@@ -50,13 +58,29 @@ pub struct ProcessMlockState {
 
 impl ProcessMlockState {
     pub fn new(pid: u64, rlimit: u64) -> Self {
-        Self { pid, regions: Vec::new(), locked_bytes: 0, rlimit_memlock: rlimit, lock_count: 0, unlock_count: 0, lock_failures: 0 }
+        Self {
+            pid,
+            regions: Vec::new(),
+            locked_bytes: 0,
+            rlimit_memlock: rlimit,
+            lock_count: 0,
+            unlock_count: 0,
+            lock_failures: 0,
+        }
     }
 
     #[inline]
     pub fn mlock(&mut self, start: u64, length: u64, flags: MlockFlags, now: u64) -> bool {
-        if self.locked_bytes + length > self.rlimit_memlock { self.lock_failures += 1; return false; }
-        self.regions.push(LockedRegion { start, length, flags, locked_at: now });
+        if self.locked_bytes + length > self.rlimit_memlock {
+            self.lock_failures += 1;
+            return false;
+        }
+        self.regions.push(LockedRegion {
+            start,
+            length,
+            flags,
+            locked_at: now,
+        });
         self.locked_bytes += length;
         self.lock_count += 1;
         true
@@ -64,7 +88,11 @@ impl ProcessMlockState {
 
     #[inline]
     pub fn munlock(&mut self, start: u64, length: u64) {
-        if let Some(pos) = self.regions.iter().position(|r| r.start == start && r.length == length) {
+        if let Some(pos) = self
+            .regions
+            .iter()
+            .position(|r| r.start == start && r.length == length)
+        {
             self.locked_bytes -= self.regions[pos].length;
             self.regions.remove(pos);
             self.unlock_count += 1;
@@ -72,7 +100,13 @@ impl ProcessMlockState {
     }
 
     #[inline(always)]
-    pub fn utilization(&self) -> f64 { if self.rlimit_memlock == 0 { 0.0 } else { self.locked_bytes as f64 / self.rlimit_memlock as f64 } }
+    pub fn utilization(&self) -> f64 {
+        if self.rlimit_memlock == 0 {
+            0.0
+        } else {
+            self.locked_bytes as f64 / self.rlimit_memlock as f64
+        }
+    }
 }
 
 /// Stats
@@ -93,23 +127,54 @@ pub struct AppMlock {
 }
 
 impl AppMlock {
-    pub fn new() -> Self { Self { processes: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            processes: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn register(&mut self, pid: u64, rlimit: u64) { self.processes.insert(pid, ProcessMlockState::new(pid, rlimit)); }
+    pub fn register(&mut self, pid: u64, rlimit: u64) {
+        self.processes
+            .insert(pid, ProcessMlockState::new(pid, rlimit));
+    }
 
     #[inline(always)]
-    pub fn mlock(&mut self, pid: u64, start: u64, length: u64, flags: MlockFlags, now: u64) -> bool {
-        self.processes.get_mut(&pid).map_or(false, |p| p.mlock(start, length, flags, now))
+    pub fn mlock(
+        &mut self,
+        pid: u64,
+        start: u64,
+        length: u64,
+        flags: MlockFlags,
+        now: u64,
+    ) -> bool {
+        self.processes
+            .get_mut(&pid)
+            .map_or(false, |p| p.mlock(start, length, flags, now))
     }
 
     #[inline]
     pub fn stats(&self) -> MlockAppStats {
         let bytes: u64 = self.processes.values().map(|p| p.locked_bytes).sum();
-        let regions: u32 = self.processes.values().map(|p| p.regions.len() as u32).sum();
+        let regions: u32 = self
+            .processes
+            .values()
+            .map(|p| p.regions.len() as u32)
+            .sum();
         let locks: u64 = self.processes.values().map(|p| p.lock_count).sum();
         let unlocks: u64 = self.processes.values().map(|p| p.unlock_count).sum();
         let utils: Vec<f64> = self.processes.values().map(|p| p.utilization()).collect();
-        let avg = if utils.is_empty() { 0.0 } else { utils.iter().sum::<f64>() / utils.len() as f64 };
-        MlockAppStats { tracked_processes: self.processes.len() as u32, total_locked_bytes: bytes, total_locked_regions: regions, total_locks: locks, total_unlocks: unlocks, avg_utilization: avg }
+        let avg = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
+        MlockAppStats {
+            tracked_processes: self.processes.len() as u32,
+            total_locked_bytes: bytes,
+            total_locked_regions: regions,
+            total_locks: locks,
+            total_unlocks: unlocks,
+            avg_utilization: avg,
+        }
     }
 }

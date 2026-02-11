@@ -47,8 +47,13 @@ pub struct FutexWaiter {
 impl FutexWaiter {
     pub fn new(tid: u32, expected: u32, bitset: u32, now: u64) -> Self {
         Self {
-            tid, state: FutexWaitState::Blocked, expected_val: expected,
-            bitset, enqueue_time: now, wake_time: 0, is_pi: false,
+            tid,
+            state: FutexWaitState::Blocked,
+            expected_val: expected,
+            bitset,
+            enqueue_time: now,
+            wake_time: 0,
+            is_pi: false,
         }
     }
 
@@ -60,7 +65,11 @@ impl FutexWaiter {
 
     #[inline(always)]
     pub fn wait_time(&self) -> u64 {
-        if self.wake_time > 0 { self.wake_time - self.enqueue_time } else { 0 }
+        if self.wake_time > 0 {
+            self.wake_time - self.enqueue_time
+        } else {
+            0
+        }
     }
 }
 
@@ -78,8 +87,12 @@ pub struct FutexBucket {
 impl FutexBucket {
     pub fn new(address: u64) -> Self {
         Self {
-            address, waiters: Vec::new(), wake_count: 0,
-            wait_count: 0, requeue_count: 0, collision_count: 0,
+            address,
+            waiters: Vec::new(),
+            wake_count: 0,
+            wait_count: 0,
+            requeue_count: 0,
+            collision_count: 0,
         }
     }
 
@@ -92,7 +105,9 @@ impl FutexBucket {
     pub fn wake_n(&mut self, n: u32, bitset: u32, now: u64) -> u32 {
         let mut woken = 0u32;
         for w in &mut self.waiters {
-            if woken >= n { break; }
+            if woken >= n {
+                break;
+            }
             if w.state == FutexWaitState::Blocked && (w.bitset & bitset) != 0 {
                 w.wake(now);
                 woken += 1;
@@ -111,9 +126,13 @@ impl FutexBucket {
                 let mut moved = w;
                 moved.state = FutexWaitState::Requeued;
                 target.waiters.push(FutexWaiter {
-                    tid: moved.tid, state: FutexWaitState::Blocked,
-                    expected_val: 0, bitset: moved.bitset,
-                    enqueue_time: now, wake_time: 0, is_pi: moved.is_pi,
+                    tid: moved.tid,
+                    state: FutexWaitState::Blocked,
+                    expected_val: 0,
+                    bitset: moved.bitset,
+                    enqueue_time: now,
+                    wake_time: 0,
+                    is_pi: moved.is_pi,
                 });
                 requeued += 1;
             } else {
@@ -139,7 +158,9 @@ impl FutexBucket {
     }
 
     #[inline(always)]
-    pub fn waiter_count(&self) -> usize { self.waiters.len() }
+    pub fn waiter_count(&self) -> usize {
+        self.waiters.len()
+    }
 }
 
 /// Futex manager stats
@@ -169,8 +190,13 @@ pub struct CoopFutexMgr {
 impl CoopFutexMgr {
     pub fn new() -> Self {
         Self {
-            buckets: BTreeMap::new(), total_waits: 0, total_wakes: 0,
-            total_requeues: 0, total_timeouts: 0, peak_waiters: 0, current_waiters: 0,
+            buckets: BTreeMap::new(),
+            total_waits: 0,
+            total_wakes: 0,
+            total_requeues: 0,
+            total_timeouts: 0,
+            peak_waiters: 0,
+            current_waiters: 0,
         }
     }
 
@@ -187,11 +213,16 @@ impl CoopFutexMgr {
     #[inline]
     pub fn wait(&mut self, addr: u64, expected: u32, bitset: u32, tid: u32, now: u64) {
         let key = Self::hash_address(addr);
-        let bucket = self.buckets.entry(key).or_insert_with(|| FutexBucket::new(addr));
+        let bucket = self
+            .buckets
+            .entry(key)
+            .or_insert_with(|| FutexBucket::new(addr));
         bucket.add_waiter(FutexWaiter::new(tid, expected, bitset, now));
         self.total_waits += 1;
         self.current_waiters += 1;
-        if self.current_waiters > self.peak_waiters { self.peak_waiters = self.current_waiters; }
+        if self.current_waiters > self.peak_waiters {
+            self.peak_waiters = self.current_waiters;
+        }
     }
 
     #[inline]
@@ -202,20 +233,27 @@ impl CoopFutexMgr {
             self.total_wakes += woken as u64;
             self.current_waiters = self.current_waiters.saturating_sub(woken as u64);
             woken
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     pub fn requeue(&mut self, from_addr: u64, to_addr: u64, n: u32, now: u64) -> u32 {
         let from_key = Self::hash_address(from_addr);
         let to_key = Self::hash_address(to_addr);
-        if from_key == to_key { return 0; }
+        if from_key == to_key {
+            return 0;
+        }
 
         // Need to handle borrow checker with temp storage
         let mut from_bucket = match self.buckets.remove(&from_key) {
             Some(b) => b,
             None => return 0,
         };
-        let to_bucket = self.buckets.entry(to_key).or_insert_with(|| FutexBucket::new(to_addr));
+        let to_bucket = self
+            .buckets
+            .entry(to_key)
+            .or_insert_with(|| FutexBucket::new(to_addr));
         let requeued = from_bucket.requeue_to(to_bucket, n, now);
         self.total_requeues += requeued as u64;
         if !from_bucket.waiters.is_empty() {
@@ -238,7 +276,9 @@ impl CoopFutexMgr {
 
     #[inline]
     pub fn hottest_buckets(&self, n: usize) -> Vec<(u64, usize)> {
-        let mut v: Vec<_> = self.buckets.iter()
+        let mut v: Vec<_> = self
+            .buckets
+            .iter()
             .map(|(&k, b)| (k, b.waiter_count()))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));

@@ -41,24 +41,38 @@ pub struct MsiVector {
 impl MsiVector {
     pub fn new(index: u32, vector: u8, dest: u32) -> Self {
         Self {
-            index, vector, dest_apic: dest, delivery_mode: MsiDeliveryMode::Fixed,
-            masked: false, pending: false, trigger_count: 0, last_trigger: 0,
+            index,
+            vector,
+            dest_apic: dest,
+            delivery_mode: MsiDeliveryMode::Fixed,
+            masked: false,
+            pending: false,
+            trigger_count: 0,
+            last_trigger: 0,
         }
     }
 
     #[inline]
     pub fn trigger(&mut self, now: u64) {
-        if self.masked { self.pending = true; return; }
+        if self.masked {
+            self.pending = true;
+            return;
+        }
         self.trigger_count += 1;
         self.last_trigger = now;
     }
 
     #[inline(always)]
-    pub fn mask(&mut self) { self.masked = true; }
+    pub fn mask(&mut self) {
+        self.masked = true;
+    }
     #[inline(always)]
     pub fn unmask(&mut self, now: u64) {
         self.masked = false;
-        if self.pending { self.pending = false; self.trigger(now); }
+        if self.pending {
+            self.pending = false;
+            self.trigger(now);
+        }
     }
 }
 
@@ -75,25 +89,40 @@ pub struct MsiDevice {
 
 impl MsiDevice {
     pub fn new(bdf: u64, msi_type: MsiType, max_vectors: u32) -> Self {
-        Self { bdf, msi_type, vectors: Vec::new(), max_vectors, enabled: false, total_interrupts: 0 }
+        Self {
+            bdf,
+            msi_type,
+            vectors: Vec::new(),
+            max_vectors,
+            enabled: false,
+            total_interrupts: 0,
+        }
     }
 
     #[inline]
     pub fn allocate_vector(&mut self, vector: u8, dest: u32) -> Option<u32> {
-        if self.vectors.len() as u32 >= self.max_vectors { return None; }
+        if self.vectors.len() as u32 >= self.max_vectors {
+            return None;
+        }
         let idx = self.vectors.len() as u32;
         self.vectors.push(MsiVector::new(idx, vector, dest));
         Some(idx)
     }
 
     #[inline(always)]
-    pub fn enable(&mut self) { self.enabled = true; }
+    pub fn enable(&mut self) {
+        self.enabled = true;
+    }
     #[inline(always)]
-    pub fn disable(&mut self) { self.enabled = false; }
+    pub fn disable(&mut self) {
+        self.enabled = false;
+    }
 
     #[inline]
     pub fn trigger(&mut self, index: u32, now: u64) {
-        if !self.enabled { return; }
+        if !self.enabled {
+            return;
+        }
         if let Some(v) = self.vectors.get_mut(index as usize) {
             v.trigger(now);
             self.total_interrupts += 1;
@@ -112,12 +141,19 @@ pub struct MsiIrqDomain {
 
 impl MsiIrqDomain {
     pub fn new(id: u32, base: u8, count: u32) -> Self {
-        Self { id, base_vector: base, vector_count: count, allocated: 0 }
+        Self {
+            id,
+            base_vector: base,
+            vector_count: count,
+            allocated: 0,
+        }
     }
 
     #[inline]
     pub fn allocate(&mut self) -> Option<u8> {
-        if self.allocated >= self.vector_count { return None; }
+        if self.allocated >= self.vector_count {
+            return None;
+        }
         let v = self.base_vector.wrapping_add(self.allocated as u8);
         self.allocated += 1;
         Some(v)
@@ -145,12 +181,17 @@ pub struct HolisticMsiController {
 
 impl HolisticMsiController {
     pub fn new() -> Self {
-        Self { devices: BTreeMap::new(), irq_domains: BTreeMap::new(), next_domain: 0 }
+        Self {
+            devices: BTreeMap::new(),
+            irq_domains: BTreeMap::new(),
+            next_domain: 0,
+        }
     }
 
     #[inline(always)]
     pub fn register_device(&mut self, bdf: u64, msi_type: MsiType, max_vectors: u32) {
-        self.devices.insert(bdf, MsiDevice::new(bdf, msi_type, max_vectors));
+        self.devices
+            .insert(bdf, MsiDevice::new(bdf, msi_type, max_vectors));
     }
 
     #[inline(always)]
@@ -160,19 +201,24 @@ impl HolisticMsiController {
 
     #[inline(always)]
     pub fn enable_device(&mut self, bdf: u64) {
-        if let Some(d) = self.devices.get_mut(&bdf) { d.enable(); }
+        if let Some(d) = self.devices.get_mut(&bdf) {
+            d.enable();
+        }
     }
 
     #[inline(always)]
     pub fn trigger(&mut self, bdf: u64, index: u32, now: u64) {
-        if let Some(d) = self.devices.get_mut(&bdf) { d.trigger(index, now); }
+        if let Some(d) = self.devices.get_mut(&bdf) {
+            d.trigger(index, now);
+        }
     }
 
     #[inline]
     pub fn create_irq_domain(&mut self, base: u8, count: u32) -> u32 {
         let id = self.next_domain;
         self.next_domain += 1;
-        self.irq_domains.insert(id, MsiIrqDomain::new(id, base, count));
+        self.irq_domains
+            .insert(id, MsiIrqDomain::new(id, base, count));
         id
     }
 
@@ -180,12 +226,25 @@ impl HolisticMsiController {
     pub fn stats(&self) -> MsiControllerStats {
         let vectors: u32 = self.devices.values().map(|d| d.vectors.len() as u32).sum();
         let ints: u64 = self.devices.values().map(|d| d.total_interrupts).sum();
-        let masked: u32 = self.devices.values().flat_map(|d| &d.vectors).filter(|v| v.masked).count() as u32;
-        let pending: u32 = self.devices.values().flat_map(|d| &d.vectors).filter(|v| v.pending).count() as u32;
+        let masked: u32 = self
+            .devices
+            .values()
+            .flat_map(|d| &d.vectors)
+            .filter(|v| v.masked)
+            .count() as u32;
+        let pending: u32 = self
+            .devices
+            .values()
+            .flat_map(|d| &d.vectors)
+            .filter(|v| v.pending)
+            .count() as u32;
         MsiControllerStats {
-            total_devices: self.devices.len() as u32, total_vectors: vectors,
-            total_interrupts: ints, masked_vectors: masked,
-            pending_vectors: pending, irq_domains: self.irq_domains.len() as u32,
+            total_devices: self.devices.len() as u32,
+            total_vectors: vectors,
+            total_interrupts: ints,
+            masked_vectors: masked,
+            pending_vectors: pending,
+            irq_domains: self.irq_domains.len() as u32,
         }
     }
 }

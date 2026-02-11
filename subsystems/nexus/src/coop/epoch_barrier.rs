@@ -50,7 +50,13 @@ pub struct DeferredDrop {
 
 impl DeferredDrop {
     pub fn new(id: u64, epoch: Epoch, size: usize, owner: u64) -> Self {
-        Self { id, epoch, size_bytes: size, owner, enqueue_ns: 0 }
+        Self {
+            id,
+            epoch,
+            size_bytes: size,
+            owner,
+            enqueue_ns: 0,
+        }
     }
 }
 
@@ -224,7 +230,9 @@ impl CoopEpochBarrier {
 
     pub fn try_advance(&mut self) -> bool {
         // Check if all threads have observed the current epoch
-        let min_epoch = self.threads.values()
+        let min_epoch = self
+            .threads
+            .values()
             .filter(|t| t.state == EpochState::Pinned)
             .map(|t| t.local_epoch)
             .min();
@@ -236,14 +244,14 @@ impl CoopEpochBarrier {
                 self.stats.global_epoch = self.global_epoch.0;
                 self.stats.epoch_advances += 1;
                 true
-            }
+            },
             None => {
                 // No pinned threads, safe to advance
                 self.global_epoch = self.global_epoch.next();
                 self.stats.global_epoch = self.global_epoch.0;
                 self.stats.epoch_advances += 1;
                 true
-            }
+            },
             _ => false,
         }
     }
@@ -276,9 +284,11 @@ impl CoopEpochBarrier {
 
     #[inline]
     pub fn lagging_threads(&self) -> Vec<u64> {
-        self.threads.iter()
+        self.threads
+            .iter()
             .filter(|(_, t)| {
-                t.state == EpochState::Pinned && self.global_epoch.distance(t.local_epoch) > self.grace_epochs
+                t.state == EpochState::Pinned
+                    && self.global_epoch.distance(t.local_epoch) > self.grace_epochs
             })
             .map(|(&tid, _)| tid)
             .collect()
@@ -286,7 +296,9 @@ impl CoopEpochBarrier {
 
     #[inline]
     pub fn heaviest_threads(&self, top: usize) -> Vec<(u64, u64)> {
-        let mut v: Vec<(u64, u64)> = self.threads.iter()
+        let mut v: Vec<(u64, u64)> = self
+            .threads
+            .iter()
             .map(|(&tid, t)| (tid, t.pending_bytes()))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));

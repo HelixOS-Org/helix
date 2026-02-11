@@ -9,9 +9,9 @@
 
 extern crate alloc;
 
+use alloc::collections::{BTreeMap, VecDeque};
+
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 
 // ============================================================================
 // SCHEDULING TYPES

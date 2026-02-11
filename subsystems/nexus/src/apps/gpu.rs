@@ -10,8 +10,9 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // GPU RESOURCE
@@ -325,17 +326,14 @@ impl AppGpuAnalyzer {
             .or_insert_with(|| ProcessGpuProfile::new(pid));
         profile.record_alloc(device, size);
 
-        self.allocations.insert(
+        self.allocations.insert(id, GpuAllocation {
             id,
-            GpuAllocation {
-                id,
-                pid,
-                device,
-                size,
-                alloc_type,
-                timestamp: now,
-            },
-        );
+            pid,
+            device,
+            size,
+            alloc_type,
+            timestamp: now,
+        });
 
         self.update_stats();
         id

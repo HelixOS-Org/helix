@@ -39,7 +39,14 @@ pub struct DeviceWriteback {
 
 impl DeviceWriteback {
     pub fn new(dev_id: u64) -> Self {
-        Self { dev_id, state: HolisticWbState::Idle, dirty_pages: 0, writeback_pages: 0, pages_written: 0, bandwidth_bps: 0 }
+        Self {
+            dev_id,
+            state: HolisticWbState::Idle,
+            dirty_pages: 0,
+            writeback_pages: 0,
+            pages_written: 0,
+            bandwidth_bps: 0,
+        }
     }
 
     #[inline]
@@ -53,11 +60,15 @@ impl DeviceWriteback {
     pub fn complete_writeback(&mut self, pages: u64) {
         self.writeback_pages = self.writeback_pages.saturating_sub(pages);
         self.pages_written += pages;
-        if self.writeback_pages == 0 { self.state = HolisticWbState::Idle; }
+        if self.writeback_pages == 0 {
+            self.state = HolisticWbState::Idle;
+        }
     }
 
     #[inline(always)]
-    pub fn dirty(&mut self, pages: u64) { self.dirty_pages += pages; }
+    pub fn dirty(&mut self, pages: u64) {
+        self.dirty_pages += pages;
+    }
 }
 
 /// Holistic writeback stats
@@ -80,7 +91,16 @@ pub struct HolisticWriteback {
 
 impl HolisticWriteback {
     pub fn new() -> Self {
-        Self { devices: BTreeMap::new(), stats: HolisticWritebackStats { total_writebacks: 0, pages_written: 0, sync_triggered: 0, threshold_triggered: 0, congestion_events: 0 } }
+        Self {
+            devices: BTreeMap::new(),
+            stats: HolisticWritebackStats {
+                total_writebacks: 0,
+                pages_written: 0,
+                sync_triggered: 0,
+                threshold_triggered: 0,
+                congestion_events: 0,
+            },
+        }
     }
 
     #[inline]
@@ -90,9 +110,12 @@ impl HolisticWriteback {
         match reason {
             WritebackReason::Sync | WritebackReason::Fsync => self.stats.sync_triggered += 1,
             WritebackReason::DirtyThreshold => self.stats.threshold_triggered += 1,
-            _ => {}
+            _ => {},
         }
-        let dev = self.devices.entry(dev_id).or_insert_with(|| DeviceWriteback::new(dev_id));
+        let dev = self
+            .devices
+            .entry(dev_id)
+            .or_insert_with(|| DeviceWriteback::new(dev_id));
         dev.start_writeback(pages);
     }
 }
@@ -177,7 +200,9 @@ impl HolisticWritebackV2Manager {
 
     pub fn analyze(&mut self) -> &HolisticWritebackV2Health {
         self.stats.analyses += 1;
-        let pressure: Vec<&HolisticWritebackV2Sample> = self.samples.iter()
+        let pressure: Vec<&HolisticWritebackV2Sample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticWritebackV2Metric::PressureEvents))
             .collect();
         if !pressure.is_empty() {
@@ -187,7 +212,10 @@ impl HolisticWritebackV2Manager {
                 self.stats.pressure_alerts += 1;
             }
         }
-        self.health.overall = (self.health.dirty_ratio_health + self.health.writeback_throughput + (100 - self.health.pressure_score)) / 3;
+        self.health.overall = (self.health.dirty_ratio_health
+            + self.health.writeback_throughput
+            + (100 - self.health.pressure_score))
+            / 3;
         &self.health
     }
 

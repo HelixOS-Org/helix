@@ -41,19 +41,40 @@ pub struct FileLockRequest {
 }
 
 impl FileLockRequest {
-    pub fn new(lock_id: u64, inode: u64, pid: u32, lock_type: FileLockType, start: u64, end: u64) -> Self {
+    pub fn new(
+        lock_id: u64,
+        inode: u64,
+        pid: u32,
+        lock_type: FileLockType,
+        start: u64,
+        end: u64,
+    ) -> Self {
         Self {
-            lock_id, inode, pid, lock_type, state: FileLockState::Waiting,
-            start, end, blocking_lock: None, wait_ns: 0,
+            lock_id,
+            inode,
+            pid,
+            lock_type,
+            state: FileLockState::Waiting,
+            start,
+            end,
+            blocking_lock: None,
+            wait_ns: 0,
         }
     }
 
     #[inline(always)]
-    pub fn grant(&mut self) { self.state = FileLockState::Granted; }
+    pub fn grant(&mut self) {
+        self.state = FileLockState::Granted;
+    }
     #[inline(always)]
-    pub fn block(&mut self, blocker: u64) { self.state = FileLockState::Blocked; self.blocking_lock = Some(blocker); }
+    pub fn block(&mut self, blocker: u64) {
+        self.state = FileLockState::Blocked;
+        self.blocking_lock = Some(blocker);
+    }
     #[inline(always)]
-    pub fn release(&mut self) { self.state = FileLockState::Released; }
+    pub fn release(&mut self) {
+        self.state = FileLockState::Released;
+    }
 
     #[inline(always)]
     pub fn overlaps(&self, start: u64, end: u64) -> bool {
@@ -62,13 +83,20 @@ impl FileLockRequest {
 
     #[inline(always)]
     pub fn is_write(&self) -> bool {
-        matches!(self.lock_type, FileLockType::WriteLock | FileLockType::FlockExclusive)
+        matches!(
+            self.lock_type,
+            FileLockType::WriteLock | FileLockType::FlockExclusive
+        )
     }
 
     #[inline]
     pub fn is_compatible(&self, other: &Self) -> bool {
-        if self.inode != other.inode { return true; }
-        if !self.overlaps(other.start, other.end) { return true; }
+        if self.inode != other.inode {
+            return true;
+        }
+        if !self.overlaps(other.start, other.end) {
+            return true;
+        }
         !self.is_write() && !other.is_write()
     }
 }
@@ -83,12 +111,19 @@ pub struct DeadlockDetector {
 
 impl DeadlockDetector {
     pub fn new() -> Self {
-        Self { wait_graph: BTreeMap::new(), deadlocks_found: 0, checks: 0 }
+        Self {
+            wait_graph: BTreeMap::new(),
+            deadlocks_found: 0,
+            checks: 0,
+        }
     }
 
     #[inline(always)]
     pub fn add_edge(&mut self, waiter: u32, holder: u32) {
-        self.wait_graph.entry(waiter).or_insert_with(Vec::new).push(holder);
+        self.wait_graph
+            .entry(waiter)
+            .or_insert_with(Vec::new)
+            .push(holder);
     }
 
     #[inline(always)]
@@ -107,7 +142,9 @@ impl DeadlockDetector {
             }
             visited.push(node);
             if let Some(edges) = self.wait_graph.get(&node) {
-                for &next in edges { stack.push(next); }
+                for &next in edges {
+                    stack.push(next);
+                }
             }
         }
         false
@@ -138,7 +175,13 @@ impl HolisticFileLock {
         Self {
             locks: BTreeMap::new(),
             detector: DeadlockDetector::new(),
-            stats: HolisticFileLockStats { total_locks: 0, granted: 0, blocked: 0, deadlocks: 0, avg_wait_ns: 0 },
+            stats: HolisticFileLockStats {
+                total_locks: 0,
+                granted: 0,
+                blocked: 0,
+                deadlocks: 0,
+                avg_wait_ns: 0,
+            },
         }
     }
 

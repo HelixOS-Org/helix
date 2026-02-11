@@ -2,8 +2,9 @@
 //! NEXUS Coop — Exit (cooperative process exit/cleanup)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Cooperative exit phase
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,7 +77,11 @@ impl CoopExitManager {
         self.stats.total_exits += 1;
         self.stats.total_fds_released += fds as u64;
         self.stats.total_pages_freed += pages;
-        if forced { self.stats.forced_exits += 1; } else { self.stats.clean_exits += 1; }
+        if forced {
+            self.stats.forced_exits += 1;
+        } else {
+            self.stats.clean_exits += 1;
+        }
     }
 
     #[inline(always)]

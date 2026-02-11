@@ -56,11 +56,28 @@ impl OomCandidate {
     pub fn new(pid: u64, rss: u64, swap: u64, adj: i16, nice: i8, age: u64, cgroup: u64) -> Self {
         let mut score = rss + swap / 2;
         // Adjust by oom_adj (-1000 to 1000 range)
-        if adj > 0 { score = score.saturating_mul(adj as u64 + 1000) / 1000; }
-        else if adj < 0 { score = score.saturating_mul(1000u64.saturating_sub((-adj) as u64)) / 1000; }
+        if adj > 0 {
+            score = score.saturating_mul(adj as u64 + 1000) / 1000;
+        } else if adj < 0 {
+            score = score.saturating_mul(1000u64.saturating_sub((-adj) as u64)) / 1000;
+        }
         // Older processes slightly less likely to be killed
-        if age > 600_000_000_000 { score = score.saturating_mul(95) / 100; }
-        Self { pid, rss_pages: rss, swap_pages: swap, oom_adj: adj, nice, age_ns: age, cgroup_id: cgroup, oom_score: score, protected: adj <= -998, essential: false, ..Default::default() }
+        if age > 600_000_000_000 {
+            score = score.saturating_mul(95) / 100;
+        }
+        Self {
+            pid,
+            rss_pages: rss,
+            swap_pages: swap,
+            oom_adj: adj,
+            nice,
+            age_ns: age,
+            cgroup_id: cgroup,
+            oom_score: score,
+            protected: adj <= -998,
+            essential: false,
+            ..Default::default()
+        }
     }
 }
 
@@ -91,13 +108,24 @@ pub struct CgroupOomState {
 
 impl CgroupOomState {
     pub fn new(id: u64, limit: u64) -> Self {
-        Self { cgroup_id: id, limit_pages: limit, usage_pages: 0, oom_count: 0, last_oom_ts: 0, cooldown_ns: 5_000_000_000 }
+        Self {
+            cgroup_id: id,
+            limit_pages: limit,
+            usage_pages: 0,
+            oom_count: 0,
+            last_oom_ts: 0,
+            cooldown_ns: 5_000_000_000,
+        }
     }
 
     #[inline(always)]
-    pub fn is_over_limit(&self) -> bool { self.usage_pages > self.limit_pages }
+    pub fn is_over_limit(&self) -> bool {
+        self.usage_pages > self.limit_pages
+    }
     #[inline(always)]
-    pub fn in_cooldown(&self, now: u64) -> bool { now.saturating_sub(self.last_oom_ts) < self.cooldown_ns }
+    pub fn in_cooldown(&self, now: u64) -> bool {
+        now.saturating_sub(self.last_oom_ts) < self.cooldown_ns
+    }
 }
 
 /// OOM policy
@@ -140,57 +168,107 @@ pub struct HolisticOomKiller {
 impl HolisticOomKiller {
     pub fn new(policy: OomPolicy, min_free: u64, cooldown: u64) -> Self {
         Self {
-            candidates: BTreeMap::new(), cgroups: BTreeMap::new(),
-            history: Vec::new(), stats: OomStats::default(),
-            policy, min_free_pages: min_free, kill_cooldown_ns: cooldown,
+            candidates: BTreeMap::new(),
+            cgroups: BTreeMap::new(),
+            history: Vec::new(),
+            stats: OomStats::default(),
+            policy,
+            min_free_pages: min_free,
+            kill_cooldown_ns: cooldown,
             last_kill_ts: 0,
         }
     }
 
     #[inline(always)]
-    pub fn register(&mut self, c: OomCandidate) { self.candidates.insert(c.pid, c); }
+    pub fn register(&mut self, c: OomCandidate) {
+        self.candidates.insert(c.pid, c);
+    }
     #[inline(always)]
-    pub fn unregister(&mut self, pid: u64) { self.candidates.remove(&pid); }
+    pub fn unregister(&mut self, pid: u64) {
+        self.candidates.remove(&pid);
+    }
 
     #[inline(always)]
-    pub fn add_cgroup(&mut self, id: u64, limit: u64) { self.cgroups.insert(id, CgroupOomState::new(id, limit)); }
+    pub fn add_cgroup(&mut self, id: u64, limit: u64) {
+        self.cgroups.insert(id, CgroupOomState::new(id, limit));
+    }
     #[inline(always)]
-    pub fn update_cgroup_usage(&mut self, id: u64, usage: u64) { if let Some(c) = self.cgroups.get_mut(&id) { c.usage_pages = usage; } }
+    pub fn update_cgroup_usage(&mut self, id: u64, usage: u64) {
+        if let Some(c) = self.cgroups.get_mut(&id) {
+            c.usage_pages = usage;
+        }
+    }
 
     pub fn select_victim(&self, trigger: OomTrigger) -> Option<u64> {
-        let victims: Vec<&OomCandidate> = self.candidates.values()
+        let victims: Vec<&OomCandidate> = self
+            .candidates
+            .values()
             .filter(|c| !c.protected && !c.essential)
             .collect();
-        if victims.is_empty() { return None; }
+        if victims.is_empty() {
+            return None;
+        }
         match self.policy {
-            OomPolicy::KillLargest | OomPolicy::ReclaimFirst => victims.iter().max_by_key(|c| c.oom_score).map(|c| c.pid),
+            OomPolicy::KillLargest | OomPolicy::ReclaimFirst => {
+                victims.iter().max_by_key(|c| c.oom_score).map(|c| c.pid)
+            },
             OomPolicy::KillNewest => victims.iter().min_by_key(|c| c.age_ns).map(|c| c.pid),
-            OomPolicy::KillLowestPriority => victims.iter().max_by_key(|c| c.nice as i64 + 128).map(|c| c.pid),
+            OomPolicy::KillLowestPriority => victims
+                .iter()
+                .max_by_key(|c| c.nice as i64 + 128)
+                .map(|c| c.pid),
             OomPolicy::KillByCgroup | OomPolicy::CgroupLocal | OomPolicy::Memcg => {
                 if let OomTrigger::CgroupLimit = trigger {
-                    let over: Vec<u64> = self.cgroups.values().filter(|c| c.is_over_limit()).map(|c| c.cgroup_id).collect();
-                    victims.iter().filter(|c| over.contains(&c.cgroup_id)).max_by_key(|c| c.oom_score).map(|c| c.pid)
-                } else { victims.iter().max_by_key(|c| c.oom_score).map(|c| c.pid) }
-            }
+                    let over: Vec<u64> = self
+                        .cgroups
+                        .values()
+                        .filter(|c| c.is_over_limit())
+                        .map(|c| c.cgroup_id)
+                        .collect();
+                    victims
+                        .iter()
+                        .filter(|c| over.contains(&c.cgroup_id))
+                        .max_by_key(|c| c.oom_score)
+                        .map(|c| c.pid)
+                } else {
+                    victims.iter().max_by_key(|c| c.oom_score).map(|c| c.pid)
+                }
+            },
             OomPolicy::Global => victims.iter().max_by_key(|c| c.oom_score).map(|c| c.pid),
         }
     }
 
-    pub fn kill(&mut self, pid: u64, trigger: OomTrigger, stage: KillStage, ts: u64) -> Option<u64> {
-        if ts.saturating_sub(self.last_kill_ts) < self.kill_cooldown_ns { return None; }
+    pub fn kill(
+        &mut self,
+        pid: u64,
+        trigger: OomTrigger,
+        stage: KillStage,
+        ts: u64,
+    ) -> Option<u64> {
+        if ts.saturating_sub(self.last_kill_ts) < self.kill_cooldown_ns {
+            return None;
+        }
         let c = self.candidates.remove(&pid)?;
         let freed = c.rss_pages;
         self.history.push(OomKillRecord {
-            pid, score: c.oom_score, rss_freed: freed, trigger, stage, ts,
-            cgroup_id: c.cgroup_id, latency_ns: 0,
+            pid,
+            score: c.oom_score,
+            rss_freed: freed,
+            trigger,
+            stage,
+            ts,
+            cgroup_id: c.cgroup_id,
+            latency_ns: 0,
         });
         self.stats.total_kills += 1;
         self.stats.pages_freed += freed;
         self.last_kill_ts = ts;
         match trigger {
-            OomTrigger::GlobalPressure | OomTrigger::ZoneExhausted | OomTrigger::SwapFull => self.stats.triggers_global += 1,
+            OomTrigger::GlobalPressure | OomTrigger::ZoneExhausted | OomTrigger::SwapFull => {
+                self.stats.triggers_global += 1
+            },
             OomTrigger::CgroupLimit => self.stats.triggers_cgroup += 1,
-            _ => {}
+            _ => {},
         }
         if let Some(cg) = self.cgroups.get_mut(&c.cgroup_id) {
             cg.oom_count += 1;
@@ -209,9 +287,13 @@ impl HolisticOomKiller {
     #[inline]
     pub fn cgroup_oom(&mut self, cgroup_id: u64, ts: u64) -> Option<u64> {
         if let Some(cg) = self.cgroups.get(&cgroup_id) {
-            if cg.in_cooldown(ts) { return None; }
+            if cg.in_cooldown(ts) {
+                return None;
+            }
         }
-        let victim = self.candidates.values()
+        let victim = self
+            .candidates
+            .values()
             .filter(|c| c.cgroup_id == cgroup_id && !c.protected)
             .max_by_key(|c| c.oom_score)
             .map(|c| c.pid)?;
@@ -224,15 +306,22 @@ impl HolisticOomKiller {
             let total: u64 = self.history.iter().map(|r| r.latency_ns).sum();
             self.stats.avg_kill_latency_ns = total / self.history.len() as u64;
         }
-        self.stats.protected_saved = self.candidates.values().filter(|c| c.protected).count() as u64;
+        self.stats.protected_saved =
+            self.candidates.values().filter(|c| c.protected).count() as u64;
     }
 
     #[inline(always)]
-    pub fn candidate(&self, pid: u64) -> Option<&OomCandidate> { self.candidates.get(&pid) }
+    pub fn candidate(&self, pid: u64) -> Option<&OomCandidate> {
+        self.candidates.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &OomStats { &self.stats }
+    pub fn stats(&self) -> &OomStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn history(&self) -> &[OomKillRecord] { &self.history }
+    pub fn history(&self) -> &[OomKillRecord] {
+        &self.history
+    }
 }
 
 // ============================================================================
@@ -242,7 +331,9 @@ impl HolisticOomKiller {
 impl OomCandidate {
     #[inline]
     pub fn badness_score(&self) -> i64 {
-        if self.is_unkillable { return -1000; }
+        if self.is_unkillable {
+            return -1000;
+        }
         let points = self.rss_pages as i64 + self.swap_pages as i64;
         let adj = (points * self.oom_score_adj as i64) / 1000;
         (points + adj).max(1)
@@ -295,41 +386,95 @@ pub struct HolisticOomKillerV2 {
 
 impl HolisticOomKillerV2 {
     pub fn new() -> Self {
-        Self { kills: Vec::new(), candidates: BTreeMap::new(), policy: OomPolicy::Global, pressure: MemPressure::Low, next_id: 1, max_events: 4096 }
+        Self {
+            kills: Vec::new(),
+            candidates: BTreeMap::new(),
+            policy: OomPolicy::Global,
+            pressure: MemPressure::Low,
+            next_id: 1,
+            max_events: 4096,
+        }
     }
 
     #[inline(always)]
-    pub fn register_process(&mut self, candidate: OomCandidate) { self.candidates.insert(candidate.pid, candidate); }
+    pub fn register_process(&mut self, candidate: OomCandidate) {
+        self.candidates.insert(candidate.pid, candidate);
+    }
     #[inline(always)]
-    pub fn unregister(&mut self, pid: u64) { self.candidates.remove(&pid); }
+    pub fn unregister(&mut self, pid: u64) {
+        self.candidates.remove(&pid);
+    }
     #[inline(always)]
-    pub fn set_policy(&mut self, policy: OomPolicy) { self.policy = policy; }
+    pub fn set_policy(&mut self, policy: OomPolicy) {
+        self.policy = policy;
+    }
     #[inline(always)]
-    pub fn set_pressure(&mut self, pressure: MemPressure) { self.pressure = pressure; }
+    pub fn set_pressure(&mut self, pressure: MemPressure) {
+        self.pressure = pressure;
+    }
 
     #[inline(always)]
     pub fn select_victim(&self) -> Option<u64> {
-        self.candidates.values().filter(|c| !c.is_unkillable)
-            .max_by_key(|c| c.badness_score()).map(|c| c.pid)
+        self.candidates
+            .values()
+            .filter(|c| !c.is_unkillable)
+            .max_by_key(|c| c.badness_score())
+            .map(|c| c.pid)
     }
 
     #[inline]
     pub fn kill(&mut self, pid: u64, freed: u64, duration: u64, now: u64) {
-        let id = self.next_id; self.next_id += 1;
-        let score = self.candidates.get(&pid).map(|c| c.badness_score()).unwrap_or(0);
+        let id = self.next_id;
+        self.next_id += 1;
+        let score = self
+            .candidates
+            .get(&pid)
+            .map(|c| c.badness_score())
+            .unwrap_or(0);
         let cg = self.candidates.get(&pid).map(|c| c.cgroup_id).unwrap_or(0);
-        if self.kills.len() >= self.max_events { self.kills.drain(..self.max_events / 2); }
-        self.kills.push(OomKillEvent { id, victim_pid: pid, victim_score: score, freed_pages: freed, policy: self.policy, trigger_order: 0, timestamp: now, duration_ns: duration, cgroup_id: cg });
+        if self.kills.len() >= self.max_events {
+            self.kills.drain(..self.max_events / 2);
+        }
+        self.kills.push(OomKillEvent {
+            id,
+            victim_pid: pid,
+            victim_score: score,
+            freed_pages: freed,
+            policy: self.policy,
+            trigger_order: 0,
+            timestamp: now,
+            duration_ns: duration,
+            cgroup_id: cg,
+        });
         self.candidates.remove(&pid);
     }
 
     #[inline]
     pub fn stats(&self) -> OomKillerV2Stats {
         let freed: u64 = self.kills.iter().map(|k| k.freed_pages).sum();
-        let global = self.kills.iter().filter(|k| k.policy == OomPolicy::Global).count() as u64;
-        let cgroup = self.kills.iter().filter(|k| matches!(k.policy, OomPolicy::CgroupLocal | OomPolicy::Memcg)).count() as u64;
+        let global = self
+            .kills
+            .iter()
+            .filter(|k| k.policy == OomPolicy::Global)
+            .count() as u64;
+        let cgroup = self
+            .kills
+            .iter()
+            .filter(|k| matches!(k.policy, OomPolicy::CgroupLocal | OomPolicy::Memcg))
+            .count() as u64;
         let durs: Vec<u64> = self.kills.iter().map(|k| k.duration_ns).collect();
-        let avg = if durs.is_empty() { 0 } else { durs.iter().sum::<u64>() / durs.len() as u64 };
-        OomKillerV2Stats { total_kills: self.kills.len() as u64, total_freed_pages: freed, global_kills: global, cgroup_kills: cgroup, avg_response_ns: avg, current_pressure: self.pressure as u8 }
+        let avg = if durs.is_empty() {
+            0
+        } else {
+            durs.iter().sum::<u64>() / durs.len() as u64
+        };
+        OomKillerV2Stats {
+            total_kills: self.kills.len() as u64,
+            total_freed_pages: freed,
+            global_kills: global,
+            cgroup_kills: cgroup,
+            avg_response_ns: avg,
+            current_pressure: self.pressure as u8,
+        }
     }
 }

@@ -91,7 +91,9 @@ impl HolisticPageCacheAnalyzer {
 
     pub fn analyze(&mut self) -> &HolisticPageCacheHealth {
         self.stats.analyses += 1;
-        let hits: Vec<&HolisticPageCacheSample> = self.samples.iter()
+        let hits: Vec<&HolisticPageCacheSample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticPageCacheMetric::HitRate))
             .collect();
         if !hits.is_empty() {
@@ -101,7 +103,9 @@ impl HolisticPageCacheAnalyzer {
                 self.stats.resize_recommendations += 1;
             }
         }
-        let thrashing: Vec<&HolisticPageCacheSample> = self.samples.iter()
+        let thrashing: Vec<&HolisticPageCacheSample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticPageCacheMetric::ThrashingIndex))
             .collect();
         if !thrashing.is_empty() {
@@ -111,7 +115,8 @@ impl HolisticPageCacheAnalyzer {
                 self.stats.thrashing_alerts += 1;
             }
         }
-        self.health.overall = (self.health.hit_rate_score + (100 - self.health.thrashing_score)) / 2;
+        self.health.overall =
+            (self.health.hit_rate_score + (100 - self.health.thrashing_score)) / 2;
         &self.health
     }
 

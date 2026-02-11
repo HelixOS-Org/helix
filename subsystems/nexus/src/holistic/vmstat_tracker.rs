@@ -63,18 +63,35 @@ pub struct ZoneCounters {
 impl ZoneCounters {
     #[inline]
     pub fn total_pages(&self) -> u64 {
-        self.free_pages + self.active_anon + self.inactive_anon + self.active_file
-            + self.inactive_file + self.unevictable + self.dirty + self.writeback
-            + self.slab_reclaimable + self.slab_unreclaimable + self.page_tables
-            + self.kernel_stack + self.bounce + self.mapped + self.shmem
+        self.free_pages
+            + self.active_anon
+            + self.inactive_anon
+            + self.active_file
+            + self.inactive_file
+            + self.unevictable
+            + self.dirty
+            + self.writeback
+            + self.slab_reclaimable
+            + self.slab_unreclaimable
+            + self.page_tables
+            + self.kernel_stack
+            + self.bounce
+            + self.mapped
+            + self.shmem
     }
 
     #[inline(always)]
-    pub fn reclaimable(&self) -> u64 { self.inactive_file + self.inactive_anon + self.slab_reclaimable }
+    pub fn reclaimable(&self) -> u64 {
+        self.inactive_file + self.inactive_anon + self.slab_reclaimable
+    }
     #[inline(always)]
-    pub fn file_backed(&self) -> u64 { self.active_file + self.inactive_file }
+    pub fn file_backed(&self) -> u64 {
+        self.active_file + self.inactive_file
+    }
     #[inline(always)]
-    pub fn anon_pages(&self) -> u64 { self.active_anon + self.inactive_anon }
+    pub fn anon_pages(&self) -> u64 {
+        self.active_anon + self.inactive_anon
+    }
 }
 
 /// Zone descriptor with watermarks
@@ -93,20 +110,36 @@ impl ZoneDesc {
     pub fn new(zone: VmZone, node: u32, managed: u64) -> Self {
         let min = managed / 256;
         Self {
-            zone, node, counters: ZoneCounters::default(),
-            watermark_min: min, watermark_low: min * 2, watermark_high: min * 3,
+            zone,
+            node,
+            counters: ZoneCounters::default(),
+            watermark_min: min,
+            watermark_low: min * 2,
+            watermark_high: min * 3,
             managed_pages: managed,
         }
     }
 
     #[inline(always)]
-    pub fn is_below_min(&self) -> bool { self.counters.free_pages < self.watermark_min }
+    pub fn is_below_min(&self) -> bool {
+        self.counters.free_pages < self.watermark_min
+    }
     #[inline(always)]
-    pub fn is_below_low(&self) -> bool { self.counters.free_pages < self.watermark_low }
+    pub fn is_below_low(&self) -> bool {
+        self.counters.free_pages < self.watermark_low
+    }
     #[inline(always)]
-    pub fn is_below_high(&self) -> bool { self.counters.free_pages < self.watermark_high }
+    pub fn is_below_high(&self) -> bool {
+        self.counters.free_pages < self.watermark_high
+    }
     #[inline(always)]
-    pub fn pressure(&self) -> f64 { if self.managed_pages == 0 { 0.0 } else { 1.0 - (self.counters.free_pages as f64 / self.managed_pages as f64) } }
+    pub fn pressure(&self) -> f64 {
+        if self.managed_pages == 0 {
+            0.0
+        } else {
+            1.0 - (self.counters.free_pages as f64 / self.managed_pages as f64)
+        }
+    }
 }
 
 /// Swap stats
@@ -123,7 +156,13 @@ pub struct SwapCounters {
 
 impl SwapCounters {
     #[inline(always)]
-    pub fn usage(&self) -> f64 { if self.total_pages == 0 { 0.0 } else { self.used_pages as f64 / self.total_pages as f64 } }
+    pub fn usage(&self) -> f64 {
+        if self.total_pages == 0 {
+            0.0
+        } else {
+            self.used_pages as f64 / self.total_pages as f64
+        }
+    }
 }
 
 /// Page allocation rate sample
@@ -153,7 +192,13 @@ pub struct ReclaimCounters {
 
 impl ReclaimCounters {
     #[inline(always)]
-    pub fn reclaim_efficiency(&self) -> f64 { if self.pages_scanned == 0 { 0.0 } else { self.pages_reclaimed as f64 / self.pages_scanned as f64 } }
+    pub fn reclaim_efficiency(&self) -> f64 {
+        if self.pages_scanned == 0 {
+            0.0
+        } else {
+            self.pages_reclaimed as f64 / self.pages_scanned as f64
+        }
+    }
 }
 
 /// VMStat summary
@@ -185,23 +230,29 @@ pub struct HolisticVmstatTracker {
 impl HolisticVmstatTracker {
     pub fn new(max_history: usize) -> Self {
         Self {
-            zones: BTreeMap::new(), swap: SwapCounters::default(),
-            reclaim: ReclaimCounters::default(), rate_history: Vec::new(),
-            summary: VmStatSummary::default(), next_zone_key: 1,
+            zones: BTreeMap::new(),
+            swap: SwapCounters::default(),
+            reclaim: ReclaimCounters::default(),
+            rate_history: Vec::new(),
+            summary: VmStatSummary::default(),
+            next_zone_key: 1,
             max_history,
         }
     }
 
     #[inline]
     pub fn add_zone(&mut self, zone: VmZone, node: u32, managed: u64) -> u64 {
-        let key = self.next_zone_key; self.next_zone_key += 1;
+        let key = self.next_zone_key;
+        self.next_zone_key += 1;
         self.zones.insert(key, ZoneDesc::new(zone, node, managed));
         key
     }
 
     #[inline(always)]
     pub fn update_counters(&mut self, zone_key: u64, counters: ZoneCounters) {
-        if let Some(z) = self.zones.get_mut(&zone_key) { z.counters = counters; }
+        if let Some(z) = self.zones.get_mut(&zone_key) {
+            z.counters = counters;
+        }
     }
 
     #[inline]
@@ -222,19 +273,29 @@ impl HolisticVmstatTracker {
     }
 
     #[inline(always)]
-    pub fn record_kswapd_wake(&mut self) { self.reclaim.kswapd_wake += 1; }
+    pub fn record_kswapd_wake(&mut self) {
+        self.reclaim.kswapd_wake += 1;
+    }
     #[inline(always)]
-    pub fn record_direct_reclaim(&mut self) { self.reclaim.direct_reclaim += 1; }
+    pub fn record_direct_reclaim(&mut self) {
+        self.reclaim.direct_reclaim += 1;
+    }
 
     #[inline(always)]
     pub fn record_rate(&mut self, sample: VmRateSample) {
         self.rate_history.push(sample);
-        if self.rate_history.len() > self.max_history { self.rate_history.remove(0); }
+        if self.rate_history.len() > self.max_history {
+            self.rate_history.remove(0);
+        }
     }
 
     #[inline(always)]
     pub fn zones_under_pressure(&self) -> Vec<u64> {
-        self.zones.iter().filter(|(_, z)| z.is_below_low()).map(|(&k, _)| k).collect()
+        self.zones
+            .iter()
+            .filter(|(_, z)| z.is_below_low())
+            .map(|(&k, _)| k)
+            .collect()
     }
 
     pub fn recompute(&mut self) {
@@ -245,21 +306,41 @@ impl HolisticVmstatTracker {
         self.summary.anon_pages = self.zones.values().map(|z| z.counters.anon_pages()).sum();
         self.summary.dirty_pages = self.zones.values().map(|z| z.counters.dirty).sum();
         self.summary.writeback_pages = self.zones.values().map(|z| z.counters.writeback).sum();
-        self.summary.slab_pages = self.zones.values().map(|z| z.counters.slab_reclaimable + z.counters.slab_unreclaimable).sum();
-        self.summary.available_pages = self.summary.free_pages + self.zones.values().map(|z| z.counters.reclaimable()).sum::<u64>();
+        self.summary.slab_pages = self
+            .zones
+            .values()
+            .map(|z| z.counters.slab_reclaimable + z.counters.slab_unreclaimable)
+            .sum();
+        self.summary.available_pages = self.summary.free_pages
+            + self
+                .zones
+                .values()
+                .map(|z| z.counters.reclaimable())
+                .sum::<u64>();
         if !self.zones.is_empty() {
-            self.summary.pressure_avg = self.zones.values().map(|z| z.pressure()).sum::<f64>() / self.zones.len() as f64;
+            self.summary.pressure_avg =
+                self.zones.values().map(|z| z.pressure()).sum::<f64>() / self.zones.len() as f64;
         }
     }
 
     #[inline(always)]
-    pub fn zone(&self, key: u64) -> Option<&ZoneDesc> { self.zones.get(&key) }
+    pub fn zone(&self, key: u64) -> Option<&ZoneDesc> {
+        self.zones.get(&key)
+    }
     #[inline(always)]
-    pub fn swap(&self) -> &SwapCounters { &self.swap }
+    pub fn swap(&self) -> &SwapCounters {
+        &self.swap
+    }
     #[inline(always)]
-    pub fn reclaim(&self) -> &ReclaimCounters { &self.reclaim }
+    pub fn reclaim(&self) -> &ReclaimCounters {
+        &self.reclaim
+    }
     #[inline(always)]
-    pub fn summary(&self) -> &VmStatSummary { &self.summary }
+    pub fn summary(&self) -> &VmStatSummary {
+        &self.summary
+    }
     #[inline(always)]
-    pub fn rate_history(&self) -> &[VmRateSample] { &self.rate_history }
+    pub fn rate_history(&self) -> &[VmRateSample] {
+        &self.rate_history
+    }
 }

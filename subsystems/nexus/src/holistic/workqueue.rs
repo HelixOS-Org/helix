@@ -4,10 +4,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-
 /// Work item state
 use alloc::string::String;
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkItemState {
     Pending,
@@ -43,13 +42,27 @@ pub struct WorkItem {
 
 impl WorkItem {
     pub fn new(id: u64, handler: u64, prio: WqPriority, now: u64) -> Self {
-        Self { id, handler_hash: handler, state: WorkItemState::Pending, priority: prio, cpu_bound: None, submit_time: now, start_time: 0, complete_time: 0, delay_ns: 0 }
+        Self {
+            id,
+            handler_hash: handler,
+            state: WorkItemState::Pending,
+            priority: prio,
+            cpu_bound: None,
+            submit_time: now,
+            start_time: 0,
+            complete_time: 0,
+            delay_ns: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn latency_ns(&self) -> u64 { self.start_time.saturating_sub(self.submit_time) }
+    pub fn latency_ns(&self) -> u64 {
+        self.start_time.saturating_sub(self.submit_time)
+    }
     #[inline(always)]
-    pub fn exec_time_ns(&self) -> u64 { self.complete_time.saturating_sub(self.start_time) }
+    pub fn exec_time_ns(&self) -> u64 {
+        self.complete_time.saturating_sub(self.start_time)
+    }
 }
 
 /// Worker pool
@@ -66,20 +79,37 @@ pub struct WorkerPool {
 
 impl WorkerPool {
     pub fn new(id: u32, cpu: Option<u32>, workers: u32) -> Self {
-        Self { id, cpu, nr_workers: workers, nr_idle: workers, items: Vec::new(), total_executed: 0 }
+        Self {
+            id,
+            cpu,
+            nr_workers: workers,
+            nr_idle: workers,
+            items: Vec::new(),
+            total_executed: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn enqueue(&mut self, item: WorkItem) { self.items.push(item); }
+    pub fn enqueue(&mut self, item: WorkItem) {
+        self.items.push(item);
+    }
 
     #[inline]
     pub fn dequeue(&mut self, now: u64) -> Option<u64> {
-        if let Some(item) = self.items.iter_mut().find(|i| i.state == WorkItemState::Pending) {
+        if let Some(item) = self
+            .items
+            .iter_mut()
+            .find(|i| i.state == WorkItemState::Pending)
+        {
             item.state = WorkItemState::Running;
             item.start_time = now;
-            if self.nr_idle > 0 { self.nr_idle -= 1; }
+            if self.nr_idle > 0 {
+                self.nr_idle -= 1;
+            }
             Some(item.id)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -110,22 +140,58 @@ pub struct HolisticWorkqueue {
 }
 
 impl HolisticWorkqueue {
-    pub fn new() -> Self { Self { pools: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            pools: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn create_pool(&mut self, id: u32, cpu: Option<u32>, workers: u32) { self.pools.insert(id, WorkerPool::new(id, cpu, workers)); }
+    pub fn create_pool(&mut self, id: u32, cpu: Option<u32>, workers: u32) {
+        self.pools.insert(id, WorkerPool::new(id, cpu, workers));
+    }
 
     #[inline(always)]
-    pub fn enqueue(&mut self, pool_id: u32, item: WorkItem) { if let Some(p) = self.pools.get_mut(&pool_id) { p.enqueue(item); } }
+    pub fn enqueue(&mut self, pool_id: u32, item: WorkItem) {
+        if let Some(p) = self.pools.get_mut(&pool_id) {
+            p.enqueue(item);
+        }
+    }
 
     #[inline]
     pub fn stats(&self) -> WorkqueueStats {
-        let pending: u32 = self.pools.values().flat_map(|p| p.items.iter()).filter(|i| i.state == WorkItemState::Pending).count() as u32;
-        let running: u32 = self.pools.values().flat_map(|p| p.items.iter()).filter(|i| i.state == WorkItemState::Running).count() as u32;
+        let pending: u32 = self
+            .pools
+            .values()
+            .flat_map(|p| p.items.iter())
+            .filter(|i| i.state == WorkItemState::Pending)
+            .count() as u32;
+        let running: u32 = self
+            .pools
+            .values()
+            .flat_map(|p| p.items.iter())
+            .filter(|i| i.state == WorkItemState::Running)
+            .count() as u32;
         let executed: u64 = self.pools.values().map(|p| p.total_executed).sum();
-        let lats: Vec<u64> = self.pools.values().flat_map(|p| p.items.iter()).filter(|i| i.state == WorkItemState::Completed).map(|i| i.latency_ns()).collect();
-        let avg = if lats.is_empty() { 0 } else { lats.iter().sum::<u64>() / lats.len() as u64 };
-        WorkqueueStats { total_pools: self.pools.len() as u32, total_pending: pending, total_running: running, total_executed: executed, avg_latency_ns: avg }
+        let lats: Vec<u64> = self
+            .pools
+            .values()
+            .flat_map(|p| p.items.iter())
+            .filter(|i| i.state == WorkItemState::Completed)
+            .map(|i| i.latency_ns())
+            .collect();
+        let avg = if lats.is_empty() {
+            0
+        } else {
+            lats.iter().sum::<u64>() / lats.len() as u64
+        };
+        WorkqueueStats {
+            total_pools: self.pools.len() as u32,
+            total_pending: pending,
+            total_running: running,
+            total_executed: executed,
+            avg_latency_ns: avg,
+        }
     }
 }
 

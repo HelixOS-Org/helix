@@ -10,10 +10,16 @@
 extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use crate::fast::math::{F64Ext};
+
+use crate::fast::math::F64Ext;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum UnmapPattern { Bulk, Gradual, Random, ExitCleanup }
+pub enum UnmapPattern {
+    Bulk,
+    Gradual,
+    Random,
+    ExitCleanup,
+}
 
 #[derive(Debug, Clone)]
 pub struct UnmapEvent {
@@ -68,10 +74,17 @@ impl MunmapAppManager {
     }
 
     pub fn record_unmap(&mut self, app_id: u64, start: u64, size: u64, latency_ns: u64, now: u64) {
-        let event = UnmapEvent { start, size, timestamp: now, latency_ns };
+        let event = UnmapEvent {
+            start,
+            size,
+            timestamp: now,
+            latency_ns,
+        };
         let events = self.app_events.entry(app_id).or_insert_with(Vec::new);
         events.push(event);
-        if events.len() > self.max_events { events.remove(0); }
+        if events.len() > self.max_events {
+            events.remove(0);
+        }
 
         // Add to free ranges for potential recycling
         let ranges = self.free_ranges.entry(app_id).or_insert_with(Vec::new);
@@ -80,9 +93,8 @@ impl MunmapAppManager {
         self.stats.total_unmaps += 1;
         self.stats.total_bytes_unmapped += size;
         // EMA for latency
-        self.stats.avg_latency_ns = self.stats.avg_latency_ns
-            - (self.stats.avg_latency_ns / 8)
-            + (latency_ns / 8);
+        self.stats.avg_latency_ns =
+            self.stats.avg_latency_ns - (self.stats.avg_latency_ns / 8) + (latency_ns / 8);
     }
 
     /// Classify the unmap pattern for an app based on recent events
@@ -93,7 +105,9 @@ impl MunmapAppManager {
         };
 
         let recent = &events[events.len().saturating_sub(20)..];
-        if recent.len() < 3 { return UnmapPattern::Random; }
+        if recent.len() < 3 {
+            return UnmapPattern::Random;
+        }
 
         // Check for bulk: many unmaps in short time window
         let time_span = recent.last().unwrap().timestamp - recent.first().unwrap().timestamp;
@@ -105,10 +119,14 @@ impl MunmapAppManager {
         // Check for gradual: steady rate over time
         let sizes: Vec<u64> = recent.iter().map(|e| e.size).collect();
         let avg_size = sizes.iter().sum::<u64>() / sizes.len() as u64;
-        let variance: f64 = sizes.iter().map(|&s| {
-            let diff = s as f64 - avg_size as f64;
-            diff * diff
-        }).sum::<f64>() / sizes.len() as f64;
+        let variance: f64 = sizes
+            .iter()
+            .map(|&s| {
+                let diff = s as f64 - avg_size as f64;
+                diff * diff
+            })
+            .sum::<f64>()
+            / sizes.len() as f64;
 
         if variance < (avg_size as f64 * 0.5).powi(2) {
             return UnmapPattern::Gradual;
@@ -155,9 +173,14 @@ impl MunmapAppManager {
 
     #[inline(always)]
     pub fn leak_candidates(&self, app_id: u64) -> &[LeakCandidate] {
-        self.leak_candidates.get(&app_id).map(|v| v.as_slice()).unwrap_or(&[])
+        self.leak_candidates
+            .get(&app_id)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[])
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &MunmapAppStats { &self.stats }
+    pub fn stats(&self) -> &MunmapAppStats {
+        &self.stats
+    }
 }

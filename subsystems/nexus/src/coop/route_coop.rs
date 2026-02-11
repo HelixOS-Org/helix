@@ -45,25 +45,45 @@ pub struct CoopRouteEntry {
 impl CoopRouteEntry {
     pub fn new(prefix: &[u8], prefix_len: u8, protocol: CoopRouteProto) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in prefix { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in prefix {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            prefix_hash: h, prefix_len, protocol, scope: CoopRouteScope::Universe,
-            metric: 100, gateway_hash: 0, interface_idx: 0, ref_count: 1, use_count: 0,
+            prefix_hash: h,
+            prefix_len,
+            protocol,
+            scope: CoopRouteScope::Universe,
+            metric: 100,
+            gateway_hash: 0,
+            interface_idx: 0,
+            ref_count: 1,
+            use_count: 0,
         }
     }
 
     #[inline(always)]
     pub fn matches(&self, dest_hash: u64) -> bool {
-        let mask = if self.prefix_len >= 64 { u64::MAX } else { !((1u64 << (64 - self.prefix_len)) - 1) };
+        let mask = if self.prefix_len >= 64 {
+            u64::MAX
+        } else {
+            !((1u64 << (64 - self.prefix_len)) - 1)
+        };
         (dest_hash & mask) == (self.prefix_hash & mask)
     }
 
     #[inline(always)]
-    pub fn use_route(&mut self) { self.use_count += 1; }
+    pub fn use_route(&mut self) {
+        self.use_count += 1;
+    }
     #[inline(always)]
-    pub fn share(&mut self) { self.ref_count += 1; }
+    pub fn share(&mut self) {
+        self.ref_count += 1;
+    }
     #[inline(always)]
-    pub fn unshare(&mut self) { self.ref_count = self.ref_count.saturating_sub(1); }
+    pub fn unshare(&mut self) {
+        self.ref_count = self.ref_count.saturating_sub(1);
+    }
 }
 
 /// Shared route table
@@ -77,7 +97,12 @@ pub struct SharedRouteTable {
 
 impl SharedRouteTable {
     pub fn new(table_id: u32) -> Self {
-        Self { table_id, routes: Vec::new(), subscribers: Vec::new(), version: 0 }
+        Self {
+            table_id,
+            routes: Vec::new(),
+            subscribers: Vec::new(),
+            version: 0,
+        }
     }
 
     #[inline(always)]
@@ -98,7 +123,9 @@ impl SharedRouteTable {
         if let Some(idx) = best {
             self.routes[idx].use_route();
             Some(&self.routes[idx])
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -130,13 +157,19 @@ impl CoopRoute {
     pub fn new() -> Self {
         Self {
             tables: BTreeMap::new(),
-            stats: CoopRouteStats { total_tables: 0, total_routes: 0, total_lookups: 0, shared_tables: 0 },
+            stats: CoopRouteStats {
+                total_tables: 0,
+                total_routes: 0,
+                total_lookups: 0,
+                shared_tables: 0,
+            },
         }
     }
 
     #[inline(always)]
     pub fn create_table(&mut self, table_id: u32) {
-        self.tables.insert(table_id, SharedRouteTable::new(table_id));
+        self.tables
+            .insert(table_id, SharedRouteTable::new(table_id));
         self.stats.total_tables += 1;
     }
 
@@ -146,6 +179,8 @@ impl CoopRoute {
             table.add_route(route);
             self.stats.total_routes += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }

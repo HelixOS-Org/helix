@@ -20,13 +20,13 @@ use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DonationPriority {
     /// Idle
-    Idle = 0,
+    Idle     = 0,
     /// Low
-    Low = 1,
+    Low      = 1,
     /// Normal
-    Normal = 2,
+    Normal   = 2,
     /// High
-    High = 3,
+    High     = 3,
     /// Realtime
     Realtime = 4,
     /// Critical
@@ -296,14 +296,8 @@ impl CoopDonationManager {
         resource: u64,
         now: u64,
     ) -> Option<u64> {
-        let donor_priority = self
-            .states
-            .get(&donor)
-            .map(|s| s.effective_priority)?;
-        let recipient_priority = self
-            .states
-            .get(&recipient)
-            .map(|s| s.base_priority)?;
+        let donor_priority = self.states.get(&donor).map(|s| s.effective_priority)?;
+        let recipient_priority = self.states.get(&recipient).map(|s| s.base_priority)?;
 
         // Only donate if donor has higher priority
         if donor_priority <= recipient_priority {

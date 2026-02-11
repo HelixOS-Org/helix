@@ -129,7 +129,8 @@ impl NfRule {
             return None;
         }
         for m in &self.matches {
-            let field_val = packet_fields.iter()
+            let field_val = packet_fields
+                .iter()
                 .find(|(t, _)| *t == m.match_type)
                 .map(|(_, v)| *v)
                 .unwrap_or(0);
@@ -204,7 +205,14 @@ pub struct ConntrackEntry {
 }
 
 impl ConntrackEntry {
-    pub fn new(ct_id: u64, src_ip: u32, dst_ip: u32, src_port: u16, dst_port: u16, proto: u8) -> Self {
+    pub fn new(
+        ct_id: u64,
+        src_ip: u32,
+        dst_ip: u32,
+        src_port: u16,
+        dst_port: u16,
+        proto: u8,
+    ) -> Self {
         Self {
             ct_id,
             state: ConntrackState::New,
@@ -245,11 +253,24 @@ impl ConntrackEntry {
     #[inline]
     pub fn flow_hash(&self) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in self.src_ip.to_le_bytes() { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
-        for b in self.dst_ip.to_le_bytes() { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
-        for b in self.src_port.to_le_bytes() { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
-        for b in self.dst_port.to_le_bytes() { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
-        h ^= self.protocol as u64; h = h.wrapping_mul(0x100000001b3);
+        for b in self.src_ip.to_le_bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        for b in self.dst_ip.to_le_bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        for b in self.src_port.to_le_bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        for b in self.dst_port.to_le_bytes() {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        h ^= self.protocol as u64;
+        h = h.wrapping_mul(0x100000001b3);
         h
     }
 }
@@ -316,8 +337,15 @@ impl HolisticNetfilter {
         }
     }
 
-    pub fn process_hook(&mut self, hook: NfHook, fields: &[(NfMatchType, u64)], pkt_bytes: u64) -> NfVerdict {
-        let chain_ids: Vec<u32> = self.chains.iter()
+    pub fn process_hook(
+        &mut self,
+        hook: NfHook,
+        fields: &[(NfMatchType, u64)],
+        pkt_bytes: u64,
+    ) -> NfVerdict {
+        let chain_ids: Vec<u32> = self
+            .chains
+            .iter()
             .filter(|(_, c)| c.hook == hook)
             .map(|(&id, _)| id)
             .collect();
@@ -327,8 +355,8 @@ impl HolisticNetfilter {
                     NfVerdict::Drop => {
                         self.stats.packets_dropped += 1;
                         return NfVerdict::Drop;
-                    }
-                    NfVerdict::Accept => {}
+                    },
+                    NfVerdict::Accept => {},
                     other => return other,
                 }
             }

@@ -50,7 +50,12 @@ pub struct SocketOptionHistory {
 
 impl SocketOptionHistory {
     pub fn new(fd: u64) -> Self {
-        Self { fd, changes: Vec::new(), total_sets: 0, total_failures: 0 }
+        Self {
+            fd,
+            changes: Vec::new(),
+            total_sets: 0,
+            total_failures: 0,
+        }
     }
 
     #[inline]
@@ -59,18 +64,26 @@ impl SocketOptionHistory {
             SetoptResult::Success => self.total_sets += 1,
             _ => self.total_failures += 1,
         }
-        if self.changes.len() < 256 { self.changes.push(rec); }
+        if self.changes.len() < 256 {
+            self.changes.push(rec);
+        }
     }
 
     #[inline(always)]
     pub fn success_rate(&self) -> u64 {
         let total = self.total_sets + self.total_failures;
-        if total == 0 { 100 } else { (self.total_sets * 100) / total }
+        if total == 0 {
+            100
+        } else {
+            (self.total_sets * 100) / total
+        }
     }
 
     #[inline]
     pub fn last_value_for(&self, optname: u32) -> Option<i64> {
-        self.changes.iter().rev()
+        self.changes
+            .iter()
+            .rev()
             .find(|r| r.optname == optname && r.result == SetoptResult::Success)
             .map(|r| r.new_value)
     }
@@ -93,18 +106,26 @@ impl TcpTuningProfile {
     #[inline]
     pub fn default_profile() -> Self {
         Self {
-            nodelay: false, cork: false,
-            keepalive_secs: 7200, keepalive_intvl: 75,
-            keepalive_cnt: 9, max_seg: 536,
-            window_clamp: 0, congestion_hash: 0,
+            nodelay: false,
+            cork: false,
+            keepalive_secs: 7200,
+            keepalive_intvl: 75,
+            keepalive_cnt: 9,
+            max_seg: 536,
+            window_clamp: 0,
+            congestion_hash: 0,
             fastopen_qlen: 0,
         }
     }
 
     #[inline(always)]
-    pub fn is_low_latency(&self) -> bool { self.nodelay && !self.cork }
+    pub fn is_low_latency(&self) -> bool {
+        self.nodelay && !self.cork
+    }
     #[inline(always)]
-    pub fn is_throughput_optimized(&self) -> bool { !self.nodelay && self.cork }
+    pub fn is_throughput_optimized(&self) -> bool {
+        !self.nodelay && self.cork
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -127,7 +148,8 @@ impl AppSetsockopt {
             histories: BTreeMap::new(),
             tcp_profiles: BTreeMap::new(),
             stats: SetsockoptAppStats {
-                total_sets: 0, total_failures: 0,
+                total_sets: 0,
+                total_failures: 0,
                 per_category: BTreeMap::new(),
             },
         }
@@ -146,13 +168,16 @@ impl AppSetsockopt {
             _ => self.stats.total_failures += 1,
         }
         let fd = rec.fd;
-        self.histories.entry(fd)
+        self.histories
+            .entry(fd)
             .or_insert_with(|| SocketOptionHistory::new(fd))
             .record(rec);
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &SetsockoptAppStats { &self.stats }
+    pub fn stats(&self) -> &SetsockoptAppStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -160,7 +185,12 @@ impl AppSetsockopt {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SetOptV2Result { Success, InvalidOpt, PermDenied, InvalidValue }
+pub enum SetOptV2Result {
+    Success,
+    InvalidOpt,
+    PermDenied,
+    InvalidValue,
+}
 
 /// Setsockopt v2 request
 #[derive(Debug, Clone)]
@@ -172,20 +202,43 @@ pub struct SetsockoptV2Request {
 }
 
 impl SetsockoptV2Request {
-    pub fn new(fd: i32, level: u16, optname: u16, value: u64) -> Self { Self { fd, level, optname, value } }
+    pub fn new(fd: i32, level: u16, optname: u16, value: u64) -> Self {
+        Self {
+            fd,
+            level,
+            optname,
+            value,
+        }
+    }
 }
 
 /// Setsockopt v2 app stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct SetsockoptV2AppStats { pub total_sets: u64, pub successes: u64, pub failures: u64, pub buf_changes: u64 }
+pub struct SetsockoptV2AppStats {
+    pub total_sets: u64,
+    pub successes: u64,
+    pub failures: u64,
+    pub buf_changes: u64,
+}
 
 /// Main app setsockopt v2
 #[derive(Debug)]
-pub struct AppSetsockoptV2 { pub stats: SetsockoptV2AppStats }
+pub struct AppSetsockoptV2 {
+    pub stats: SetsockoptV2AppStats,
+}
 
 impl AppSetsockoptV2 {
-    pub fn new() -> Self { Self { stats: SetsockoptV2AppStats { total_sets: 0, successes: 0, failures: 0, buf_changes: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: SetsockoptV2AppStats {
+                total_sets: 0,
+                successes: 0,
+                failures: 0,
+                buf_changes: 0,
+            },
+        }
+    }
     #[inline]
     pub fn set_opt(&mut self, _req: &SetsockoptV2Request) -> SetOptV2Result {
         self.stats.total_sets += 1;

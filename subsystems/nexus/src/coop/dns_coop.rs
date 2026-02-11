@@ -46,29 +46,43 @@ impl SharedDnsEntry {
     pub fn new(name: &[u8], record_type: CoopDnsType, value: &[u8], ttl_sec: u32) -> Self {
         let hash = |data: &[u8]| -> u64 {
             let mut h: u64 = 0xcbf29ce484222325;
-            for b in data { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+            for b in data {
+                h ^= *b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
             h
         };
         Self {
-            name_hash: hash(name), record_type, value_hash: hash(value),
-            ttl_sec, inserted_ns: 0, state: CoopDnsCacheState::Fresh,
-            hit_count: 0, shared_by: Vec::new(),
+            name_hash: hash(name),
+            record_type,
+            value_hash: hash(value),
+            ttl_sec,
+            inserted_ns: 0,
+            state: CoopDnsCacheState::Fresh,
+            hit_count: 0,
+            shared_by: Vec::new(),
         }
     }
 
     #[inline]
     pub fn is_expired(&self, now_ns: u64) -> bool {
-        if self.state == CoopDnsCacheState::Pinned { return false; }
+        if self.state == CoopDnsCacheState::Pinned {
+            return false;
+        }
         let elapsed_sec = (now_ns.saturating_sub(self.inserted_ns)) / 1_000_000_000;
         elapsed_sec > self.ttl_sec as u64
     }
 
     #[inline(always)]
-    pub fn touch(&mut self) { self.hit_count += 1; }
+    pub fn touch(&mut self) {
+        self.hit_count += 1;
+    }
 
     #[inline(always)]
     pub fn share_with(&mut self, ns_id: u64) {
-        if !self.shared_by.contains(&ns_id) { self.shared_by.push(ns_id); }
+        if !self.shared_by.contains(&ns_id) {
+            self.shared_by.push(ns_id);
+        }
     }
 
     #[inline]
@@ -93,23 +107,40 @@ pub struct DnsQueryTracker {
 
 impl DnsQueryTracker {
     pub fn new() -> Self {
-        Self { total_queries: 0, cache_hits: 0, cache_misses: 0, upstream_queries: 0, failures: 0, avg_latency_ns: 0, total_latency_ns: 0 }
+        Self {
+            total_queries: 0,
+            cache_hits: 0,
+            cache_misses: 0,
+            upstream_queries: 0,
+            failures: 0,
+            avg_latency_ns: 0,
+            total_latency_ns: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn record_hit(&mut self) { self.total_queries += 1; self.cache_hits += 1; }
+    pub fn record_hit(&mut self) {
+        self.total_queries += 1;
+        self.cache_hits += 1;
+    }
     #[inline]
     pub fn record_miss(&mut self, latency_ns: u64) {
         self.total_queries += 1;
         self.cache_misses += 1;
         self.upstream_queries += 1;
         self.total_latency_ns += latency_ns;
-        if self.upstream_queries > 0 { self.avg_latency_ns = self.total_latency_ns / self.upstream_queries; }
+        if self.upstream_queries > 0 {
+            self.avg_latency_ns = self.total_latency_ns / self.upstream_queries;
+        }
     }
 
     #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
-        if self.total_queries == 0 { 0.0 } else { self.cache_hits as f64 / self.total_queries as f64 }
+        if self.total_queries == 0 {
+            0.0
+        } else {
+            self.cache_hits as f64 / self.total_queries as f64
+        }
     }
 }
 
@@ -137,7 +168,12 @@ impl CoopDns {
         Self {
             cache: BTreeMap::new(),
             tracker: DnsQueryTracker::new(),
-            stats: CoopDnsStats { total_entries: 0, shared_entries: 0, total_queries: 0, gc_runs: 0 },
+            stats: CoopDnsStats {
+                total_entries: 0,
+                shared_entries: 0,
+                total_queries: 0,
+                gc_runs: 0,
+            },
             max_entries,
         }
     }

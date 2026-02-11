@@ -42,11 +42,18 @@ pub struct AcceptedConnection {
 impl AcceptedConnection {
     pub fn new(listen_fd: u64, new_fd: u64, peer: &[u8], latency: u64, ts: u64) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for &b in peer { h ^= b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for &b in peer {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            listen_fd, new_fd, peer_addr_hash: h,
-            accept_latency_ns: latency, timestamp: ts,
-            nonblocking: false, cloexec: false,
+            listen_fd,
+            new_fd,
+            peer_addr_hash: h,
+            accept_latency_ns: latency,
+            timestamp: ts,
+            nonblocking: false,
+            cloexec: false,
         }
     }
 }
@@ -67,9 +74,13 @@ pub struct ListenerAcceptState {
 impl ListenerAcceptState {
     pub fn new(fd: u64, max_tracked: usize) -> Self {
         Self {
-            fd, total_accepted: 0, total_failed: 0,
-            total_latency_ns: 0, min_latency_ns: u64::MAX,
-            max_latency_ns: 0, connections: Vec::new(),
+            fd,
+            total_accepted: 0,
+            total_failed: 0,
+            total_latency_ns: 0,
+            min_latency_ns: u64::MAX,
+            max_latency_ns: 0,
+            connections: Vec::new(),
             max_tracked,
         }
     }
@@ -78,8 +89,12 @@ impl ListenerAcceptState {
     pub fn record_accept(&mut self, conn: AcceptedConnection) {
         let lat = conn.accept_latency_ns;
         self.total_latency_ns += lat;
-        if lat < self.min_latency_ns { self.min_latency_ns = lat; }
-        if lat > self.max_latency_ns { self.max_latency_ns = lat; }
+        if lat < self.min_latency_ns {
+            self.min_latency_ns = lat;
+        }
+        if lat > self.max_latency_ns {
+            self.max_latency_ns = lat;
+        }
         self.total_accepted += 1;
         if self.connections.len() < self.max_tracked {
             self.connections.push(conn);
@@ -88,13 +103,21 @@ impl ListenerAcceptState {
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.total_accepted == 0 { 0 } else { self.total_latency_ns / self.total_accepted }
+        if self.total_accepted == 0 {
+            0
+        } else {
+            self.total_latency_ns / self.total_accepted
+        }
     }
 
     #[inline(always)]
     pub fn success_rate(&self) -> u64 {
         let total = self.total_accepted + self.total_failed;
-        if total == 0 { 100 } else { (self.total_accepted * 100) / total }
+        if total == 0 {
+            100
+        } else {
+            (self.total_accepted * 100) / total
+        }
     }
 }
 
@@ -117,15 +140,18 @@ impl AppAccept {
         Self {
             listeners: BTreeMap::new(),
             stats: AcceptAppStats {
-                total_accepts: 0, total_failures: 0,
-                total_connections: 0, avg_latency_ns: 0,
+                total_accepts: 0,
+                total_failures: 0,
+                total_connections: 0,
+                avg_latency_ns: 0,
             },
         }
     }
 
     #[inline(always)]
     pub fn register_listener(&mut self, fd: u64, max_tracked: usize) {
-        self.listeners.insert(fd, ListenerAcceptState::new(fd, max_tracked));
+        self.listeners
+            .insert(fd, ListenerAcceptState::new(fd, max_tracked));
     }
 
     #[inline]
@@ -146,7 +172,9 @@ impl AppAccept {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &AcceptAppStats { &self.stats }
+    pub fn stats(&self) -> &AcceptAppStats {
+        &self.stats
+    }
 }
 
 // ============================================================================

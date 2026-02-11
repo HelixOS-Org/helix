@@ -59,7 +59,18 @@ pub struct ProgramVerification {
 
 impl ProgramVerification {
     pub fn new(id: u64, insns: u32) -> Self {
-        Self { prog_id: id, insn_count: insns, visited_insns: 0, max_stack_depth: 0, helper_calls: 0, map_accesses: 0, branches: 0, result: VerifyResult::Safe, complexity: 0, verify_time_ns: 0 }
+        Self {
+            prog_id: id,
+            insn_count: insns,
+            visited_insns: 0,
+            max_stack_depth: 0,
+            helper_calls: 0,
+            map_accesses: 0,
+            branches: 0,
+            result: VerifyResult::Safe,
+            complexity: 0,
+            verify_time_ns: 0,
+        }
     }
 }
 
@@ -86,7 +97,14 @@ pub struct HolisticEbpfVerifier {
 
 impl HolisticEbpfVerifier {
     pub fn new() -> Self {
-        Self { verifications: BTreeMap::new(), total_verified: 0, total_safe: 0, total_rejected: 0, complexity_sum: 0, insn_sum: 0 }
+        Self {
+            verifications: BTreeMap::new(),
+            total_verified: 0,
+            total_safe: 0,
+            total_rejected: 0,
+            complexity_sum: 0,
+            insn_sum: 0,
+        }
     }
 
     #[inline]
@@ -96,21 +114,42 @@ impl HolisticEbpfVerifier {
         self.total_verified += 1;
         self.complexity_sum += v.complexity;
         self.insn_sum += insn_count as u64;
-        if insn_count > 100000 { v.result = VerifyResult::InfiniteLoop; self.total_rejected += 1; }
-        else { v.result = VerifyResult::Safe; self.total_safe += 1; }
+        if insn_count > 100000 {
+            v.result = VerifyResult::InfiniteLoop;
+            self.total_rejected += 1;
+        } else {
+            v.result = VerifyResult::Safe;
+            self.total_safe += 1;
+        }
         self.verifications.insert(prog_id, v);
         prog_id
     }
 
     #[inline(always)]
     pub fn reject(&mut self, prog_id: u64, reason: VerifyResult) {
-        if let Some(v) = self.verifications.get_mut(&prog_id) { v.result = reason; }
+        if let Some(v) = self.verifications.get_mut(&prog_id) {
+            v.result = reason;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> EbpfVerifierStats {
-        let avg_c = if self.total_verified == 0 { 0.0 } else { self.complexity_sum as f64 / self.total_verified as f64 };
-        let avg_i = if self.total_verified == 0 { 0.0 } else { self.insn_sum as f64 / self.total_verified as f64 };
-        EbpfVerifierStats { total_verified: self.total_verified, safe_count: self.total_safe, rejected_count: self.total_rejected, avg_complexity: avg_c, avg_insn_count: avg_i }
+        let avg_c = if self.total_verified == 0 {
+            0.0
+        } else {
+            self.complexity_sum as f64 / self.total_verified as f64
+        };
+        let avg_i = if self.total_verified == 0 {
+            0.0
+        } else {
+            self.insn_sum as f64 / self.total_verified as f64
+        };
+        EbpfVerifierStats {
+            total_verified: self.total_verified,
+            safe_count: self.total_safe,
+            rejected_count: self.total_rejected,
+            avg_complexity: avg_c,
+            avg_insn_count: avg_i,
+        }
     }
 }

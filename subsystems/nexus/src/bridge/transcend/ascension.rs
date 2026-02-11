@@ -12,8 +12,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -313,8 +312,7 @@ impl BridgeAscension {
         }
         self.improvement_log.push(cycle);
 
-        self.improvement_ema =
-            EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
+        self.improvement_ema = EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
 
         // Check for level promotion
         self.check_promotion();
@@ -351,8 +349,7 @@ impl BridgeAscension {
         }
         self.improvement_log.push(cycle);
 
-        self.improvement_ema =
-            EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
+        self.improvement_ema = EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
 
         cid
     }
@@ -402,7 +399,11 @@ impl BridgeAscension {
 
         // Divine optimisation: guaranteed improvement via stochastic search
         let base_improvement = 0.05 + ((xorshift64(&mut self.rng_state) % 100) as f32) / 500.0;
-        let level_bonus = if self.level == AscensionLevel::Divine { 0.10 } else { 0.0 };
+        let level_bonus = if self.level == AscensionLevel::Divine {
+            0.10
+        } else {
+            0.0
+        };
         let improvement = base_improvement + level_bonus;
 
         let result = DivineOptimisation {
@@ -418,8 +419,7 @@ impl BridgeAscension {
         self.autonomous_improvements += 1;
         self.total_improvements += 1;
 
-        self.improvement_ema =
-            EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
+        self.improvement_ema = EMA_ALPHA * improvement + (1.0 - EMA_ALPHA) * self.improvement_ema;
 
         Some(result)
     }

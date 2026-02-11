@@ -209,7 +209,10 @@ impl PageTierInfo {
     #[inline(always)]
     pub fn should_demote(&self) -> bool {
         matches!(self.hotness(), PageHotness::Cold | PageHotness::Frozen)
-            && matches!(self.current_tier, MemoryTier::LocalDram | MemoryTier::RemoteDram)
+            && matches!(
+                self.current_tier,
+                MemoryTier::LocalDram | MemoryTier::RemoteDram
+            )
     }
 }
 
@@ -287,7 +290,8 @@ impl HolisticMemoryTiering {
     /// Add a tier
     #[inline(always)]
     pub fn add_tier(&mut self, tier: MemoryTier, capacity_pages: u64) {
-        self.tiers.insert(tier as u8, TierInfo::new(tier, capacity_pages));
+        self.tiers
+            .insert(tier as u8, TierInfo::new(tier, capacity_pages));
         self.update_stats();
     }
 
@@ -323,7 +327,9 @@ impl HolisticMemoryTiering {
             if page.should_promote() {
                 // Find next better tier
                 if let Some(target) = self.find_promotion_target(page.current_tier) {
-                    let cost = self.tiers.get(&(target as u8))
+                    let cost = self
+                        .tiers
+                        .get(&(target as u8))
                         .map(|t| t.migration_cost_ns(1))
                         .unwrap_or(u64::MAX);
                     decisions.push(TierMigrationDecision {
@@ -337,7 +343,9 @@ impl HolisticMemoryTiering {
                 }
             } else if page.should_demote() {
                 if let Some(target) = self.find_demotion_target(page.current_tier) {
-                    let cost = self.tiers.get(&(target as u8))
+                    let cost = self
+                        .tiers
+                        .get(&(target as u8))
                         .map(|t| t.migration_cost_ns(1))
                         .unwrap_or(u64::MAX);
                     decisions.push(TierMigrationDecision {
@@ -353,7 +361,11 @@ impl HolisticMemoryTiering {
         }
 
         // Sort by benefit (higher first for promotions)
-        decisions.sort_by(|a, b| b.benefit_score.partial_cmp(&a.benefit_score).unwrap_or(core::cmp::Ordering::Equal));
+        decisions.sort_by(|a, b| {
+            b.benefit_score
+                .partial_cmp(&a.benefit_score)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         self.pending = decisions;
         self.update_stats();
     }
@@ -377,7 +389,7 @@ impl HolisticMemoryTiering {
                         match decision.direction {
                             TierMigrationDir::Promote => self.promotions += 1,
                             TierMigrationDir::Demote => self.demotions += 1,
-                            TierMigrationDir::Lateral => {}
+                            TierMigrationDir::Lateral => {},
                         }
                         migrated += 1;
                     } else {
@@ -439,7 +451,9 @@ impl HolisticMemoryTiering {
         self.stats.total_promotions = self.promotions;
         self.stats.total_demotions = self.demotions;
         self.stats.pending_migrations = self.pending.len();
-        self.stats.hot_tier_utilization = self.tiers.get(&(MemoryTier::LocalDram as u8))
+        self.stats.hot_tier_utilization = self
+            .tiers
+            .get(&(MemoryTier::LocalDram as u8))
             .map(|t| t.utilization())
             .unwrap_or(0.0);
     }

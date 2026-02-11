@@ -91,18 +91,18 @@ pub mod precognition;
 // RE-EXPORTS — Key types for external consumers
 // ============================================================================
 
+pub use self::anomaly_forecast::BridgeAnomalyForecast;
+pub use self::causal_forecast::BridgeCausalForecast;
+pub use self::confidence_interval::BridgeConfidenceInterval;
+pub use self::counterfactual::BridgeCounterfactual;
+pub use self::ensemble::BridgeEnsemble;
 pub use self::horizon::BridgeHorizonPredictor;
 pub use self::monte_carlo::BridgeMonteCarlo;
+pub use self::precognition::BridgePrecognition;
 pub use self::proactive::BridgeProactive;
 pub use self::rehearsal::BridgeRehearsal;
+pub use self::scenario_tree::BridgeScenarioTree;
 pub use self::simulator::BridgeSimulator;
+pub use self::temporal_fusion::BridgeTemporalFusion;
 pub use self::timeline::BridgeTimeline;
 pub use self::validator::BridgePredictionValidator;
-pub use self::scenario_tree::BridgeScenarioTree;
-pub use self::causal_forecast::BridgeCausalForecast;
-pub use self::counterfactual::BridgeCounterfactual;
-pub use self::confidence_interval::BridgeConfidenceInterval;
-pub use self::ensemble::BridgeEnsemble;
-pub use self::temporal_fusion::BridgeTemporalFusion;
-pub use self::anomaly_forecast::BridgeAnomalyForecast;
-pub use self::precognition::BridgePrecognition;

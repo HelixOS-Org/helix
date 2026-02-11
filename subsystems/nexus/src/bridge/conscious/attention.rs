@@ -15,11 +15,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -283,8 +283,8 @@ impl BridgeAttentionEngine {
                 None => best_target = Some((hash, focus.salience)),
                 Some((_, bs)) if focus.salience > bs => {
                     best_target = Some((hash, focus.salience));
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -378,7 +378,7 @@ impl BridgeAttentionEngine {
         match self.current_mode {
             AttentionMode::Spotlight => self.spotlight_ticks += 1,
             AttentionMode::Distributed => self.distributed_ticks += 1,
-            _ => {}
+            _ => {},
         }
     }
 

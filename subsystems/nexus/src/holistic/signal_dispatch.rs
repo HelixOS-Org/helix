@@ -62,12 +62,23 @@ impl SignalDisposition {
             1 | 2 | 3 | 6 | 8 | 11 | 13 | 14 | 15 => SigAction::Default,
             _ => SigAction::Default,
         };
-        Self { signum, action, handler_addr: 0, flags: 0, restart: false, nodefer: false, oneshot: false }
+        Self {
+            signum,
+            action,
+            handler_addr: 0,
+            flags: 0,
+            restart: false,
+            nodefer: false,
+            oneshot: false,
+        }
     }
 
     #[inline(always)]
     pub fn is_fatal(&self) -> bool {
-        matches!(self.action, SigAction::Default | SigAction::CoreDump | SigAction::Kill)
+        matches!(
+            self.action,
+            SigAction::Default | SigAction::CoreDump | SigAction::Kill
+        )
     }
 }
 
@@ -79,27 +90,57 @@ pub struct SigMask {
 
 impl SigMask {
     #[inline(always)]
-    pub fn empty() -> Self { Self { bits: 0 } }
+    pub fn empty() -> Self {
+        Self { bits: 0 }
+    }
     #[inline(always)]
-    pub fn full() -> Self { Self { bits: u64::MAX } }
+    pub fn full() -> Self {
+        Self { bits: u64::MAX }
+    }
 
     #[inline(always)]
-    pub fn set(&mut self, sig: u32) { if sig > 0 && sig <= MAX_SIGNALS { self.bits |= 1u64 << (sig - 1); } }
+    pub fn set(&mut self, sig: u32) {
+        if sig > 0 && sig <= MAX_SIGNALS {
+            self.bits |= 1u64 << (sig - 1);
+        }
+    }
     #[inline(always)]
-    pub fn clear(&mut self, sig: u32) { if sig > 0 && sig <= MAX_SIGNALS { self.bits &= !(1u64 << (sig - 1)); } }
+    pub fn clear(&mut self, sig: u32) {
+        if sig > 0 && sig <= MAX_SIGNALS {
+            self.bits &= !(1u64 << (sig - 1));
+        }
+    }
     #[inline(always)]
-    pub fn is_set(&self, sig: u32) -> bool { if sig > 0 && sig <= MAX_SIGNALS { (self.bits >> (sig - 1)) & 1 == 1 } else { false } }
+    pub fn is_set(&self, sig: u32) -> bool {
+        if sig > 0 && sig <= MAX_SIGNALS {
+            (self.bits >> (sig - 1)) & 1 == 1
+        } else {
+            false
+        }
+    }
     #[inline(always)]
-    pub fn count(&self) -> u32 { self.bits.count_ones() }
+    pub fn count(&self) -> u32 {
+        self.bits.count_ones()
+    }
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.bits == 0 }
+    pub fn is_empty(&self) -> bool {
+        self.bits == 0
+    }
 
     #[inline(always)]
-    pub fn block(&mut self, other: &SigMask) { self.bits |= other.bits; }
+    pub fn block(&mut self, other: &SigMask) {
+        self.bits |= other.bits;
+    }
     #[inline(always)]
-    pub fn unblock(&mut self, other: &SigMask) { self.bits &= !other.bits; }
+    pub fn unblock(&mut self, other: &SigMask) {
+        self.bits &= !other.bits;
+    }
     #[inline(always)]
-    pub fn pending_unblocked(&self, blocked: &SigMask) -> SigMask { SigMask { bits: self.bits & !blocked.bits } }
+    pub fn pending_unblocked(&self, blocked: &SigMask) -> SigMask {
+        SigMask {
+            bits: self.bits & !blocked.bits,
+        }
+    }
 }
 
 /// Queued signal info
@@ -117,11 +158,24 @@ pub struct QueuedSignal {
 
 impl QueuedSignal {
     pub fn new(signum: u32, sender: u64, ts: u64) -> Self {
-        let class = if signum == 9 { SignalClass::Kill }
-            else if signum == 19 || signum == 20 { SignalClass::Stop }
-            else if signum >= SIGRTMIN && signum <= SIGRTMAX { SignalClass::RealTime }
-            else { SignalClass::Standard };
-        Self { signum, class, sender_pid: sender, value: 0, timestamp: ts, delivered: false, delivery_ts: 0 }
+        let class = if signum == 9 {
+            SignalClass::Kill
+        } else if signum == 19 || signum == 20 {
+            SignalClass::Stop
+        } else if signum >= SIGRTMIN && signum <= SIGRTMAX {
+            SignalClass::RealTime
+        } else {
+            SignalClass::Standard
+        };
+        Self {
+            signum,
+            class,
+            sender_pid: sender,
+            value: 0,
+            timestamp: ts,
+            delivered: false,
+            delivery_ts: 0,
+        }
     }
 
     #[inline(always)]
@@ -132,7 +186,11 @@ impl QueuedSignal {
 
     #[inline(always)]
     pub fn latency_ns(&self) -> u64 {
-        if self.delivered { self.delivery_ts.saturating_sub(self.timestamp) } else { 0 }
+        if self.delivered {
+            self.delivery_ts.saturating_sub(self.timestamp)
+        } else {
+            0
+        }
     }
 }
 
@@ -159,15 +217,23 @@ impl ProcessSignalState {
             disps.insert(sig, SignalDisposition::default_for(sig));
         }
         Self {
-            pid, blocked: SigMask::empty(), pending: SigMask::empty(),
-            queue: Vec::new(), dispositions: disps,
-            signals_received: 0, signals_delivered: 0, signals_ignored: 0,
-            signals_coalesced: 0, max_queue_len: 128,
+            pid,
+            blocked: SigMask::empty(),
+            pending: SigMask::empty(),
+            queue: Vec::new(),
+            dispositions: disps,
+            signals_received: 0,
+            signals_delivered: 0,
+            signals_ignored: 0,
+            signals_coalesced: 0,
+            max_queue_len: 128,
         }
     }
 
     pub fn send_signal(&mut self, signum: u32, sender: u64, ts: u64) -> bool {
-        if signum == 0 || signum > MAX_SIGNALS { return false; }
+        if signum == 0 || signum > MAX_SIGNALS {
+            return false;
+        }
         self.signals_received += 1;
 
         // Check if ignored
@@ -196,7 +262,9 @@ impl ProcessSignalState {
 
     pub fn dequeue_signal(&mut self, ts: u64) -> Option<QueuedSignal> {
         let deliverable = self.pending.pending_unblocked(&self.blocked);
-        if deliverable.is_empty() { return None; }
+        if deliverable.is_empty() {
+            return None;
+        }
 
         // Priority: SIGKILL, SIGSTOP, standard, RT (in order)
         let priority_order = [9u32, 19];
@@ -224,23 +292,36 @@ impl ProcessSignalState {
     }
 
     fn deliver_signal(&mut self, signum: u32, ts: u64) -> Option<QueuedSignal> {
-        if let Some(pos) = self.queue.iter().position(|s| s.signum == signum && !s.delivered) {
+        if let Some(pos) = self
+            .queue
+            .iter()
+            .position(|s| s.signum == signum && !s.delivered)
+        {
             self.queue[pos].deliver(ts);
             self.signals_delivered += 1;
             let sig = self.queue.remove(pos);
 
             // Clear pending for standard signals (RT may have more queued)
-            if signum < SIGRTMIN || !self.queue.iter().any(|s| s.signum == signum && !s.delivered) {
+            if signum < SIGRTMIN
+                || !self
+                    .queue
+                    .iter()
+                    .any(|s| s.signum == signum && !s.delivered)
+            {
                 self.pending.clear(signum);
             }
 
             Some(sig)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
     pub fn set_handler(&mut self, signum: u32, action: SigAction, handler: u64) {
-        if signum == 9 || signum == 19 { return; } // Can't change SIGKILL/SIGSTOP
+        if signum == 9 || signum == 19 {
+            return;
+        } // Can't change SIGKILL/SIGSTOP
         if let Some(disp) = self.dispositions.get_mut(&signum) {
             disp.action = action;
             disp.handler_addr = handler;
@@ -270,7 +351,10 @@ pub struct HolisticSignalDispatch {
 
 impl HolisticSignalDispatch {
     pub fn new() -> Self {
-        Self { processes: BTreeMap::new(), stats: SignalDispatchStats::default() }
+        Self {
+            processes: BTreeMap::new(),
+            stats: SignalDispatchStats::default(),
+        }
     }
 
     #[inline(always)]
@@ -282,24 +366,32 @@ impl HolisticSignalDispatch {
     pub fn send_signal(&mut self, target_pid: u64, signum: u32, sender: u64, ts: u64) -> bool {
         if let Some(p) = self.processes.get_mut(&target_pid) {
             p.send_signal(signum, sender, ts)
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn dequeue(&mut self, pid: u64, ts: u64) -> Option<QueuedSignal> {
         if let Some(p) = self.processes.get_mut(&pid) {
             p.dequeue_signal(ts)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline(always)]
     pub fn set_blocked(&mut self, pid: u64, mask: SigMask) {
-        if let Some(p) = self.processes.get_mut(&pid) { p.blocked = mask; }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.blocked = mask;
+        }
     }
 
     #[inline(always)]
     pub fn set_handler(&mut self, pid: u64, signum: u32, action: SigAction, handler: u64) {
-        if let Some(p) = self.processes.get_mut(&pid) { p.set_handler(signum, action, handler); }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.set_handler(signum, action, handler);
+        }
     }
 
     #[inline]
@@ -314,22 +406,51 @@ impl HolisticSignalDispatch {
 
     pub fn recompute(&mut self) {
         self.stats.processes_tracked = self.processes.len();
-        self.stats.total_signals_received = self.processes.values().map(|p| p.signals_received).sum();
-        self.stats.total_signals_delivered = self.processes.values().map(|p| p.signals_delivered).sum();
+        self.stats.total_signals_received =
+            self.processes.values().map(|p| p.signals_received).sum();
+        self.stats.total_signals_delivered =
+            self.processes.values().map(|p| p.signals_delivered).sum();
         self.stats.total_signals_ignored = self.processes.values().map(|p| p.signals_ignored).sum();
-        self.stats.total_signals_coalesced = self.processes.values().map(|p| p.signals_coalesced).sum();
-        self.stats.total_pending = self.processes.values().map(|p| p.pending.count() as u64).sum();
-        self.stats.rt_signals_queued = self.processes.values().map(|p| {
-            p.queue.iter().filter(|s| s.class == SignalClass::RealTime && !s.delivered).count() as u64
-        }).sum();
-        let all_lats: Vec<u64> = self.processes.values().flat_map(|p| {
-            p.queue.iter().filter(|s| s.delivered).map(|s| s.latency_ns())
-        }).collect();
-        self.stats.avg_delivery_latency_ns = if all_lats.is_empty() { 0 } else { all_lats.iter().sum::<u64>() / all_lats.len() as u64 };
+        self.stats.total_signals_coalesced =
+            self.processes.values().map(|p| p.signals_coalesced).sum();
+        self.stats.total_pending = self
+            .processes
+            .values()
+            .map(|p| p.pending.count() as u64)
+            .sum();
+        self.stats.rt_signals_queued = self
+            .processes
+            .values()
+            .map(|p| {
+                p.queue
+                    .iter()
+                    .filter(|s| s.class == SignalClass::RealTime && !s.delivered)
+                    .count() as u64
+            })
+            .sum();
+        let all_lats: Vec<u64> = self
+            .processes
+            .values()
+            .flat_map(|p| {
+                p.queue
+                    .iter()
+                    .filter(|s| s.delivered)
+                    .map(|s| s.latency_ns())
+            })
+            .collect();
+        self.stats.avg_delivery_latency_ns = if all_lats.is_empty() {
+            0
+        } else {
+            all_lats.iter().sum::<u64>() / all_lats.len() as u64
+        };
     }
 
     #[inline(always)]
-    pub fn process(&self, pid: u64) -> Option<&ProcessSignalState> { self.processes.get(&pid) }
+    pub fn process(&self, pid: u64) -> Option<&ProcessSignalState> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &SignalDispatchStats { &self.stats }
+    pub fn stats(&self) -> &SignalDispatchStats {
+        &self.stats
+    }
 }

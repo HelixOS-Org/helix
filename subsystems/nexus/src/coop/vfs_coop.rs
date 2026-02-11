@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-
 /// Coop VFS operation
 use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,16 +44,33 @@ pub struct SharedPathEntry {
 impl SharedPathEntry {
     pub fn new(path: &[u8], inode: u64) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { path_hash: h, inode, hits: 0, shared_by: 1, state: CoopVfsState::Cached }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            path_hash: h,
+            inode,
+            hits: 0,
+            shared_by: 1,
+            state: CoopVfsState::Cached,
+        }
     }
 
     #[inline(always)]
-    pub fn share(&mut self) { self.shared_by += 1; }
+    pub fn share(&mut self) {
+        self.shared_by += 1;
+    }
     #[inline(always)]
-    pub fn hit(&mut self) { self.hits += 1; }
+    pub fn hit(&mut self) {
+        self.hits += 1;
+    }
     #[inline(always)]
-    pub fn unshare(&mut self) { if self.shared_by > 0 { self.shared_by -= 1; } }
+    pub fn unshare(&mut self) {
+        if self.shared_by > 0 {
+            self.shared_by -= 1;
+        }
+    }
 }
 
 /// Coop VFS stats
@@ -77,12 +93,24 @@ pub struct CoopVfs {
 
 impl CoopVfs {
     pub fn new() -> Self {
-        Self { cache: BTreeMap::new(), stats: CoopVfsStats { total_ops: 0, cache_hits: 0, cache_misses: 0, shared_resolutions: 0, conflicts: 0 } }
+        Self {
+            cache: BTreeMap::new(),
+            stats: CoopVfsStats {
+                total_ops: 0,
+                cache_hits: 0,
+                cache_misses: 0,
+                shared_resolutions: 0,
+                conflicts: 0,
+            },
+        }
     }
 
     pub fn resolve(&mut self, path: &[u8]) -> Option<u64> {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         self.stats.total_ops += 1;
         if let Some(entry) = self.cache.get_mut(&h) {
             entry.hit();
@@ -103,7 +131,11 @@ impl CoopVfs {
     #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         let total = self.stats.cache_hits + self.stats.cache_misses;
-        if total == 0 { 0.0 } else { self.stats.cache_hits as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.stats.cache_hits as f64 / total as f64
+        }
     }
 }
 

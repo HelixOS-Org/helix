@@ -84,7 +84,7 @@ impl BridgeWaitManager {
                 } else {
                     None
                 }
-            }
+            },
             BridgeWaitTarget::AnyChild => {
                 let first_zombie = self.zombies.keys().next().cloned();
                 if let Some(pid) = first_zombie {
@@ -95,7 +95,7 @@ impl BridgeWaitManager {
                 } else {
                     None
                 }
-            }
+            },
             _ => None,
         }
     }

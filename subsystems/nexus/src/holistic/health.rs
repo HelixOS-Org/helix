@@ -190,7 +190,8 @@ impl VitalSign {
         };
         let slice = &self.history[start..];
         let mean = slice.iter().sum::<f64>() / slice.len() as f64;
-        let var: f64 = slice.iter().map(|v| (v - mean) * (v - mean)).sum::<f64>() / slice.len() as f64;
+        let var: f64 =
+            slice.iter().map(|v| (v - mean) * (v - mean)).sum::<f64>() / slice.len() as f64;
         libm::sqrt(var)
     }
 }
@@ -317,9 +318,7 @@ impl HolisticHealthEngine {
         ];
 
         for dim in &dimensions {
-            engine
-                .vitals
-                .insert(*dim as u8, VitalSign::new(*dim));
+            engine.vitals.insert(*dim as u8, VitalSign::new(*dim));
             engine.weights.insert(*dim as u8, 1.0);
         }
         // Higher weights for critical dimensions

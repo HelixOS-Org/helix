@@ -152,7 +152,9 @@ impl ProcessExecState {
     }
 
     #[inline(always)]
-    pub fn lib_count(&self) -> usize { self.libraries.len() }
+    pub fn lib_count(&self) -> usize {
+        self.libraries.len()
+    }
 
     #[inline(always)]
     pub fn total_lib_size(&self) -> u64 {
@@ -161,7 +163,9 @@ impl ProcessExecState {
 
     #[inline(always)]
     pub fn find_lib_at(&self, addr: u64) -> Option<&SharedLib> {
-        self.libraries.iter().find(|l| addr >= l.load_base && addr < l.load_base + l.size)
+        self.libraries
+            .iter()
+            .find(|l| addr >= l.load_base && addr < l.load_base + l.size)
     }
 }
 
@@ -203,7 +207,9 @@ impl AppsExecLoader {
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64) {
-        self.states.entry(pid).or_insert_with(|| ProcessExecState::new(pid));
+        self.states
+            .entry(pid)
+            .or_insert_with(|| ProcessExecState::new(pid));
     }
 
     #[inline]
@@ -217,17 +223,23 @@ impl AppsExecLoader {
 
     #[inline(always)]
     pub fn load_library(&mut self, pid: u64, lib: SharedLib) {
-        if let Some(state) = self.states.get_mut(&pid) { state.add_library(lib); }
+        if let Some(state) = self.states.get_mut(&pid) {
+            state.add_library(lib);
+        }
     }
 
     #[inline(always)]
     pub fn resolve_symbol(&mut self, pid: u64, res: SymbolResolution) {
-        if let Some(state) = self.states.get_mut(&pid) { state.resolve_symbol(res); }
+        if let Some(state) = self.states.get_mut(&pid) {
+            state.resolve_symbol(res);
+        }
     }
 
     #[inline(always)]
     pub fn set_aslr(&mut self, pid: u64, layout: AslrLayout) {
-        if let Some(state) = self.states.get_mut(&pid) { state.set_aslr(layout); }
+        if let Some(state) = self.states.get_mut(&pid) {
+            state.set_aslr(layout);
+        }
     }
 
     #[inline(always)]
@@ -236,7 +248,9 @@ impl AppsExecLoader {
     }
 
     #[inline(always)]
-    pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
+    pub fn remove_process(&mut self, pid: u64) {
+        self.states.remove(&pid);
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
@@ -245,15 +259,21 @@ impl AppsExecLoader {
         self.stats.total_symbols = self.states.values().map(|s| s.symbol_cache.len()).sum();
         self.stats.total_relocations = self.states.values().map(|s| s.total_relocations).sum();
         self.stats.total_execs = self.states.values().map(|s| s.exec_count as u64).sum();
-        self.stats.pie_count = self.states.values()
+        self.stats.pie_count = self
+            .states
+            .values()
             .filter(|s| s.elf_meta.as_ref().map(|e| e.is_pie).unwrap_or(false))
             .count();
     }
 
     #[inline(always)]
-    pub fn process_exec(&self, pid: u64) -> Option<&ProcessExecState> { self.states.get(&pid) }
+    pub fn process_exec(&self, pid: u64) -> Option<&ProcessExecState> {
+        self.states.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsExecLoaderStats { &self.stats }
+    pub fn stats(&self) -> &AppsExecLoaderStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -324,19 +344,39 @@ pub struct ExecContext {
 impl ExecContext {
     pub fn new(id: u64, etype: ExecType) -> Self {
         Self {
-            id, exec_type: etype, state: LoaderState::Init, entry_point: 0,
-            interp_base: 0, phdr_addr: 0, phnum: 0, mappings: Vec::new(),
-            auxv: Vec::new(), stack_top: 0, stack_size: 8 * 1024 * 1024,
-            brk_start: 0, brk_end: 0, load_time_ns: 0, total_mapped: 0,
+            id,
+            exec_type: etype,
+            state: LoaderState::Init,
+            entry_point: 0,
+            interp_base: 0,
+            phdr_addr: 0,
+            phnum: 0,
+            mappings: Vec::new(),
+            auxv: Vec::new(),
+            stack_top: 0,
+            stack_size: 8 * 1024 * 1024,
+            brk_start: 0,
+            brk_end: 0,
+            load_time_ns: 0,
+            total_mapped: 0,
         }
     }
 
     #[inline(always)]
-    pub fn add_mapping(&mut self, m: ExecMapping) { self.total_mapped += m.size; self.mappings.push(m); }
+    pub fn add_mapping(&mut self, m: ExecMapping) {
+        self.total_mapped += m.size;
+        self.mappings.push(m);
+    }
     #[inline(always)]
-    pub fn set_ready(&mut self, entry: u64, duration: u64) { self.entry_point = entry; self.load_time_ns = duration; self.state = LoaderState::Ready; }
+    pub fn set_ready(&mut self, entry: u64, duration: u64) {
+        self.entry_point = entry;
+        self.load_time_ns = duration;
+        self.state = LoaderState::Ready;
+    }
     #[inline(always)]
-    pub fn fail(&mut self) { self.state = LoaderState::Failed; }
+    pub fn fail(&mut self) {
+        self.state = LoaderState::Failed;
+    }
 }
 
 /// Stats
@@ -358,30 +398,70 @@ pub struct AppExecLoaderV2 {
 }
 
 impl AppExecLoaderV2 {
-    pub fn new() -> Self { Self { contexts: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            contexts: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn begin_load(&mut self, etype: ExecType) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.contexts.insert(id, ExecContext::new(id, etype));
         id
     }
 
     #[inline(always)]
     pub fn complete(&mut self, id: u64, entry: u64, duration: u64) {
-        if let Some(ctx) = self.contexts.get_mut(&id) { ctx.set_ready(entry, duration); }
+        if let Some(ctx) = self.contexts.get_mut(&id) {
+            ctx.set_ready(entry, duration);
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> ExecLoaderV2Stats {
-        let loaded = self.contexts.values().filter(|c| c.state == LoaderState::Ready).count() as u64;
-        let failed = self.contexts.values().filter(|c| c.state == LoaderState::Failed).count() as u64;
-        let stat = self.contexts.values().filter(|c| c.exec_type == ExecType::StaticElf).count() as u64;
-        let dyn_ = self.contexts.values().filter(|c| c.exec_type == ExecType::DynamicElf).count() as u64;
+        let loaded = self
+            .contexts
+            .values()
+            .filter(|c| c.state == LoaderState::Ready)
+            .count() as u64;
+        let failed = self
+            .contexts
+            .values()
+            .filter(|c| c.state == LoaderState::Failed)
+            .count() as u64;
+        let stat = self
+            .contexts
+            .values()
+            .filter(|c| c.exec_type == ExecType::StaticElf)
+            .count() as u64;
+        let dyn_ = self
+            .contexts
+            .values()
+            .filter(|c| c.exec_type == ExecType::DynamicElf)
+            .count() as u64;
         let mapped: u64 = self.contexts.values().map(|c| c.total_mapped).sum();
-        let times: Vec<u64> = self.contexts.values().filter(|c| c.load_time_ns > 0).map(|c| c.load_time_ns).collect();
-        let avg = if times.is_empty() { 0 } else { times.iter().sum::<u64>() / times.len() as u64 };
-        ExecLoaderV2Stats { total_loaded: loaded, total_failed: failed, static_count: stat, dynamic_count: dyn_, total_mapped_bytes: mapped, avg_load_ns: avg }
+        let times: Vec<u64> = self
+            .contexts
+            .values()
+            .filter(|c| c.load_time_ns > 0)
+            .map(|c| c.load_time_ns)
+            .collect();
+        let avg = if times.is_empty() {
+            0
+        } else {
+            times.iter().sum::<u64>() / times.len() as u64
+        };
+        ExecLoaderV2Stats {
+            total_loaded: loaded,
+            total_failed: failed,
+            static_count: stat,
+            dynamic_count: dyn_,
+            total_mapped_bytes: mapped,
+            avg_load_ns: avg,
+        }
     }
 }
 
@@ -465,23 +545,47 @@ pub struct ExecImageV3 {
 impl ExecImageV3 {
     pub fn new(id: u64, fmt: ExecV3Format, aslr: AslrLevel) -> Self {
         Self {
-            id, format: fmt, phase: LoadPhase::ParseHeaders, entry: 0,
-            base_addr: 0, aslr_offset: 0, segments: Vec::new(), relocs: Vec::new(),
-            interp_base: 0, stack_addr: 0, stack_size: 8 * 1024 * 1024, brk: 0,
-            load_duration_ns: 0, total_mapped: 0, aslr,
+            id,
+            format: fmt,
+            phase: LoadPhase::ParseHeaders,
+            entry: 0,
+            base_addr: 0,
+            aslr_offset: 0,
+            segments: Vec::new(),
+            relocs: Vec::new(),
+            interp_base: 0,
+            stack_addr: 0,
+            stack_size: 8 * 1024 * 1024,
+            brk: 0,
+            load_duration_ns: 0,
+            total_mapped: 0,
+            aslr,
         }
     }
 
     #[inline(always)]
-    pub fn add_segment(&mut self, seg: SegmentV3) { self.total_mapped += seg.mem_size; self.segments.push(seg); }
+    pub fn add_segment(&mut self, seg: SegmentV3) {
+        self.total_mapped += seg.mem_size;
+        self.segments.push(seg);
+    }
     #[inline(always)]
-    pub fn advance(&mut self, phase: LoadPhase) { self.phase = phase; }
+    pub fn advance(&mut self, phase: LoadPhase) {
+        self.phase = phase;
+    }
     #[inline(always)]
-    pub fn complete(&mut self, entry: u64, duration: u64) { self.entry = entry; self.load_duration_ns = duration; self.phase = LoadPhase::Complete; }
+    pub fn complete(&mut self, entry: u64, duration: u64) {
+        self.entry = entry;
+        self.load_duration_ns = duration;
+        self.phase = LoadPhase::Complete;
+    }
     #[inline(always)]
-    pub fn fail(&mut self) { self.phase = LoadPhase::Error; }
+    pub fn fail(&mut self) {
+        self.phase = LoadPhase::Error;
+    }
     #[inline(always)]
-    pub fn effective_entry(&self) -> u64 { self.entry.wrapping_add(self.aslr_offset) }
+    pub fn effective_entry(&self) -> u64 {
+        self.entry.wrapping_add(self.aslr_offset)
+    }
 }
 
 /// Stats
@@ -504,7 +608,13 @@ pub struct AppExecLoaderV3 {
 }
 
 impl AppExecLoaderV3 {
-    pub fn new() -> Self { Self { images: BTreeMap::new(), next_id: 1, seed: 0xdeadbeef12345678 } }
+    pub fn new() -> Self {
+        Self {
+            images: BTreeMap::new(),
+            next_id: 1,
+            seed: 0xdeadbeef12345678,
+        }
+    }
 
     fn gen_aslr(&mut self, level: AslrLevel) -> u64 {
         self.seed ^= self.seed << 13;
@@ -520,7 +630,8 @@ impl AppExecLoaderV3 {
 
     #[inline]
     pub fn load(&mut self, fmt: ExecV3Format, aslr: AslrLevel) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         let mut img = ExecImageV3::new(id, fmt, aslr);
         img.aslr_offset = self.gen_aslr(aslr);
         self.images.insert(id, img);
@@ -529,12 +640,36 @@ impl AppExecLoaderV3 {
 
     #[inline]
     pub fn stats(&self) -> ExecLoaderV3Stats {
-        let comp = self.images.values().filter(|i| i.phase == LoadPhase::Complete).count() as u32;
-        let fail = self.images.values().filter(|i| i.phase == LoadPhase::Error).count() as u32;
+        let comp = self
+            .images
+            .values()
+            .filter(|i| i.phase == LoadPhase::Complete)
+            .count() as u32;
+        let fail = self
+            .images
+            .values()
+            .filter(|i| i.phase == LoadPhase::Error)
+            .count() as u32;
         let mapped: u64 = self.images.values().map(|i| i.total_mapped).sum();
         let relocs: u64 = self.images.values().map(|i| i.relocs.len() as u64).sum();
-        let times: Vec<u64> = self.images.values().filter(|i| i.load_duration_ns > 0).map(|i| i.load_duration_ns).collect();
-        let avg = if times.is_empty() { 0 } else { times.iter().sum::<u64>() / times.len() as u64 };
-        ExecLoaderV3Stats { total_images: self.images.len() as u32, completed: comp, failed: fail, total_mapped: mapped, total_relocs: relocs, avg_load_ns: avg }
+        let times: Vec<u64> = self
+            .images
+            .values()
+            .filter(|i| i.load_duration_ns > 0)
+            .map(|i| i.load_duration_ns)
+            .collect();
+        let avg = if times.is_empty() {
+            0
+        } else {
+            times.iter().sum::<u64>() / times.len() as u64
+        };
+        ExecLoaderV3Stats {
+            total_images: self.images.len() as u32,
+            completed: comp,
+            failed: fail,
+            total_mapped: mapped,
+            total_relocs: relocs,
+            avg_load_ns: avg,
+        }
     }
 }

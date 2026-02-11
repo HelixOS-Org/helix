@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// File descriptor type
@@ -86,8 +85,11 @@ impl FdStats {
 
     #[inline(always)]
     pub fn lifetime_ns(&self, now: u64) -> u64 {
-        if self.is_open { now.saturating_sub(self.opened_at) }
-        else { self.closed_at.saturating_sub(self.opened_at) }
+        if self.is_open {
+            now.saturating_sub(self.opened_at)
+        } else {
+            self.closed_at.saturating_sub(self.opened_at)
+        }
     }
 
     #[inline(always)]
@@ -160,8 +162,15 @@ pub struct FdTypeDistribution {
 impl FdTypeDistribution {
     #[inline(always)]
     pub fn total(&self) -> u32 {
-        self.regular_files + self.directories + self.pipes + self.sockets
-            + self.epolls + self.eventfds + self.timerfds + self.devices + self.other
+        self.regular_files
+            + self.directories
+            + self.pipes
+            + self.sockets
+            + self.epolls
+            + self.eventfds
+            + self.timerfds
+            + self.devices
+            + self.other
     }
 
     pub fn count(&mut self, fd_type: FdTypeApps) {
@@ -213,7 +222,9 @@ impl ProcessFdProfile {
         self.fds.insert(fd_num, stats);
         self.total_opened += 1;
         self.current_open += 1;
-        if self.current_open > self.peak_open { self.peak_open = self.current_open; }
+        if self.current_open > self.peak_open {
+            self.peak_open = self.current_open;
+        }
         self.distribution.count(fd_type);
 
         self.fd_growth_samples.push_back((ts, self.current_open));
@@ -234,21 +245,26 @@ impl ProcessFdProfile {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.fd_limit == 0 { return 0.0; }
+        if self.fd_limit == 0 {
+            return 0.0;
+        }
         self.current_open as f64 / self.fd_limit as f64
     }
 
     /// Detect potential FD leak: monotonically growing with low close rate
     #[inline]
     pub fn leak_risk(&self) -> bool {
-        if self.total_opened < 100 { return false; }
+        if self.total_opened < 100 {
+            return false;
+        }
         let close_ratio = self.total_closed as f64 / self.total_opened as f64;
         close_ratio < 0.5 && self.current_open > self.fd_limit / 2
     }
 
     #[inline]
     pub fn idle_fds(&self, now: u64, idle_threshold_ns: u64) -> Vec<i32> {
-        self.fds.values()
+        self.fds
+            .values()
             .filter(|fd| fd.is_open && fd.idle_ns(now) > idle_threshold_ns)
             .map(|fd| fd.fd_num)
             .collect()
@@ -256,7 +272,9 @@ impl ProcessFdProfile {
 
     #[inline]
     pub fn top_io_fds(&self, n: usize) -> Vec<(i32, u64)> {
-        let mut sorted: Vec<_> = self.fds.values()
+        let mut sorted: Vec<_> = self
+            .fds
+            .values()
             .filter(|fd| fd.is_open)
             .map(|fd| (fd.fd_num, fd.total_io_bytes()))
             .collect();
@@ -294,7 +312,9 @@ impl AppFdProfiler {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64, fd_limit: u32) {
-        self.profiles.entry(pid).or_insert_with(|| ProcessFdProfile::new(pid, fd_limit));
+        self.profiles
+            .entry(pid)
+            .or_insert_with(|| ProcessFdProfile::new(pid, fd_limit));
     }
 
     #[inline]
@@ -336,7 +356,9 @@ impl AppFdProfiler {
         self.stats.total_opened = self.profiles.values().map(|p| p.total_opened).sum();
         self.stats.total_closed = self.profiles.values().map(|p| p.total_closed).sum();
         self.stats.leak_risk_count = self.profiles.values().filter(|p| p.leak_risk()).count();
-        self.stats.near_limit_count = self.profiles.values()
+        self.stats.near_limit_count = self
+            .profiles
+            .values()
             .filter(|p| p.utilization() > 0.8)
             .count();
     }

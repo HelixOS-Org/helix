@@ -6,19 +6,38 @@ use alloc::vec::Vec;
 
 /// Madvise advice type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BridgeMadviseAdvice { Normal, Random, Sequential, WillNeed, DontNeed, Free, Mergeable, Hugepage, DontFork, Cold }
+pub enum BridgeMadviseAdvice {
+    Normal,
+    Random,
+    Sequential,
+    WillNeed,
+    DontNeed,
+    Free,
+    Mergeable,
+    Hugepage,
+    DontFork,
+    Cold,
+}
 
 /// Madvise record
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct BridgeMadviseRecord { pub addr: u64, pub length: u64, pub advice: BridgeMadviseAdvice }
+pub struct BridgeMadviseRecord {
+    pub addr: u64,
+    pub length: u64,
+    pub advice: BridgeMadviseAdvice,
+}
 
 /// Madvise stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
 pub struct BridgeMadviseStats {
-    pub total_ops: u64, pub dontneed: u64, pub willneed: u64, pub hugepage_hints: u64,
-    pub mergeable_hints: u64, pub total_affected_bytes: u64,
+    pub total_ops: u64,
+    pub dontneed: u64,
+    pub willneed: u64,
+    pub hugepage_hints: u64,
+    pub mergeable_hints: u64,
+    pub total_affected_bytes: u64,
 }
 
 /// Manager for madvise bridge
@@ -30,7 +49,17 @@ pub struct BridgeMadviseManager {
 
 impl BridgeMadviseManager {
     pub fn new() -> Self {
-        Self { history: Vec::new(), stats: BridgeMadviseStats { total_ops: 0, dontneed: 0, willneed: 0, hugepage_hints: 0, mergeable_hints: 0, total_affected_bytes: 0 } }
+        Self {
+            history: Vec::new(),
+            stats: BridgeMadviseStats {
+                total_ops: 0,
+                dontneed: 0,
+                willneed: 0,
+                hugepage_hints: 0,
+                mergeable_hints: 0,
+                total_affected_bytes: 0,
+            },
+        }
     }
 
     pub fn advise(&mut self, addr: u64, length: u64, advice: BridgeMadviseAdvice) {
@@ -41,11 +70,17 @@ impl BridgeMadviseManager {
             BridgeMadviseAdvice::WillNeed => self.stats.willneed += 1,
             BridgeMadviseAdvice::Hugepage => self.stats.hugepage_hints += 1,
             BridgeMadviseAdvice::Mergeable => self.stats.mergeable_hints += 1,
-            _ => {}
+            _ => {},
         }
-        self.history.push(BridgeMadviseRecord { addr, length, advice });
+        self.history.push(BridgeMadviseRecord {
+            addr,
+            length,
+            advice,
+        });
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeMadviseStats { &self.stats }
+    pub fn stats(&self) -> &BridgeMadviseStats {
+        &self.stats
+    }
 }

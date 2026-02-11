@@ -15,7 +15,8 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -301,8 +302,7 @@ impl BridgeEvolution {
             for gene in strat.genome.iter_mut() {
                 let roll = (xorshift64(&mut self.rng_state) % 100) as f32 / 100.0;
                 if roll < MUTATION_RATE {
-                    let delta = ((xorshift64(&mut self.rng_state) % 2000) as f32 - 1000.0)
-                        / 1000.0
+                    let delta = ((xorshift64(&mut self.rng_state) % 2000) as f32 - 1000.0) / 1000.0
                         * MUTATION_STRENGTH;
                     *gene += delta;
                     *gene = gene.max(-5.0).min(5.0);
@@ -384,7 +384,8 @@ impl BridgeEvolution {
         }
 
         // Remove retired
-        self.population.retain(|_, s| s.status != StrategyStatus::Retired);
+        self.population
+            .retain(|_, s| s.status != StrategyStatus::Retired);
 
         // Compute generation stats
         let best_fit = ranked.first().map_or(0.0, |r| r.1);
@@ -430,7 +431,8 @@ impl BridgeEvolution {
     pub fn evolution_trend(&self) -> EvolutionTrend {
         let mut stagnation_count = 0usize;
         if self.fitness_history.len() >= FITNESS_STAGNATION_WINDOW {
-            let recent = &self.fitness_history[self.fitness_history.len() - FITNESS_STAGNATION_WINDOW..];
+            let recent =
+                &self.fitness_history[self.fitness_history.len() - FITNESS_STAGNATION_WINDOW..];
             let first = recent[0];
             let last = recent[recent.len() - 1];
             let improvement = last - first;
@@ -476,7 +478,11 @@ impl BridgeEvolution {
             }
         }
 
-        if pairs > 0 { total_dist / pairs as f32 } else { 0.0 }
+        if pairs > 0 {
+            total_dist / pairs as f32
+        } else {
+            0.0
+        }
     }
 
     /// Get a strategy by ID.

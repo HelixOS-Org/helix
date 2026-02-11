@@ -35,13 +35,13 @@ pub enum AdmissionPriority {
     /// Background (sheddable)
     Background = 0,
     /// Low
-    Low = 1,
+    Low        = 1,
     /// Normal
-    Normal = 2,
+    Normal     = 2,
     /// High
-    High = 3,
+    High       = 3,
     /// Critical (never shed)
-    Critical = 4,
+    Critical   = 4,
 }
 
 /// Load level

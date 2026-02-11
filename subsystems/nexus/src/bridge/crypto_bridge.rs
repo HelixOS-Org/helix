@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -59,11 +58,17 @@ pub struct CryptoAlg {
 impl CryptoAlg {
     pub fn new(name: String, alg_type: CryptoAlgType) -> Self {
         Self {
-            name, driver_name: String::new(),
-            alg_type, priority: CryptoPriority::Software,
-            block_size: 0, min_key_size: 0, max_key_size: 0,
-            iv_size: 0, digest_size: 0,
-            ref_count: 0, selftest_passed: false,
+            name,
+            driver_name: String::new(),
+            alg_type,
+            priority: CryptoPriority::Software,
+            block_size: 0,
+            min_key_size: 0,
+            max_key_size: 0,
+            iv_size: 0,
+            digest_size: 0,
+            ref_count: 0,
+            selftest_passed: false,
         }
     }
 
@@ -130,20 +135,28 @@ pub struct AlgStats {
 impl AlgStats {
     pub fn new(name: String) -> Self {
         Self {
-            name, total_ops: 0, total_bytes: 0,
-            errors: 0, avg_latency_ns: 0, peak_latency_ns: 0,
+            name,
+            total_ops: 0,
+            total_bytes: 0,
+            errors: 0,
+            avg_latency_ns: 0,
+            peak_latency_ns: 0,
         }
     }
 
     #[inline(always)]
     pub fn throughput_mbps(&self, elapsed_s: f64) -> f64 {
-        if elapsed_s <= 0.0 { return 0.0; }
+        if elapsed_s <= 0.0 {
+            return 0.0;
+        }
         (self.total_bytes as f64 / (1024.0 * 1024.0)) / elapsed_s
     }
 
     #[inline(always)]
     pub fn error_rate(&self) -> f64 {
-        if self.total_ops == 0 { return 0.0; }
+        if self.total_ops == 0 {
+            return 0.0;
+        }
         self.errors as f64 / self.total_ops as f64
     }
 }
@@ -178,9 +191,12 @@ impl BridgeCrypto {
             requests: VecDeque::new(),
             max_requests: 4096,
             stats: CryptoBridgeStats {
-                registered_algs: 0, total_requests: 0,
-                total_bytes_processed: 0, total_errors: 0,
-                hw_offload_count: 0, avg_latency_ns: 0,
+                registered_algs: 0,
+                total_requests: 0,
+                total_bytes_processed: 0,
+                total_errors: 0,
+                hw_offload_count: 0,
+                avg_latency_ns: 0,
             },
         }
     }
@@ -194,15 +210,21 @@ impl BridgeCrypto {
     #[inline]
     pub fn unregister_alg(&mut self, name: &str) -> bool {
         if self.algorithms.remove(name).is_some() {
-            if self.stats.registered_algs > 0 { self.stats.registered_algs -= 1; }
+            if self.stats.registered_algs > 0 {
+                self.stats.registered_algs -= 1;
+            }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn record_request(&mut self, req: CryptoRequest) {
         self.stats.total_requests += 1;
         self.stats.total_bytes_processed += req.data_len;
-        if req.result != CryptoResult::Success { self.stats.total_errors += 1; }
+        if req.result != CryptoResult::Success {
+            self.stats.total_errors += 1;
+        }
 
         if let Some(alg) = self.algorithms.get(&req.alg_name) {
             if alg.priority == CryptoPriority::Hardware {
@@ -211,18 +233,26 @@ impl BridgeCrypto {
         }
 
         let n = self.stats.total_requests;
-        self.stats.avg_latency_ns =
-            ((self.stats.avg_latency_ns * (n - 1)) + req.latency_ns) / n;
+        self.stats.avg_latency_ns = ((self.stats.avg_latency_ns * (n - 1)) + req.latency_ns) / n;
 
-        let entry = self.alg_stats.entry(req.alg_name.clone())
+        let entry = self
+            .alg_stats
+            .entry(req.alg_name.clone())
             .or_insert_with(|| AlgStats::new(req.alg_name.clone()));
         entry.total_ops += 1;
         entry.total_bytes += req.data_len;
-        if req.result != CryptoResult::Success { entry.errors += 1; }
-        if req.latency_ns > entry.peak_latency_ns { entry.peak_latency_ns = req.latency_ns; }
-        entry.avg_latency_ns = ((entry.avg_latency_ns * (entry.total_ops - 1)) + req.latency_ns) / entry.total_ops;
+        if req.result != CryptoResult::Success {
+            entry.errors += 1;
+        }
+        if req.latency_ns > entry.peak_latency_ns {
+            entry.peak_latency_ns = req.latency_ns;
+        }
+        entry.avg_latency_ns =
+            ((entry.avg_latency_ns * (entry.total_ops - 1)) + req.latency_ns) / entry.total_ops;
 
-        if self.requests.len() >= self.max_requests { self.requests.remove(0); }
+        if self.requests.len() >= self.max_requests {
+            self.requests.remove(0);
+        }
         self.requests.push_back(req);
     }
 
@@ -233,19 +263,25 @@ impl BridgeCrypto {
 
     #[inline(always)]
     pub fn algs_by_type(&self, alg_type: CryptoAlgType) -> Vec<&CryptoAlg> {
-        self.algorithms.values().filter(|a| a.alg_type == alg_type).collect()
+        self.algorithms
+            .values()
+            .filter(|a| a.alg_type == alg_type)
+            .collect()
     }
 
     #[inline]
     pub fn best_alg(&self, name: &str) -> Option<&CryptoAlg> {
-        self.algorithms.values()
+        self.algorithms
+            .values()
             .filter(|a| a.name == name || a.driver_name == name)
             .max_by_key(|a| a.priority.weight())
     }
 
     #[inline]
     pub fn busiest_algs(&self, n: usize) -> Vec<(&str, u64)> {
-        let mut v: Vec<_> = self.alg_stats.iter()
+        let mut v: Vec<_> = self
+            .alg_stats
+            .iter()
             .map(|(name, s)| (name.as_str(), s.total_ops))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
@@ -316,8 +352,19 @@ pub struct CryptoV2Record {
 impl CryptoV2Record {
     pub fn new(op: CryptoV2Op, alg_type: CryptoV2AlgType, alg_name: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in alg_name { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { op, alg_type, result: CryptoV2Result::Success, alg_hash: h, input_size: 0, output_size: 0, latency_ns: 0 }
+        for b in alg_name {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            op,
+            alg_type,
+            result: CryptoV2Result::Success,
+            alg_hash: h,
+            input_size: 0,
+            output_size: 0,
+            latency_ns: 0,
+        }
     }
 }
 
@@ -341,7 +388,16 @@ pub struct BridgeCryptoV2 {
 
 impl BridgeCryptoV2 {
     pub fn new() -> Self {
-        Self { stats: CryptoV2BridgeStats { total_ops: 0, encryptions: 0, decryptions: 0, hashes: 0, total_bytes: 0, errors: 0 } }
+        Self {
+            stats: CryptoV2BridgeStats {
+                total_ops: 0,
+                encryptions: 0,
+                decryptions: 0,
+                hashes: 0,
+                total_bytes: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
@@ -352,8 +408,10 @@ impl BridgeCryptoV2 {
             CryptoV2Op::Encrypt => self.stats.encryptions += 1,
             CryptoV2Op::Decrypt => self.stats.decryptions += 1,
             CryptoV2Op::Hash => self.stats.hashes += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result != CryptoV2Result::Success { self.stats.errors += 1; }
+        if rec.result != CryptoV2Result::Success {
+            self.stats.errors += 1;
+        }
     }
 }

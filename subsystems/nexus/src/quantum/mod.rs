@@ -393,9 +393,7 @@ impl QuboMatrix {
         // Quadratic terms
         for i in 0..self.size {
             for j in (i + 1)..self.size {
-                if *solution.get(i).unwrap_or(&false)
-                    && *solution.get(j).unwrap_or(&false)
-                {
+                if *solution.get(i).unwrap_or(&false) && *solution.get(j).unwrap_or(&false) {
                     energy += self.get_quadratic(i, j);
                 }
             }

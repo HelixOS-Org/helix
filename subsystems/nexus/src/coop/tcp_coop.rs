@@ -45,17 +45,32 @@ pub struct SharedCwndState {
 
 impl SharedCwndState {
     pub fn new(group_id: u64) -> Self {
-        Self { group_id, total_cwnd: 0, member_count: 0, total_rtt_us: 0, rtt_samples: 0, total_loss_events: 0 }
+        Self {
+            group_id,
+            total_cwnd: 0,
+            member_count: 0,
+            total_rtt_us: 0,
+            rtt_samples: 0,
+            total_loss_events: 0,
+        }
     }
 
     #[inline(always)]
     pub fn avg_rtt_us(&self) -> u64 {
-        if self.rtt_samples == 0 { 0 } else { self.total_rtt_us / self.rtt_samples }
+        if self.rtt_samples == 0 {
+            0
+        } else {
+            self.total_rtt_us / self.rtt_samples
+        }
     }
 
     #[inline(always)]
     pub fn fair_share_cwnd(&self) -> u64 {
-        if self.member_count == 0 { 0 } else { self.total_cwnd / self.member_count as u64 }
+        if self.member_count == 0 {
+            0
+        } else {
+            self.total_cwnd / self.member_count as u64
+        }
     }
 
     #[inline(always)]
@@ -88,23 +103,45 @@ pub struct CoopTcpConnection {
 impl CoopTcpConnection {
     pub fn new(conn_id: u64) -> Self {
         Self {
-            conn_id, state: CoopTcpState::Idle, congestion: CoopTcpCongestion::Cubic,
-            cwnd: 10, ssthresh: u64::MAX, srtt_us: 0, bytes_sent: 0, bytes_received: 0,
-            retransmits: 0, group_id: None,
+            conn_id,
+            state: CoopTcpState::Idle,
+            congestion: CoopTcpCongestion::Cubic,
+            cwnd: 10,
+            ssthresh: u64::MAX,
+            srtt_us: 0,
+            bytes_sent: 0,
+            bytes_received: 0,
+            retransmits: 0,
+            group_id: None,
         }
     }
 
     #[inline(always)]
-    pub fn send(&mut self, bytes: u64) { self.bytes_sent += bytes; }
+    pub fn send(&mut self, bytes: u64) {
+        self.bytes_sent += bytes;
+    }
     #[inline(always)]
-    pub fn receive(&mut self, bytes: u64) { self.bytes_received += bytes; }
+    pub fn receive(&mut self, bytes: u64) {
+        self.bytes_received += bytes;
+    }
     #[inline(always)]
-    pub fn retransmit(&mut self) { self.retransmits += 1; self.ssthresh = self.cwnd / 2; self.cwnd = self.ssthresh; }
+    pub fn retransmit(&mut self) {
+        self.retransmits += 1;
+        self.ssthresh = self.cwnd / 2;
+        self.cwnd = self.ssthresh;
+    }
     #[inline(always)]
-    pub fn join_group(&mut self, gid: u64) { self.group_id = Some(gid); self.state = CoopTcpState::Sharing; }
+    pub fn join_group(&mut self, gid: u64) {
+        self.group_id = Some(gid);
+        self.state = CoopTcpState::Sharing;
+    }
     #[inline(always)]
     pub fn retransmit_rate(&self) -> f64 {
-        if self.bytes_sent == 0 { 0.0 } else { self.retransmits as f64 / (self.bytes_sent / 1460) as f64 }
+        if self.bytes_sent == 0 {
+            0.0
+        } else {
+            self.retransmits as f64 / (self.bytes_sent / 1460) as f64
+        }
     }
 }
 
@@ -131,13 +168,19 @@ impl CoopTcp {
         Self {
             connections: BTreeMap::new(),
             groups: BTreeMap::new(),
-            stats: CoopTcpStats { total_connections: 0, shared_connections: 0, total_bytes_sent: 0, total_retransmits: 0 },
+            stats: CoopTcpStats {
+                total_connections: 0,
+                shared_connections: 0,
+                total_bytes_sent: 0,
+                total_retransmits: 0,
+            },
         }
     }
 
     #[inline(always)]
     pub fn create_connection(&mut self, conn_id: u64) {
-        self.connections.insert(conn_id, CoopTcpConnection::new(conn_id));
+        self.connections
+            .insert(conn_id, CoopTcpConnection::new(conn_id));
         self.stats.total_connections += 1;
     }
 
@@ -156,7 +199,9 @@ impl CoopTcp {
             }
             self.stats.shared_connections += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }
 
@@ -165,7 +210,12 @@ impl CoopTcp {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TcpCoopV2Event { ConnPool, WindowShare, CongestionSync, KeepAliveGroup }
+pub enum TcpCoopV2Event {
+    ConnPool,
+    WindowShare,
+    CongestionSync,
+    KeepAliveGroup,
+}
 
 /// TCP coop record
 #[derive(Debug, Clone)]
@@ -177,20 +227,43 @@ pub struct TcpCoopV2Record {
 }
 
 impl TcpCoopV2Record {
-    pub fn new(event: TcpCoopV2Event) -> Self { Self { event, connections: 0, window_size: 0, rtt_us: 0 } }
+    pub fn new(event: TcpCoopV2Event) -> Self {
+        Self {
+            event,
+            connections: 0,
+            window_size: 0,
+            rtt_us: 0,
+        }
+    }
 }
 
 /// TCP coop stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct TcpCoopV2Stats { pub total_events: u64, pub pooled: u64, pub syncs: u64, pub keepalives: u64 }
+pub struct TcpCoopV2Stats {
+    pub total_events: u64,
+    pub pooled: u64,
+    pub syncs: u64,
+    pub keepalives: u64,
+}
 
 /// Main coop TCP v2
 #[derive(Debug)]
-pub struct CoopTcpV2 { pub stats: TcpCoopV2Stats }
+pub struct CoopTcpV2 {
+    pub stats: TcpCoopV2Stats,
+}
 
 impl CoopTcpV2 {
-    pub fn new() -> Self { Self { stats: TcpCoopV2Stats { total_events: 0, pooled: 0, syncs: 0, keepalives: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: TcpCoopV2Stats {
+                total_events: 0,
+                pooled: 0,
+                syncs: 0,
+                keepalives: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &TcpCoopV2Record) {
         self.stats.total_events += 1;

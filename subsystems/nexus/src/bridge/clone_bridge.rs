@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-
 /// Clone flags
 use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,16 +45,30 @@ pub struct CloneRequest {
 
 impl CloneRequest {
     pub fn new(id: u64, parent: u64, flags: u64, now: u64) -> Self {
-        Self { id, parent_pid: parent, child_pid: 0, flags, stack_size: 0, timestamp: now, duration_ns: 0, success: false }
+        Self {
+            id,
+            parent_pid: parent,
+            child_pid: 0,
+            flags,
+            stack_size: 0,
+            timestamp: now,
+            duration_ns: 0,
+            success: false,
+        }
     }
 
     #[inline]
     pub fn has_flag(&self, flag: CloneFlag) -> bool {
         let bit = match flag {
-            CloneFlag::Vm => 0x100, CloneFlag::Fs => 0x200, CloneFlag::Files => 0x400,
-            CloneFlag::Sighand => 0x800, CloneFlag::Thread => 0x10000,
-            CloneFlag::NewNs => 0x20000, CloneFlag::NewPid => 0x20000000,
-            CloneFlag::NewNet => 0x40000000, CloneFlag::NewUser => 0x10000000,
+            CloneFlag::Vm => 0x100,
+            CloneFlag::Fs => 0x200,
+            CloneFlag::Files => 0x400,
+            CloneFlag::Sighand => 0x800,
+            CloneFlag::Thread => 0x10000,
+            CloneFlag::NewNs => 0x20000,
+            CloneFlag::NewPid => 0x20000000,
+            CloneFlag::NewNet => 0x40000000,
+            CloneFlag::NewUser => 0x10000000,
             _ => 0,
         };
         self.flags & bit != 0
@@ -81,28 +94,58 @@ pub struct BridgeClone {
 }
 
 impl BridgeClone {
-    pub fn new() -> Self { Self { requests: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            requests: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn clone_process(&mut self, parent: u64, flags: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.requests.insert(id, CloneRequest::new(id, parent, flags, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.requests
+            .insert(id, CloneRequest::new(id, parent, flags, now));
         id
     }
 
     #[inline(always)]
     pub fn complete(&mut self, id: u64, child_pid: u64, dur: u64) {
-        if let Some(r) = self.requests.get_mut(&id) { r.child_pid = child_pid; r.duration_ns = dur; r.success = true; }
+        if let Some(r) = self.requests.get_mut(&id) {
+            r.child_pid = child_pid;
+            r.duration_ns = dur;
+            r.success = true;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> CloneBridgeStats {
         let ok = self.requests.values().filter(|r| r.success).count() as u32;
         let fail = self.requests.len() as u32 - ok;
-        let threads = self.requests.values().filter(|r| r.has_flag(CloneFlag::Thread)).count() as u32;
-        let durs: Vec<u64> = self.requests.values().filter(|r| r.success).map(|r| r.duration_ns).collect();
-        let avg = if durs.is_empty() { 0 } else { durs.iter().sum::<u64>() / durs.len() as u64 };
-        CloneBridgeStats { total_clones: self.requests.len() as u32, successful: ok, failed: fail, thread_creates: threads, avg_duration_ns: avg }
+        let threads = self
+            .requests
+            .values()
+            .filter(|r| r.has_flag(CloneFlag::Thread))
+            .count() as u32;
+        let durs: Vec<u64> = self
+            .requests
+            .values()
+            .filter(|r| r.success)
+            .map(|r| r.duration_ns)
+            .collect();
+        let avg = if durs.is_empty() {
+            0
+        } else {
+            durs.iter().sum::<u64>() / durs.len() as u64
+        };
+        CloneBridgeStats {
+            total_clones: self.requests.len() as u32,
+            successful: ok,
+            failed: fail,
+            thread_creates: threads,
+            avg_duration_ns: avg,
+        }
     }
 }
 
@@ -185,12 +228,25 @@ impl BridgeCloneV2Manager {
         }
     }
 
-    pub fn clone_process(&mut self, _parent_pid: u64, flags: Vec<BridgeCloneV2Flag>, _stack_size: usize) -> u64 {
+    pub fn clone_process(
+        &mut self,
+        _parent_pid: u64,
+        flags: Vec<BridgeCloneV2Flag>,
+        _stack_size: usize,
+    ) -> u64 {
         let is_thread = flags.contains(&BridgeCloneV2Flag::NewThread);
-        let ns_count = flags.iter().filter(|f| matches!(f,
-            BridgeCloneV2Flag::NewPidNs | BridgeCloneV2Flag::NewNetNs |
-            BridgeCloneV2Flag::NewMntNs | BridgeCloneV2Flag::NewUserNs
-        )).count() as u32;
+        let ns_count = flags
+            .iter()
+            .filter(|f| {
+                matches!(
+                    f,
+                    BridgeCloneV2Flag::NewPidNs
+                        | BridgeCloneV2Flag::NewNetNs
+                        | BridgeCloneV2Flag::NewMntNs
+                        | BridgeCloneV2Flag::NewUserNs
+                )
+            })
+            .count() as u32;
         let child_pid = self.next_pid;
         self.next_pid += 1;
         let result = BridgeCloneV2Result {

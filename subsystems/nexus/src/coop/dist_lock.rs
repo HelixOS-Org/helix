@@ -10,10 +10,9 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::vec::Vec;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Lock mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,11 +55,17 @@ pub enum DLockState {
 pub struct FencingToken(pub u64);
 
 impl FencingToken {
-    pub fn new(epoch: u64) -> Self { Self(epoch) }
+    pub fn new(epoch: u64) -> Self {
+        Self(epoch)
+    }
     #[inline(always)]
-    pub fn next(&self) -> Self { Self(self.0 + 1) }
+    pub fn next(&self) -> Self {
+        Self(self.0 + 1)
+    }
     #[inline(always)]
-    pub fn is_valid_after(&self, other: &FencingToken) -> bool { self.0 > other.0 }
+    pub fn is_valid_after(&self, other: &FencingToken) -> bool {
+        self.0 > other.0
+    }
 }
 
 /// Lock holder
@@ -76,15 +81,34 @@ pub struct LockHolder {
 }
 
 impl LockHolder {
-    pub fn new(node: u64, owner: u64, mode: LockMode, fence: FencingToken, ts: u64, lease_ns: u64) -> Self {
-        Self { node_id: node, owner_id: owner, mode, fence, acquired_ts: ts, lease_deadline: ts + lease_ns, conversion_pending: None }
+    pub fn new(
+        node: u64,
+        owner: u64,
+        mode: LockMode,
+        fence: FencingToken,
+        ts: u64,
+        lease_ns: u64,
+    ) -> Self {
+        Self {
+            node_id: node,
+            owner_id: owner,
+            mode,
+            fence,
+            acquired_ts: ts,
+            lease_deadline: ts + lease_ns,
+            conversion_pending: None,
+        }
     }
 
     #[inline(always)]
-    pub fn is_expired(&self, now: u64) -> bool { now > self.lease_deadline }
+    pub fn is_expired(&self, now: u64) -> bool {
+        now > self.lease_deadline
+    }
 
     #[inline(always)]
-    pub fn renew(&mut self, now: u64, lease_ns: u64) { self.lease_deadline = now + lease_ns; }
+    pub fn renew(&mut self, now: u64, lease_ns: u64) {
+        self.lease_deadline = now + lease_ns;
+    }
 }
 
 /// Lock waiter
@@ -99,8 +123,22 @@ pub struct LockWaiter {
 }
 
 impl LockWaiter {
-    pub fn new(node: u64, owner: u64, mode: LockMode, priority: u32, ts: u64, timeout: u64) -> Self {
-        Self { node_id: node, owner_id: owner, requested_mode: mode, priority, enqueued_ts: ts, timeout_ns: timeout }
+    pub fn new(
+        node: u64,
+        owner: u64,
+        mode: LockMode,
+        priority: u32,
+        ts: u64,
+        timeout: u64,
+    ) -> Self {
+        Self {
+            node_id: node,
+            owner_id: owner,
+            requested_mode: mode,
+            priority,
+            enqueued_ts: ts,
+            timeout_ns: timeout,
+        }
     }
 
     #[inline(always)]
@@ -126,20 +164,35 @@ pub struct DistributedLock {
 impl DistributedLock {
     pub fn new(name: String, ts: u64) -> Self {
         Self {
-            name, state: DLockState::Free, holders: Vec::new(), waiters: VecDeque::new(),
-            fence: FencingToken(0), created_ts: ts, grant_count: 0,
-            contention_count: 0, timeout_count: 0,
+            name,
+            state: DLockState::Free,
+            holders: Vec::new(),
+            waiters: VecDeque::new(),
+            fence: FencingToken(0),
+            created_ts: ts,
+            grant_count: 0,
+            contention_count: 0,
+            timeout_count: 0,
         }
     }
 
     #[inline(always)]
     pub fn can_grant(&self, mode: LockMode) -> bool {
-        if self.holders.is_empty() { return true; }
+        if self.holders.is_empty() {
+            return true;
+        }
         self.holders.iter().all(|h| h.mode.is_compatible(&mode))
     }
 
     #[inline]
-    pub fn grant(&mut self, node: u64, owner: u64, mode: LockMode, ts: u64, lease_ns: u64) -> FencingToken {
+    pub fn grant(
+        &mut self,
+        node: u64,
+        owner: u64,
+        mode: LockMode,
+        ts: u64,
+        lease_ns: u64,
+    ) -> FencingToken {
         self.fence = self.fence.next();
         let holder = LockHolder::new(node, owner, mode, self.fence, ts, lease_ns);
         self.holders.push(holder);
@@ -151,8 +204,11 @@ impl DistributedLock {
     #[inline]
     pub fn release(&mut self, node: u64, owner: u64) -> bool {
         let before = self.holders.len();
-        self.holders.retain(|h| !(h.node_id == node && h.owner_id == owner));
-        if self.holders.is_empty() { self.state = DLockState::Free; }
+        self.holders
+            .retain(|h| !(h.node_id == node && h.owner_id == owner));
+        if self.holders.is_empty() {
+            self.state = DLockState::Free;
+        }
         self.holders.len() < before
     }
 
@@ -160,9 +216,16 @@ impl DistributedLock {
     pub fn expire_leases(&mut self, now: u64) -> Vec<LockHolder> {
         let mut expired = Vec::new();
         self.holders.retain(|h| {
-            if h.is_expired(now) { expired.push(h.clone()); false } else { true }
+            if h.is_expired(now) {
+                expired.push(h.clone());
+                false
+            } else {
+                true
+            }
         });
-        if self.holders.is_empty() && !expired.is_empty() { self.state = DLockState::Free; }
+        if self.holders.is_empty() && !expired.is_empty() {
+            self.state = DLockState::Free;
+        }
         expired
     }
 
@@ -170,14 +233,22 @@ impl DistributedLock {
     pub fn enqueue_waiter(&mut self, waiter: LockWaiter) {
         self.contention_count += 1;
         self.waiters.push_back(waiter);
-        self.waiters.make_contiguous().sort_by(|a, b| b.priority.cmp(&a.priority));
+        self.waiters
+            .make_contiguous()
+            .sort_by(|a, b| b.priority.cmp(&a.priority));
     }
 
     #[inline]
     pub fn drain_expired_waiters(&mut self, now: u64) -> Vec<LockWaiter> {
         let mut timed_out = Vec::new();
         self.waiters.retain(|w| {
-            if w.is_timed_out(now) { timed_out.push(w.clone()); self.timeout_count += 1; false } else { true }
+            if w.is_timed_out(now) {
+                timed_out.push(w.clone());
+                self.timeout_count += 1;
+                false
+            } else {
+                true
+            }
         });
         timed_out
     }
@@ -232,24 +303,40 @@ pub struct CoopDistLockMgr {
 
 impl CoopDistLockMgr {
     pub fn new(default_lease_ns: u64) -> Self {
-        Self { locks: BTreeMap::new(), stats: DlmStats::default(), default_lease_ns }
+        Self {
+            locks: BTreeMap::new(),
+            stats: DlmStats::default(),
+            default_lease_ns,
+        }
     }
 
     fn name_hash(name: &str) -> u64 {
         let mut hash: u64 = 0xcbf29ce484222325;
-        for b in name.bytes() { hash ^= b as u64; hash = hash.wrapping_mul(0x100000001b3); }
+        for b in name.bytes() {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
         hash
     }
 
     #[inline]
     pub fn create_lock(&mut self, name: String, ts: u64) -> u64 {
         let id = Self::name_hash(&name);
-        self.locks.entry(id).or_insert_with(|| DistributedLock::new(name, ts));
+        self.locks
+            .entry(id)
+            .or_insert_with(|| DistributedLock::new(name, ts));
         id
     }
 
     #[inline]
-    pub fn try_acquire(&mut self, lock_id: u64, node: u64, owner: u64, mode: LockMode, ts: u64) -> Option<FencingToken> {
+    pub fn try_acquire(
+        &mut self,
+        lock_id: u64,
+        node: u64,
+        owner: u64,
+        mode: LockMode,
+        ts: u64,
+    ) -> Option<FencingToken> {
         let lease = self.default_lease_ns;
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             if lock.can_grant(mode) {
@@ -260,7 +347,16 @@ impl CoopDistLockMgr {
     }
 
     #[inline]
-    pub fn enqueue(&mut self, lock_id: u64, node: u64, owner: u64, mode: LockMode, priority: u32, ts: u64, timeout: u64) {
+    pub fn enqueue(
+        &mut self,
+        lock_id: u64,
+        node: u64,
+        owner: u64,
+        mode: LockMode,
+        priority: u32,
+        ts: u64,
+        timeout: u64,
+    ) {
         if let Some(lock) = self.locks.get_mut(&lock_id) {
             lock.enqueue_waiter(LockWaiter::new(node, owner, mode, priority, ts, timeout));
         }
@@ -289,8 +385,16 @@ impl CoopDistLockMgr {
     #[inline]
     pub fn recompute(&mut self) {
         self.stats.total_locks = self.locks.len();
-        self.stats.held_locks = self.locks.values().filter(|l| l.state == DLockState::Held).count();
-        self.stats.free_locks = self.locks.values().filter(|l| l.state == DLockState::Free).count();
+        self.stats.held_locks = self
+            .locks
+            .values()
+            .filter(|l| l.state == DLockState::Held)
+            .count();
+        self.stats.free_locks = self
+            .locks
+            .values()
+            .filter(|l| l.state == DLockState::Free)
+            .count();
         self.stats.total_holders = self.locks.values().map(|l| l.holders.len()).sum();
         self.stats.total_waiters = self.locks.values().map(|l| l.waiters.len()).sum();
         self.stats.total_grants = self.locks.values().map(|l| l.grant_count).sum();
@@ -299,7 +403,11 @@ impl CoopDistLockMgr {
     }
 
     #[inline(always)]
-    pub fn lock(&self, id: u64) -> Option<&DistributedLock> { self.locks.get(&id) }
+    pub fn lock(&self, id: u64) -> Option<&DistributedLock> {
+        self.locks.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &DlmStats { &self.stats }
+    pub fn stats(&self) -> &DlmStats {
+        &self.stats
+    }
 }

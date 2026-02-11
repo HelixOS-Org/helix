@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -68,11 +67,11 @@ pub enum HolisticAnomalyType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HolisticAnomalySeverity {
     /// Informational
-    Info = 0,
+    Info     = 0,
     /// Warning
-    Warning = 1,
+    Warning  = 1,
     /// Error
-    Error = 2,
+    Error    = 2,
     /// Critical
     Critical = 3,
 }
@@ -373,8 +372,16 @@ impl HolisticAnomalyManager {
         // Check for cascade
         self.check_cascade(&anomaly, timestamp);
 
-        *self.stats.by_severity.entry(anomaly.severity as u8).or_insert(0) += 1;
-        *self.stats.by_source.entry(anomaly.source as u8).or_insert(0) += 1;
+        *self
+            .stats
+            .by_severity
+            .entry(anomaly.severity as u8)
+            .or_insert(0) += 1;
+        *self
+            .stats
+            .by_source
+            .entry(anomaly.source as u8)
+            .or_insert(0) += 1;
         self.stats.total_detected += 1;
 
         self.anomalies.push(anomaly);

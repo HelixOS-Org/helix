@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -127,7 +126,9 @@ impl ProcessShieldState {
 
     #[inline(always)]
     pub fn is_code_addr(&self, addr: u64) -> bool {
-        self.code_regions.iter().any(|(s, e)| addr >= *s && addr < *e)
+        self.code_regions
+            .iter()
+            .any(|(s, e)| addr >= *s && addr < *e)
     }
 
     #[inline(always)]
@@ -185,7 +186,12 @@ pub struct AslrLayout {
 impl AslrLayout {
     #[inline]
     pub fn spread(&self) -> u64 {
-        let bases = [self.text_base, self.stack_base, self.mmap_base, self.heap_base];
+        let bases = [
+            self.text_base,
+            self.stack_base,
+            self.mmap_base,
+            self.heap_base,
+        ];
         let min = bases.iter().copied().min().unwrap_or(0);
         let max = bases.iter().copied().max().unwrap_or(0);
         max.saturating_sub(min)
@@ -318,8 +324,8 @@ impl AppExecShield {
             ViolationType::StackSmash => self.stats.stack_smashes += 1,
             ViolationType::CfiViolation | ViolationType::RopAttempt | ViolationType::JopAttempt => {
                 self.stats.cfi_violations += 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         if kill {
@@ -350,7 +356,9 @@ impl AppExecShield {
 
     #[inline]
     pub fn weakest_processes(&self, top_n: usize) -> Vec<(u64, f64)> {
-        let mut scores: Vec<(u64, f64)> = self.processes.iter()
+        let mut scores: Vec<(u64, f64)> = self
+            .processes
+            .iter()
             .map(|(pid, p)| (*pid, p.security_score()))
             .collect();
         scores.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(core::cmp::Ordering::Equal));

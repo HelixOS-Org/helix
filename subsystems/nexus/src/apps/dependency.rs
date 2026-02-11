@@ -266,7 +266,8 @@ impl DependencyGraph {
     /// Critical edges (blocking or critical strength)
     #[inline]
     pub fn critical_edges(&self) -> Vec<&DependencyEdge> {
-        self.edges.values()
+        self.edges
+            .values()
             .filter(|e| e.strength == DepStrength::Critical || e.state == DepState::Blocked)
             .collect()
     }
@@ -308,7 +309,15 @@ impl AppDependencyAnalyzer {
 
     /// Record dependency
     #[inline]
-    pub fn record(&mut self, source: u64, target: u64, dep_type: AppDepType, bytes: u64, latency_ns: u64, now: u64) {
+    pub fn record(
+        &mut self,
+        source: u64,
+        target: u64,
+        dep_type: AppDepType,
+        bytes: u64,
+        latency_ns: u64,
+        now: u64,
+    ) {
         if let Some(edge) = self.graph.edge_mut(source, target) {
             edge.record(bytes, latency_ns, now);
         } else {
@@ -342,8 +351,12 @@ impl AppDependencyAnalyzer {
         self.stats.node_count = self.graph.node_count();
         self.stats.edge_count = self.graph.edge_count();
         self.stats.cycle_count = self.graph.detect_cycles().len();
-        self.stats.broken_count = self.graph.edges.values()
-            .filter(|e| e.state == DepState::Broken).count();
+        self.stats.broken_count = self
+            .graph
+            .edges
+            .values()
+            .filter(|e| e.state == DepState::Broken)
+            .count();
     }
 
     /// Stats

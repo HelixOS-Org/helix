@@ -7,8 +7,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
@@ -212,11 +211,14 @@ impl CoopCounterfactual {
         trust_level: u64,
         pressure: u64,
     ) {
-        let decision_id = fnv1a_hash(&[
-            resource_id.to_le_bytes().as_slice(),
-            sharer_id.to_le_bytes().as_slice(),
-            self.current_tick.to_le_bytes().as_slice(),
-        ].concat());
+        let decision_id = fnv1a_hash(
+            &[
+                resource_id.to_le_bytes().as_slice(),
+                sharer_id.to_le_bytes().as_slice(),
+                self.current_tick.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
 
         let decision = SharingDecision {
             decision_id,
@@ -252,8 +254,11 @@ impl CoopCounterfactual {
         let record = self.decisions.get(&decision_id)?.clone();
         let alt = self.alternatives.get(&alternative_id)?.clone();
 
-        let alt_amount = record.decision.amount_shared
-            .saturating_mul(alt.sharing_ratio) / 1000;
+        let alt_amount = record
+            .decision
+            .amount_shared
+            .saturating_mul(alt.sharing_ratio)
+            / 1000;
 
         let base_utility = record.decision.actual_utility;
         let alt_utility = self.simulate_utility(
@@ -281,7 +286,8 @@ impl CoopCounterfactual {
 
         self.stats.what_if_analyses = self.stats.what_if_analyses.saturating_add(1);
         if utility_delta > 0 || fairness_delta > 0 {
-            self.stats.improvements_identified = self.stats.improvements_identified.saturating_add(1);
+            self.stats.improvements_identified =
+                self.stats.improvements_identified.saturating_add(1);
         }
 
         Some(WhatIfResult {
@@ -298,7 +304,9 @@ impl CoopCounterfactual {
 
     /// Compute fairness regret over a period.
     pub fn fairness_regret(&mut self, period_start: u64, period_end: u64) -> FairnessRegret {
-        let period_decisions: Vec<&DecisionRecord> = self.decisions.values()
+        let period_decisions: Vec<&DecisionRecord> = self
+            .decisions
+            .values()
             .filter(|d| d.decision.tick >= period_start && d.decision.tick <= period_end)
             .collect();
 
@@ -329,8 +337,7 @@ impl CoopCounterfactual {
         }
 
         let regret_score = actual_gini.saturating_sub(optimal_gini);
-        let improvement_potential = regret_score.saturating_mul(100)
-            / actual_gini.max(1);
+        let improvement_potential = regret_score.saturating_mul(100) / actual_gini.max(1);
 
         self.stats.regret_computations = self.stats.regret_computations.saturating_add(1);
         self.stats.avg_regret = ema_update(self.stats.avg_regret, regret_score, 200, 1000);
@@ -356,8 +363,11 @@ impl CoopCounterfactual {
         let mut best_fairness: u64 = 0;
 
         for alt in self.alternatives.values() {
-            let alt_amount = record.decision.amount_shared
-                .saturating_mul(alt.sharing_ratio) / 1000;
+            let alt_amount = record
+                .decision
+                .amount_shared
+                .saturating_mul(alt.sharing_ratio)
+                / 1000;
             let utility = self.simulate_utility(
                 alt_amount,
                 record.resource_pressure,
@@ -372,7 +382,9 @@ impl CoopCounterfactual {
             );
 
             let combined = utility.saturating_add(fairness as i64);
-            let _actual_combined = record.decision.actual_utility
+            let _actual_combined = record
+                .decision
+                .actual_utility
                 .saturating_add(record.decision.actual_fairness as i64);
 
             if combined > best_utility.saturating_add(best_fairness as i64) {
@@ -385,7 +397,8 @@ impl CoopCounterfactual {
         let margin = best_utility - record.decision.actual_utility;
         let cost = if margin > 0 { margin as u64 / 10 } else { 0 };
 
-        self.stats.optimal_alternatives_found = self.stats.optimal_alternatives_found.saturating_add(1);
+        self.stats.optimal_alternatives_found =
+            self.stats.optimal_alternatives_found.saturating_add(1);
         self.stats.avg_improvement_potential = ema_update(
             self.stats.avg_improvement_potential,
             margin.max(0) as u64,
@@ -411,7 +424,9 @@ impl CoopCounterfactual {
             .copied()
             .unwrap_or(500);
 
-        let partner_decisions: Vec<&DecisionRecord> = self.decisions.values()
+        let partner_decisions: Vec<&DecisionRecord> = self
+            .decisions
+            .values()
             .filter(|d| d.partners_involved.contains(&partner_id))
             .collect();
 
@@ -438,7 +453,8 @@ impl CoopCounterfactual {
         }
 
         let avg_delta = if !partner_decisions.is_empty() {
-            trust_delta_sum / (partner_decisions.len() as i64 * self.alternatives.len().max(1) as i64).max(1)
+            trust_delta_sum
+                / (partner_decisions.len() as i64 * self.alternatives.len().max(1) as i64).max(1)
         } else {
             0
         };
@@ -464,7 +480,9 @@ impl CoopCounterfactual {
     /// Compute potential sharing improvement for recent decisions.
     pub fn sharing_improvement(&mut self, window: u64) -> u64 {
         let cutoff = self.current_tick.saturating_sub(window);
-        let recent: Vec<u64> = self.decisions.values()
+        let recent: Vec<u64> = self
+            .decisions
+            .values()
             .filter(|d| d.decision.tick >= cutoff)
             .map(|d| d.decision.decision_id)
             .collect();
@@ -475,8 +493,8 @@ impl CoopCounterfactual {
         for did in recent {
             if let Some(opt) = self.optimal_alternative(did) {
                 if opt.margin_over_actual > 0 {
-                    total_improvement = total_improvement
-                        .saturating_add(opt.margin_over_actual as u64);
+                    total_improvement =
+                        total_improvement.saturating_add(opt.margin_over_actual as u64);
                 }
             }
         }
@@ -487,7 +505,9 @@ impl CoopCounterfactual {
     /// Run hindsight fairness analysis for a cooperation period.
     pub fn hindsight_fairness(&mut self, period_ticks: u64) -> HindsightFairness {
         let cutoff = self.current_tick.saturating_sub(period_ticks);
-        let period_decisions: Vec<u64> = self.decisions.values()
+        let period_decisions: Vec<u64> = self
+            .decisions
+            .values()
             .filter(|d| d.decision.tick >= cutoff)
             .map(|d| d.decision.decision_id)
             .collect();
@@ -501,16 +521,16 @@ impl CoopCounterfactual {
 
         for &did in &period_decisions {
             if let Some(record) = self.decisions.get(&did) {
-                fairness_actual_sum = fairness_actual_sum
-                    .saturating_add(record.decision.actual_fairness);
+                fairness_actual_sum =
+                    fairness_actual_sum.saturating_add(record.decision.actual_fairness);
             }
 
             if let Some(opt) = self.optimal_alternative(did) {
                 fairness_optimal_sum = fairness_optimal_sum.saturating_add(opt.best_fairness);
                 if opt.margin_over_actual > 0 {
                     improvements_found += 1;
-                    total_improvement = total_improvement
-                        .saturating_add(opt.margin_over_actual as u64);
+                    total_improvement =
+                        total_improvement.saturating_add(opt.margin_over_actual as u64);
                 }
             }
         }
@@ -550,18 +570,21 @@ impl CoopCounterfactual {
 
     fn seed_default_alternatives(&mut self) {
         let configs: [(u64, u64, i64); 5] = [
-            (500, 500, 0),    // equal split
-            (800, 300, 20),   // generous
-            (300, 800, -10),  // selfish
-            (600, 600, 10),   // balanced cooperative
-            (400, 400, -5),   // cautious
+            (500, 500, 0),   // equal split
+            (800, 300, 20),  // generous
+            (300, 800, -10), // selfish
+            (600, 600, 10),  // balanced cooperative
+            (400, 400, -5),  // cautious
         ];
 
         for (ratio, weight, bonus) in &configs {
-            let sid = fnv1a_hash(&[
-                ratio.to_le_bytes().as_slice(),
-                weight.to_le_bytes().as_slice(),
-            ].concat());
+            let sid = fnv1a_hash(
+                &[
+                    ratio.to_le_bytes().as_slice(),
+                    weight.to_le_bytes().as_slice(),
+                ]
+                .concat(),
+            );
             self.alternatives.insert(sid, AlternativeStrategy {
                 strategy_id: sid,
                 description_hash: fnv1a_hash(&sid.to_le_bytes()),
@@ -572,13 +595,7 @@ impl CoopCounterfactual {
         }
     }
 
-    fn simulate_utility(
-        &self,
-        amount: u64,
-        pressure: u64,
-        trust: u64,
-        bonus: i64,
-    ) -> i64 {
+    fn simulate_utility(&self, amount: u64, pressure: u64, trust: u64, bonus: i64) -> i64 {
         let base = amount as i64;
         let pressure_factor = (1000u64.saturating_sub(pressure)) as i64;
         let trust_factor = trust as i64;
@@ -596,13 +613,11 @@ impl CoopCounterfactual {
         priority_weight: u64,
     ) -> u64 {
         let balance = if alt_amount > actual_amount {
-            actual_fairness.saturating_add(
-                (alt_amount - actual_amount).saturating_mul(priority_weight) / 1000,
-            )
+            actual_fairness
+                .saturating_add((alt_amount - actual_amount).saturating_mul(priority_weight) / 1000)
         } else {
-            actual_fairness.saturating_sub(
-                (actual_amount - alt_amount).saturating_mul(priority_weight) / 1000,
-            )
+            actual_fairness
+                .saturating_sub((actual_amount - alt_amount).saturating_mul(priority_weight) / 1000)
         };
         balance.min(1000)
     }
@@ -612,7 +627,8 @@ impl CoopCounterfactual {
             return 0;
         }
 
-        let mut utilities: Vec<u64> = decisions.iter()
+        let mut utilities: Vec<u64> = decisions
+            .iter()
             .map(|d| d.decision.actual_utility.max(0) as u64)
             .collect();
         utilities.sort();
@@ -625,9 +641,8 @@ impl CoopCounterfactual {
 
         let mut numerator: u64 = 0;
         for (i, &val) in utilities.iter().enumerate() {
-            numerator = numerator.saturating_add(
-                val.saturating_mul((2 * (i as u64) + 1).saturating_sub(n)),
-            );
+            numerator = numerator
+                .saturating_add(val.saturating_mul((2 * (i as u64) + 1).saturating_sub(n)));
         }
 
         numerator.saturating_mul(1000) / (n.saturating_mul(total)).max(1)
@@ -641,18 +656,20 @@ impl CoopCounterfactual {
         utility: i64,
         fairness: u64,
     ) {
-        let record = self.process_history.entry(process_id)
-            .or_insert_with(|| ProcessSharingHistory {
-                process_id,
-                total_shared: 0,
-                total_received: 0,
-                ema_utility: 0,
-                fairness_history: VecDeque::new(),
-            });
+        let record =
+            self.process_history
+                .entry(process_id)
+                .or_insert_with(|| ProcessSharingHistory {
+                    process_id,
+                    total_shared: 0,
+                    total_received: 0,
+                    ema_utility: 0,
+                    fairness_history: VecDeque::new(),
+                });
         record.total_shared = record.total_shared.saturating_add(shared);
         record.total_received = record.total_received.saturating_add(received);
-        record.ema_utility = (record.ema_utility.saturating_mul(800)
-            + utility.saturating_mul(200)) / 1000;
+        record.ema_utility =
+            (record.ema_utility.saturating_mul(800) + utility.saturating_mul(200)) / 1000;
         record.fairness_history.push_back(fairness);
         if record.fairness_history.len() > 128 {
             record.fairness_history.remove(0).unwrap();
@@ -661,7 +678,9 @@ impl CoopCounterfactual {
 
     fn prune_decisions(&mut self) {
         while self.decisions.len() > self.max_decisions {
-            let oldest = self.decisions.iter()
+            let oldest = self
+                .decisions
+                .iter()
                 .min_by_key(|(_, v)| v.decision.tick)
                 .map(|(&k, _)| k);
             if let Some(key) = oldest {

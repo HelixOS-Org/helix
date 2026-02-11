@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -24,9 +23,9 @@ pub enum OverflowAction {
 /// Message priority
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MsgPriority {
-    Bulk = 0,
-    Normal = 1,
-    High = 2,
+    Bulk     = 0,
+    Normal   = 1,
+    High     = 2,
     Realtime = 3,
 }
 
@@ -73,7 +72,14 @@ pub struct Producer {
 
 impl Producer {
     pub fn new(id: u64, pid: u64) -> Self {
-        Self { id, pid, enqueued: 0, blocked_count: 0, dropped_count: 0, bytes_sent: 0 }
+        Self {
+            id,
+            pid,
+            enqueued: 0,
+            blocked_count: 0,
+            dropped_count: 0,
+            bytes_sent: 0,
+        }
     }
 
     #[inline(always)]
@@ -90,7 +96,9 @@ impl Producer {
     #[inline]
     pub fn success_rate(&self) -> f64 {
         let total = self.enqueued + self.dropped_count;
-        if total == 0 { return 1.0; }
+        if total == 0 {
+            return 1.0;
+        }
         self.enqueued as f64 / total as f64
     }
 }
@@ -108,7 +116,14 @@ pub struct Consumer {
 
 impl Consumer {
     pub fn new(id: u64, pid: u64) -> Self {
-        Self { id, pid, dequeued: 0, empty_polls: 0, bytes_received: 0, total_latency_ns: 0 }
+        Self {
+            id,
+            pid,
+            dequeued: 0,
+            empty_polls: 0,
+            bytes_received: 0,
+            total_latency_ns: 0,
+        }
     }
 
     #[inline]
@@ -120,14 +135,18 @@ impl Consumer {
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> f64 {
-        if self.dequeued == 0 { return 0.0; }
+        if self.dequeued == 0 {
+            return 0.0;
+        }
         self.total_latency_ns as f64 / self.dequeued as f64
     }
 
     #[inline]
     pub fn empty_rate(&self) -> f64 {
         let total = self.dequeued + self.empty_polls;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.empty_polls as f64 / total as f64
     }
 }
@@ -196,20 +215,20 @@ impl MpscInstance {
                     }
                     self.total_drops += 1;
                     return None;
-                }
+                },
                 OverflowAction::DropOldest => {
                     self.queue.remove(0);
                     self.total_drops += 1;
-                }
+                },
                 OverflowAction::Expand => {
                     self.capacity = self.capacity * 3 / 2;
-                }
+                },
                 OverflowAction::Block => {
                     if let Some(p) = self.producers.iter_mut().find(|p| p.pid == producer_pid) {
                         p.blocked_count += 1;
                     }
                     return None;
-                }
+                },
             }
         }
 
@@ -255,13 +274,17 @@ impl MpscInstance {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.capacity == 0 { return 0.0; }
+        if self.capacity == 0 {
+            return 0.0;
+        }
         self.queue.len() as f64 / self.capacity as f64
     }
 
     #[inline(always)]
     pub fn throughput_ratio(&self) -> f64 {
-        if self.total_enqueues == 0 { return 0.0; }
+        if self.total_enqueues == 0 {
+            return 0.0;
+        }
         self.total_dequeues as f64 / self.total_enqueues as f64
     }
 
@@ -311,7 +334,8 @@ impl CoopMpscQueue {
     pub fn create_queue(&mut self, name: String, capacity: usize) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.queues.insert(id, MpscInstance::new(id, name, capacity));
+        self.queues
+            .insert(id, MpscInstance::new(id, name, capacity));
         self.stats.total_queues += 1;
         id
     }
@@ -336,7 +360,13 @@ impl CoopMpscQueue {
         eid
     }
 
-    pub fn enqueue(&mut self, queue_id: u64, producer_pid: u64, size: usize, now_ns: u64) -> Option<u64> {
+    pub fn enqueue(
+        &mut self,
+        queue_id: u64,
+        producer_pid: u64,
+        size: usize,
+        now_ns: u64,
+    ) -> Option<u64> {
         if let Some(q) = self.queues.get_mut(&queue_id) {
             let result = q.enqueue(producer_pid, size, now_ns);
             if result.is_some() {
@@ -366,7 +396,9 @@ impl CoopMpscQueue {
 
     #[inline]
     pub fn fullest_queues(&self, top: usize) -> Vec<(u64, f64)> {
-        let mut v: Vec<(u64, f64)> = self.queues.iter()
+        let mut v: Vec<(u64, f64)> = self
+            .queues
+            .iter()
             .map(|(&id, q)| (id, q.utilization()))
             .collect();
         v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));

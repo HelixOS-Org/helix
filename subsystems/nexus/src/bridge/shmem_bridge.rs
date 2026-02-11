@@ -6,7 +6,12 @@ use alloc::collections::BTreeMap;
 
 /// Shared memory type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BridgeShmemType { SysV, Posix, Memfd, Anonymous }
+pub enum BridgeShmemType {
+    SysV,
+    Posix,
+    Memfd,
+    Anonymous,
+}
 
 /// Shared memory region
 #[derive(Debug, Clone)]
@@ -43,34 +48,69 @@ impl BridgeShmemManager {
         Self {
             segments: BTreeMap::new(),
             next_id: 1,
-            stats: BridgeShmemStats { total_created: 0, total_attached: 0, total_detached: 0, active_segments: 0, total_bytes: 0 },
+            stats: BridgeShmemStats {
+                total_created: 0,
+                total_attached: 0,
+                total_detached: 0,
+                active_segments: 0,
+                total_bytes: 0,
+            },
         }
     }
 
     #[inline]
     pub fn create(&mut self, size: u64, shm_type: BridgeShmemType, creator: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        let region = BridgeShmemRegion { id, shm_type, size, attach_count: 0, creator_pid: creator, permissions: 0o666 };
+        let id = self.next_id;
+        self.next_id += 1;
+        let region = BridgeShmemRegion {
+            id,
+            shm_type,
+            size,
+            attach_count: 0,
+            creator_pid: creator,
+            permissions: 0o666,
+        };
         self.segments.insert(id, region);
-        self.stats.total_created += 1; self.stats.active_segments += 1; self.stats.total_bytes += size;
+        self.stats.total_created += 1;
+        self.stats.active_segments += 1;
+        self.stats.total_bytes += size;
         id
     }
 
     #[inline(always)]
     pub fn attach(&mut self, id: u64) -> bool {
-        if let Some(r) = self.segments.get_mut(&id) { r.attach_count += 1; self.stats.total_attached += 1; true } else { false }
+        if let Some(r) = self.segments.get_mut(&id) {
+            r.attach_count += 1;
+            self.stats.total_attached += 1;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn detach(&mut self, id: u64) -> bool {
-        if let Some(r) = self.segments.get_mut(&id) { r.attach_count = r.attach_count.saturating_sub(1); self.stats.total_detached += 1; true } else { false }
+        if let Some(r) = self.segments.get_mut(&id) {
+            r.attach_count = r.attach_count.saturating_sub(1);
+            self.stats.total_detached += 1;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn destroy(&mut self, id: u64) -> bool {
-        if self.segments.remove(&id).is_some() { self.stats.active_segments -= 1; true } else { false }
+        if self.segments.remove(&id).is_some() {
+            self.stats.active_segments -= 1;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeShmemStats { &self.stats }
+    pub fn stats(&self) -> &BridgeShmemStats {
+        &self.stats
+    }
 }

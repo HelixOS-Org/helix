@@ -1,8 +1,9 @@
 //! NUMA topology analysis and optimization.
 
-use crate::fast::linear_map::LinearMap;
 use alloc::vec;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // NUMA ANALYZER

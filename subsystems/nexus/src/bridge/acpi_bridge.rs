@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -197,8 +196,12 @@ impl BridgeAcpi {
             sleep_states_supported: Vec::new(),
             current_sleep: SleepState::S0,
             stats: AcpiBridgeStats {
-                table_count: 0, device_count: 0, gpe_count: 0,
-                event_count: 0, sleep_transitions: 0, wake_events: 0,
+                table_count: 0,
+                device_count: 0,
+                gpe_count: 0,
+                event_count: 0,
+                sleep_transitions: 0,
+                wake_events: 0,
             },
         }
     }
@@ -245,7 +248,10 @@ impl BridgeAcpi {
 
     #[inline(always)]
     pub fn wake_devices(&self) -> Vec<&AcpiDevice> {
-        self.devices.values().filter(|d| d.wake_capable && d.wake_enabled).collect()
+        self.devices
+            .values()
+            .filter(|d| d.wake_capable && d.wake_enabled)
+            .collect()
     }
 
     #[inline(always)]
@@ -260,7 +266,11 @@ impl BridgeAcpi {
 
     #[inline]
     pub fn hottest_gpes(&self, n: usize) -> Vec<(u32, u64)> {
-        let mut v: Vec<_> = self.gpes.iter().map(|(&num, g)| (num, g.dispatch_count)).collect();
+        let mut v: Vec<_> = self
+            .gpes
+            .iter()
+            .map(|(&num, g)| (num, g.dispatch_count))
+            .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
         v.truncate(n);
         v

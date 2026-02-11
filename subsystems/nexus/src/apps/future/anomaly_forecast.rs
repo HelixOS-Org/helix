@@ -15,8 +15,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -511,7 +510,8 @@ impl AppsAnomalyForecast {
         self.stats.prevention_actions_suggested += warnings.len() as u64;
 
         for w in &warnings {
-            self.ema_lead_time = ema_update(self.ema_lead_time, w.lead_time_ticks as f64, EMA_ALPHA);
+            self.ema_lead_time =
+                ema_update(self.ema_lead_time, w.lead_time_ticks as f64, EMA_ALPHA);
         }
         self.stats.average_lead_time = self.ema_lead_time;
 

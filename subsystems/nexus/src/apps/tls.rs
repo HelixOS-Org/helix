@@ -45,12 +45,22 @@ pub struct TlsModule {
 
 impl TlsModule {
     pub fn new(id: u64, size: u64, align: u64, model: TlsModel) -> Self {
-        Self { id, size, align, init_size: size, offset: 0, model, generation: 0 }
+        Self {
+            id,
+            size,
+            align,
+            init_size: size,
+            offset: 0,
+            model,
+            generation: 0,
+        }
     }
 
     #[inline(always)]
     pub fn aligned_size(&self) -> u64 {
-        if self.align == 0 { return self.size; }
+        if self.align == 0 {
+            return self.size;
+        }
         (self.size + self.align - 1) & !(self.align - 1)
     }
 }
@@ -67,17 +77,31 @@ pub struct TlsBlock {
 
 impl TlsBlock {
     pub fn new(thread_id: u64, module_id: u64, base: u64) -> Self {
-        Self { thread_id, module_id, base_addr: base, state: TlsBlockState::Uninitialized, access_count: 0 }
+        Self {
+            thread_id,
+            module_id,
+            base_addr: base,
+            state: TlsBlockState::Uninitialized,
+            access_count: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn initialize(&mut self) { self.state = TlsBlockState::Initializing; }
+    pub fn initialize(&mut self) {
+        self.state = TlsBlockState::Initializing;
+    }
     #[inline(always)]
-    pub fn ready(&mut self) { self.state = TlsBlockState::Ready; }
+    pub fn ready(&mut self) {
+        self.state = TlsBlockState::Ready;
+    }
     #[inline(always)]
-    pub fn free(&mut self) { self.state = TlsBlockState::Freed; }
+    pub fn free(&mut self) {
+        self.state = TlsBlockState::Freed;
+    }
     #[inline(always)]
-    pub fn access(&mut self) { self.access_count += 1; }
+    pub fn access(&mut self) {
+        self.access_count += 1;
+    }
 }
 
 /// DTV (Dynamic Thread Vector) entry
@@ -104,8 +128,12 @@ pub struct ThreadTlsState {
 impl ThreadTlsState {
     pub fn new(thread_id: u64, tp_addr: u64, variant: TlsVariant) -> Self {
         Self {
-            thread_id, dtv: Vec::new(), tp_addr, variant,
-            blocks: BTreeMap::new(), total_accesses: 0,
+            thread_id,
+            dtv: Vec::new(),
+            tp_addr,
+            variant,
+            blocks: BTreeMap::new(),
+            total_accesses: 0,
         }
     }
 
@@ -113,7 +141,12 @@ impl ThreadTlsState {
     pub fn allocate_block(&mut self, module_id: u64, base: u64) {
         let block = TlsBlock::new(self.thread_id, module_id, base);
         self.blocks.insert(module_id, block);
-        self.dtv.push(DtvEntry { module_id, block_addr: base, generation: 0, allocated: true });
+        self.dtv.push(DtvEntry {
+            module_id,
+            block_addr: base,
+            generation: 0,
+            allocated: true,
+        });
     }
 
     #[inline]
@@ -122,7 +155,9 @@ impl ThreadTlsState {
             block.access();
             self.total_accesses += 1;
             Some(block.base_addr)
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 
@@ -147,7 +182,12 @@ pub struct AppTlsV2 {
 
 impl AppTlsV2 {
     pub fn new() -> Self {
-        Self { modules: BTreeMap::new(), threads: BTreeMap::new(), next_module_id: 1, next_offset: 0 }
+        Self {
+            modules: BTreeMap::new(),
+            threads: BTreeMap::new(),
+            next_module_id: 1,
+            next_offset: 0,
+        }
     }
 
     #[inline]
@@ -163,14 +203,17 @@ impl AppTlsV2 {
 
     #[inline(always)]
     pub fn create_thread(&mut self, thread_id: u64, tp_addr: u64, variant: TlsVariant) {
-        self.threads.insert(thread_id, ThreadTlsState::new(thread_id, tp_addr, variant));
+        self.threads
+            .insert(thread_id, ThreadTlsState::new(thread_id, tp_addr, variant));
     }
 
     #[inline]
     pub fn allocate_block(&mut self, thread_id: u64, module_id: u64) -> Option<u64> {
         let module = self.modules.get(&module_id)?;
         let base = module.offset; // simplified
-        self.threads.get_mut(&thread_id)?.allocate_block(module_id, base);
+        self.threads
+            .get_mut(&thread_id)?
+            .allocate_block(module_id, base);
         Some(base)
     }
 
@@ -180,8 +223,11 @@ impl AppTlsV2 {
         let bytes: u64 = self.modules.values().map(|m| m.aligned_size()).sum();
         let accesses: u64 = self.threads.values().map(|t| t.total_accesses).sum();
         TlsV2Stats {
-            total_modules: self.modules.len() as u32, total_threads: self.threads.len() as u32,
-            total_blocks: blocks, total_tls_bytes: bytes, total_accesses: accesses,
+            total_modules: self.modules.len() as u32,
+            total_threads: self.threads.len() as u32,
+            total_blocks: blocks,
+            total_tls_bytes: bytes,
+            total_accesses: accesses,
         }
     }
 }

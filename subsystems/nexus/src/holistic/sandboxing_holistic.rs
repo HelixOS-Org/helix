@@ -26,7 +26,14 @@ pub struct SandboxHolisticFinding {
 
 impl SandboxHolisticFinding {
     pub fn new(metric: SandboxHolisticMetric) -> Self {
-        Self { metric, score: 0, pid: 0, sandbox_layers: 0, escape_vectors: 0, accessible_syscalls: 0 }
+        Self {
+            metric,
+            score: 0,
+            pid: 0,
+            sandbox_layers: 0,
+            escape_vectors: 0,
+            accessible_syscalls: 0,
+        }
     }
 }
 
@@ -48,15 +55,27 @@ pub struct HolisticSandboxing {
 
 impl HolisticSandboxing {
     pub fn new() -> Self {
-        Self { stats: SandboxHolisticStats { total_analyses: 0, weak_sandboxes: 0, escape_risks: 0, avg_layers: 0.0 } }
+        Self {
+            stats: SandboxHolisticStats {
+                total_analyses: 0,
+                weak_sandboxes: 0,
+                escape_risks: 0,
+                avg_layers: 0.0,
+            },
+        }
     }
 
     #[inline]
     pub fn analyze(&mut self, finding: &SandboxHolisticFinding) {
         self.stats.total_analyses += 1;
-        if finding.sandbox_layers < 2 { self.stats.weak_sandboxes += 1; }
-        if finding.escape_vectors > 0 { self.stats.escape_risks += finding.escape_vectors as u64; }
+        if finding.sandbox_layers < 2 {
+            self.stats.weak_sandboxes += 1;
+        }
+        if finding.escape_vectors > 0 {
+            self.stats.escape_risks += finding.escape_vectors as u64;
+        }
         let n = self.stats.total_analyses as f64;
-        self.stats.avg_layers = self.stats.avg_layers * ((n - 1.0) / n) + finding.sandbox_layers as f64 / n;
+        self.stats.avg_layers =
+            self.stats.avg_layers * ((n - 1.0) / n) + finding.sandbox_layers as f64 / n;
     }
 }

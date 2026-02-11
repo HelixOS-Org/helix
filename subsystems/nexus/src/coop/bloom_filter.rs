@@ -44,7 +44,12 @@ impl BloomFilter {
         let bit_count = optimal_bits(expected_items, fp_rate).max(64);
         let num_hashes = optimal_hashes(bit_count, expected_items).max(1);
         let words = (bit_count + 63) / 64;
-        Self { bits: alloc::vec![0u64; words], bit_count, num_hashes, item_count: 0 }
+        Self {
+            bits: alloc::vec![0u64; words],
+            bit_count,
+            num_hashes,
+            item_count: 0,
+        }
     }
 
     #[inline]
@@ -60,14 +65,18 @@ impl BloomFilter {
     pub fn contains(&self, item: u64) -> bool {
         let positions = bloom_hashes(item, self.num_hashes, self.bit_count);
         for pos in positions {
-            if self.bits[pos / 64] & (1u64 << (pos % 64)) == 0 { return false; }
+            if self.bits[pos / 64] & (1u64 << (pos % 64)) == 0 {
+                return false;
+            }
         }
         true
     }
 
     #[inline(always)]
     pub fn clear(&mut self) {
-        for w in &mut self.bits { *w = 0; }
+        for w in &mut self.bits {
+            *w = 0;
+        }
         self.item_count = 0;
     }
 
@@ -91,11 +100,17 @@ impl BloomFilter {
     }
 
     #[inline(always)]
-    pub fn item_count(&self) -> u64 { self.item_count }
+    pub fn item_count(&self) -> u64 {
+        self.item_count
+    }
     #[inline(always)]
-    pub fn bit_count(&self) -> usize { self.bit_count }
+    pub fn bit_count(&self) -> usize {
+        self.bit_count
+    }
     #[inline(always)]
-    pub fn size_bytes(&self) -> usize { self.bits.len() * 8 }
+    pub fn size_bytes(&self) -> usize {
+        self.bits.len() * 8
+    }
 
     #[inline(always)]
     pub fn fill_ratio(&self) -> f64 {
@@ -118,15 +133,24 @@ impl CountingBloomFilter {
     pub fn new(expected_items: usize, fp_rate: f64) -> Self {
         let bit_count = optimal_bits(expected_items, fp_rate).max(64);
         let num_hashes = optimal_hashes(bit_count, expected_items).max(1);
-        Self { counters: alloc::vec![0u8; bit_count], bit_count, num_hashes, item_count: 0, overflow_count: 0 }
+        Self {
+            counters: alloc::vec![0u8; bit_count],
+            bit_count,
+            num_hashes,
+            item_count: 0,
+            overflow_count: 0,
+        }
     }
 
     #[inline]
     pub fn insert(&mut self, item: u64) {
         let positions = bloom_hashes(item, self.num_hashes, self.bit_count);
         for pos in positions {
-            if self.counters[pos] < 255 { self.counters[pos] += 1; }
-            else { self.overflow_count += 1; }
+            if self.counters[pos] < 255 {
+                self.counters[pos] += 1;
+            } else {
+                self.overflow_count += 1;
+            }
         }
         self.item_count += 1;
     }
@@ -135,10 +159,14 @@ impl CountingBloomFilter {
         let positions = bloom_hashes(item, self.num_hashes, self.bit_count);
         // Check membership first
         for &pos in &positions {
-            if self.counters[pos] == 0 { return false; }
+            if self.counters[pos] == 0 {
+                return false;
+            }
         }
         for pos in positions {
-            if self.counters[pos] > 0 { self.counters[pos] -= 1; }
+            if self.counters[pos] > 0 {
+                self.counters[pos] -= 1;
+            }
         }
         self.item_count = self.item_count.saturating_sub(1);
         true
@@ -151,11 +179,17 @@ impl CountingBloomFilter {
     }
 
     #[inline(always)]
-    pub fn item_count(&self) -> u64 { self.item_count }
+    pub fn item_count(&self) -> u64 {
+        self.item_count
+    }
     #[inline(always)]
-    pub fn size_bytes(&self) -> usize { self.counters.len() }
+    pub fn size_bytes(&self) -> usize {
+        self.counters.len()
+    }
     #[inline(always)]
-    pub fn overflow_count(&self) -> u64 { self.overflow_count }
+    pub fn overflow_count(&self) -> u64 {
+        self.overflow_count
+    }
 }
 
 /// Scalable Bloom filter that grows as needed
@@ -172,8 +206,11 @@ impl ScalableBloomFilter {
     pub fn new(initial_capacity: usize, fp_rate: f64) -> Self {
         let first = BloomFilter::new(initial_capacity, fp_rate / 2.0);
         Self {
-            filters: alloc::vec![first], initial_capacity, fp_rate,
-            growth_factor: 2, total_items: 0,
+            filters: alloc::vec![first],
+            initial_capacity,
+            fp_rate,
+            growth_factor: 2,
+            total_items: 0,
         }
     }
 
@@ -196,11 +233,17 @@ impl ScalableBloomFilter {
     }
 
     #[inline(always)]
-    pub fn total_items(&self) -> u64 { self.total_items }
+    pub fn total_items(&self) -> u64 {
+        self.total_items
+    }
     #[inline(always)]
-    pub fn filter_count(&self) -> usize { self.filters.len() }
+    pub fn filter_count(&self) -> usize {
+        self.filters.len()
+    }
     #[inline(always)]
-    pub fn total_size_bytes(&self) -> usize { self.filters.iter().map(|f| f.size_bytes()).sum() }
+    pub fn total_size_bytes(&self) -> usize {
+        self.filters.iter().map(|f| f.size_bytes()).sum()
+    }
 }
 
 /// Bloom filter stats
@@ -222,7 +265,10 @@ pub struct CoopBloomFilter {
 
 impl CoopBloomFilter {
     pub fn new() -> Self {
-        Self { filters: Vec::new(), stats: BloomFilterStats::default() }
+        Self {
+            filters: Vec::new(),
+            stats: BloomFilterStats::default(),
+        }
     }
 
     #[inline(always)]
@@ -239,7 +285,11 @@ impl CoopBloomFilter {
 
     #[inline(always)]
     pub fn contains(&self, filter_id: u64, item: u64) -> bool {
-        self.filters.iter().find(|(id, _)| *id == filter_id).map(|(_, f)| f.contains(item)).unwrap_or(false)
+        self.filters
+            .iter()
+            .find(|(id, _)| *id == filter_id)
+            .map(|(_, f)| f.contains(item))
+            .unwrap_or(false)
     }
 
     #[inline]
@@ -248,13 +298,25 @@ impl CoopBloomFilter {
         self.stats.total_items = self.filters.iter().map(|(_, f)| f.item_count()).sum();
         self.stats.total_memory_bytes = self.filters.iter().map(|(_, f)| f.size_bytes()).sum();
         if !self.filters.is_empty() {
-            self.stats.avg_fill_ratio = self.filters.iter().map(|(_, f)| f.fill_ratio()).sum::<f64>() / self.filters.len() as f64;
-            self.stats.estimated_fp_rate = self.filters.iter().map(|(_, f)| f.estimated_fp_rate()).sum::<f64>() / self.filters.len() as f64;
+            self.stats.avg_fill_ratio = self
+                .filters
+                .iter()
+                .map(|(_, f)| f.fill_ratio())
+                .sum::<f64>()
+                / self.filters.len() as f64;
+            self.stats.estimated_fp_rate = self
+                .filters
+                .iter()
+                .map(|(_, f)| f.estimated_fp_rate())
+                .sum::<f64>()
+                / self.filters.len() as f64;
         }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &BloomFilterStats { &self.stats }
+    pub fn stats(&self) -> &BloomFilterStats {
+        &self.stats
+    }
 }
 
 fn optimal_bits(n: usize, p: f64) -> usize {

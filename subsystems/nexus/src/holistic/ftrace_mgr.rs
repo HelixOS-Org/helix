@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Trace event type
@@ -54,20 +53,33 @@ pub struct TraceBuffer {
 
 impl TraceBuffer {
     pub fn new(cpu: u32, capacity: usize) -> Self {
-        Self { cpu, events: VecDeque::new(), capacity, overruns: 0, total_events: 0 }
+        Self {
+            cpu,
+            events: VecDeque::new(),
+            capacity,
+            overruns: 0,
+            total_events: 0,
+        }
     }
 
     #[inline]
     pub fn write(&mut self, event: TraceEvent) {
         self.total_events += 1;
-        if self.events.len() >= self.capacity { self.events.remove(0); self.overruns += 1; }
+        if self.events.len() >= self.capacity {
+            self.events.remove(0);
+            self.overruns += 1;
+        }
         self.events.push_back(event);
     }
 
     #[inline(always)]
-    pub fn drain(&mut self) -> Vec<TraceEvent> { self.events.drain(..).collect() }
+    pub fn drain(&mut self) -> Vec<TraceEvent> {
+        self.events.drain(..).collect()
+    }
     #[inline(always)]
-    pub fn utilization(&self) -> f64 { self.events.len() as f64 / self.capacity as f64 }
+    pub fn utilization(&self) -> f64 {
+        self.events.len() as f64 / self.capacity as f64
+    }
 }
 
 /// Stats
@@ -92,28 +104,51 @@ pub struct HolisticFtraceMgr {
 
 impl HolisticFtraceMgr {
     pub fn new(buffer_size: usize) -> Self {
-        Self { buffers: BTreeMap::new(), filters: BTreeMap::new(), enabled: false, next_filter_id: 1, buffer_size }
+        Self {
+            buffers: BTreeMap::new(),
+            filters: BTreeMap::new(),
+            enabled: false,
+            next_filter_id: 1,
+            buffer_size,
+        }
     }
 
     #[inline(always)]
-    pub fn add_cpu(&mut self, cpu: u32) { self.buffers.insert(cpu, TraceBuffer::new(cpu, self.buffer_size)); }
+    pub fn add_cpu(&mut self, cpu: u32) {
+        self.buffers
+            .insert(cpu, TraceBuffer::new(cpu, self.buffer_size));
+    }
     #[inline(always)]
-    pub fn enable(&mut self) { self.enabled = true; }
+    pub fn enable(&mut self) {
+        self.enabled = true;
+    }
     #[inline(always)]
-    pub fn disable(&mut self) { self.enabled = false; }
+    pub fn disable(&mut self) {
+        self.enabled = false;
+    }
 
     #[inline]
     pub fn add_filter(&mut self, function_hash: u64) -> u64 {
-        let id = self.next_filter_id; self.next_filter_id += 1;
-        self.filters.insert(id, TraceFilter { id, function_hash, enabled: true, hit_count: 0 });
+        let id = self.next_filter_id;
+        self.next_filter_id += 1;
+        self.filters.insert(id, TraceFilter {
+            id,
+            function_hash,
+            enabled: true,
+            hit_count: 0,
+        });
         id
     }
 
     #[inline]
     pub fn trace(&mut self, event: TraceEvent) {
-        if !self.enabled { return; }
+        if !self.enabled {
+            return;
+        }
         let cpu = event.cpu;
-        if let Some(buf) = self.buffers.get_mut(&cpu) { buf.write(event); }
+        if let Some(buf) = self.buffers.get_mut(&cpu) {
+            buf.write(event);
+        }
     }
 
     #[inline]
@@ -122,7 +157,17 @@ impl HolisticFtraceMgr {
         let overruns: u64 = self.buffers.values().map(|b| b.overruns).sum();
         let active = self.filters.values().filter(|f| f.enabled).count() as u32;
         let utils: Vec<f64> = self.buffers.values().map(|b| b.utilization()).collect();
-        let avg = if utils.is_empty() { 0.0 } else { utils.iter().sum::<f64>() / utils.len() as f64 };
-        FtraceMgrStats { total_buffers: self.buffers.len() as u32, total_events: events, total_overruns: overruns, active_filters: active, buffer_utilization: avg }
+        let avg = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
+        FtraceMgrStats {
+            total_buffers: self.buffers.len() as u32,
+            total_events: events,
+            total_overruns: overruns,
+            active_filters: active,
+            buffer_utilization: avg,
+        }
     }
 }

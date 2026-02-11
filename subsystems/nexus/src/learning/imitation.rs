@@ -463,7 +463,7 @@ impl Default for ImitationLearner {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     fn create_trajectory() -> Vec<StateAction> {
         vec![

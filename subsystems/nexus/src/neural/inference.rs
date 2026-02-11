@@ -826,7 +826,7 @@ mod tests {
     use super::super::activation::ActivationType;
     use super::super::network::NetworkBuilder;
     use super::*;
-use crate::fast::math::{F32Ext};
+    use crate::fast::math::F32Ext;
 
     #[test]
     fn test_inference_engine() {

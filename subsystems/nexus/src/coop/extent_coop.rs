@@ -73,7 +73,14 @@ impl CoopExtentManager {
         }
     }
 
-    pub fn allocate(&mut self, inode: u64, logical_block: u64, physical_block: u64, length: u32, extent_type: CoopExtentType) -> u64 {
+    pub fn allocate(
+        &mut self,
+        inode: u64,
+        logical_block: u64,
+        physical_block: u64,
+        length: u32,
+        extent_type: CoopExtentType,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         let entry = CoopExtentEntry {
@@ -86,7 +93,10 @@ impl CoopExtentManager {
             depth: 0,
         };
         self.extents.insert(id, entry);
-        self.inode_extents.entry(inode).or_insert_with(Vec::new).push(id);
+        self.inode_extents
+            .entry(inode)
+            .or_insert_with(Vec::new)
+            .push(id);
         self.stats.total_extents += 1;
         self.stats.allocations += 1;
         id

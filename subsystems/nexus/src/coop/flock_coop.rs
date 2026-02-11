@@ -38,16 +38,34 @@ pub struct CoopFileLock {
 
 impl CoopFileLock {
     pub fn new(inode: u64, owner_id: u64, lock_type: CoopLockType) -> Self {
-        Self { inode, owner_id, lock_type, state: CoopLockState::Waiting, start: 0, end: u64::MAX, wait_ns: 0, grants: 0 }
+        Self {
+            inode,
+            owner_id,
+            lock_type,
+            state: CoopLockState::Waiting,
+            start: 0,
+            end: u64::MAX,
+            wait_ns: 0,
+            grants: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn grant(&mut self) { self.state = CoopLockState::Granted; self.grants += 1; }
+    pub fn grant(&mut self) {
+        self.state = CoopLockState::Granted;
+        self.grants += 1;
+    }
     #[inline(always)]
-    pub fn release(&mut self) { self.state = CoopLockState::Released; }
+    pub fn release(&mut self) {
+        self.state = CoopLockState::Released;
+    }
     #[inline(always)]
     pub fn is_compatible(&self, other: &CoopFileLock) -> bool {
-        matches!((self.lock_type, other.lock_type), (CoopLockType::SharedRead, CoopLockType::SharedRead) | (CoopLockType::IntentShared, CoopLockType::IntentShared))
+        matches!(
+            (self.lock_type, other.lock_type),
+            (CoopLockType::SharedRead, CoopLockType::SharedRead)
+                | (CoopLockType::IntentShared, CoopLockType::IntentShared)
+        )
     }
 }
 
@@ -61,16 +79,33 @@ pub struct CoopLockFairness {
 }
 
 impl CoopLockFairness {
-    pub fn new() -> Self { Self { total_waits: 0, total_wait_ns: 0, max_wait_ns: 0, starvation_count: 0 } }
+    pub fn new() -> Self {
+        Self {
+            total_waits: 0,
+            total_wait_ns: 0,
+            max_wait_ns: 0,
+            starvation_count: 0,
+        }
+    }
     #[inline]
     pub fn record_wait(&mut self, wait_ns: u64) {
         self.total_waits += 1;
         self.total_wait_ns += wait_ns;
-        if wait_ns > self.max_wait_ns { self.max_wait_ns = wait_ns; }
-        if wait_ns > 10_000_000_000 { self.starvation_count += 1; }
+        if wait_ns > self.max_wait_ns {
+            self.max_wait_ns = wait_ns;
+        }
+        if wait_ns > 10_000_000_000 {
+            self.starvation_count += 1;
+        }
     }
     #[inline(always)]
-    pub fn avg_wait_ns(&self) -> u64 { if self.total_waits == 0 { 0 } else { self.total_wait_ns / self.total_waits } }
+    pub fn avg_wait_ns(&self) -> u64 {
+        if self.total_waits == 0 {
+            0
+        } else {
+            self.total_wait_ns / self.total_waits
+        }
+    }
 }
 
 /// Coop flock stats
@@ -92,14 +127,28 @@ pub struct CoopFlock {
 
 impl CoopFlock {
     pub fn new() -> Self {
-        Self { fairness: CoopLockFairness::new(), stats: CoopFlockStats { total_locks: 0, granted: 0, conflicts: 0, deadlocks_prevented: 0 } }
+        Self {
+            fairness: CoopLockFairness::new(),
+            stats: CoopFlockStats {
+                total_locks: 0,
+                granted: 0,
+                conflicts: 0,
+                deadlocks_prevented: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn request(&mut self, granted: bool, wait_ns: u64) {
         self.stats.total_locks += 1;
-        if granted { self.stats.granted += 1; } else { self.stats.conflicts += 1; }
-        if wait_ns > 0 { self.fairness.record_wait(wait_ns); }
+        if granted {
+            self.stats.granted += 1;
+        } else {
+            self.stats.conflicts += 1;
+        }
+        if wait_ns > 0 {
+            self.fairness.record_wait(wait_ns);
+        }
     }
 }
 
@@ -168,12 +217,23 @@ impl CoopFlockV2Manager {
         }
     }
 
-    pub fn acquire(&mut self, inode: u64, owner: u64, lock_type: CoopFlockV2Type, start: u64, length: u64) -> Option<u64> {
+    pub fn acquire(
+        &mut self,
+        inode: u64,
+        owner: u64,
+        lock_type: CoopFlockV2Type,
+        start: u64,
+        length: u64,
+    ) -> Option<u64> {
         // Check for conflicts
         if let Some(existing) = self.inode_locks.get(&inode) {
             for &lid in existing {
                 if let Some(lock) = self.locks.get(&lid) {
-                    if lock.owner != owner && matches!(lock.lock_type, CoopFlockV2Type::ExclusiveWrite | CoopFlockV2Type::Mandatory)
+                    if lock.owner != owner
+                        && matches!(
+                            lock.lock_type,
+                            CoopFlockV2Type::ExclusiveWrite | CoopFlockV2Type::Mandatory
+                        )
                         && self.ranges_overlap(lock.start, lock.length, start, length)
                     {
                         self.stats.contentions += 1;
@@ -195,7 +255,10 @@ impl CoopFlockV2Manager {
             timestamp: id.wrapping_mul(41),
         };
         self.locks.insert(id, entry);
-        self.inode_locks.entry(inode).or_insert_with(Vec::new).push(id);
+        self.inode_locks
+            .entry(inode)
+            .or_insert_with(Vec::new)
+            .push(id);
         self.stats.total_locks += 1;
         self.stats.active_locks += 1;
         Some(id)

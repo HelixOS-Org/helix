@@ -273,15 +273,17 @@ pub struct DeadlockDetector {
 
 impl DeadlockDetector {
     pub fn new() -> Self {
-        Self {
-            edges: Vec::new(),
-        }
+        Self { edges: Vec::new() }
     }
 
     /// Add wait-for edge
     #[inline(always)]
     pub fn add_wait(&mut self, waiter: u64, holder: u64, lock_id: u64) {
-        self.edges.push(WaitForEdge { waiter, holder, lock_id });
+        self.edges.push(WaitForEdge {
+            waiter,
+            holder,
+            lock_id,
+        });
     }
 
     /// Remove waits for thread

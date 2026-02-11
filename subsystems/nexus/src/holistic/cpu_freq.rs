@@ -89,7 +89,9 @@ impl CpuFreqState {
 
     #[inline(always)]
     pub fn freq_ratio(&self) -> f64 {
-        if self.max_freq_khz == 0 { return 0.0; }
+        if self.max_freq_khz == 0 {
+            return 0.0;
+        }
         self.current_freq_khz as f64 / self.max_freq_khz as f64
     }
 
@@ -131,7 +133,9 @@ impl FreqDomain {
 
     #[inline]
     pub fn power_headroom(&self) -> f64 {
-        if self.energy_budget_uw == u64::MAX || self.energy_budget_uw == 0 { return 1.0; }
+        if self.energy_budget_uw == u64::MAX || self.energy_budget_uw == 0 {
+            return 1.0;
+        }
         let remaining = self.energy_budget_uw.saturating_sub(self.current_power_uw);
         remaining as f64 / self.energy_budget_uw as f64
     }
@@ -160,7 +164,9 @@ impl TurboBudget {
 
     #[inline]
     pub fn remaining_ratio(&self) -> f64 {
-        if self.total_budget_ns == 0 { return 0.0; }
+        if self.total_budget_ns == 0 {
+            return 0.0;
+        }
         let rem = self.total_budget_ns.saturating_sub(self.consumed_ns);
         rem as f64 / self.total_budget_ns as f64
     }
@@ -216,9 +222,11 @@ impl HolisticCpuFreqGov {
     pub fn add_cpu(&mut self, state: CpuFreqState, domain_id: u32) {
         let cpu_id = state.cpu_id;
         self.cpus.insert(cpu_id, state);
-        self.domains.entry(domain_id)
+        self.domains
+            .entry(domain_id)
             .or_insert_with(|| FreqDomain::new(domain_id))
-            .cpus.push(cpu_id);
+            .cpus
+            .push(cpu_id);
     }
 
     #[inline]
@@ -239,11 +247,17 @@ impl HolisticCpuFreqGov {
             for &cpu_id in &domain.cpus {
                 if let Some(cpu) = self.cpus.get(&cpu_id) {
                     sum_util += cpu.utilization;
-                    if cpu.utilization > max_util { max_util = cpu.utilization; }
+                    if cpu.utilization > max_util {
+                        max_util = cpu.utilization;
+                    }
                     count += 1;
                 }
             }
-            domain.avg_utilization = if count > 0 { sum_util / count as f64 } else { 0.0 };
+            domain.avg_utilization = if count > 0 {
+                sum_util / count as f64
+            } else {
+                0.0
+            };
             domain.max_utilization = max_util;
         }
 
@@ -305,18 +319,30 @@ impl HolisticCpuFreqGov {
         self.stats.total_cpus = self.cpus.len();
         self.stats.total_domains = self.domains.len();
         let total_ratio: f64 = self.cpus.values().map(|c| c.freq_ratio()).sum();
-        self.stats.avg_freq_ratio = if self.cpus.is_empty() { 0.0 }
-        else { total_ratio / self.cpus.len() as f64 };
+        self.stats.avg_freq_ratio = if self.cpus.is_empty() {
+            0.0
+        } else {
+            total_ratio / self.cpus.len() as f64
+        };
         let turbo_count = self.cpus.values().filter(|c| c.is_turbo()).count();
-        self.stats.turbo_utilization = if self.cpus.is_empty() { 0.0 }
-        else { turbo_count as f64 / self.cpus.len() as f64 };
+        self.stats.turbo_utilization = if self.cpus.is_empty() {
+            0.0
+        } else {
+            turbo_count as f64 / self.cpus.len() as f64
+        };
         self.stats.total_transitions = self.cpus.values().map(|c| c.transitions).sum();
     }
 
     #[inline(always)]
-    pub fn cpu(&self, id: u32) -> Option<&CpuFreqState> { self.cpus.get(&id) }
+    pub fn cpu(&self, id: u32) -> Option<&CpuFreqState> {
+        self.cpus.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &HolisticCpuFreqStats { &self.stats }
+    pub fn stats(&self) -> &HolisticCpuFreqStats {
+        &self.stats
+    }
     #[inline(always)]
-    pub fn turbo_budget(&self) -> &TurboBudget { &self.turbo_budget }
+    pub fn turbo_budget(&self) -> &TurboBudget {
+        &self.turbo_budget
+    }
 }

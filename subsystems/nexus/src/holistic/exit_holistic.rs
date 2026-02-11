@@ -2,8 +2,9 @@
 //! NEXUS Holistic — Exit (holistic exit/cleanup analysis)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Exit pattern classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,7 +65,14 @@ impl HolisticExitManager {
         }
     }
 
-    pub fn analyze_exit(&mut self, pid: u64, code: i32, cleanup_us: u64, leaked: u32, orphans: u32) -> HolisticExitPattern {
+    pub fn analyze_exit(
+        &mut self,
+        pid: u64,
+        code: i32,
+        cleanup_us: u64,
+        leaked: u32,
+        orphans: u32,
+    ) -> HolisticExitPattern {
         let pattern = if code == 0 && leaked == 0 {
             self.stats.clean_exits += 1;
             HolisticExitPattern::CleanShutdown

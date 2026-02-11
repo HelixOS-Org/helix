@@ -3,10 +3,9 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
-
 /// Truncate type
 use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TruncateType {
     Truncate,
@@ -27,16 +26,39 @@ pub struct TruncateOp {
 }
 
 impl TruncateOp {
-    pub fn new(id: u64, tt: TruncateType, target: u64, old: u64, new: u64, pid: u64, now: u64) -> Self {
-        Self { id, target: tt, fd_or_path_hash: target, old_size: old, new_size: new, pid, timestamp: now, success: false }
+    pub fn new(
+        id: u64,
+        tt: TruncateType,
+        target: u64,
+        old: u64,
+        new: u64,
+        pid: u64,
+        now: u64,
+    ) -> Self {
+        Self {
+            id,
+            target: tt,
+            fd_or_path_hash: target,
+            old_size: old,
+            new_size: new,
+            pid,
+            timestamp: now,
+            success: false,
+        }
     }
 
     #[inline(always)]
-    pub fn size_delta(&self) -> i64 { self.new_size as i64 - self.old_size as i64 }
+    pub fn size_delta(&self) -> i64 {
+        self.new_size as i64 - self.old_size as i64
+    }
     #[inline(always)]
-    pub fn is_shrink(&self) -> bool { self.new_size < self.old_size }
+    pub fn is_shrink(&self) -> bool {
+        self.new_size < self.old_size
+    }
     #[inline(always)]
-    pub fn is_extend(&self) -> bool { self.new_size > self.old_size }
+    pub fn is_extend(&self) -> bool {
+        self.new_size > self.old_size
+    }
 }
 
 /// Stats
@@ -59,29 +81,72 @@ pub struct AppTruncate {
 }
 
 impl AppTruncate {
-    pub fn new() -> Self { Self { ops: Vec::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            ops: Vec::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
-    pub fn truncate(&mut self, tt: TruncateType, target: u64, old: u64, new: u64, pid: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.ops.push(TruncateOp::new(id, tt, target, old, new, pid, now));
+    pub fn truncate(
+        &mut self,
+        tt: TruncateType,
+        target: u64,
+        old: u64,
+        new: u64,
+        pid: u64,
+        now: u64,
+    ) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.ops
+            .push(TruncateOp::new(id, tt, target, old, new, pid, now));
         id
     }
 
     #[inline(always)]
     pub fn complete(&mut self, id: u64) {
-        if let Some(op) = self.ops.iter_mut().find(|o| o.id == id) { op.success = true; }
+        if let Some(op) = self.ops.iter_mut().find(|o| o.id == id) {
+            op.success = true;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> TruncateAppStats {
         let ok = self.ops.iter().filter(|o| o.success).count() as u32;
         let fail = self.ops.len() as u32 - ok;
-        let shrinks = self.ops.iter().filter(|o| o.success && o.is_shrink()).count() as u32;
-        let extends = self.ops.iter().filter(|o| o.success && o.is_extend()).count() as u32;
-        let freed: u64 = self.ops.iter().filter(|o| o.success && o.is_shrink()).map(|o| o.old_size - o.new_size).sum();
-        let alloc: u64 = self.ops.iter().filter(|o| o.success && o.is_extend()).map(|o| o.new_size - o.old_size).sum();
-        TruncateAppStats { total_ops: self.ops.len() as u32, successful: ok, failed: fail, shrinks, extends, total_bytes_freed: freed, total_bytes_allocated: alloc }
+        let shrinks = self
+            .ops
+            .iter()
+            .filter(|o| o.success && o.is_shrink())
+            .count() as u32;
+        let extends = self
+            .ops
+            .iter()
+            .filter(|o| o.success && o.is_extend())
+            .count() as u32;
+        let freed: u64 = self
+            .ops
+            .iter()
+            .filter(|o| o.success && o.is_shrink())
+            .map(|o| o.old_size - o.new_size)
+            .sum();
+        let alloc: u64 = self
+            .ops
+            .iter()
+            .filter(|o| o.success && o.is_extend())
+            .map(|o| o.new_size - o.old_size)
+            .sum();
+        TruncateAppStats {
+            total_ops: self.ops.len() as u32,
+            successful: ok,
+            failed: fail,
+            shrinks,
+            extends,
+            total_bytes_freed: freed,
+            total_bytes_allocated: alloc,
+        }
     }
 }
 
@@ -256,32 +321,35 @@ impl AppTruncateV2 {
         let mut rec = TruncateV2Record::new(id, pid, fd, op);
         rec.offset = offset;
         rec.length = length;
-        let state = self.files.entry(inode).or_insert_with(|| FileTruncateV2State::new(inode, 0));
+        let state = self
+            .files
+            .entry(inode)
+            .or_insert_with(|| FileTruncateV2State::new(inode, 0));
         match op {
             TruncateV2Op::Truncate | TruncateV2Op::Ftruncate => {
                 rec.old_size = state.current_size;
                 state.apply_truncate(length);
                 rec.new_size = length;
                 self.stats.total_truncates += 1;
-            }
+            },
             TruncateV2Op::FallocPunchHole => {
                 state.apply_punch_hole(offset, length);
                 self.stats.total_punch_holes += 1;
                 self.stats.bytes_reclaimed += length;
-            }
+            },
             TruncateV2Op::FallocZeroRange => {
                 self.stats.total_zero_ranges += 1;
-            }
+            },
             TruncateV2Op::FallocCollapseRange => {
                 self.stats.total_collapse_ranges += 1;
-            }
+            },
             TruncateV2Op::FallocInsertRange => {
                 self.stats.total_insert_ranges += 1;
-            }
+            },
             _ => {
                 self.stats.total_fallocates += 1;
                 self.stats.bytes_allocated += length;
-            }
+            },
         }
         self.recent_records.push(rec);
         id
@@ -349,7 +417,10 @@ pub struct TruncateV3Record {
 impl TruncateV3Record {
     pub fn new(path: &[u8], mode: TruncateV3Mode, old_size: u64, new_size: u64) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in path { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in path {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
             path_hash: h,
             fd: -1,
@@ -357,8 +428,16 @@ impl TruncateV3Record {
             result: TruncateV3Result::Success,
             old_size,
             new_size,
-            blocks_freed: if new_size < old_size { (old_size - new_size) / 4096 } else { 0 },
-            blocks_allocated: if new_size > old_size { (new_size - old_size) / 4096 } else { 0 },
+            blocks_freed: if new_size < old_size {
+                (old_size - new_size) / 4096
+            } else {
+                0
+            },
+            blocks_allocated: if new_size > old_size {
+                (new_size - old_size) / 4096
+            } else {
+                0
+            },
             cow_blocks_broken: 0,
             holes_created: 0,
             duration_ns: 0,
@@ -366,15 +445,25 @@ impl TruncateV3Record {
     }
 
     #[inline(always)]
-    pub fn is_shrink(&self) -> bool { self.new_size < self.old_size }
+    pub fn is_shrink(&self) -> bool {
+        self.new_size < self.old_size
+    }
     #[inline(always)]
-    pub fn is_grow(&self) -> bool { self.new_size > self.old_size }
+    pub fn is_grow(&self) -> bool {
+        self.new_size > self.old_size
+    }
     #[inline(always)]
-    pub fn is_zero_range(&self) -> bool { self.mode == TruncateV3Mode::FallocZeroRange }
+    pub fn is_zero_range(&self) -> bool {
+        self.mode == TruncateV3Mode::FallocZeroRange
+    }
     #[inline(always)]
-    pub fn size_delta(&self) -> i64 { self.new_size as i64 - self.old_size as i64 }
+    pub fn size_delta(&self) -> i64 {
+        self.new_size as i64 - self.old_size as i64
+    }
     #[inline(always)]
-    pub fn net_blocks(&self) -> i64 { self.blocks_allocated as i64 - self.blocks_freed as i64 }
+    pub fn net_blocks(&self) -> i64 {
+        self.blocks_allocated as i64 - self.blocks_freed as i64
+    }
 }
 
 /// Truncate v3 app stats
@@ -419,14 +508,20 @@ impl AppTruncateV3 {
         self.stats.total_ops += 1;
         match record.result {
             TruncateV3Result::Success => {
-                if record.new_size == 0 { self.stats.zero_ops += 1; }
-                else if record.is_shrink() { self.stats.shrink_ops += 1; }
-                else if record.is_grow() { self.stats.grow_ops += 1; }
-                if record.cow_blocks_broken > 0 { self.stats.cow_breaks += 1; }
+                if record.new_size == 0 {
+                    self.stats.zero_ops += 1;
+                } else if record.is_shrink() {
+                    self.stats.shrink_ops += 1;
+                } else if record.is_grow() {
+                    self.stats.grow_ops += 1;
+                }
+                if record.cow_blocks_broken > 0 {
+                    self.stats.cow_breaks += 1;
+                }
                 self.stats.total_blocks_freed += record.blocks_freed;
                 self.stats.total_blocks_allocated += record.blocks_allocated;
                 self.stats.total_holes += record.holes_created;
-            }
+            },
             _ => self.stats.failures += 1,
         }
     }

@@ -34,22 +34,35 @@ pub struct Contender {
 impl Contender {
     pub fn new(id: u32, priority: u32, weight: u32, now: u64) -> Self {
         Self {
-            id, priority, weight, deadline: 0, request_time: now,
-            wait_time: 0, granted_count: 0, denied_count: 0, tickets: weight,
+            id,
+            priority,
+            weight,
+            deadline: 0,
+            request_time: now,
+            wait_time: 0,
+            granted_count: 0,
+            denied_count: 0,
+            tickets: weight,
         }
     }
 
     #[inline]
     pub fn grant_ratio(&self) -> f64 {
         let total = self.granted_count + self.denied_count;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.granted_count as f64 / total as f64
     }
 
     #[inline(always)]
     pub fn avg_wait(&self) -> u64 {
         let total = self.granted_count + self.denied_count;
-        if total == 0 { 0 } else { self.wait_time / total }
+        if total == 0 {
+            0
+        } else {
+            self.wait_time / total
+        }
     }
 }
 
@@ -90,9 +103,13 @@ pub struct ResourceArbContext {
 impl ResourceArbContext {
     pub fn new(resource_id: u64, policy: ArbitrationPolicy) -> Self {
         Self {
-            resource_id, policy, contenders: Vec::new(),
-            current_holder: None, round_robin_idx: 0,
-            total_arbitrations: 0, total_preemptions: 0,
+            resource_id,
+            policy,
+            contenders: Vec::new(),
+            current_holder: None,
+            round_robin_idx: 0,
+            total_arbitrations: 0,
+            total_preemptions: 0,
             rng_state: resource_id ^ 0xdeadbeef,
         }
     }
@@ -117,62 +134,84 @@ impl ResourceArbContext {
     pub fn remove_contender(&mut self, id: u32) -> bool {
         let before = self.contenders.len();
         self.contenders.retain(|c| c.id != id);
-        if self.current_holder == Some(id) { self.current_holder = None; }
+        if self.current_holder == Some(id) {
+            self.current_holder = None;
+        }
         self.contenders.len() < before
     }
 
     pub fn arbitrate(&mut self, now: u64) -> Option<u32> {
-        if self.contenders.is_empty() { return None; }
+        if self.contenders.is_empty() {
+            return None;
+        }
         self.total_arbitrations += 1;
 
         let winner_id = match self.policy {
-            ArbitrationPolicy::HighestPriority => {
-                self.contenders.iter().max_by_key(|c| c.priority).map(|c| c.id)
-            }
+            ArbitrationPolicy::HighestPriority => self
+                .contenders
+                .iter()
+                .max_by_key(|c| c.priority)
+                .map(|c| c.id),
             ArbitrationPolicy::RoundRobin => {
-                if self.round_robin_idx >= self.contenders.len() { self.round_robin_idx = 0; }
+                if self.round_robin_idx >= self.contenders.len() {
+                    self.round_robin_idx = 0;
+                }
                 let id = self.contenders[self.round_robin_idx].id;
                 self.round_robin_idx += 1;
                 Some(id)
-            }
-            ArbitrationPolicy::FairShare => {
-                self.contenders.iter().min_by_key(|c| c.granted_count).map(|c| c.id)
-            }
+            },
+            ArbitrationPolicy::FairShare => self
+                .contenders
+                .iter()
+                .min_by_key(|c| c.granted_count)
+                .map(|c| c.id),
             ArbitrationPolicy::WeightedFair => {
                 let total_weight: u64 = self.contenders.iter().map(|c| c.weight as u64).sum();
-                if total_weight == 0 { return None; }
+                if total_weight == 0 {
+                    return None;
+                }
                 let mut target = self.xorshift64() % total_weight;
                 let mut winner = self.contenders[0].id;
                 for c in &self.contenders {
-                    if target < c.weight as u64 { winner = c.id; break; }
+                    if target < c.weight as u64 {
+                        winner = c.id;
+                        break;
+                    }
                     target -= c.weight as u64;
                 }
                 Some(winner)
-            }
+            },
             ArbitrationPolicy::Lottery => {
                 let total_tickets: u64 = self.contenders.iter().map(|c| c.tickets as u64).sum();
-                if total_tickets == 0 { return None; }
+                if total_tickets == 0 {
+                    return None;
+                }
                 let ticket = self.xorshift64() % total_tickets;
                 let mut acc = 0u64;
                 let mut winner = self.contenders[0].id;
                 for c in &self.contenders {
                     acc += c.tickets as u64;
-                    if ticket < acc { winner = c.id; break; }
+                    if ticket < acc {
+                        winner = c.id;
+                        break;
+                    }
                 }
                 Some(winner)
-            }
-            ArbitrationPolicy::EarliestDeadline => {
-                self.contenders.iter()
-                    .filter(|c| c.deadline > 0)
-                    .min_by_key(|c| c.deadline)
-                    .map(|c| c.id)
-                    .or_else(|| self.contenders.first().map(|c| c.id))
-            }
+            },
+            ArbitrationPolicy::EarliestDeadline => self
+                .contenders
+                .iter()
+                .filter(|c| c.deadline > 0)
+                .min_by_key(|c| c.deadline)
+                .map(|c| c.id)
+                .or_else(|| self.contenders.first().map(|c| c.id)),
         };
 
         if let Some(wid) = winner_id {
             if let Some(old) = self.current_holder {
-                if old != wid { self.total_preemptions += 1; }
+                if old != wid {
+                    self.total_preemptions += 1;
+                }
             }
             self.current_holder = Some(wid);
             for c in &mut self.contenders {
@@ -210,12 +249,17 @@ pub struct CoopPrioArbiter {
 
 impl CoopPrioArbiter {
     pub fn new() -> Self {
-        Self { resources: BTreeMap::new(), total_arbitrations: 0, total_preemptions: 0 }
+        Self {
+            resources: BTreeMap::new(),
+            total_arbitrations: 0,
+            total_preemptions: 0,
+        }
     }
 
     #[inline(always)]
     pub fn register_resource(&mut self, resource_id: u64, policy: ArbitrationPolicy) {
-        self.resources.insert(resource_id, ResourceArbContext::new(resource_id, policy));
+        self.resources
+            .insert(resource_id, ResourceArbContext::new(resource_id, policy));
     }
 
     #[inline]
@@ -223,7 +267,9 @@ impl CoopPrioArbiter {
         if let Some(ctx) = self.resources.get_mut(&resource_id) {
             ctx.add_contender(contender);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -231,7 +277,9 @@ impl CoopPrioArbiter {
         let ctx = self.resources.get_mut(&resource_id)?;
         let result = ctx.arbitrate(now);
         self.total_arbitrations += 1;
-        if ctx.total_preemptions > 0 { self.total_preemptions = ctx.total_preemptions; }
+        if ctx.total_preemptions > 0 {
+            self.total_preemptions = ctx.total_preemptions;
+        }
         result
     }
 
@@ -244,7 +292,11 @@ impl CoopPrioArbiter {
 
     #[inline]
     pub fn stats(&self) -> PrioArbiterStats {
-        let total_cont: u64 = self.resources.values().map(|r| r.contenders.len() as u64).sum();
+        let total_cont: u64 = self
+            .resources
+            .values()
+            .map(|r| r.contenders.len() as u64)
+            .sum();
         PrioArbiterStats {
             tracked_resources: self.resources.len() as u32,
             total_contenders: total_cont,

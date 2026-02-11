@@ -7,8 +7,7 @@
 //! - Security anomalies (privilege escalation attempts)
 //! - Performance anomalies (degradation detection)
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -182,7 +181,9 @@ impl RunningStats {
             return false;
         }
         let mut sorted = self.recent.clone();
-        sorted.make_contiguous().sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
+        sorted
+            .make_contiguous()
+            .sort_by(|a, b| a.partial_cmp(b).unwrap_or(core::cmp::Ordering::Equal));
         let q1 = sorted[sorted.len() / 4];
         let q3 = sorted[3 * sorted.len() / 4];
         let iqr = q3 - q1;
@@ -295,7 +296,8 @@ impl ProcessAnomalyDetector {
             let increasing = self
                 .memory_stats
                 .recent
-                .make_contiguous().windows(2)
+                .make_contiguous()
+                .windows(2)
                 .filter(|w| w[1] > w[0])
                 .count();
             let ratio = increasing as f64 / (self.memory_stats.recent.len() - 1) as f64;
@@ -370,7 +372,8 @@ impl ProcessAnomalyDetector {
             let increasing = self
                 .fd_count_stats
                 .recent
-                .make_contiguous().windows(2)
+                .make_contiguous()
+                .windows(2)
                 .filter(|w| w[1] >= w[0])
                 .count();
             let ratio = increasing as f64 / (self.fd_count_stats.recent.len() - 1) as f64;

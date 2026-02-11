@@ -47,9 +47,9 @@ impl RegisterMapping {
     #[inline]
     pub fn x86_64_default() -> Self {
         Self {
-            syscall_nr_reg: 0, // rax
+            syscall_nr_reg: 0,             // rax
             arg_regs: [7, 6, 2, 10, 8, 9], // rdi, rsi, rdx, r10, r8, r9
-            return_reg: 0, // rax
+            return_reg: 0,                 // rax
             error_reg: None,
         }
     }
@@ -76,7 +76,12 @@ pub struct StructTranslation {
 
 impl StructTranslation {
     pub fn new(struct_hash: u64, v1_size: u32, v2_size: u32) -> Self {
-        Self { struct_hash, v1_size, v2_size, fields: Vec::new() }
+        Self {
+            struct_hash,
+            v1_size,
+            v2_size,
+            fields: Vec::new(),
+        }
     }
 
     #[inline(always)]
@@ -87,7 +92,11 @@ impl StructTranslation {
     /// Needs translation?
     #[inline(always)]
     pub fn needs_translation(&self) -> bool {
-        self.v1_size != self.v2_size || self.fields.iter().any(|f| f.offset_v1 != f.offset_v2 || f.size_v1 != f.size_v2)
+        self.v1_size != self.v2_size
+            || self
+                .fields
+                .iter()
+                .any(|f| f.offset_v1 != f.offset_v2 || f.size_v1 != f.size_v2)
     }
 }
 
@@ -159,7 +168,8 @@ impl BridgeAbiTranslator {
 
     #[inline(always)]
     pub fn register_translation(&mut self, trans: SyscallTranslation) {
-        self.translations.insert((trans.from_abi, trans.from_nr), trans);
+        self.translations
+            .insert((trans.from_abi, trans.from_nr), trans);
         self.recompute();
     }
 
@@ -177,14 +187,19 @@ impl BridgeAbiTranslator {
 
     #[inline(always)]
     pub fn get_compat_mode(&self, pid: u64) -> AbiVersion {
-        self.compat_pids.get(&pid).copied().unwrap_or(AbiVersion::V3Current)
+        self.compat_pids
+            .get(&pid)
+            .copied()
+            .unwrap_or(AbiVersion::V3Current)
     }
 
     /// Translate a syscall number from compat ABI to current
     #[inline]
     pub fn translate_syscall(&mut self, pid: u64, syscall_nr: u32) -> u32 {
         let abi = self.get_compat_mode(pid);
-        if abi == AbiVersion::V3Current { return syscall_nr; }
+        if abi == AbiVersion::V3Current {
+            return syscall_nr;
+        }
 
         if let Some(trans) = self.translations.get_mut(&(abi, syscall_nr)) {
             trans.invocations += 1;
@@ -197,7 +212,8 @@ impl BridgeAbiTranslator {
     /// Check if struct needs translation
     #[inline]
     pub fn needs_struct_translation(&self, struct_hash: u64) -> bool {
-        self.struct_layouts.get(&struct_hash)
+        self.struct_layouts
+            .get(&struct_hash)
             .map(|s| s.needs_translation())
             .unwrap_or(false)
     }
@@ -206,7 +222,11 @@ impl BridgeAbiTranslator {
         self.stats.registered_translations = self.translations.len();
         self.stats.struct_layouts = self.struct_layouts.len();
         self.stats.total_invocations = self.translations.values().map(|t| t.invocations).sum();
-        self.stats.identity_translations = self.translations.values().filter(|t| t.is_identity()).count();
+        self.stats.identity_translations = self
+            .translations
+            .values()
+            .filter(|t| t.is_identity())
+            .count();
         self.stats.compat_processes = self.compat_pids.len();
     }
 

@@ -37,10 +37,14 @@ pub struct ListenBacklog {
 impl ListenBacklog {
     pub fn new(fd: u64, max_backlog: u32) -> Self {
         Self {
-            fd, max_backlog,
-            current_pending: 0, syn_queue_len: 0,
-            accept_queue_len: 0, total_accepted: 0,
-            total_dropped: 0, total_overflows: 0,
+            fd,
+            max_backlog,
+            current_pending: 0,
+            syn_queue_len: 0,
+            accept_queue_len: 0,
+            total_accepted: 0,
+            total_dropped: 0,
+            total_overflows: 0,
             state: ListenState::Active,
         }
     }
@@ -59,15 +63,21 @@ impl ListenBacklog {
 
     #[inline(always)]
     pub fn syn_completed(&mut self) {
-        if self.syn_queue_len > 0 { self.syn_queue_len -= 1; }
+        if self.syn_queue_len > 0 {
+            self.syn_queue_len -= 1;
+        }
         self.accept_queue_len += 1;
     }
 
     #[inline]
     pub fn accept_connection(&mut self) -> bool {
-        if self.accept_queue_len == 0 { return false; }
+        if self.accept_queue_len == 0 {
+            return false;
+        }
         self.accept_queue_len -= 1;
-        if self.current_pending > 0 { self.current_pending -= 1; }
+        if self.current_pending > 0 {
+            self.current_pending -= 1;
+        }
         self.total_accepted += 1;
         if self.state == ListenState::Full || self.state == ListenState::Overflow {
             self.state = ListenState::Active;
@@ -77,14 +87,21 @@ impl ListenBacklog {
 
     #[inline(always)]
     pub fn utilization_pct(&self) -> u64 {
-        if self.max_backlog == 0 { 0 }
-        else { (self.current_pending as u64 * 100) / self.max_backlog as u64 }
+        if self.max_backlog == 0 {
+            0
+        } else {
+            (self.current_pending as u64 * 100) / self.max_backlog as u64
+        }
     }
 
     #[inline(always)]
     pub fn drop_rate(&self) -> u64 {
         let total = self.total_accepted + self.total_dropped;
-        if total == 0 { 0 } else { (self.total_dropped * 100) / total }
+        if total == 0 {
+            0
+        } else {
+            (self.total_dropped * 100) / total
+        }
     }
 }
 
@@ -108,8 +125,10 @@ impl AppListen {
         Self {
             backlogs: BTreeMap::new(),
             stats: ListenAppStats {
-                total_listeners: 0, total_accepted: 0,
-                total_dropped: 0, total_overflows: 0,
+                total_listeners: 0,
+                total_accepted: 0,
+                total_dropped: 0,
+                total_overflows: 0,
                 avg_backlog_util: 0,
             },
         }
@@ -141,7 +160,9 @@ impl AppListen {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &ListenAppStats { &self.stats }
+    pub fn stats(&self) -> &ListenAppStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -149,7 +170,12 @@ impl AppListen {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ListenV2Result { Success, NotBound, InvalidFd, PermDenied }
+pub enum ListenV2Result {
+    Success,
+    NotBound,
+    InvalidFd,
+    PermDenied,
+}
 
 /// Listen v2 request
 #[derive(Debug, Clone)]
@@ -160,25 +186,49 @@ pub struct ListenV2Request {
 }
 
 impl ListenV2Request {
-    pub fn new(fd: i32, backlog: u32) -> Self { Self { fd, backlog, fast_open: false } }
+    pub fn new(fd: i32, backlog: u32) -> Self {
+        Self {
+            fd,
+            backlog,
+            fast_open: false,
+        }
+    }
 }
 
 /// Listen v2 app stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct ListenV2AppStats { pub total_listens: u64, pub active: u32, pub fast_opens: u64, pub failures: u64 }
+pub struct ListenV2AppStats {
+    pub total_listens: u64,
+    pub active: u32,
+    pub fast_opens: u64,
+    pub failures: u64,
+}
 
 /// Main app listen v2
 #[derive(Debug)]
-pub struct AppListenV2 { pub stats: ListenV2AppStats }
+pub struct AppListenV2 {
+    pub stats: ListenV2AppStats,
+}
 
 impl AppListenV2 {
-    pub fn new() -> Self { Self { stats: ListenV2AppStats { total_listens: 0, active: 0, fast_opens: 0, failures: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: ListenV2AppStats {
+                total_listens: 0,
+                active: 0,
+                fast_opens: 0,
+                failures: 0,
+            },
+        }
+    }
     #[inline]
     pub fn listen(&mut self, req: &ListenV2Request) -> ListenV2Result {
         self.stats.total_listens += 1;
         self.stats.active += 1;
-        if req.fast_open { self.stats.fast_opens += 1; }
+        if req.fast_open {
+            self.stats.fast_opens += 1;
+        }
         ListenV2Result::Success
     }
 }

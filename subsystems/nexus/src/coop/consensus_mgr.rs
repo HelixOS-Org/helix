@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Consensus algorithm type
@@ -66,7 +65,14 @@ pub struct Proposal {
 }
 
 impl Proposal {
-    pub fn new(id: u64, proposer: u32, algo: ConsensusAlgorithm, required: u32, timeout: u64, now: u64) -> Self {
+    pub fn new(
+        id: u64,
+        proposer: u32,
+        algo: ConsensusAlgorithm,
+        required: u32,
+        timeout: u64,
+        now: u64,
+    ) -> Self {
         let threshold = match algo {
             ConsensusAlgorithm::Majority => (required / 2) + 1,
             ConsensusAlgorithm::Unanimous => required,
@@ -75,11 +81,19 @@ impl Proposal {
             ConsensusAlgorithm::TwoPhaseCommit => required,
         };
         Self {
-            id, proposer_id: proposer, algorithm: algo,
-            state: ProposalState::Pending, voters: Vec::new(),
-            required_voters: required, total_weight: 0,
-            accept_threshold: threshold, timeout_ns: timeout,
-            created_at: now, resolved_at: 0, round: 1, max_rounds: 3,
+            id,
+            proposer_id: proposer,
+            algorithm: algo,
+            state: ProposalState::Pending,
+            voters: Vec::new(),
+            required_voters: required,
+            total_weight: 0,
+            accept_threshold: threshold,
+            timeout_ns: timeout,
+            created_at: now,
+            resolved_at: 0,
+            round: 1,
+            max_rounds: 3,
         }
     }
 
@@ -90,10 +104,18 @@ impl Proposal {
 
     #[inline]
     pub fn cast_vote(&mut self, voter_id: u32, vote: Vote, weight: u32, now: u64) -> bool {
-        if self.state != ProposalState::Voting { return false; }
-        if self.voters.iter().any(|v| v.voter_id == voter_id) { return false; }
+        if self.state != ProposalState::Voting {
+            return false;
+        }
+        if self.voters.iter().any(|v| v.voter_id == voter_id) {
+            return false;
+        }
         self.voters.push(VoterRecord {
-            voter_id, vote, weight, voted_at: now, reason_code: 0,
+            voter_id,
+            vote,
+            weight,
+            voted_at: now,
+            reason_code: 0,
         });
         self.total_weight += weight;
         true
@@ -101,21 +123,33 @@ impl Proposal {
 
     #[inline(always)]
     pub fn accept_count(&self) -> u32 {
-        self.voters.iter().filter(|v| v.vote == Vote::Accept).count() as u32
+        self.voters
+            .iter()
+            .filter(|v| v.vote == Vote::Accept)
+            .count() as u32
     }
 
     #[inline(always)]
     pub fn reject_count(&self) -> u32 {
-        self.voters.iter().filter(|v| v.vote == Vote::Reject).count() as u32
+        self.voters
+            .iter()
+            .filter(|v| v.vote == Vote::Reject)
+            .count() as u32
     }
 
     #[inline(always)]
     pub fn accept_weight(&self) -> u32 {
-        self.voters.iter().filter(|v| v.vote == Vote::Accept).map(|v| v.weight).sum()
+        self.voters
+            .iter()
+            .filter(|v| v.vote == Vote::Accept)
+            .map(|v| v.weight)
+            .sum()
     }
 
     pub fn try_resolve(&mut self, now: u64) -> bool {
-        if self.state != ProposalState::Voting { return false; }
+        if self.state != ProposalState::Voting {
+            return false;
+        }
 
         match self.algorithm {
             ConsensusAlgorithm::Majority | ConsensusAlgorithm::Raft => {
@@ -129,7 +163,7 @@ impl Proposal {
                     self.resolved_at = now;
                     return true;
                 }
-            }
+            },
             ConsensusAlgorithm::Unanimous | ConsensusAlgorithm::TwoPhaseCommit => {
                 if self.reject_count() > 0 {
                     self.state = ProposalState::Rejected;
@@ -141,21 +175,23 @@ impl Proposal {
                     self.resolved_at = now;
                     return true;
                 }
-            }
+            },
             ConsensusAlgorithm::Weighted => {
                 if self.accept_weight() >= self.accept_threshold {
                     self.state = ProposalState::Accepted;
                     self.resolved_at = now;
                     return true;
                 }
-            }
+            },
         }
         false
     }
 
     #[inline]
     pub fn check_timeout(&mut self, now: u64) -> bool {
-        if self.state != ProposalState::Voting { return false; }
+        if self.state != ProposalState::Voting {
+            return false;
+        }
         if self.timeout_ns > 0 && now.saturating_sub(self.created_at) >= self.timeout_ns {
             self.state = ProposalState::TimedOut;
             self.resolved_at = now;
@@ -166,13 +202,19 @@ impl Proposal {
 
     #[inline(always)]
     pub fn completion_ratio(&self) -> f64 {
-        if self.required_voters == 0 { return 0.0; }
+        if self.required_voters == 0 {
+            return 0.0;
+        }
         self.voters.len() as f64 / self.required_voters as f64
     }
 
     #[inline(always)]
     pub fn duration(&self) -> u64 {
-        if self.resolved_at > 0 { self.resolved_at - self.created_at } else { 0 }
+        if self.resolved_at > 0 {
+            self.resolved_at - self.created_at
+        } else {
+            0
+        }
     }
 }
 
@@ -204,15 +246,27 @@ pub struct CoopConsensusMgr {
 impl CoopConsensusMgr {
     pub fn new(max_history: usize) -> Self {
         Self {
-            proposals: BTreeMap::new(), history: VecDeque::new(),
-            max_history, next_id: 1, total_proposed: 0,
-            total_accepted: 0, total_rejected: 0,
-            total_timed_out: 0, total_votes: 0,
+            proposals: BTreeMap::new(),
+            history: VecDeque::new(),
+            max_history,
+            next_id: 1,
+            total_proposed: 0,
+            total_accepted: 0,
+            total_rejected: 0,
+            total_timed_out: 0,
+            total_votes: 0,
         }
     }
 
     #[inline]
-    pub fn propose(&mut self, proposer: u32, algo: ConsensusAlgorithm, required: u32, timeout: u64, now: u64) -> u64 {
+    pub fn propose(
+        &mut self,
+        proposer: u32,
+        algo: ConsensusAlgorithm,
+        required: u32,
+        timeout: u64,
+        now: u64,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         self.total_proposed += 1;
@@ -222,13 +276,24 @@ impl CoopConsensusMgr {
         id
     }
 
-    pub fn vote(&mut self, proposal_id: u64, voter: u32, vote: Vote, weight: u32, now: u64) -> bool {
+    pub fn vote(
+        &mut self,
+        proposal_id: u64,
+        voter: u32,
+        vote: Vote,
+        weight: u32,
+        now: u64,
+    ) -> bool {
         if let Some(p) = self.proposals.get_mut(&proposal_id) {
             if p.cast_vote(voter, vote, weight, now) {
                 self.total_votes += 1;
                 p.try_resolve(now);
-                if p.state == ProposalState::Accepted { self.total_accepted += 1; }
-                if p.state == ProposalState::Rejected { self.total_rejected += 1; }
+                if p.state == ProposalState::Accepted {
+                    self.total_accepted += 1;
+                }
+                if p.state == ProposalState::Rejected {
+                    self.total_rejected += 1;
+                }
                 return true;
             }
         }
@@ -245,13 +310,22 @@ impl CoopConsensusMgr {
     }
 
     pub fn collect_resolved(&mut self) -> Vec<u64> {
-        let resolved: Vec<u64> = self.proposals.iter()
-            .filter(|(_, p)| matches!(p.state, ProposalState::Accepted | ProposalState::Rejected | ProposalState::TimedOut))
+        let resolved: Vec<u64> = self
+            .proposals
+            .iter()
+            .filter(|(_, p)| {
+                matches!(
+                    p.state,
+                    ProposalState::Accepted | ProposalState::Rejected | ProposalState::TimedOut
+                )
+            })
             .map(|(&id, _)| id)
             .collect();
         for id in &resolved {
             if let Some(p) = self.proposals.remove(id) {
-                if self.history.len() >= self.max_history { self.history.remove(0); }
+                if self.history.len() >= self.max_history {
+                    self.history.remove(0);
+                }
                 self.history.push_back(p);
             }
         }
@@ -307,16 +381,36 @@ pub struct ProposalV2 {
 
 impl ProposalV2 {
     pub fn new(id: u64, proposer: u64, round: u64, value_hash: u64, quorum: u32, now: u64) -> Self {
-        Self { id, proposer, round, value_hash, state: ConsensusV2State::Proposing, votes: BTreeMap::new(), quorum_size: quorum, timestamp: now }
+        Self {
+            id,
+            proposer,
+            round,
+            value_hash,
+            state: ConsensusV2State::Proposing,
+            votes: BTreeMap::new(),
+            quorum_size: quorum,
+            timestamp: now,
+        }
     }
 
     #[inline]
     pub fn vote(&mut self, voter: u64, v: VoteV2) {
         self.votes.insert(voter, v);
-        let accepts = self.votes.values().filter(|&&vt| vt == VoteV2::Accept).count() as u32;
-        let rejects = self.votes.values().filter(|&&vt| vt == VoteV2::Reject).count() as u32;
-        if accepts >= self.quorum_size { self.state = ConsensusV2State::Committed; }
-        else if rejects >= self.quorum_size { self.state = ConsensusV2State::Aborted; }
+        let accepts = self
+            .votes
+            .values()
+            .filter(|&&vt| vt == VoteV2::Accept)
+            .count() as u32;
+        let rejects = self
+            .votes
+            .values()
+            .filter(|&&vt| vt == VoteV2::Reject)
+            .count() as u32;
+        if accepts >= self.quorum_size {
+            self.state = ConsensusV2State::Committed;
+        } else if rejects >= self.quorum_size {
+            self.state = ConsensusV2State::Aborted;
+        }
     }
 
     #[inline(always)]
@@ -344,26 +438,52 @@ pub struct CoopConsensusMgrV2 {
 }
 
 impl CoopConsensusMgrV2 {
-    pub fn new() -> Self { Self { proposals: BTreeMap::new(), current_round: 0, next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            proposals: BTreeMap::new(),
+            current_round: 0,
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn propose(&mut self, proposer: u64, value_hash: u64, quorum: u32, now: u64) -> u64 {
         self.current_round += 1;
-        let id = self.next_id; self.next_id += 1;
-        self.proposals.insert(id, ProposalV2::new(id, proposer, self.current_round, value_hash, quorum, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.proposals.insert(
+            id,
+            ProposalV2::new(id, proposer, self.current_round, value_hash, quorum, now),
+        );
         id
     }
 
     #[inline(always)]
     pub fn vote(&mut self, proposal_id: u64, voter: u64, v: VoteV2) {
-        if let Some(p) = self.proposals.get_mut(&proposal_id) { p.vote(voter, v); }
+        if let Some(p) = self.proposals.get_mut(&proposal_id) {
+            p.vote(voter, v);
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> ConsensusV2Stats {
-        let committed = self.proposals.values().filter(|p| p.state == ConsensusV2State::Committed).count() as u32;
-        let aborted = self.proposals.values().filter(|p| p.state == ConsensusV2State::Aborted).count() as u32;
+        let committed = self
+            .proposals
+            .values()
+            .filter(|p| p.state == ConsensusV2State::Committed)
+            .count() as u32;
+        let aborted = self
+            .proposals
+            .values()
+            .filter(|p| p.state == ConsensusV2State::Aborted)
+            .count() as u32;
         let pending = self.proposals.len() as u32 - committed - aborted;
-        ConsensusV2Stats { total_proposals: self.proposals.len() as u32, committed, aborted, pending, current_round: self.current_round }
+        ConsensusV2Stats {
+            total_proposals: self.proposals.len() as u32,
+            committed,
+            aborted,
+            pending,
+            current_round: self.current_round,
+        }
     }
 }

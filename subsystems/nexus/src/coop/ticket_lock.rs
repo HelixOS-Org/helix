@@ -4,10 +4,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-
+use alloc::vec::Vec;
 /// Ticket lock
 use core::sync::atomic::AtomicU64;
-use alloc::vec::Vec;
 use core::sync::atomic::Ordering;
 #[derive(Debug)]
 pub struct TicketLock {
@@ -23,14 +22,25 @@ pub struct TicketLock {
 
 impl TicketLock {
     pub fn new(id: u64) -> Self {
-        Self { id, next_ticket: 0, now_serving: 0, owner_tid: None, acquisitions: 0, contentions: 0, total_spin_ns: 0, max_spin_ns: 0 }
+        Self {
+            id,
+            next_ticket: 0,
+            now_serving: 0,
+            owner_tid: None,
+            acquisitions: 0,
+            contentions: 0,
+            total_spin_ns: 0,
+            max_spin_ns: 0,
+        }
     }
 
     #[inline]
     pub fn take_ticket(&mut self) -> u64 {
         let ticket = self.next_ticket;
         self.next_ticket += 1;
-        if ticket != self.now_serving { self.contentions += 1; }
+        if ticket != self.now_serving {
+            self.contentions += 1;
+        }
         ticket
     }
 
@@ -40,7 +50,9 @@ impl TicketLock {
             self.owner_tid = Some(tid);
             self.acquisitions += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -50,9 +62,17 @@ impl TicketLock {
     }
 
     #[inline(always)]
-    pub fn waiters(&self) -> u64 { self.next_ticket - self.now_serving - if self.owner_tid.is_some() { 1 } else { 0 } }
+    pub fn waiters(&self) -> u64 {
+        self.next_ticket - self.now_serving - if self.owner_tid.is_some() { 1 } else { 0 }
+    }
     #[inline(always)]
-    pub fn contention_rate(&self) -> f64 { if self.acquisitions == 0 { 0.0 } else { self.contentions as f64 / self.acquisitions as f64 } }
+    pub fn contention_rate(&self) -> f64 {
+        if self.acquisitions == 0 {
+            0.0
+        } else {
+            self.contentions as f64 / self.acquisitions as f64
+        }
+    }
 }
 
 /// Stats
@@ -73,11 +93,17 @@ pub struct CoopTicketLock {
 }
 
 impl CoopTicketLock {
-    pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            locks: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.locks.insert(id, TicketLock::new(id));
         id
     }
@@ -88,8 +114,18 @@ impl CoopTicketLock {
         let conts: u64 = self.locks.values().map(|l| l.contentions).sum();
         let waiters: u64 = self.locks.values().map(|l| l.waiters()).sum();
         let rates: Vec<f64> = self.locks.values().map(|l| l.contention_rate()).collect();
-        let avg = if rates.is_empty() { 0.0 } else { rates.iter().sum::<f64>() / rates.len() as f64 };
-        TicketLockStats { total_locks: self.locks.len() as u32, total_acquisitions: acqs, total_contentions: conts, total_waiters: waiters, avg_contention_rate: avg }
+        let avg = if rates.is_empty() {
+            0.0
+        } else {
+            rates.iter().sum::<f64>() / rates.len() as f64
+        };
+        TicketLockStats {
+            total_locks: self.locks.len() as u32,
+            total_acquisitions: acqs,
+            total_contentions: conts,
+            total_waiters: waiters,
+            avg_contention_rate: avg,
+        }
     }
 }
 
@@ -121,7 +157,18 @@ pub struct TicketLockV2 {
 
 impl TicketLockV2 {
     pub fn new(id: u64) -> Self {
-        Self { id, next_ticket: 0, now_serving: 0, state: TicketLockV2State::Free, owner_tid: 0, total_acquires: 0, total_releases: 0, total_spins: 0, max_wait_spins: 0, hold_time_total: 0 }
+        Self {
+            id,
+            next_ticket: 0,
+            now_serving: 0,
+            state: TicketLockV2State::Free,
+            owner_tid: 0,
+            total_acquires: 0,
+            total_releases: 0,
+            total_spins: 0,
+            max_wait_spins: 0,
+            hold_time_total: 0,
+        }
     }
 
     #[inline]
@@ -130,10 +177,16 @@ impl TicketLockV2 {
         self.next_ticket += 1;
         self.total_acquires += 1;
         self.total_spins += spins;
-        if spins > self.max_wait_spins { self.max_wait_spins = spins; }
+        if spins > self.max_wait_spins {
+            self.max_wait_spins = spins;
+        }
         self.now_serving = ticket + 1;
         self.owner_tid = tid;
-        self.state = if self.next_ticket > self.now_serving { TicketLockV2State::Contended } else { TicketLockV2State::Held };
+        self.state = if self.next_ticket > self.now_serving {
+            TicketLockV2State::Contended
+        } else {
+            TicketLockV2State::Held
+        };
         ticket
     }
 
@@ -142,24 +195,38 @@ impl TicketLockV2 {
         self.total_releases += 1;
         self.hold_time_total += hold_ns;
         self.owner_tid = 0;
-        if self.now_serving >= self.next_ticket { self.state = TicketLockV2State::Free; }
-        else { self.state = TicketLockV2State::Contended; }
+        if self.now_serving >= self.next_ticket {
+            self.state = TicketLockV2State::Free;
+        } else {
+            self.state = TicketLockV2State::Contended;
+        }
     }
 
     #[inline(always)]
     pub fn avg_hold_ns(&self) -> u64 {
-        if self.total_releases == 0 { 0 } else { self.hold_time_total / self.total_releases }
+        if self.total_releases == 0 {
+            0
+        } else {
+            self.hold_time_total / self.total_releases
+        }
     }
 
     #[inline(always)]
     pub fn avg_spins(&self) -> f64 {
-        if self.total_acquires == 0 { 0.0 } else { self.total_spins as f64 / self.total_acquires as f64 }
+        if self.total_acquires == 0 {
+            0.0
+        } else {
+            self.total_spins as f64 / self.total_acquires as f64
+        }
     }
 
     #[inline(always)]
     pub fn waiters(&self) -> u64 {
-        if self.next_ticket > self.now_serving { self.next_ticket - self.now_serving }
-        else { 0 }
+        if self.next_ticket > self.now_serving {
+            self.next_ticket - self.now_serving
+        } else {
+            0
+        }
     }
 }
 
@@ -181,36 +248,63 @@ pub struct CoopTicketLockV2 {
 }
 
 impl CoopTicketLockV2 {
-    pub fn new() -> Self { Self { locks: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            locks: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.locks.insert(id, TicketLockV2::new(id));
         id
     }
 
     #[inline(always)]
     pub fn acquire(&mut self, lock_id: u64, tid: u64, spins: u64) -> u64 {
-        if let Some(l) = self.locks.get_mut(&lock_id) { l.acquire(tid, spins) }
-        else { 0 }
+        if let Some(l) = self.locks.get_mut(&lock_id) {
+            l.acquire(tid, spins)
+        } else {
+            0
+        }
     }
 
     #[inline(always)]
     pub fn release(&mut self, lock_id: u64, hold_ns: u64) {
-        if let Some(l) = self.locks.get_mut(&lock_id) { l.release(hold_ns); }
+        if let Some(l) = self.locks.get_mut(&lock_id) {
+            l.release(hold_ns);
+        }
     }
 
     #[inline(always)]
-    pub fn destroy(&mut self, lock_id: u64) { self.locks.remove(&lock_id); }
+    pub fn destroy(&mut self, lock_id: u64) {
+        self.locks.remove(&lock_id);
+    }
 
     #[inline]
     pub fn stats(&self) -> TicketLockV2Stats {
         let acqs: u64 = self.locks.values().map(|l| l.total_acquires).sum();
         let spins: u64 = self.locks.values().map(|l| l.total_spins).sum();
-        let avg = if acqs == 0 { 0.0 } else { spins as f64 / acqs as f64 };
-        let contended = self.locks.values().filter(|l| l.state == TicketLockV2State::Contended).count() as u32;
-        TicketLockV2Stats { total_locks: self.locks.len() as u32, total_acquires: acqs, total_spins: spins, avg_spins: avg, contended }
+        let avg = if acqs == 0 {
+            0.0
+        } else {
+            spins as f64 / acqs as f64
+        };
+        let contended = self
+            .locks
+            .values()
+            .filter(|l| l.state == TicketLockV2State::Contended)
+            .count() as u32;
+        TicketLockV2Stats {
+            total_locks: self.locks.len() as u32,
+            total_acquires: acqs,
+            total_spins: spins,
+            avg_spins: avg,
+            contended,
+        }
     }
 }
 
@@ -245,8 +339,10 @@ impl TicketLockV3Instance {
             next_ticket: AtomicU64::new(0),
             now_serving: AtomicU64::new(0),
             holder_tid: None,
-            acquisitions: 0, contentions: 0,
-            max_waiters: 0, total_wait_ticks: 0,
+            acquisitions: 0,
+            contentions: 0,
+            max_waiters: 0,
+            total_wait_ticks: 0,
         }
     }
 
@@ -280,7 +376,11 @@ impl TicketLockV3Instance {
     pub fn waiter_count(&self) -> u64 {
         let next = self.next_ticket.load(Ordering::Relaxed);
         let serving = self.now_serving.load(Ordering::Relaxed);
-        if next > serving { next - serving - 1 } else { 0 }
+        if next > serving {
+            next - serving - 1
+        } else {
+            0
+        }
     }
 }
 
@@ -309,8 +409,10 @@ impl CoopTicketLockV3 {
             locks: BTreeMap::new(),
             next_id: 1,
             stats: TicketLockV3Stats {
-                locks_created: 0, total_acquisitions: 0,
-                total_contentions: 0, max_queue_depth: 0,
+                locks_created: 0,
+                total_acquisitions: 0,
+                total_contentions: 0,
+                max_queue_depth: 0,
                 total_wait_ticks: 0,
             },
         }
@@ -336,7 +438,9 @@ impl CoopTicketLockV3 {
                 self.stats.max_queue_depth = lock.max_waiters;
             }
             Some(ticket)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]

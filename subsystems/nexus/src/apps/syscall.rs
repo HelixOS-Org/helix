@@ -13,7 +13,8 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F64Ext};
+
+use crate::fast::math::F64Ext;
 
 /// Syscall result
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -127,8 +128,8 @@ impl SyscallV2Stats {
             SyscallV2Result::Error(errno) => {
                 self.error_count += 1;
                 *self.error_freq.entry(errno).or_insert(0) += 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // Latency histogram
@@ -150,18 +151,28 @@ impl SyscallV2Stats {
 
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> f64 {
-        if self.count == 0 { 0.0 } else { self.total_latency_ns as f64 / self.count as f64 }
+        if self.count == 0 {
+            0.0
+        } else {
+            self.total_latency_ns as f64 / self.count as f64
+        }
     }
 
     #[inline(always)]
     pub fn error_rate(&self) -> f64 {
-        if self.count == 0 { 0.0 } else { self.error_count as f64 / self.count as f64 }
+        if self.count == 0 {
+            0.0
+        } else {
+            self.error_count as f64 / self.count as f64
+        }
     }
 
     /// Top errors
     #[inline]
     pub fn top_errors(&self, n: usize) -> Vec<(i32, u64)> {
-        let mut errors: Vec<(i32, u64)> = self.error_freq.iter()
+        let mut errors: Vec<(i32, u64)> = self
+            .error_freq
+            .iter()
             .map(|(&errno, &count)| (errno, count))
             .collect();
         errors.sort_by(|a, b| b.1.cmp(&a.1));
@@ -249,13 +260,17 @@ impl ProcessSyscallV2Profile {
             self.total_errors += 1;
         }
 
-        self.syscall_stats.entry(syscall_nr)
+        self.syscall_stats
+            .entry(syscall_nr)
             .or_insert_with(|| SyscallV2Stats::new(syscall_nr))
             .record(latency_ns, result, args);
 
         // Track bigram
         if let Some(prev) = self.last_syscall {
-            let bg = SyscallBigram { first: prev, second: syscall_nr };
+            let bg = SyscallBigram {
+                first: prev,
+                second: syscall_nr,
+            };
             *self.bigrams.entry(bg).or_insert(0) += 1;
         }
         self.last_syscall = Some(syscall_nr);
@@ -265,7 +280,8 @@ impl ProcessSyscallV2Profile {
     #[inline]
     pub fn predict_next(&self) -> Option<u32> {
         let last = self.last_syscall?;
-        self.bigrams.iter()
+        self.bigrams
+            .iter()
             .filter(|(bg, _)| bg.first == last)
             .max_by_key(|&(_, &count)| count)
             .map(|(bg, _)| bg.second)
@@ -274,7 +290,9 @@ impl ProcessSyscallV2Profile {
     /// Hottest syscalls
     #[inline]
     pub fn hottest(&self, n: usize) -> Vec<(u32, u64)> {
-        let mut syscalls: Vec<(u32, u64)> = self.syscall_stats.iter()
+        let mut syscalls: Vec<(u32, u64)> = self
+            .syscall_stats
+            .iter()
             .map(|(&nr, stats)| (nr, stats.count))
             .collect();
         syscalls.sort_by(|a, b| b.1.cmp(&a.1));
@@ -285,7 +303,9 @@ impl ProcessSyscallV2Profile {
     /// Slowest syscalls by avg latency
     #[inline]
     pub fn slowest(&self, n: usize) -> Vec<(u32, f64)> {
-        let mut syscalls: Vec<(u32, f64)> = self.syscall_stats.iter()
+        let mut syscalls: Vec<(u32, f64)> = self
+            .syscall_stats
+            .iter()
             .filter(|(_, s)| s.count > 10)
             .map(|(&nr, stats)| (nr, stats.avg_latency_ns()))
             .collect();
@@ -297,7 +317,9 @@ impl ProcessSyscallV2Profile {
     /// Most error-prone syscalls
     #[inline]
     pub fn error_prone(&self, n: usize) -> Vec<(u32, f64)> {
-        let mut syscalls: Vec<(u32, f64)> = self.syscall_stats.iter()
+        let mut syscalls: Vec<(u32, f64)> = self
+            .syscall_stats
+            .iter()
             .filter(|(_, s)| s.count > 10)
             .map(|(&nr, stats)| (nr, stats.error_rate()))
             .collect();
@@ -309,7 +331,9 @@ impl ProcessSyscallV2Profile {
     /// Common syscall patterns (top bigrams)
     #[inline]
     pub fn common_patterns(&self, n: usize) -> Vec<(SyscallBigram, u64)> {
-        let mut patterns: Vec<(SyscallBigram, u64)> = self.bigrams.iter()
+        let mut patterns: Vec<(SyscallBigram, u64)> = self
+            .bigrams
+            .iter()
             .map(|(&bg, &count)| (bg, count))
             .collect();
         patterns.sort_by(|a, b| b.1.cmp(&a.1));
@@ -320,7 +344,9 @@ impl ProcessSyscallV2Profile {
     /// Overall error rate
     #[inline]
     pub fn overall_error_rate(&self) -> f64 {
-        if self.total_syscalls == 0 { 0.0 } else {
+        if self.total_syscalls == 0 {
+            0.0
+        } else {
             self.total_errors as f64 / self.total_syscalls as f64
         }
     }
@@ -360,7 +386,8 @@ impl AppSyscallV2Profiler {
         result: SyscallV2Result,
         args: &[u64],
     ) {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessSyscallV2Profile::new(pid))
             .record(syscall_nr, latency_ns, result, args);
         self.update_stats();
@@ -371,9 +398,12 @@ impl AppSyscallV2Profiler {
         self.stats.total_syscalls = self.processes.values().map(|p| p.total_syscalls).sum();
         self.stats.total_errors = self.processes.values().map(|p| p.total_errors).sum();
         if !self.processes.is_empty() {
-            self.stats.avg_error_rate = self.processes.values()
+            self.stats.avg_error_rate = self
+                .processes
+                .values()
                 .map(|p| p.overall_error_rate())
-                .sum::<f64>() / self.processes.len() as f64;
+                .sum::<f64>()
+                / self.processes.len() as f64;
         }
     }
 

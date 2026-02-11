@@ -2,9 +2,10 @@
 //! NEXUS Bridge — Cpuset (CPU and memory partitioning)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use core::sync::atomic::{AtomicU64, Ordering};
+
+use crate::fast::linear_map::LinearMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CpusetPartition {
@@ -34,45 +35,65 @@ pub struct CpusetMask {
 }
 
 impl CpusetMask {
-    pub fn new() -> Self { Self { bits: [0; 4] } }
+    pub fn new() -> Self {
+        Self { bits: [0; 4] }
+    }
     #[inline(always)]
-    pub fn all() -> Self { Self { bits: [u64::MAX; 4] } }
+    pub fn all() -> Self {
+        Self {
+            bits: [u64::MAX; 4],
+        }
+    }
 
     #[inline]
     pub fn set(&mut self, id: u32) {
         let idx = (id / 64) as usize;
         let bit = id % 64;
-        if idx < 4 { self.bits[idx] |= 1u64 << bit; }
+        if idx < 4 {
+            self.bits[idx] |= 1u64 << bit;
+        }
     }
 
     #[inline]
     pub fn clear(&mut self, id: u32) {
         let idx = (id / 64) as usize;
         let bit = id % 64;
-        if idx < 4 { self.bits[idx] &= !(1u64 << bit); }
+        if idx < 4 {
+            self.bits[idx] &= !(1u64 << bit);
+        }
     }
 
     #[inline]
     pub fn is_set(&self, id: u32) -> bool {
         let idx = (id / 64) as usize;
         let bit = id % 64;
-        if idx < 4 { (self.bits[idx] >> bit) & 1 == 1 } else { false }
+        if idx < 4 {
+            (self.bits[idx] >> bit) & 1 == 1
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn count(&self) -> u32 { self.bits.iter().map(|b| b.count_ones()).sum() }
+    pub fn count(&self) -> u32 {
+        self.bits.iter().map(|b| b.count_ones()).sum()
+    }
 
     #[inline]
     pub fn intersect(&self, other: &CpusetMask) -> CpusetMask {
         let mut r = CpusetMask::new();
-        for i in 0..4 { r.bits[i] = self.bits[i] & other.bits[i]; }
+        for i in 0..4 {
+            r.bits[i] = self.bits[i] & other.bits[i];
+        }
         r
     }
 
     #[inline]
     pub fn is_subset_of(&self, other: &CpusetMask) -> bool {
         for i in 0..4 {
-            if self.bits[i] & !other.bits[i] != 0 { return false; }
+            if self.bits[i] & !other.bits[i] != 0 {
+                return false;
+            }
         }
         true
     }

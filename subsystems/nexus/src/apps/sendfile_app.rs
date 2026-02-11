@@ -3,10 +3,9 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
-
 /// Sendfile transfer state
 use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SendfileState {
     Pending,
@@ -31,7 +30,17 @@ pub struct SendfileTransfer {
 
 impl SendfileTransfer {
     pub fn new(id: u64, in_fd: u64, out_fd: u64, offset: u64, count: u64, now: u64) -> Self {
-        Self { id, in_fd, out_fd, offset, count, transferred: 0, state: SendfileState::Pending, timestamp: now, duration_ns: 0 }
+        Self {
+            id,
+            in_fd,
+            out_fd,
+            offset,
+            count,
+            transferred: 0,
+            state: SendfileState::Pending,
+            timestamp: now,
+            duration_ns: 0,
+        }
     }
 
     #[inline]
@@ -43,7 +52,11 @@ impl SendfileTransfer {
 
     #[inline(always)]
     pub fn throughput_bps(&self) -> u64 {
-        if self.duration_ns == 0 { 0 } else { self.transferred * 1_000_000_000 / self.duration_ns }
+        if self.duration_ns == 0 {
+            0
+        } else {
+            self.transferred * 1_000_000_000 / self.duration_ns
+        }
     }
 }
 
@@ -65,23 +78,53 @@ pub struct AppSendfile {
 }
 
 impl AppSendfile {
-    pub fn new() -> Self { Self { transfers: Vec::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            transfers: Vec::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn sendfile(&mut self, in_fd: u64, out_fd: u64, offset: u64, count: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.transfers.push(SendfileTransfer::new(id, in_fd, out_fd, offset, count, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.transfers
+            .push(SendfileTransfer::new(id, in_fd, out_fd, offset, count, now));
         id
     }
 
     #[inline]
     pub fn stats(&self) -> SendfileAppStats {
-        let completed = self.transfers.iter().filter(|t| t.state == SendfileState::Completed).count() as u32;
-        let failed = self.transfers.iter().filter(|t| t.state == SendfileState::Failed).count() as u32;
+        let completed = self
+            .transfers
+            .iter()
+            .filter(|t| t.state == SendfileState::Completed)
+            .count() as u32;
+        let failed = self
+            .transfers
+            .iter()
+            .filter(|t| t.state == SendfileState::Failed)
+            .count() as u32;
         let bytes: u64 = self.transfers.iter().map(|t| t.transferred).sum();
-        let thrus: Vec<u64> = self.transfers.iter().filter(|t| t.state == SendfileState::Completed).map(|t| t.throughput_bps()).collect();
-        let avg = if thrus.is_empty() { 0 } else { thrus.iter().sum::<u64>() / thrus.len() as u64 };
-        SendfileAppStats { total_transfers: self.transfers.len() as u32, completed, failed, total_bytes: bytes, avg_throughput_bps: avg }
+        let thrus: Vec<u64> = self
+            .transfers
+            .iter()
+            .filter(|t| t.state == SendfileState::Completed)
+            .map(|t| t.throughput_bps())
+            .collect();
+        let avg = if thrus.is_empty() {
+            0
+        } else {
+            thrus.iter().sum::<u64>() / thrus.len() as u64
+        };
+        SendfileAppStats {
+            total_transfers: self.transfers.len() as u32,
+            completed,
+            failed,
+            total_bytes: bytes,
+            avg_throughput_bps: avg,
+        }
     }
 }
 
@@ -122,14 +165,22 @@ pub struct FdSendfileTracker {
 
 impl FdSendfileTracker {
     pub fn new(fd: u64) -> Self {
-        Self { fd, total_sends: 0, total_bytes: 0, zero_copy_bytes: 0, avg_transfer_size: 0 }
+        Self {
+            fd,
+            total_sends: 0,
+            total_bytes: 0,
+            zero_copy_bytes: 0,
+            avg_transfer_size: 0,
+        }
     }
 
     #[inline]
     pub fn record(&mut self, bytes: u64, zc: bool) {
         self.total_sends += 1;
         self.total_bytes += bytes;
-        if zc { self.zero_copy_bytes += bytes; }
+        if zc {
+            self.zero_copy_bytes += bytes;
+        }
         self.avg_transfer_size = self.total_bytes / self.total_sends;
     }
 }
@@ -150,24 +201,39 @@ pub struct AppSendfileV2 {
 }
 
 impl AppSendfileV2 {
-    pub fn new() -> Self { Self { trackers: BTreeMap::new() } }
-
-    #[inline(always)]
-    pub fn track(&mut self, fd: u64) { self.trackers.insert(fd, FdSendfileTracker::new(fd)); }
-
-    #[inline(always)]
-    pub fn sendfile(&mut self, out_fd: u64, bytes: u64, zero_copy: bool) {
-        if let Some(t) = self.trackers.get_mut(&out_fd) { t.record(bytes, zero_copy); }
+    pub fn new() -> Self {
+        Self {
+            trackers: BTreeMap::new(),
+        }
     }
 
     #[inline(always)]
-    pub fn untrack(&mut self, fd: u64) { self.trackers.remove(&fd); }
+    pub fn track(&mut self, fd: u64) {
+        self.trackers.insert(fd, FdSendfileTracker::new(fd));
+    }
+
+    #[inline(always)]
+    pub fn sendfile(&mut self, out_fd: u64, bytes: u64, zero_copy: bool) {
+        if let Some(t) = self.trackers.get_mut(&out_fd) {
+            t.record(bytes, zero_copy);
+        }
+    }
+
+    #[inline(always)]
+    pub fn untrack(&mut self, fd: u64) {
+        self.trackers.remove(&fd);
+    }
 
     #[inline]
     pub fn stats(&self) -> SendfileV2AppStats {
         let sends: u64 = self.trackers.values().map(|t| t.total_sends).sum();
         let bytes: u64 = self.trackers.values().map(|t| t.total_bytes).sum();
         let zc: u64 = self.trackers.values().map(|t| t.zero_copy_bytes).sum();
-        SendfileV2AppStats { tracked_fds: self.trackers.len() as u32, total_sends: sends, total_bytes: bytes, zero_copy_bytes: zc }
+        SendfileV2AppStats {
+            tracked_fds: self.trackers.len() as u32,
+            total_sends: sends,
+            total_bytes: bytes,
+            zero_copy_bytes: zc,
+        }
     }
 }

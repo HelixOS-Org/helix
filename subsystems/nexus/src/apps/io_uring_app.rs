@@ -9,15 +9,56 @@ use alloc::vec::Vec;
 /// SQE opcode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IoUringOp {
-    Nop, Readv, Writev, Fsync, ReadFixed, WriteFixed,
-    PollAdd, PollRemove, SyncFileRange, SendMsg, RecvMsg,
-    Timeout, TimeoutRemove, Accept, AsyncCancel, LinkTimeout,
-    Connect, Fallocate, OpenAt, Close, FilesUpdate,
-    Statx, Read, Write, Fadvise, Madvise, Send, Recv,
-    OpenAt2, EpollCtl, Splice, ProvideBuffers, RemoveBuffers,
-    Tee, Shutdown, Renameat, Unlinkat, Mkdirat, Symlinkat,
-    Linkat, MsgRing, Fsetxattr, Setxattr, Fgetxattr, Getxattr,
-    Socket, UringCmd, SendZc, SendMsgZc, WaitId,
+    Nop,
+    Readv,
+    Writev,
+    Fsync,
+    ReadFixed,
+    WriteFixed,
+    PollAdd,
+    PollRemove,
+    SyncFileRange,
+    SendMsg,
+    RecvMsg,
+    Timeout,
+    TimeoutRemove,
+    Accept,
+    AsyncCancel,
+    LinkTimeout,
+    Connect,
+    Fallocate,
+    OpenAt,
+    Close,
+    FilesUpdate,
+    Statx,
+    Read,
+    Write,
+    Fadvise,
+    Madvise,
+    Send,
+    Recv,
+    OpenAt2,
+    EpollCtl,
+    Splice,
+    ProvideBuffers,
+    RemoveBuffers,
+    Tee,
+    Shutdown,
+    Renameat,
+    Unlinkat,
+    Mkdirat,
+    Symlinkat,
+    Linkat,
+    MsgRing,
+    Fsetxattr,
+    Setxattr,
+    Fgetxattr,
+    Getxattr,
+    Socket,
+    UringCmd,
+    SendZc,
+    SendMsgZc,
+    WaitId,
 }
 
 /// SQE flags
@@ -33,9 +74,13 @@ impl SqeFlags {
     pub const BUFFER_SELECT: u32 = 1 << 5;
     pub const CQE_SKIP_SUCCESS: u32 = 1 << 6;
 
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn has(&self, f: u32) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u32) -> bool {
+        self.0 & f != 0
+    }
 }
 
 /// Submission queue entry
@@ -75,18 +120,38 @@ pub struct IoUringInstance {
 
 impl IoUringInstance {
     pub fn new(id: u64, sq: u32, cq: u32) -> Self {
-        Self { id, sq_entries: sq, cq_entries: cq, pending: Vec::new(), completions: Vec::new(), total_submitted: 0, total_completed: 0, total_bytes: 0, sq_polling: false }
+        Self {
+            id,
+            sq_entries: sq,
+            cq_entries: cq,
+            pending: Vec::new(),
+            completions: Vec::new(),
+            total_submitted: 0,
+            total_completed: 0,
+            total_bytes: 0,
+            sq_polling: false,
+        }
     }
 
     #[inline(always)]
-    pub fn submit(&mut self, sqe: Sqe) { self.total_submitted += 1; self.pending.push(sqe); }
+    pub fn submit(&mut self, sqe: Sqe) {
+        self.total_submitted += 1;
+        self.pending.push(sqe);
+    }
 
     #[inline]
     pub fn complete(&mut self, user_data: u64, res: i32, now: u64) {
         self.pending.retain(|s| s.user_data != user_data);
         self.total_completed += 1;
-        if self.completions.len() >= self.cq_entries as usize { self.completions.drain(..self.cq_entries as usize / 2); }
-        self.completions.push(Cqe { user_data, res, flags: 0, completed_at: now });
+        if self.completions.len() >= self.cq_entries as usize {
+            self.completions.drain(..self.cq_entries as usize / 2);
+        }
+        self.completions.push(Cqe {
+            user_data,
+            res,
+            flags: 0,
+            completed_at: now,
+        });
     }
 
     #[inline(always)]
@@ -114,18 +179,26 @@ pub struct AppIoUring {
 }
 
 impl AppIoUring {
-    pub fn new() -> Self { Self { rings: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            rings: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn setup(&mut self, sq: u32, cq: u32) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.rings.insert(id, IoUringInstance::new(id, sq, cq));
         id
     }
 
     #[inline(always)]
     pub fn submit(&mut self, ring: u64, sqe: Sqe) {
-        if let Some(r) = self.rings.get_mut(&ring) { r.submit(sqe); }
+        if let Some(r) = self.rings.get_mut(&ring) {
+            r.submit(sqe);
+        }
     }
 
     #[inline]
@@ -134,6 +207,12 @@ impl AppIoUring {
         let comp: u64 = self.rings.values().map(|r| r.total_completed).sum();
         let pend: u32 = self.rings.values().map(|r| r.pending.len() as u32).sum();
         let poll = self.rings.values().filter(|r| r.sq_polling).count() as u32;
-        IoUringAppStats { total_rings: self.rings.len() as u32, total_submitted: sub, total_completed: comp, total_pending: pend, sq_poll_rings: poll }
+        IoUringAppStats {
+            total_rings: self.rings.len() as u32,
+            total_submitted: sub,
+            total_completed: comp,
+            total_pending: pend,
+            sq_poll_rings: poll,
+        }
     }
 }

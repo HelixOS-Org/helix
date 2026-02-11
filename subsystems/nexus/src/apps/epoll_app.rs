@@ -35,7 +35,15 @@ pub struct EpollEntry {
 
 impl EpollEntry {
     pub fn new(fd: u64, events: u32, data: u64, et: bool, os: bool, now: u64) -> Self {
-        Self { fd, events, data, edge_triggered: et, oneshot: os, registered_at: now, triggered_count: 0 }
+        Self {
+            fd,
+            events,
+            data,
+            edge_triggered: et,
+            oneshot: os,
+            registered_at: now,
+            triggered_count: 0,
+        }
     }
 }
 
@@ -52,7 +60,14 @@ pub struct EpollInstance {
 
 impl EpollInstance {
     pub fn new(id: u64, max: u32) -> Self {
-        Self { id, entries: BTreeMap::new(), ready_list: Vec::new(), max_events: max, total_waits: 0, total_events: 0 }
+        Self {
+            id,
+            entries: BTreeMap::new(),
+            ready_list: Vec::new(),
+            max_events: max,
+            total_waits: 0,
+            total_events: 0,
+        }
     }
 
     #[inline(always)]
@@ -62,13 +77,20 @@ impl EpollInstance {
     }
 
     #[inline(always)]
-    pub fn remove(&mut self, fd: u64) { self.entries.remove(&fd); self.ready_list.retain(|&f| f != fd); }
+    pub fn remove(&mut self, fd: u64) {
+        self.entries.remove(&fd);
+        self.ready_list.retain(|&f| f != fd);
+    }
 
     #[inline]
     pub fn signal(&mut self, fd: u64) {
         if self.entries.contains_key(&fd) {
-            if let Some(e) = self.entries.get_mut(&fd) { e.triggered_count += 1; }
-            if !self.ready_list.contains(&fd) { self.ready_list.push(fd); }
+            if let Some(e) = self.entries.get_mut(&fd) {
+                e.triggered_count += 1;
+            }
+            if !self.ready_list.contains(&fd) {
+                self.ready_list.push(fd);
+            }
             self.total_events += 1;
         }
     }
@@ -99,37 +121,59 @@ pub struct AppEpoll {
 }
 
 impl AppEpoll {
-    pub fn new() -> Self { Self { instances: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            instances: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, max: u32) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.instances.insert(id, EpollInstance::new(id, max));
         id
     }
 
     #[inline(always)]
     pub fn ctl_add(&mut self, epid: u64, entry: EpollEntry) {
-        if let Some(inst) = self.instances.get_mut(&epid) { inst.add(entry); }
+        if let Some(inst) = self.instances.get_mut(&epid) {
+            inst.add(entry);
+        }
     }
 
     #[inline(always)]
     pub fn ctl_del(&mut self, epid: u64, fd: u64) {
-        if let Some(inst) = self.instances.get_mut(&epid) { inst.remove(fd); }
+        if let Some(inst) = self.instances.get_mut(&epid) {
+            inst.remove(fd);
+        }
     }
 
     #[inline(always)]
     pub fn wait(&mut self, epid: u64) -> Vec<u64> {
-        if let Some(inst) = self.instances.get_mut(&epid) { inst.wait() }
-        else { Vec::new() }
+        if let Some(inst) = self.instances.get_mut(&epid) {
+            inst.wait()
+        } else {
+            Vec::new()
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> EpollAppStats {
-        let fds: u32 = self.instances.values().map(|i| i.entries.len() as u32).sum();
+        let fds: u32 = self
+            .instances
+            .values()
+            .map(|i| i.entries.len() as u32)
+            .sum();
         let waits: u64 = self.instances.values().map(|i| i.total_waits).sum();
         let evts: u64 = self.instances.values().map(|i| i.total_events).sum();
-        EpollAppStats { total_instances: self.instances.len() as u32, total_fds_monitored: fds, total_waits: waits, total_events: evts }
+        EpollAppStats {
+            total_instances: self.instances.len() as u32,
+            total_fds_monitored: fds,
+            total_waits: waits,
+            total_events: evts,
+        }
     }
 }
 
@@ -138,7 +182,14 @@ impl AppEpoll {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EpollV2AppOp { Create, CtlAdd, CtlMod, CtlDel, Wait, Pwait }
+pub enum EpollV2AppOp {
+    Create,
+    CtlAdd,
+    CtlMod,
+    CtlDel,
+    Wait,
+    Pwait,
+}
 
 /// Epoll v2 request
 #[derive(Debug, Clone)]
@@ -152,27 +203,61 @@ pub struct EpollV2Request {
 }
 
 impl EpollV2Request {
-    pub fn new(op: EpollV2AppOp, epfd: i32) -> Self { Self { op, epfd, target_fd: -1, events: 0, max_events: 64, timeout_ms: -1 } }
+    pub fn new(op: EpollV2AppOp, epfd: i32) -> Self {
+        Self {
+            op,
+            epfd,
+            target_fd: -1,
+            events: 0,
+            max_events: 64,
+            timeout_ms: -1,
+        }
+    }
 }
 
 /// Epoll v2 app stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct EpollV2AppStats { pub total_ops: u64, pub creates: u64, pub waits: u64, pub ctl_ops: u64 }
+pub struct EpollV2AppStats {
+    pub total_ops: u64,
+    pub creates: u64,
+    pub waits: u64,
+    pub ctl_ops: u64,
+}
 
 /// Main app epoll v2
 #[derive(Debug)]
-pub struct AppEpollV2 { pub stats: EpollV2AppStats }
+pub struct AppEpollV2 {
+    pub stats: EpollV2AppStats,
+}
 
 impl AppEpollV2 {
-    pub fn new() -> Self { Self { stats: EpollV2AppStats { total_ops: 0, creates: 0, waits: 0, ctl_ops: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: EpollV2AppStats {
+                total_ops: 0,
+                creates: 0,
+                waits: 0,
+                ctl_ops: 0,
+            },
+        }
+    }
     #[inline]
     pub fn execute(&mut self, req: &EpollV2Request) -> i32 {
         self.stats.total_ops += 1;
         match req.op {
-            EpollV2AppOp::Create => { self.stats.creates += 1; 3 }
-            EpollV2AppOp::Wait | EpollV2AppOp::Pwait => { self.stats.waits += 1; 0 }
-            _ => { self.stats.ctl_ops += 1; 0 }
+            EpollV2AppOp::Create => {
+                self.stats.creates += 1;
+                3
+            },
+            EpollV2AppOp::Wait | EpollV2AppOp::Pwait => {
+                self.stats.waits += 1;
+                0
+            },
+            _ => {
+                self.stats.ctl_ops += 1;
+                0
+            },
         }
     }
 }

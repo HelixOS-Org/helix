@@ -8,8 +8,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -155,11 +154,14 @@ impl AppsSynthesisEngine {
 
     /// Feed a raw observation sample for an app (cpu, mem, io, ipc).
     pub fn feed_sample(&mut self, app_id: u64, cpu: u64, mem: u64, io: u64, ipc: u64) {
-        let buf = self.observations.entry(app_id).or_insert(AppObservationBuffer {
-            app_id,
-            samples: VecDeque::new(),
-            sample_count: 0,
-        });
+        let buf = self
+            .observations
+            .entry(app_id)
+            .or_insert(AppObservationBuffer {
+                app_id,
+                samples: VecDeque::new(),
+                sample_count: 0,
+            });
         if buf.samples.len() >= 256 {
             buf.samples.remove(0).unwrap();
         }
@@ -242,7 +244,9 @@ impl AppsSynthesisEngine {
         let mut pruned: u64 = 0;
 
         // Prune dimensions with low discriminative power.
-        let weak_dims: Vec<u64> = self.dimensions.iter()
+        let weak_dims: Vec<u64> = self
+            .dimensions
+            .iter()
             .filter(|(_, d)| d.discriminative_power < 10 && d.usage_count < 3)
             .map(|(k, _)| *k)
             .collect();
@@ -252,7 +256,9 @@ impl AppsSynthesisEngine {
         }
 
         // Prune features with low predictive value.
-        let weak_feats: Vec<u64> = self.features.iter()
+        let weak_feats: Vec<u64> = self
+            .features
+            .iter()
             .filter(|(_, f)| f.predictive_value < 10)
             .map(|(k, _)| *k)
             .collect();
@@ -262,17 +268,17 @@ impl AppsSynthesisEngine {
         }
 
         // Amplify strong dimensions.
-        let strong_dims: Vec<u64> = self.dimensions.iter()
+        let strong_dims: Vec<u64> = self
+            .dimensions
+            .iter()
             .filter(|(_, d)| d.discriminative_power > EVOLUTION_THRESHOLD)
             .map(|(k, _)| *k)
             .collect();
         for dim_id in &strong_dims {
             if let Some(d) = self.dimensions.get_mut(&dim_id) {
                 d.usage_count += 1;
-                d.discriminative_power = ema_update(
-                    d.discriminative_power,
-                    d.discriminative_power + 5,
-                );
+                d.discriminative_power =
+                    ema_update(d.discriminative_power, d.discriminative_power + 5);
             }
         }
 
@@ -314,9 +320,7 @@ impl AppsSynthesisEngine {
 
             // Compute variance for each metric dimension.
             for metric_idx in 0..4u64 {
-                let values: Vec<u64> = buf.samples.iter()
-                    .map(|s| s[metric_idx as usize])
-                    .collect();
+                let values: Vec<u64> = buf.samples.iter().map(|s| s[metric_idx as usize]).collect();
                 let variance = self.compute_variance(&values);
 
                 if variance > 20 && self.dimensions.len() < MAX_DIMENSIONS {
@@ -384,15 +388,18 @@ impl AppsSynthesisEngine {
     fn auto_synthesize_strategies(&mut self) -> u64 {
         let mut added: u64 = 0;
 
-        let strong_features: Vec<&SynthFeature> = self.features.values()
+        let strong_features: Vec<&SynthFeature> = self
+            .features
+            .values()
             .filter(|f| f.predictive_value > 40)
             .collect();
 
         for feat in &strong_features {
             let strat_id = feat.feature_id ^ xorshift64(&mut self.rng);
-            let already_exists = self.strategies.iter().any(|s| {
-                s.trigger_condition_hash == feat.feature_id
-            });
+            let already_exists = self
+                .strategies
+                .iter()
+                .any(|s| s.trigger_condition_hash == feat.feature_id);
             if already_exists {
                 continue;
             }
@@ -427,7 +434,11 @@ impl AppsSynthesisEngine {
             count += 1;
         }
 
-        if count == 0 { 20 } else { (total_variance / count).min(100) }
+        if count == 0 {
+            20
+        } else {
+            (total_variance / count).min(100)
+        }
     }
 
     fn compute_predictive_value(&self, source_dims: &[u64]) -> u64 {
@@ -448,10 +459,14 @@ impl AppsSynthesisEngine {
             return 0;
         }
         let mean = values.iter().sum::<u64>() / values.len() as u64;
-        let var: u64 = values.iter().map(|&v| {
-            let d = if v > mean { v - mean } else { mean - v };
-            d * d
-        }).sum::<u64>() / values.len() as u64;
+        let var: u64 = values
+            .iter()
+            .map(|&v| {
+                let d = if v > mean { v - mean } else { mean - v };
+                d * d
+            })
+            .sum::<u64>()
+            / values.len() as u64;
         // Return sqrt approximation (integer).
         let mut r: u64 = var;
         if r > 1 {
@@ -470,16 +485,20 @@ impl AppsSynthesisEngine {
         let dim_avg = if self.dimensions.is_empty() {
             0
         } else {
-            self.dimensions.values()
+            self.dimensions
+                .values()
                 .map(|d| d.discriminative_power)
-                .sum::<u64>() / self.dimensions.len() as u64
+                .sum::<u64>()
+                / self.dimensions.len() as u64
         };
         let feat_avg = if self.features.is_empty() {
             0
         } else {
-            self.features.values()
+            self.features
+                .values()
                 .map(|f| f.predictive_value)
-                .sum::<u64>() / self.features.len() as u64
+                .sum::<u64>()
+                / self.features.len() as u64
         };
         (dim_avg + feat_avg) / 2
     }
@@ -488,25 +507,25 @@ impl AppsSynthesisEngine {
         let dim_avg = if self.dimensions.is_empty() {
             0
         } else {
-            self.dimensions.values()
+            self.dimensions
+                .values()
                 .map(|d| d.discriminative_power)
-                .sum::<u64>() / self.dimensions.len() as u64
+                .sum::<u64>()
+                / self.dimensions.len() as u64
         };
         let feat_avg = if self.features.is_empty() {
             0
         } else {
-            self.features.values()
+            self.features
+                .values()
                 .map(|f| f.predictive_value)
-                .sum::<u64>() / self.features.len() as u64
+                .sum::<u64>()
+                / self.features.len() as u64
         };
-        self.stats.avg_discriminative_power_ema = ema_update(
-            self.stats.avg_discriminative_power_ema,
-            dim_avg,
-        );
-        self.stats.avg_predictive_value_ema = ema_update(
-            self.stats.avg_predictive_value_ema,
-            feat_avg,
-        );
+        self.stats.avg_discriminative_power_ema =
+            ema_update(self.stats.avg_discriminative_power_ema, dim_avg);
+        self.stats.avg_predictive_value_ema =
+            ema_update(self.stats.avg_predictive_value_ema, feat_avg);
         self.stats.synthesis_impact = self.synthesis_impact();
     }
 }

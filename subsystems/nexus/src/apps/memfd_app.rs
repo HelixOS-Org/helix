@@ -41,7 +41,16 @@ pub struct MemfdInstance {
 
 impl MemfdInstance {
     pub fn new(fd: u64, name: u64, flags: u32, now: u64) -> Self {
-        Self { fd, name_hash: name, flags, seals: 0, size: 0, mapped: false, shared_count: 0, created_at: now }
+        Self {
+            fd,
+            name_hash: name,
+            flags,
+            seals: 0,
+            size: 0,
+            mapped: false,
+            shared_count: 0,
+            created_at: now,
+        }
     }
 
     #[inline]
@@ -58,7 +67,9 @@ impl MemfdInstance {
     }
 
     #[inline(always)]
-    pub fn is_sealed(&self) -> bool { self.seals & 1 != 0 }
+    pub fn is_sealed(&self) -> bool {
+        self.seals & 1 != 0
+    }
 }
 
 /// Stats
@@ -78,33 +89,51 @@ pub struct AppMemfd {
 }
 
 impl AppMemfd {
-    pub fn new() -> Self { Self { memfds: BTreeMap::new(), next_fd: 1 } }
+    pub fn new() -> Self {
+        Self {
+            memfds: BTreeMap::new(),
+            next_fd: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, name: u64, flags: u32, now: u64) -> u64 {
-        let fd = self.next_fd; self.next_fd += 1;
-        self.memfds.insert(fd, MemfdInstance::new(fd, name, flags, now));
+        let fd = self.next_fd;
+        self.next_fd += 1;
+        self.memfds
+            .insert(fd, MemfdInstance::new(fd, name, flags, now));
         fd
     }
 
     #[inline(always)]
     pub fn seal(&mut self, fd: u64, seal: MemfdSeal) {
-        if let Some(m) = self.memfds.get_mut(&fd) { m.add_seal(seal); }
+        if let Some(m) = self.memfds.get_mut(&fd) {
+            m.add_seal(seal);
+        }
     }
 
     #[inline(always)]
     pub fn resize(&mut self, fd: u64, new_size: u64) {
-        if let Some(m) = self.memfds.get_mut(&fd) { m.size = new_size; }
+        if let Some(m) = self.memfds.get_mut(&fd) {
+            m.size = new_size;
+        }
     }
 
     #[inline(always)]
-    pub fn close(&mut self, fd: u64) { self.memfds.remove(&fd); }
+    pub fn close(&mut self, fd: u64) {
+        self.memfds.remove(&fd);
+    }
 
     #[inline]
     pub fn stats(&self) -> MemfdAppStats {
         let sealed = self.memfds.values().filter(|m| m.is_sealed()).count() as u32;
         let mapped = self.memfds.values().filter(|m| m.mapped).count() as u32;
         let size: u64 = self.memfds.values().map(|m| m.size).sum();
-        MemfdAppStats { total_memfds: self.memfds.len() as u32, sealed_count: sealed, mapped_count: mapped, total_size: size }
+        MemfdAppStats {
+            total_memfds: self.memfds.len() as u32,
+            sealed_count: sealed,
+            mapped_count: mapped,
+            total_size: size,
+        }
     }
 }

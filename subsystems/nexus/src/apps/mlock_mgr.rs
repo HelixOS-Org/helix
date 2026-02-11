@@ -31,10 +31,16 @@ pub struct MlockFlags {
 impl MlockFlags {
     pub const MLOCK_ONFAULT: u32 = 1;
     #[inline(always)]
-    pub fn empty() -> Self { Self { bits: 0 } }
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn empty() -> Self {
+        Self { bits: 0 }
+    }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn is_onfault(&self) -> bool { self.bits & Self::MLOCK_ONFAULT != 0 }
+    pub fn is_onfault(&self) -> bool {
+        self.bits & Self::MLOCK_ONFAULT != 0
+    }
 }
 
 /// Locked region
@@ -52,11 +58,21 @@ pub struct LockedRegion {
 impl LockedRegion {
     pub fn new(start: u64, len: usize, lock_type: MlockType, flags: MlockFlags, ts: u64) -> Self {
         let pages = ((len + 4095) / 4096) as u64;
-        Self { start, length: len, lock_type, flags, locked_ts: ts, resident_pages: pages, total_pages: pages }
+        Self {
+            start,
+            length: len,
+            lock_type,
+            flags,
+            locked_ts: ts,
+            resident_pages: pages,
+            total_pages: pages,
+        }
     }
 
     #[inline(always)]
-    pub fn pages(&self) -> u64 { self.total_pages }
+    pub fn pages(&self) -> u64 {
+        self.total_pages
+    }
     #[inline]
     pub fn overlaps(&self, other_start: u64, other_len: usize) -> bool {
         let end = self.start + self.length as u64;
@@ -84,22 +100,39 @@ pub struct ProcessMlockState {
 impl ProcessMlockState {
     pub fn new(pid: u64, limit: usize) -> Self {
         Self {
-            pid, regions: Vec::new(), locked_bytes: 0, limit_bytes: limit,
-            mlockall_active: false, mlockall_flags: 0,
-            lock_count: 0, unlock_count: 0, denied_count: 0, peak_locked: 0,
+            pid,
+            regions: Vec::new(),
+            locked_bytes: 0,
+            limit_bytes: limit,
+            mlockall_active: false,
+            mlockall_flags: 0,
+            lock_count: 0,
+            unlock_count: 0,
+            denied_count: 0,
+            peak_locked: 0,
         }
     }
 
-    pub fn mlock(&mut self, start: u64, len: usize, lock_type: MlockType, flags: MlockFlags, ts: u64) -> bool {
+    pub fn mlock(
+        &mut self,
+        start: u64,
+        len: usize,
+        lock_type: MlockType,
+        flags: MlockFlags,
+        ts: u64,
+    ) -> bool {
         if self.locked_bytes + len > self.limit_bytes {
             self.denied_count += 1;
             return false;
         }
         // Merge with existing or add new
-        self.regions.push(LockedRegion::new(start, len, lock_type, flags, ts));
+        self.regions
+            .push(LockedRegion::new(start, len, lock_type, flags, ts));
         self.locked_bytes += len;
         self.lock_count += 1;
-        if self.locked_bytes > self.peak_locked { self.peak_locked = self.locked_bytes; }
+        if self.locked_bytes > self.peak_locked {
+            self.peak_locked = self.locked_bytes;
+        }
         true
     }
 
@@ -111,7 +144,9 @@ impl ProcessMlockState {
             self.locked_bytes = self.regions.iter().map(|r| r.length).sum();
             self.unlock_count += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -131,12 +166,16 @@ impl ProcessMlockState {
 
     #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
-        if self.limit_bytes == 0 { return 0.0; }
+        if self.limit_bytes == 0 {
+            return 0.0;
+        }
         self.locked_bytes as f64 / self.limit_bytes as f64
     }
 
     #[inline(always)]
-    pub fn region_count(&self) -> usize { self.regions.len() }
+    pub fn region_count(&self) -> usize {
+        self.regions.len()
+    }
 }
 
 /// Mlock manager stats
@@ -162,7 +201,11 @@ pub struct AppsMlockMgr {
 
 impl AppsMlockMgr {
     pub fn new(default_limit: usize) -> Self {
-        Self { processes: BTreeMap::new(), default_limit, stats: MlockMgrStats::default() }
+        Self {
+            processes: BTreeMap::new(),
+            default_limit,
+            stats: MlockMgrStats::default(),
+        }
     }
 
     #[inline(always)]
@@ -172,28 +215,51 @@ impl AppsMlockMgr {
     }
 
     #[inline(always)]
-    pub fn mlock(&mut self, pid: u64, start: u64, len: usize, lock_type: MlockType, flags: MlockFlags, ts: u64) -> bool {
-        let proc_state = self.processes.entry(pid).or_insert_with(|| ProcessMlockState::new(pid, self.default_limit));
+    pub fn mlock(
+        &mut self,
+        pid: u64,
+        start: u64,
+        len: usize,
+        lock_type: MlockType,
+        flags: MlockFlags,
+        ts: u64,
+    ) -> bool {
+        let proc_state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessMlockState::new(pid, self.default_limit));
         proc_state.mlock(start, len, lock_type, flags, ts)
     }
 
     #[inline(always)]
     pub fn munlock(&mut self, pid: u64, start: u64, len: usize) -> bool {
-        if let Some(p) = self.processes.get_mut(&pid) { p.munlock(start, len) } else { false }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.munlock(start, len)
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn mlockall(&mut self, pid: u64, flags: u32) -> bool {
-        if let Some(p) = self.processes.get_mut(&pid) { p.mlockall(flags) } else { false }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.mlockall(flags)
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn munlockall(&mut self, pid: u64) {
-        if let Some(p) = self.processes.get_mut(&pid) { p.munlockall(); }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.munlockall();
+        }
     }
 
     #[inline(always)]
-    pub fn process_exit(&mut self, pid: u64) { self.processes.remove(&pid); }
+    pub fn process_exit(&mut self, pid: u64) {
+        self.processes.remove(&pid);
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
@@ -203,12 +269,24 @@ impl AppsMlockMgr {
         self.stats.total_locks = self.processes.values().map(|p| p.lock_count).sum();
         self.stats.total_unlocks = self.processes.values().map(|p| p.unlock_count).sum();
         self.stats.total_denied = self.processes.values().map(|p| p.denied_count).sum();
-        self.stats.mlockall_processes = self.processes.values().filter(|p| p.mlockall_active).count();
-        self.stats.high_usage_processes = self.processes.values().filter(|p| p.usage_ratio() > 0.8).count();
+        self.stats.mlockall_processes = self
+            .processes
+            .values()
+            .filter(|p| p.mlockall_active)
+            .count();
+        self.stats.high_usage_processes = self
+            .processes
+            .values()
+            .filter(|p| p.usage_ratio() > 0.8)
+            .count();
     }
 
     #[inline(always)]
-    pub fn process(&self, pid: u64) -> Option<&ProcessMlockState> { self.processes.get(&pid) }
+    pub fn process(&self, pid: u64) -> Option<&ProcessMlockState> {
+        self.processes.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &MlockMgrStats { &self.stats }
+    pub fn stats(&self) -> &MlockMgrStats {
+        &self.stats
+    }
 }

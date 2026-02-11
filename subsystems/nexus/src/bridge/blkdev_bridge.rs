@@ -42,7 +42,15 @@ pub struct BlkdevBridgeRecord {
 
 impl BlkdevBridgeRecord {
     pub fn new(op: BlkdevBridgeOp, dev_id: u64) -> Self {
-        Self { op, result: BlkdevBridgeResult::Success, dev_id, major: 0, minor: 0, size_sectors: 0, latency_ns: 0 }
+        Self {
+            op,
+            result: BlkdevBridgeResult::Success,
+            dev_id,
+            major: 0,
+            minor: 0,
+            size_sectors: 0,
+            latency_ns: 0,
+        }
     }
 }
 
@@ -65,7 +73,15 @@ pub struct BridgeBlkdev {
 
 impl BridgeBlkdev {
     pub fn new() -> Self {
-        Self { stats: BlkdevBridgeStats { total_ops: 0, opens: 0, ioctls: 0, flushes: 0, errors: 0 } }
+        Self {
+            stats: BlkdevBridgeStats {
+                total_ops: 0,
+                opens: 0,
+                ioctls: 0,
+                flushes: 0,
+                errors: 0,
+            },
+        }
     }
 
     #[inline]
@@ -75,8 +91,10 @@ impl BridgeBlkdev {
             BlkdevBridgeOp::Open => self.stats.opens += 1,
             BlkdevBridgeOp::Ioctl => self.stats.ioctls += 1,
             BlkdevBridgeOp::Flush => self.stats.flushes += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.result != BlkdevBridgeResult::Success { self.stats.errors += 1; }
+        if rec.result != BlkdevBridgeResult::Success {
+            self.stats.errors += 1;
+        }
     }
 }

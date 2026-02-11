@@ -60,25 +60,79 @@ pub struct BridgeMembarrier {
 
 impl BridgeMembarrier {
     pub fn new() -> Self {
-        Self { registrations: Vec::new(), invocations: Vec::new(), supported_cmds: 0x1FF }
+        Self {
+            registrations: Vec::new(),
+            invocations: Vec::new(),
+            supported_cmds: 0x1FF,
+        }
     }
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64, cmds: u32, now: u64) {
-        self.registrations.push(MembarrierRegistration { pid, registered_cmds: cmds, timestamp: now });
+        self.registrations.push(MembarrierRegistration {
+            pid,
+            registered_cmds: cmds,
+            timestamp: now,
+        });
     }
 
     #[inline(always)]
-    pub fn invoke(&mut self, pid: u64, cmd: MembarrierCmd, flags: u32, cpu: i32, now: u64, dur: u64) {
-        self.invocations.push(MembarrierInvocation { pid, cmd, flags, cpu_id: cpu, timestamp: now, duration_ns: dur });
+    pub fn invoke(
+        &mut self,
+        pid: u64,
+        cmd: MembarrierCmd,
+        flags: u32,
+        cpu: i32,
+        now: u64,
+        dur: u64,
+    ) {
+        self.invocations.push(MembarrierInvocation {
+            pid,
+            cmd,
+            flags,
+            cpu_id: cpu,
+            timestamp: now,
+            duration_ns: dur,
+        });
     }
 
     #[inline]
     pub fn stats(&self) -> MembarrierBridgeStats {
-        let global = self.invocations.iter().filter(|i| matches!(i.cmd, MembarrierCmd::Global | MembarrierCmd::GlobalExpedited)).count() as u64;
-        let private = self.invocations.iter().filter(|i| matches!(i.cmd, MembarrierCmd::Private | MembarrierCmd::PrivateExpedited | MembarrierCmd::PrivateExpeditedSyncCore | MembarrierCmd::PrivateExpeditedRseq)).count() as u64;
+        let global = self
+            .invocations
+            .iter()
+            .filter(|i| {
+                matches!(
+                    i.cmd,
+                    MembarrierCmd::Global | MembarrierCmd::GlobalExpedited
+                )
+            })
+            .count() as u64;
+        let private = self
+            .invocations
+            .iter()
+            .filter(|i| {
+                matches!(
+                    i.cmd,
+                    MembarrierCmd::Private
+                        | MembarrierCmd::PrivateExpedited
+                        | MembarrierCmd::PrivateExpeditedSyncCore
+                        | MembarrierCmd::PrivateExpeditedRseq
+                )
+            })
+            .count() as u64;
         let durs: Vec<u64> = self.invocations.iter().map(|i| i.duration_ns).collect();
-        let avg = if durs.is_empty() { 0 } else { durs.iter().sum::<u64>() / durs.len() as u64 };
-        MembarrierBridgeStats { total_invocations: self.invocations.len() as u64, total_registrations: self.registrations.len() as u32, global_barriers: global, private_barriers: private, avg_duration_ns: avg }
+        let avg = if durs.is_empty() {
+            0
+        } else {
+            durs.iter().sum::<u64>() / durs.len() as u64
+        };
+        MembarrierBridgeStats {
+            total_invocations: self.invocations.len() as u64,
+            total_registrations: self.registrations.len() as u32,
+            global_barriers: global,
+            private_barriers: private,
+            avg_duration_ns: avg,
+        }
     }
 }

@@ -13,12 +13,12 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::linear_map::LinearMap;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -227,14 +227,35 @@ impl CoopAnalysisEngine {
         let ctrl_var = self.compute_variance(control, ctrl_mean);
         let treat_var = self.compute_variance(treatment, treat_mean);
 
-        let effect = self.compute_effect_size(id, domain, ctrl_mean, treat_mean, ctrl_var, treat_var, control.len(), treatment.len());
-        let sig = self.compute_significance(id, domain, ctrl_mean, treat_mean, ctrl_var, treat_var, control.len(), treatment.len());
+        let effect = self.compute_effect_size(
+            id,
+            domain,
+            ctrl_mean,
+            treat_mean,
+            ctrl_var,
+            treat_var,
+            control.len(),
+            treatment.len(),
+        );
+        let sig = self.compute_significance(
+            id,
+            domain,
+            ctrl_mean,
+            treat_mean,
+            ctrl_var,
+            treat_var,
+            control.len(),
+            treatment.len(),
+        );
         let power = self.compute_power(effect.cohens_d, control.len(), treatment.len());
 
         let conclusion = self.form_conclusion(&effect, &sig, &power);
 
         let domain_key = domain as u64;
-        let hist = self.domain_history.entry(domain_key).or_insert_with(Vec::new);
+        let hist = self
+            .domain_history
+            .entry(domain_key)
+            .or_insert_with(Vec::new);
         hist.push(effect.cohens_d);
         if hist.len() > MAX_DATA_POINTS {
             hist.remove(0);
@@ -257,21 +278,33 @@ impl CoopAnalysisEngine {
         };
 
         self.stats.total_analyses += 1;
-        if record.significance.as_ref().map_or(false, |s| s.significant) {
+        if record
+            .significance
+            .as_ref()
+            .map_or(false, |s| s.significant)
+        {
             self.stats.significant_findings += 1;
         }
         match domain {
             CoopAnalysisDomain::FairnessImprovement => self.stats.fairness_analyses += 1,
             CoopAnalysisDomain::TrustDynamics => self.stats.trust_analyses += 1,
             CoopAnalysisDomain::ContentionReduction => self.stats.contention_analyses += 1,
-            _ => {}
+            _ => {},
         }
         self.stats.avg_effect_size_ema = new_ema;
         let sample_total = (control.len() + treatment.len()) as f32;
         self.stats.mean_sample_size_ema =
             EMA_ALPHA * sample_total + (1.0 - EMA_ALPHA) * self.stats.mean_sample_size_ema;
-        if record.effect_size.as_ref().map_or(0.0, |e| e.cohens_d.abs()) > self.stats.strongest_effect_ever {
-            self.stats.strongest_effect_ever = record.effect_size.as_ref().map_or(0.0, |e| e.cohens_d.abs());
+        if record
+            .effect_size
+            .as_ref()
+            .map_or(0.0, |e| e.cohens_d.abs())
+            > self.stats.strongest_effect_ever
+        {
+            self.stats.strongest_effect_ever = record
+                .effect_size
+                .as_ref()
+                .map_or(0.0, |e| e.cohens_d.abs());
         }
 
         if self.analyses.len() >= MAX_ANALYSES {
@@ -305,11 +338,8 @@ impl CoopAnalysisEngine {
         baseline_trust: &[f32],
         new_trust: &[f32],
     ) -> Option<SignificanceResult> {
-        let record = self.analyze_cooperation(
-            CoopAnalysisDomain::TrustDynamics,
-            baseline_trust,
-            new_trust,
-        )?;
+        let record =
+            self.analyze_cooperation(CoopAnalysisDomain::TrustDynamics, baseline_trust, new_trust)?;
         let sig = record.significance?;
         if !sig.significant {
             return None;
@@ -349,8 +379,7 @@ impl CoopAnalysisEngine {
                 EMA_ALPHA + (1.0 - EMA_ALPHA) * self.stats.power_adequate_ratio;
             let _ = adequate_count;
         } else {
-            self.stats.power_adequate_ratio =
-                (1.0 - EMA_ALPHA) * self.stats.power_adequate_ratio;
+            self.stats.power_adequate_ratio = (1.0 - EMA_ALPHA) * self.stats.power_adequate_ratio;
         }
         result
     }
@@ -369,8 +398,11 @@ impl CoopAnalysisEngine {
             CoopAnalysisDomain::AuctionOutcomeBalance,
         ];
         for &domain in &domains {
-            let domain_analyses: VecDeque<&CoopAnalysisRecord> =
-                self.analyses.iter().filter(|a| a.domain == domain).collect();
+            let domain_analyses: VecDeque<&CoopAnalysisRecord> = self
+                .analyses
+                .iter()
+                .filter(|a| a.domain == domain)
+                .collect();
             if domain_analyses.is_empty() {
                 continue;
             }
@@ -424,7 +456,10 @@ impl CoopAnalysisEngine {
     /// Retrieve analyses for a specific domain
     #[inline(always)]
     pub fn domain_analyses(&self, domain: CoopAnalysisDomain) -> Vec<&CoopAnalysisRecord> {
-        self.analyses.iter().filter(|a| a.domain == domain).collect()
+        self.analyses
+            .iter()
+            .filter(|a| a.domain == domain)
+            .collect()
     }
 
     // ========================================================================
@@ -474,7 +509,8 @@ impl CoopAnalysisEngine {
         } else {
             EffectMagnitude::VeryLarge
         };
-        let significant = abs_d >= SMALL_EFFECT && n_ctrl >= MIN_SAMPLE_SIZE && n_treat >= MIN_SAMPLE_SIZE;
+        let significant =
+            abs_d >= SMALL_EFFECT && n_ctrl >= MIN_SAMPLE_SIZE && n_treat >= MIN_SAMPLE_SIZE;
         EffectSizeResult {
             analysis_id,
             cohens_d,
@@ -506,7 +542,11 @@ impl CoopAnalysisEngine {
         let num = (ctrl_var / n1 + treat_var / n2) * (ctrl_var / n1 + treat_var / n2);
         let d1 = (ctrl_var / n1) * (ctrl_var / n1) / (n1 - 1.0);
         let d2 = (treat_var / n2) * (treat_var / n2) / (n2 - 1.0);
-        let df = if d1 + d2 > 0.0001 { num / (d1 + d2) } else { n1 + n2 - 2.0 };
+        let df = if d1 + d2 > 0.0001 {
+            num / (d1 + d2)
+        } else {
+            n1 + n2 - 2.0
+        };
         // Approximate p-value using a rough t-distribution tail
         let abs_t = t_stat.abs();
         let p_approx = if df > 1.0 {
@@ -536,7 +576,8 @@ impl CoopAnalysisEngine {
         let power = self.standard_normal_cdf(z_power);
         let required_n = if abs_effect > 0.01 {
             let z_beta = 0.84; // 80% power
-            let needed = ((z_alpha + z_beta) / abs_effect) * ((z_alpha + z_beta) / abs_effect) * 2.0;
+            let needed =
+                ((z_alpha + z_beta) / abs_effect) * ((z_alpha + z_beta) / abs_effect) * 2.0;
             needed.ceil() as usize
         } else {
             MAX_DATA_POINTS
@@ -551,7 +592,12 @@ impl CoopAnalysisEngine {
         }
     }
 
-    fn form_conclusion(&self, effect: &EffectSizeResult, sig: &SignificanceResult, power: &PowerResult) -> String {
+    fn form_conclusion(
+        &self,
+        effect: &EffectSizeResult,
+        sig: &SignificanceResult,
+        power: &PowerResult,
+    ) -> String {
         let mut s = String::from("Analysis: ");
         if sig.significant && effect.cohens_d.abs() >= MEDIUM_EFFECT {
             s.push_str("Significant improvement detected with ");
@@ -588,7 +634,9 @@ impl CoopAnalysisEngine {
         let abs_z = z.abs();
         let t = 1.0 / (1.0 + 0.2316419 * abs_z);
         let d = 0.3989423 * (-abs_z * abs_z * 0.5).exp_approx();
-        let p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+        let p = d
+            * t
+            * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
         if z > 0.0 { 1.0 - p } else { p }
     }
 }

@@ -4,10 +4,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-
 /// Exec type
 use alloc::string::String;
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExecType {
     Execve,
@@ -34,7 +33,18 @@ pub struct ExecRequest {
 
 impl ExecRequest {
     pub fn new(id: u64, pid: u64, et: ExecType, path_hash: u64, now: u64) -> Self {
-        Self { id, pid, exec_type: et, path_hash, argv_count: 0, envp_count: 0, flags: 0, timestamp: now, duration_ns: 0, success: false }
+        Self {
+            id,
+            pid,
+            exec_type: et,
+            path_hash,
+            argv_count: 0,
+            envp_count: 0,
+            flags: 0,
+            timestamp: now,
+            duration_ns: 0,
+            success: false,
+        }
     }
 }
 
@@ -67,29 +77,64 @@ pub struct AppExec {
 }
 
 impl AppExec {
-    pub fn new() -> Self { Self { requests: BTreeMap::new(), handlers: Vec::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            requests: BTreeMap::new(),
+            handlers: Vec::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn exec(&mut self, pid: u64, et: ExecType, path_hash: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.requests.insert(id, ExecRequest::new(id, pid, et, path_hash, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.requests
+            .insert(id, ExecRequest::new(id, pid, et, path_hash, now));
         id
     }
 
     #[inline(always)]
     pub fn complete(&mut self, id: u64, dur: u64) {
-        if let Some(r) = self.requests.get_mut(&id) { r.duration_ns = dur; r.success = true; }
+        if let Some(r) = self.requests.get_mut(&id) {
+            r.duration_ns = dur;
+            r.success = true;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> ExecAppStats {
         let ok = self.requests.values().filter(|r| r.success).count() as u32;
         let fail = self.requests.len() as u32 - ok;
-        let elf = self.requests.values().filter(|r| r.exec_type == ExecType::Elf).count() as u32;
-        let script = self.requests.values().filter(|r| r.exec_type == ExecType::Script).count() as u32;
-        let durs: Vec<u64> = self.requests.values().filter(|r| r.success).map(|r| r.duration_ns).collect();
-        let avg = if durs.is_empty() { 0 } else { durs.iter().sum::<u64>() / durs.len() as u64 };
-        ExecAppStats { total_execs: self.requests.len() as u32, successful: ok, failed: fail, elf_execs: elf, script_execs: script, avg_duration_ns: avg }
+        let elf = self
+            .requests
+            .values()
+            .filter(|r| r.exec_type == ExecType::Elf)
+            .count() as u32;
+        let script = self
+            .requests
+            .values()
+            .filter(|r| r.exec_type == ExecType::Script)
+            .count() as u32;
+        let durs: Vec<u64> = self
+            .requests
+            .values()
+            .filter(|r| r.success)
+            .map(|r| r.duration_ns)
+            .collect();
+        let avg = if durs.is_empty() {
+            0
+        } else {
+            durs.iter().sum::<u64>() / durs.len() as u64
+        };
+        ExecAppStats {
+            total_execs: self.requests.len() as u32,
+            successful: ok,
+            failed: fail,
+            elf_execs: elf,
+            script_execs: script,
+            avg_duration_ns: avg,
+        }
     }
 }
 
@@ -172,7 +217,14 @@ impl AppExecV2Manager {
         h
     }
 
-    pub fn exec(&mut self, pid: u64, path: &str, format: AppExecV2Format, argc: u32, envc: u32) -> AppExecV2Result {
+    pub fn exec(
+        &mut self,
+        pid: u64,
+        path: &str,
+        format: AppExecV2Format,
+        argc: u32,
+        envc: u32,
+    ) -> AppExecV2Result {
         self.stats.total_execs += 1;
         let req = AppExecV2Request {
             pid,
@@ -185,7 +237,7 @@ impl AppExecV2Manager {
         match format {
             AppExecV2Format::Elf64 | AppExecV2Format::Elf32 => self.stats.elf_execs += 1,
             AppExecV2Format::Script => self.stats.script_execs += 1,
-            _ => {}
+            _ => {},
         }
         let hash = Self::hash_path(path);
         self.path_cache.insert(hash, String::from(path));

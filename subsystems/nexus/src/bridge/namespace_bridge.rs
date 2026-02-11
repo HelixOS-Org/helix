@@ -5,7 +5,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-
 /// Namespace type
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
@@ -36,7 +35,16 @@ pub struct Namespace {
 
 impl Namespace {
     pub fn new(id: u64, nt: NsType, creator: u64, now: u64) -> Self {
-        Self { id, ns_type: nt, inum: id * 0x100000 + 0xF0000000, creator_pid: creator, ref_count: 1, processes: Vec::new(), parent: None, created_at: now }
+        Self {
+            id,
+            ns_type: nt,
+            inum: id * 0x100000 + 0xF0000000,
+            creator_pid: creator,
+            ref_count: 1,
+            processes: Vec::new(),
+            parent: None,
+            created_at: now,
+        }
     }
 }
 
@@ -72,29 +80,57 @@ pub struct BridgeNamespace {
 }
 
 impl BridgeNamespace {
-    pub fn new() -> Self { Self { namespaces: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            namespaces: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, nt: NsType, creator: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.namespaces.insert(id, Namespace::new(id, nt, creator, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.namespaces
+            .insert(id, Namespace::new(id, nt, creator, now));
         id
     }
 
     #[inline(always)]
     pub fn enter(&mut self, ns_id: u64, pid: u64) {
-        if let Some(ns) = self.namespaces.get_mut(&ns_id) { ns.processes.push(pid); ns.ref_count += 1; }
+        if let Some(ns) = self.namespaces.get_mut(&ns_id) {
+            ns.processes.push(pid);
+            ns.ref_count += 1;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> NamespaceBridgeStats {
         let mut by_type = [0u32; 8];
         for ns in self.namespaces.values() {
-            let idx = match ns.ns_type { NsType::Mount => 0, NsType::Uts => 1, NsType::Ipc => 2, NsType::Network => 3, NsType::Pid => 4, NsType::User => 5, NsType::Cgroup => 6, NsType::Time => 7 };
+            let idx = match ns.ns_type {
+                NsType::Mount => 0,
+                NsType::Uts => 1,
+                NsType::Ipc => 2,
+                NsType::Network => 3,
+                NsType::Pid => 4,
+                NsType::User => 5,
+                NsType::Cgroup => 6,
+                NsType::Time => 7,
+            };
             by_type[idx] += 1;
         }
-        let procs: u32 = self.namespaces.values().map(|n| n.processes.len() as u32).sum();
-        NamespaceBridgeStats { total_namespaces: self.namespaces.len() as u32, by_type, total_processes: procs, max_depth: 0 }
+        let procs: u32 = self
+            .namespaces
+            .values()
+            .map(|n| n.processes.len() as u32)
+            .sum();
+        NamespaceBridgeStats {
+            total_namespaces: self.namespaces.len() as u32,
+            by_type,
+            total_processes: procs,
+            max_depth: 0,
+        }
     }
 }
 
@@ -360,7 +396,12 @@ impl BridgeNamespaceV3Manager {
         }
     }
 
-    pub fn create_ns(&mut self, ns_type: BridgeNsV3Type, parent: Option<u64>, owner_uid: u32) -> u64 {
+    pub fn create_ns(
+        &mut self,
+        ns_type: BridgeNsV3Type,
+        parent: Option<u64>,
+        owner_uid: u32,
+    ) -> u64 {
         let id = self.next_ns;
         self.next_ns += 1;
         let entry = BridgeNsV3Entry {
@@ -381,7 +422,10 @@ impl BridgeNamespaceV3Manager {
     pub fn enter_ns(&mut self, pid: u64, ns_id: u64) -> bool {
         if let Some(ns) = self.namespaces.get_mut(&ns_id) {
             ns.member_count += 1;
-            self.pid_to_ns.entry(pid).or_insert_with(Vec::new).push(ns_id);
+            self.pid_to_ns
+                .entry(pid)
+                .or_insert_with(Vec::new)
+                .push(ns_id);
             self.stats.entries += 1;
             true
         } else {

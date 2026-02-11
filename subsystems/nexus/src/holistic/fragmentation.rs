@@ -417,7 +417,11 @@ impl HolisticFragmentationEngine {
         if self.zones.is_empty() {
             return 0.0;
         }
-        let sum: f64 = self.zones.values().map(|z| z.buddy.fragmentation_index()).sum();
+        let sum: f64 = self
+            .zones
+            .values()
+            .map(|z| z.buddy.fragmentation_index())
+            .sum();
         sum / self.zones.len() as f64
     }
 

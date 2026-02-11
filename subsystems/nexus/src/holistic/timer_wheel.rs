@@ -63,10 +63,18 @@ pub struct TimerEntry {
 impl TimerEntry {
     pub fn new(id: u64, ttype: TimerType, expires: u64, interval: u64, cb: u64, ts: u64) -> Self {
         Self {
-            timer_id: id, timer_type: ttype, state: TimerState::Pending,
-            expires_ns: expires, interval_ns: interval, callback_id: cb,
-            cpu_affinity: None, created_ts: ts, fired_count: 0,
-            total_jitter_ns: 0, max_jitter_ns: 0, coalesced: false,
+            timer_id: id,
+            timer_type: ttype,
+            state: TimerState::Pending,
+            expires_ns: expires,
+            interval_ns: interval,
+            callback_id: cb,
+            cpu_affinity: None,
+            created_ts: ts,
+            fired_count: 0,
+            total_jitter_ns: 0,
+            max_jitter_ns: 0,
+            coalesced: false,
             ..Default::default()
         }
     }
@@ -79,7 +87,9 @@ impl TimerEntry {
         };
         self.fired_count += 1;
         self.total_jitter_ns += jitter;
-        if jitter > self.max_jitter_ns { self.max_jitter_ns = jitter; }
+        if jitter > self.max_jitter_ns {
+            self.max_jitter_ns = jitter;
+        }
         self.state = TimerState::Expired;
 
         // Reschedule periodic timers
@@ -91,12 +101,16 @@ impl TimerEntry {
 
     #[inline(always)]
     pub fn avg_jitter_ns(&self) -> f64 {
-        if self.fired_count == 0 { return 0.0; }
+        if self.fired_count == 0 {
+            return 0.0;
+        }
         self.total_jitter_ns as f64 / self.fired_count as f64
     }
 
     #[inline(always)]
-    pub fn is_deferrable(&self) -> bool { self.timer_type == TimerType::Deferrable }
+    pub fn is_deferrable(&self) -> bool {
+        self.timer_type == TimerType::Deferrable
+    }
 
     /// Cancel this timer (V2 API)
     #[inline(always)]
@@ -122,7 +136,9 @@ pub struct WheelLevel {
 impl WheelLevel {
     pub fn new(level: u32, granularity: u64, slots: u32) -> Self {
         Self {
-            level, granularity_ns: granularity, slots,
+            level,
+            granularity_ns: granularity,
+            slots,
             current_slot: 0,
             timer_counts: alloc::vec![0u32; slots as usize],
             ..Default::default()
@@ -141,12 +157,16 @@ impl WheelLevel {
     }
 
     #[inline(always)]
-    pub fn total_timers(&self) -> u32 { self.timer_counts.iter().sum() }
+    pub fn total_timers(&self) -> u32 {
+        self.timer_counts.iter().sum()
+    }
 
     /// Get bucket index for a given tick delta (V2 API)
     #[inline(always)]
     pub fn bucket_for(&self, delta: u64) -> usize {
-        if self.granularity_ns == 0 { return 0; }
+        if self.granularity_ns == 0 {
+            return 0;
+        }
         ((delta / self.granularity_ns) as usize) % self.num_buckets.max(1)
     }
 
@@ -184,8 +204,12 @@ pub struct CpuTimerState {
 impl CpuTimerState {
     pub fn new(cpu: u32) -> Self {
         Self {
-            cpu_id: cpu, active_timers: 0, expired_this_tick: 0,
-            total_expired: 0, total_cancelled: 0, next_expiry_ns: u64::MAX,
+            cpu_id: cpu,
+            active_timers: 0,
+            expired_this_tick: 0,
+            total_expired: 0,
+            total_cancelled: 0,
+            next_expiry_ns: u64::MAX,
         }
     }
 }
@@ -226,26 +250,41 @@ impl HolisticTimerWheel {
     pub fn new(base_ns: u64) -> Self {
         // Create hierarchical levels
         let levels = alloc::vec![
-            WheelLevel::new(0, 1_000,         256),  // 1μs granularity
-            WheelLevel::new(1, 256_000,        64),   // 256μs granularity
-            WheelLevel::new(2, 16_384_000,     64),   // ~16ms granularity
-            WheelLevel::new(3, 1_048_576_000,  64),   // ~1s granularity
-            WheelLevel::new(4, 67_108_864_000, 64),   // ~67s granularity
+            WheelLevel::new(0, 1_000, 256),         // 1μs granularity
+            WheelLevel::new(1, 256_000, 64),        // 256μs granularity
+            WheelLevel::new(2, 16_384_000, 64),     // ~16ms granularity
+            WheelLevel::new(3, 1_048_576_000, 64),  // ~1s granularity
+            WheelLevel::new(4, 67_108_864_000, 64), // ~67s granularity
         ];
         Self {
-            timers: BTreeMap::new(), levels, cpus: BTreeMap::new(),
-            coalesce_groups: Vec::new(), base_ns,
-            next_timer_id: 1, next_group_id: 1,
+            timers: BTreeMap::new(),
+            levels,
+            cpus: BTreeMap::new(),
+            coalesce_groups: Vec::new(),
+            base_ns,
+            next_timer_id: 1,
+            next_group_id: 1,
             coalesce_window_ns: 1_000_000, // 1ms coalesce window
             stats: TimerWheelStats::default(),
         }
     }
 
     #[inline(always)]
-    pub fn init_cpu(&mut self, cpu: u32) { self.cpus.insert(cpu, CpuTimerState::new(cpu)); }
+    pub fn init_cpu(&mut self, cpu: u32) {
+        self.cpus.insert(cpu, CpuTimerState::new(cpu));
+    }
 
-    pub fn add_timer(&mut self, ttype: TimerType, expires: u64, interval: u64, cb: u64, cpu: Option<u32>, ts: u64) -> u64 {
-        let id = self.next_timer_id; self.next_timer_id += 1;
+    pub fn add_timer(
+        &mut self,
+        ttype: TimerType,
+        expires: u64,
+        interval: u64,
+        cb: u64,
+        cpu: Option<u32>,
+        ts: u64,
+    ) -> u64 {
+        let id = self.next_timer_id;
+        self.next_timer_id += 1;
         let mut entry = TimerEntry::new(id, ttype, expires, interval, cb, ts);
         entry.cpu_affinity = cpu;
         entry.state = TimerState::Armed;
@@ -265,7 +304,9 @@ impl HolisticTimerWheel {
         if let Some(cpu_id) = cpu {
             if let Some(c) = self.cpus.get_mut(&cpu_id) {
                 c.active_timers += 1;
-                if expires < c.next_expiry_ns { c.next_expiry_ns = expires; }
+                if expires < c.next_expiry_ns {
+                    c.next_expiry_ns = expires;
+                }
             }
         }
 
@@ -303,47 +344,74 @@ impl HolisticTimerWheel {
             }
         }
         // Remove one-shot expired timers
-        self.timers.retain(|_, t| t.state != TimerState::Expired || t.timer_type == TimerType::Periodic);
+        self.timers
+            .retain(|_, t| t.state != TimerState::Expired || t.timer_type == TimerType::Periodic);
         self.base_ns = now;
-        for level in &mut self.levels { level.advance(); }
+        for level in &mut self.levels {
+            level.advance();
+        }
         expired
     }
 
     pub fn coalesce_deferrable(&mut self) {
-        let deferrable: Vec<u64> = self.timers.iter()
+        let deferrable: Vec<u64> = self
+            .timers
+            .iter()
             .filter(|(_, t)| t.is_deferrable() && t.state == TimerState::Armed)
             .map(|(&id, _)| id)
             .collect();
 
-        if deferrable.len() < 2 { return; }
+        if deferrable.len() < 2 {
+            return;
+        }
 
         // Group timers within coalesce window
         let mut groups: Vec<Vec<u64>> = Vec::new();
         let mut used: Vec<bool> = alloc::vec![false; deferrable.len()];
 
         for i in 0..deferrable.len() {
-            if used[i] { continue; }
-            let base_expires = self.timers.get(&deferrable[i]).map(|t| t.expires_ns).unwrap_or(0);
+            if used[i] {
+                continue;
+            }
+            let base_expires = self
+                .timers
+                .get(&deferrable[i])
+                .map(|t| t.expires_ns)
+                .unwrap_or(0);
             let mut group = alloc::vec![deferrable[i]];
             used[i] = true;
             for j in (i + 1)..deferrable.len() {
-                if used[j] { continue; }
-                let other_expires = self.timers.get(&deferrable[j]).map(|t| t.expires_ns).unwrap_or(0);
+                if used[j] {
+                    continue;
+                }
+                let other_expires = self
+                    .timers
+                    .get(&deferrable[j])
+                    .map(|t| t.expires_ns)
+                    .unwrap_or(0);
                 if other_expires.abs_diff(base_expires) <= self.coalesce_window_ns {
                     group.push(deferrable[j]);
                     used[j] = true;
                 }
             }
-            if group.len() > 1 { groups.push(group); }
+            if group.len() > 1 {
+                groups.push(group);
+            }
         }
 
         for group in groups {
-            let target = group.iter()
+            let target = group
+                .iter()
                 .filter_map(|id| self.timers.get(id).map(|t| t.expires_ns))
                 .max()
                 .unwrap_or(0);
-            let savings: u64 = group.iter()
-                .filter_map(|id| self.timers.get(id).map(|t| target.saturating_sub(t.expires_ns)))
+            let savings: u64 = group
+                .iter()
+                .filter_map(|id| {
+                    self.timers
+                        .get(id)
+                        .map(|t| target.saturating_sub(t.expires_ns))
+                })
                 .sum();
 
             for &id in &group {
@@ -353,24 +421,50 @@ impl HolisticTimerWheel {
                 }
             }
 
-            let gid = self.next_group_id; self.next_group_id += 1;
+            let gid = self.next_group_id;
+            self.next_group_id += 1;
             self.coalesce_groups.push(CoalesceGroup {
-                group_id: gid, window_ns: self.coalesce_window_ns,
-                timer_ids: group, target_expires_ns: target, savings_ns: savings,
+                group_id: gid,
+                window_ns: self.coalesce_window_ns,
+                timer_ids: group,
+                target_expires_ns: target,
+                savings_ns: savings,
             });
         }
     }
 
     pub fn recompute(&mut self) {
         self.stats.total_timers = self.timers.len();
-        self.stats.armed_timers = self.timers.values().filter(|t| t.state == TimerState::Armed).count();
-        self.stats.periodic_timers = self.timers.values().filter(|t| t.timer_type == TimerType::Periodic).count();
-        self.stats.hrtimers = self.timers.values().filter(|t| t.timer_type == TimerType::HighResolution).count();
+        self.stats.armed_timers = self
+            .timers
+            .values()
+            .filter(|t| t.state == TimerState::Armed)
+            .count();
+        self.stats.periodic_timers = self
+            .timers
+            .values()
+            .filter(|t| t.timer_type == TimerType::Periodic)
+            .count();
+        self.stats.hrtimers = self
+            .timers
+            .values()
+            .filter(|t| t.timer_type == TimerType::HighResolution)
+            .count();
         self.stats.total_fired = self.timers.values().map(|t| t.fired_count).sum();
-        self.stats.total_cancelled = self.timers.values().filter(|t| t.state == TimerState::Cancelled).count() as u64;
+        self.stats.total_cancelled = self
+            .timers
+            .values()
+            .filter(|t| t.state == TimerState::Cancelled)
+            .count() as u64;
         if !self.timers.is_empty() {
-            self.stats.avg_jitter_ns = self.timers.values().map(|t| t.avg_jitter_ns()).sum::<f64>() / self.timers.len() as f64;
-            self.stats.max_jitter_ns = self.timers.values().map(|t| t.max_jitter_ns).max().unwrap_or(0);
+            self.stats.avg_jitter_ns = self.timers.values().map(|t| t.avg_jitter_ns()).sum::<f64>()
+                / self.timers.len() as f64;
+            self.stats.max_jitter_ns = self
+                .timers
+                .values()
+                .map(|t| t.max_jitter_ns)
+                .max()
+                .unwrap_or(0);
         }
         self.stats.coalesced_timers = self.timers.values().filter(|t| t.coalesced).count();
         self.stats.coalesce_savings_ns = self.coalesce_groups.iter().map(|g| g.savings_ns).sum();
@@ -379,16 +473,14 @@ impl HolisticTimerWheel {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &TimerWheelStats { &self.stats }
+    pub fn stats(&self) -> &TimerWheelStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
 // Merged from timer_wheel_v2
 // ============================================================================
-
-
-
-
 
 /// Stats
 #[derive(Debug, Clone)]
@@ -417,12 +509,18 @@ impl HolisticTimerWheelV2 {
     pub fn new() -> Self {
         // 4-level wheel: 1ms, 256ms, ~65s, ~16384s
         let levels = alloc::vec![
-            WheelLevel::new(0, 1_000_000, 256),       // Level 0: 1ms granularity, 256 buckets
-            WheelLevel::new(1, 256_000_000, 256),      // Level 1: 256ms granularity
-            WheelLevel::new(2, 65_536_000_000, 256),   // Level 2: ~65s granularity
-            WheelLevel::new(3, 16_777_216_000_000, 64),// Level 3: ~16384s granularity
+            WheelLevel::new(0, 1_000_000, 256), // Level 0: 1ms granularity, 256 buckets
+            WheelLevel::new(1, 256_000_000, 256), // Level 1: 256ms granularity
+            WheelLevel::new(2, 65_536_000_000, 256), // Level 2: ~65s granularity
+            WheelLevel::new(3, 16_777_216_000_000, 64), // Level 3: ~16384s granularity
         ];
-        Self { timers: BTreeMap::new(), levels, next_id: 1, current_ns: 0, total_expired: 0 }
+        Self {
+            timers: BTreeMap::new(),
+            levels,
+            next_id: 1,
+            current_ns: 0,
+            total_expired: 0,
+        }
     }
 
     pub fn add_timer(&mut self, ttype: TimerType, expires_ns: u64) -> u64 {
@@ -431,10 +529,15 @@ impl HolisticTimerWheelV2 {
         let timer = TimerEntry::new(id, ttype, expires_ns, 0, 0, 0);
         let delta = expires_ns.saturating_sub(self.current_ns);
         // Place in appropriate level
-        let level_idx = if delta < 256_000_000 { 0 }
-            else if delta < 65_536_000_000 { 1 }
-            else if delta < 16_777_216_000_000 { 2 }
-            else { 3 };
+        let level_idx = if delta < 256_000_000 {
+            0
+        } else if delta < 65_536_000_000 {
+            1
+        } else if delta < 16_777_216_000_000 {
+            2
+        } else {
+            3
+        };
         if level_idx < self.levels.len() {
             let bucket = self.levels[level_idx].bucket_for(delta);
             self.levels[level_idx].insert(bucket, id);
@@ -445,7 +548,9 @@ impl HolisticTimerWheelV2 {
 
     #[inline(always)]
     pub fn cancel(&mut self, id: u64) {
-        if let Some(t) = self.timers.get_mut(&id) { t.cancel(); }
+        if let Some(t) = self.timers.get_mut(&id) {
+            t.cancel();
+        }
     }
 
     pub fn advance(&mut self, now: u64) -> Vec<u64> {
@@ -462,14 +567,29 @@ impl HolisticTimerWheelV2 {
     }
 
     pub fn stats(&self) -> TimerWheelV2Stats {
-        let pending = self.timers.values().filter(|t| t.state == TimerState::Pending).count() as u32;
+        let pending = self
+            .timers
+            .values()
+            .filter(|t| t.state == TimerState::Pending)
+            .count() as u32;
         let fires: u64 = self.timers.values().map(|t| t.fire_count).sum();
-        let cancelled = self.timers.values().filter(|t| t.state == TimerState::Cancelled).count() as u64;
-        let periodic = self.timers.values().filter(|t| t.timer_type == TimerType::Periodic).count() as u32;
+        let cancelled = self
+            .timers
+            .values()
+            .filter(|t| t.state == TimerState::Cancelled)
+            .count() as u64;
+        let periodic = self
+            .timers
+            .values()
+            .filter(|t| t.timer_type == TimerType::Periodic)
+            .count() as u32;
         TimerWheelV2Stats {
-            total_timers: self.timers.len() as u32, pending_timers: pending,
-            expired_timers: self.total_expired, cancelled_timers: cancelled,
-            total_fires: fires, levels: self.levels.len() as u32,
+            total_timers: self.timers.len() as u32,
+            pending_timers: pending,
+            expired_timers: self.total_expired,
+            cancelled_timers: cancelled,
+            total_fires: fires,
+            levels: self.levels.len() as u32,
             periodic_timers: periodic,
         }
     }

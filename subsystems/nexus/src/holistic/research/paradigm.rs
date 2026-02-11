@@ -24,7 +24,8 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -256,15 +257,26 @@ impl HolisticParadigm {
     }
 
     /// Register a paradigm
-    pub fn register_paradigm(&mut self, domain: ParadigmDomain, name: String,
-                              assumptions: Vec<u64>) -> u64 {
+    pub fn register_paradigm(
+        &mut self,
+        domain: ParadigmDomain,
+        name: String,
+        assumptions: Vec<u64>,
+    ) -> u64 {
         let hash = fnv1a_hash(name.as_bytes());
         let id = self.stats.total_paradigms_ever;
         let paradigm = Paradigm {
-            id, domain, name, core_assumptions: assumptions,
-            health: ParadigmHealth::Stable, health_score: 0.8,
-            fitness: 0.7, anomaly_count: 0,
-            adopted_tick: self.tick, last_validated_tick: self.tick, hash,
+            id,
+            domain,
+            name,
+            core_assumptions: assumptions,
+            health: ParadigmHealth::Stable,
+            health_score: 0.8,
+            fitness: 0.7,
+            anomaly_count: 0,
+            adopted_tick: self.tick,
+            last_validated_tick: self.tick,
+            hash,
         };
         if self.paradigms.len() < MAX_PARADIGMS {
             self.paradigms.insert(id, paradigm);
@@ -280,28 +292,45 @@ impl HolisticParadigm {
         let ids: Vec<u64> = self.paradigms.keys().copied().collect();
         for id in ids {
             let (health_score, _fitness, anomaly_count) = {
-                let p = match self.paradigms.get(&id) { Some(p) => p, None => continue };
+                let p = match self.paradigms.get(&id) {
+                    Some(p) => p,
+                    None => continue,
+                };
                 (p.health_score, p.fitness, p.anomaly_count)
             };
-            let age = self.tick.saturating_sub(
-                self.paradigms.get(&id).map(|p| p.adopted_tick).unwrap_or(0)
-            ) as f32;
+            let age = self
+                .tick
+                .saturating_sub(self.paradigms.get(&id).map(|p| p.adopted_tick).unwrap_or(0))
+                as f32;
             let age_decay = PARADIGM_INERTIA.powf(age / 1000.0);
             let anomaly_penalty = anomaly_count as f32 * ANOMALY_WEIGHT;
-            let pressure_sum: f32 = self.pressures.iter()
+            let pressure_sum: f32 = self
+                .pressures
+                .iter()
                 .filter(|pr| {
-                    self.paradigms.get(&id).map(|p| p.domain == pr.domain).unwrap_or(false)
+                    self.paradigms
+                        .get(&id)
+                        .map(|p| p.domain == pr.domain)
+                        .unwrap_or(false)
                 })
                 .map(|pr| pr.accumulated)
                 .sum();
-            let adjusted_health = (health_score * age_decay - anomaly_penalty
-                - pressure_sum * 0.1).max(0.0).min(1.0);
-            let health = if adjusted_health >= 0.80 { ParadigmHealth::Thriving }
-                else if adjusted_health >= HEALTH_WARNING_THRESHOLD { ParadigmHealth::Stable }
-                else if adjusted_health >= 0.50 { ParadigmHealth::Strained }
-                else if adjusted_health >= HEALTH_CRITICAL_THRESHOLD { ParadigmHealth::Degrading }
-                else if adjusted_health >= 0.15 { ParadigmHealth::Critical }
-                else { ParadigmHealth::Obsolete };
+            let adjusted_health = (health_score * age_decay - anomaly_penalty - pressure_sum * 0.1)
+                .max(0.0)
+                .min(1.0);
+            let health = if adjusted_health >= 0.80 {
+                ParadigmHealth::Thriving
+            } else if adjusted_health >= HEALTH_WARNING_THRESHOLD {
+                ParadigmHealth::Stable
+            } else if adjusted_health >= 0.50 {
+                ParadigmHealth::Strained
+            } else if adjusted_health >= HEALTH_CRITICAL_THRESHOLD {
+                ParadigmHealth::Degrading
+            } else if adjusted_health >= 0.15 {
+                ParadigmHealth::Critical
+            } else {
+                ParadigmHealth::Obsolete
+            };
             if let Some(p) = self.paradigms.get_mut(&id) {
                 p.health = health;
                 p.health_score = adjusted_health;
@@ -309,11 +338,13 @@ impl HolisticParadigm {
             }
             results.push((id, health, adjusted_health));
         }
-        let avg_health: f32 = if results.is_empty() { 0.5 } else {
+        let avg_health: f32 = if results.is_empty() {
+            0.5
+        } else {
             results.iter().map(|(_, _, h)| *h).sum::<f32>() / results.len() as f32
         };
-        self.stats.avg_health_ema = self.stats.avg_health_ema
-            * (1.0 - EMA_ALPHA) + avg_health * EMA_ALPHA;
+        self.stats.avg_health_ema =
+            self.stats.avg_health_ema * (1.0 - EMA_ALPHA) + avg_health * EMA_ALPHA;
         self.stats.last_tick = self.tick;
         results
     }
@@ -321,9 +352,10 @@ impl HolisticParadigm {
     /// Monitor paradigm health across the system
     #[inline]
     pub fn paradigm_health(&self) -> f32 {
-        if self.paradigms.is_empty() { return 0.5; }
-        let total: f32 = self.paradigms.values()
-            .map(|p| p.health_score).sum();
+        if self.paradigms.is_empty() {
+            return 0.5;
+        }
+        let total: f32 = self.paradigms.values().map(|p| p.health_score).sum();
         total / self.paradigms.len() as f32
     }
 
@@ -331,49 +363,63 @@ impl HolisticParadigm {
     pub fn revolution_detection(&mut self) -> Vec<(ParadigmDomain, f32)> {
         let mut revolutions = Vec::new();
         let domains = [
-            ParadigmDomain::SchedulingPhilosophy, ParadigmDomain::MemoryModel,
-            ParadigmDomain::IpcArchitecture, ParadigmDomain::TrustFramework,
-            ParadigmDomain::EnergyStrategy, ParadigmDomain::FairnessModel,
-            ParadigmDomain::ScalabilityApproach, ParadigmDomain::SecurityPosture,
+            ParadigmDomain::SchedulingPhilosophy,
+            ParadigmDomain::MemoryModel,
+            ParadigmDomain::IpcArchitecture,
+            ParadigmDomain::TrustFramework,
+            ParadigmDomain::EnergyStrategy,
+            ParadigmDomain::FairnessModel,
+            ParadigmDomain::ScalabilityApproach,
+            ParadigmDomain::SecurityPosture,
         ];
         for &domain in &domains {
-            let pressure_total: f32 = self.pressures.iter()
+            let pressure_total: f32 = self
+                .pressures
+                .iter()
                 .filter(|p| p.domain == domain)
                 .map(|p| p.accumulated)
                 .sum();
-            let anomaly_count: u64 = self.anomalies.iter()
+            let anomaly_count: u64 = self
+                .anomalies
+                .iter()
                 .filter(|a| a.domain == domain)
                 .map(|a| a.frequency)
                 .sum();
-            let paradigm_weakness: f32 = self.paradigms.values()
+            let paradigm_weakness: f32 = self
+                .paradigms
+                .values()
                 .filter(|p| p.domain == domain)
                 .map(|p| 1.0 - p.health_score)
                 .sum();
-            let revolution_score = (pressure_total * 0.4
-                + anomaly_count as f32 * 0.1
-                + paradigm_weakness * 0.5).min(1.0);
+            let revolution_score =
+                (pressure_total * 0.4 + anomaly_count as f32 * 0.1 + paradigm_weakness * 0.5)
+                    .min(1.0);
             if revolution_score >= REVOLUTION_THRESHOLD {
                 revolutions.push((domain, revolution_score));
             }
         }
-        let max_revolution = revolutions.iter()
-            .map(|(_, s)| *s).fold(0.0f32, f32::max);
-        self.stats.revolution_pressure_ema = self.stats.revolution_pressure_ema
-            * (1.0 - EMA_ALPHA) + max_revolution * EMA_ALPHA;
+        let max_revolution = revolutions.iter().map(|(_, s)| *s).fold(0.0f32, f32::max);
+        self.stats.revolution_pressure_ema =
+            self.stats.revolution_pressure_ema * (1.0 - EMA_ALPHA) + max_revolution * EMA_ALPHA;
         revolutions.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
         revolutions
     }
 
     /// Record and measure evolutionary pressure
-    pub fn evolutionary_pressure(&mut self, domain: ParadigmDomain,
-                                  description: String, magnitude: f32,
-                                  direction: PressureDirection) {
-        let existing = self.pressures.iter_mut()
+    pub fn evolutionary_pressure(
+        &mut self,
+        domain: ParadigmDomain,
+        description: String,
+        magnitude: f32,
+        direction: PressureDirection,
+    ) {
+        let existing = self
+            .pressures
+            .iter_mut()
             .find(|p| p.domain == domain && p.direction == direction);
         if let Some(pressure) = existing {
             pressure.accumulated += magnitude * PRESSURE_ACCUMULATION_RATE;
-            pressure.magnitude = pressure.magnitude
-                * (1.0 - EMA_ALPHA) + magnitude * EMA_ALPHA;
+            pressure.magnitude = pressure.magnitude * (1.0 - EMA_ALPHA) + magnitude * EMA_ALPHA;
             pressure.last_observed_tick = self.tick;
         } else {
             if self.pressures.len() >= MAX_PRESSURES {
@@ -381,9 +427,13 @@ impl HolisticParadigm {
             }
             let id = self.stats.total_pressures;
             self.pressures.push(EvolutionaryPressure {
-                id, domain, source_description: description,
-                magnitude, accumulated: magnitude * PRESSURE_ACCUMULATION_RATE,
-                direction, first_detected_tick: self.tick,
+                id,
+                domain,
+                source_description: description,
+                magnitude,
+                accumulated: magnitude * PRESSURE_ACCUMULATION_RATE,
+                direction,
+                first_detected_tick: self.tick,
                 last_observed_tick: self.tick,
             });
             self.stats.total_pressures += 1;
@@ -392,7 +442,9 @@ impl HolisticParadigm {
 
     /// Record an anomaly that the current paradigm cannot explain
     pub fn record_anomaly(&mut self, domain: ParadigmDomain, severity: f32) {
-        let existing = self.anomalies.iter_mut()
+        let existing = self
+            .anomalies
+            .iter_mut()
             .find(|a| a.domain == domain && a.severity == severity);
         if let Some(anomaly) = existing {
             anomaly.frequency += 1;
@@ -404,44 +456,65 @@ impl HolisticParadigm {
             let id = self.stats.total_anomalies;
             let desc_hash = fnv1a_hash(&[domain as u8, (self.tick & 0xFF) as u8]);
             self.anomalies.push(ParadigmAnomaly {
-                id, domain, description_hash: desc_hash,
-                severity, frequency: 1,
-                first_seen_tick: self.tick, last_seen_tick: self.tick,
+                id,
+                domain,
+                description_hash: desc_hash,
+                severity,
+                frequency: 1,
+                first_seen_tick: self.tick,
+                last_seen_tick: self.tick,
             });
             self.stats.total_anomalies += 1;
         }
         for p in self.paradigms.values_mut() {
-            if p.domain == domain { p.anomaly_count += 1; }
+            if p.domain == domain {
+                p.anomaly_count += 1;
+            }
         }
     }
 
     /// Create a paradigm transition plan
-    pub fn paradigm_transition_plan(&mut self, from_id: u64, to_id: u64,
-                                     domain: ParadigmDomain) -> TransitionPlan {
+    pub fn paradigm_transition_plan(
+        &mut self,
+        from_id: u64,
+        to_id: u64,
+        domain: ParadigmDomain,
+    ) -> TransitionPlan {
         let risk = {
-            let from_health = self.paradigms.get(&from_id)
-                .map(|p| p.health_score).unwrap_or(0.5);
-            let to_fitness = self.paradigms.get(&to_id)
-                .map(|p| p.fitness).unwrap_or(0.5);
+            let from_health = self
+                .paradigms
+                .get(&from_id)
+                .map(|p| p.health_score)
+                .unwrap_or(0.5);
+            let to_fitness = self.paradigms.get(&to_id).map(|p| p.fitness).unwrap_or(0.5);
             let noise = xorshift_f32(&mut self.rng_state) * 0.1;
             ((1.0 - to_fitness) * 0.5 + from_health * 0.2 + noise)
-                .max(TRANSITION_RISK_FLOOR).min(1.0)
+                .max(TRANSITION_RISK_FLOOR)
+                .min(1.0)
         };
         let plan_id = self.transitions.len() as u64;
         let estimated_duration = 100 + (xorshift64(&mut self.rng_state) % 200) as u64;
         let plan = TransitionPlan {
-            id: plan_id, from_paradigm: from_id, to_paradigm: to_id,
-            domain, phase: TransitionPhase::Assessment,
-            risk_score: risk, progress: 0.0,
+            id: plan_id,
+            from_paradigm: from_id,
+            to_paradigm: to_id,
+            domain,
+            phase: TransitionPhase::Assessment,
+            risk_score: risk,
+            progress: 0.0,
             rollback_ready: false,
             created_tick: self.tick,
             estimated_completion_tick: self.tick + estimated_duration,
         };
         if self.transitions.len() < MAX_TRANSITIONS {
             self.transitions.insert(plan_id, plan.clone());
-            self.stats.active_transitions = self.transitions.values()
-                .filter(|t| t.phase != TransitionPhase::Completed
-                    && t.phase != TransitionPhase::Aborted).count() as u64;
+            self.stats.active_transitions = self
+                .transitions
+                .values()
+                .filter(|t| {
+                    t.phase != TransitionPhase::Completed && t.phase != TransitionPhase::Aborted
+                })
+                .count() as u64;
         }
         plan
     }
@@ -455,12 +528,18 @@ impl HolisticParadigm {
     /// Retire a paradigm and record it in history
     pub fn retire_paradigm(&mut self, paradigm_id: u64, successor_id: u64) {
         let entry = {
-            let p = match self.paradigms.get(&paradigm_id) { Some(p) => p, None => return };
+            let p = match self.paradigms.get(&paradigm_id) {
+                Some(p) => p,
+                None => return,
+            };
             ParadigmHistoryEntry {
-                paradigm_id: p.id, domain: p.domain, name: p.name.clone(),
+                paradigm_id: p.id,
+                domain: p.domain,
+                name: p.name.clone(),
                 peak_fitness: p.fitness,
                 duration_ticks: self.tick.saturating_sub(p.adopted_tick),
-                adopted_tick: p.adopted_tick, retired_tick: self.tick,
+                adopted_tick: p.adopted_tick,
+                retired_tick: self.tick,
                 successor_id,
                 retirement_reason_hash: fnv1a_hash(&[paradigm_id as u8, 0xDD]),
             }
@@ -474,25 +553,37 @@ impl HolisticParadigm {
 
     /// Advance the engine tick
     #[inline(always)]
-    pub fn tick(&mut self) { self.tick += 1; }
+    pub fn tick(&mut self) {
+        self.tick += 1;
+    }
 
     /// Get current statistics
     #[inline(always)]
-    pub fn stats(&self) -> &ParadigmStats { &self.stats }
+    pub fn stats(&self) -> &ParadigmStats {
+        &self.stats
+    }
 
     /// Get all active paradigms
     #[inline(always)]
-    pub fn paradigms(&self) -> &BTreeMap<u64, Paradigm> { &self.paradigms }
+    pub fn paradigms(&self) -> &BTreeMap<u64, Paradigm> {
+        &self.paradigms
+    }
 
     /// Get all evolutionary pressures
     #[inline(always)]
-    pub fn pressures(&self) -> &[EvolutionaryPressure] { &self.pressures }
+    pub fn pressures(&self) -> &[EvolutionaryPressure] {
+        &self.pressures
+    }
 
     /// Get all anomalies
     #[inline(always)]
-    pub fn anomalies(&self) -> &[ParadigmAnomaly] { &self.anomalies }
+    pub fn anomalies(&self) -> &[ParadigmAnomaly] {
+        &self.anomalies
+    }
 
     /// Get all transition plans
     #[inline(always)]
-    pub fn transition_plans(&self) -> &BTreeMap<u64, TransitionPlan> { &self.transitions }
+    pub fn transition_plans(&self) -> &BTreeMap<u64, TransitionPlan> {
+        &self.transitions
+    }
 }

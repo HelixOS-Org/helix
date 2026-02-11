@@ -137,7 +137,9 @@ impl DlmResource {
             self.waiters.push(req);
             self.total_waits += 1;
             let depth = self.waiters.len() as u32;
-            if depth > self.max_queue_depth { self.max_queue_depth = depth; }
+            if depth > self.max_queue_depth {
+                self.max_queue_depth = depth;
+            }
             false
         }
     }
@@ -216,11 +218,19 @@ impl CoopDlm {
     }
 
     #[inline]
-    pub fn lock(&mut self, resource_id: u64, owner_id: u64, lock_type: DlmLockType, now: u64) -> (u64, bool) {
+    pub fn lock(
+        &mut self,
+        resource_id: u64,
+        owner_id: u64,
+        lock_type: DlmLockType,
+        now: u64,
+    ) -> (u64, bool) {
         let req_id = self.next_request_id;
         self.next_request_id += 1;
         let req = DlmLockRequest::new(req_id, resource_id, owner_id, lock_type);
-        let resource = self.resources.entry(resource_id)
+        let resource = self
+            .resources
+            .entry(resource_id)
             .or_insert_with(|| DlmResource::new(resource_id));
         let granted = resource.try_grant(req, now);
         self.recompute();
@@ -231,7 +241,9 @@ impl CoopDlm {
     pub fn unlock(&mut self, resource_id: u64, owner_id: u64, now: u64) -> Vec<DlmLockRequest> {
         let result = if let Some(resource) = self.resources.get_mut(&resource_id) {
             resource.release(owner_id, now)
-        } else { Vec::new() };
+        } else {
+            Vec::new()
+        };
         self.recompute();
         result
     }
@@ -247,7 +259,9 @@ impl CoopDlm {
             }
         }
         self.stats.total_expirations += expired.len() as u64;
-        if !expired.is_empty() { self.recompute(); }
+        if !expired.is_empty() {
+            self.recompute();
+        }
         expired
     }
 
@@ -257,7 +271,8 @@ impl CoopDlm {
         for res in self.resources.values() {
             for waiter in &res.waiters {
                 for holder in &res.granted {
-                    wait_for.entry(waiter.owner_id)
+                    wait_for
+                        .entry(waiter.owner_id)
                         .or_insert_with(Vec::new)
                         .push(holder.owner_id);
                 }

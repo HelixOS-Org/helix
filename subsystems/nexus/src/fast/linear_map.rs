@@ -63,7 +63,7 @@ impl<'a, V: Copy + Default, const N: usize> LinearMapEntry<'a, V, N> {
                 }
                 // Fallback (should not happen if insert succeeded)
                 &mut e.map.vals[0]
-            }
+            },
         }
     }
 
@@ -83,7 +83,7 @@ impl<'a, V: Copy + Default, const N: usize> LinearMapEntry<'a, V, N> {
                     i += 1;
                 }
                 &mut e.map.vals[0]
-            }
+            },
         }
     }
 
@@ -100,7 +100,7 @@ impl<'a, V: Copy + Default, const N: usize> LinearMapEntry<'a, V, N> {
             LinearMapEntry::Occupied(e) => {
                 f(&mut e.map.vals[e.idx]);
                 LinearMapEntry::Occupied(e)
-            }
+            },
             LinearMapEntry::Vacant(e) => LinearMapEntry::Vacant(e),
         }
     }
@@ -112,39 +112,57 @@ pub trait AsU64 {
 }
 impl AsU64 for u64 {
     #[inline(always)]
-    fn as_u64(self) -> u64 { self }
+    fn as_u64(self) -> u64 {
+        self
+    }
 }
 impl AsU64 for &u64 {
     #[inline(always)]
-    fn as_u64(self) -> u64 { *self }
+    fn as_u64(self) -> u64 {
+        *self
+    }
 }
 impl AsU64 for &&u64 {
     #[inline(always)]
-    fn as_u64(self) -> u64 { **self }
+    fn as_u64(self) -> u64 {
+        **self
+    }
 }
 impl AsU64 for u32 {
     #[inline(always)]
-    fn as_u64(self) -> u64 { self as u64 }
+    fn as_u64(self) -> u64 {
+        self as u64
+    }
 }
 impl AsU64 for &u32 {
     #[inline(always)]
-    fn as_u64(self) -> u64 { *self as u64 }
+    fn as_u64(self) -> u64 {
+        *self as u64
+    }
 }
 impl AsU64 for usize {
     #[inline(always)]
-    fn as_u64(self) -> u64 { self as u64 }
+    fn as_u64(self) -> u64 {
+        self as u64
+    }
 }
 impl AsU64 for &usize {
     #[inline(always)]
-    fn as_u64(self) -> u64 { *self as u64 }
+    fn as_u64(self) -> u64 {
+        *self as u64
+    }
 }
 impl AsU64 for i32 {
     #[inline(always)]
-    fn as_u64(self) -> u64 { self as u64 }
+    fn as_u64(self) -> u64 {
+        self as u64
+    }
 }
 impl AsU64 for i64 {
     #[inline(always)]
-    fn as_u64(self) -> u64 { self as u64 }
+    fn as_u64(self) -> u64 {
+        self as u64
+    }
 }
 
 /// Stack-allocated map with linear probing.
@@ -354,10 +372,7 @@ impl<V: Copy + Default, const N: usize> LinearMap<V, N> {
     /// Iterate over (key, value) pairs.
     #[inline]
     pub fn iter(&self) -> LinearMapIter<'_, V, N> {
-        LinearMapIter {
-            map: self,
-            pos: 0,
-        }
+        LinearMapIter { map: self, pos: 0 }
     }
 
     /// Iterate over (key, &mut value) pairs.

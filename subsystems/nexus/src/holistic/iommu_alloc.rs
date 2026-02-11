@@ -41,14 +41,30 @@ pub struct IommuAllocDomain {
 
 impl IommuAllocDomain {
     pub fn new(id: u64, base_iova: u64) -> Self {
-        Self { id, regions: Vec::new(), next_iova: base_iova, total_mapped: 0, map_count: 0, unmap_count: 0, faults: 0 }
+        Self {
+            id,
+            regions: Vec::new(),
+            next_iova: base_iova,
+            total_mapped: 0,
+            map_count: 0,
+            unmap_count: 0,
+            faults: 0,
+        }
     }
 
     #[inline]
     pub fn map(&mut self, phys: u64, size: u64, dev: u64, mt: IommuMapType) -> u64 {
         let iova = self.next_iova;
         self.next_iova += size;
-        self.regions.push(IovaRegion { iova_start: iova, iova_size: size, phys_addr: phys, map_type: mt, device_id: dev, read: true, write: true });
+        self.regions.push(IovaRegion {
+            iova_start: iova,
+            iova_size: size,
+            phys_addr: phys,
+            map_type: mt,
+            device_id: dev,
+            read: true,
+            write: true,
+        });
         self.total_mapped += size;
         self.map_count += 1;
         iova
@@ -61,7 +77,9 @@ impl IommuAllocDomain {
             self.total_mapped -= reg.iova_size;
             self.unmap_count += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 }
 
@@ -84,12 +102,19 @@ pub struct HolisticIommuAlloc {
 }
 
 impl HolisticIommuAlloc {
-    pub fn new() -> Self { Self { domains: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            domains: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create_domain(&mut self, base_iova: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.domains.insert(id, IommuAllocDomain::new(id, base_iova));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.domains
+            .insert(id, IommuAllocDomain::new(id, base_iova));
         id
     }
 
@@ -100,6 +125,13 @@ impl HolisticIommuAlloc {
         let maps: u64 = self.domains.values().map(|d| d.map_count).sum();
         let unmaps: u64 = self.domains.values().map(|d| d.unmap_count).sum();
         let faults: u64 = self.domains.values().map(|d| d.faults).sum();
-        IommuAllocStats { total_domains: self.domains.len() as u32, total_regions: regions, total_mapped_bytes: mapped, total_maps: maps, total_unmaps: unmaps, total_faults: faults }
+        IommuAllocStats {
+            total_domains: self.domains.len() as u32,
+            total_regions: regions,
+            total_mapped_bytes: mapped,
+            total_maps: maps,
+            total_unmaps: unmaps,
+            total_faults: faults,
+        }
     }
 }

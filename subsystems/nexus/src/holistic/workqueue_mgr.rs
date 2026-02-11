@@ -54,9 +54,16 @@ pub struct WorkItem {
 impl WorkItem {
     pub fn new(id: u64, wq_name: String, ts: u64) -> Self {
         Self {
-            item_id: id, wq_name, state: WorkItemState::Queued,
-            enqueue_ts: ts, start_ts: 0, end_ts: 0, cpu_id: 0,
-            delay_ms: 0, priority: 0, retries: 0,
+            item_id: id,
+            wq_name,
+            state: WorkItemState::Queued,
+            enqueue_ts: ts,
+            start_ts: 0,
+            end_ts: 0,
+            cpu_id: 0,
+            delay_ms: 0,
+            priority: 0,
+            retries: 0,
         }
     }
 
@@ -82,12 +89,20 @@ impl WorkItem {
 
     #[inline(always)]
     pub fn queue_latency_ns(&self) -> u64 {
-        if self.start_ts > self.enqueue_ts { self.start_ts - self.enqueue_ts } else { 0 }
+        if self.start_ts > self.enqueue_ts {
+            self.start_ts - self.enqueue_ts
+        } else {
+            0
+        }
     }
 
     #[inline(always)]
     pub fn exec_time_ns(&self) -> u64 {
-        if self.end_ts > self.start_ts { self.end_ts - self.start_ts } else { 0 }
+        if self.end_ts > self.start_ts {
+            self.end_ts - self.start_ts
+        } else {
+            0
+        }
     }
 }
 
@@ -109,16 +124,25 @@ pub struct WorkerPool {
 impl WorkerPool {
     pub fn new(pool_id: u32, cpu: Option<u32>, nice: i32) -> Self {
         Self {
-            pool_id, cpu_id: cpu, nice, nr_workers: 0,
-            nr_idle: 0, nr_running: 0, max_active: 256,
-            total_items_processed: 0, total_busy_ns: 0,
+            pool_id,
+            cpu_id: cpu,
+            nice,
+            nr_workers: 0,
+            nr_idle: 0,
+            nr_running: 0,
+            max_active: 256,
+            total_items_processed: 0,
+            total_busy_ns: 0,
         }
     }
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.nr_workers == 0 { 0.0 }
-        else { self.nr_running as f64 / self.nr_workers as f64 }
+        if self.nr_workers == 0 {
+            0.0
+        } else {
+            self.nr_running as f64 / self.nr_workers as f64
+        }
     }
 
     #[inline(always)]
@@ -147,16 +171,29 @@ pub struct WqDescriptor {
 impl WqDescriptor {
     pub fn new(name: String, wq_type: WqType) -> Self {
         Self {
-            name, wq_type, max_active: 256, nice: 0,
-            pending_items: 0, active_items: 0, total_completed: 0,
-            total_failed: 0, avg_queue_latency_ns: 0, avg_exec_time_ns: 0,
-            p99_queue_latency_ns: 0, cpu_affinity_mask: u64::MAX,
+            name,
+            wq_type,
+            max_active: 256,
+            nice: 0,
+            pending_items: 0,
+            active_items: 0,
+            total_completed: 0,
+            total_failed: 0,
+            avg_queue_latency_ns: 0,
+            avg_exec_time_ns: 0,
+            p99_queue_latency_ns: 0,
+            cpu_affinity_mask: u64::MAX,
         }
     }
 
     pub fn update_latencies(&mut self, items: &[WorkItem]) {
-        let completed: Vec<&WorkItem> = items.iter().filter(|i| i.state == WorkItemState::Completed && i.wq_name == self.name).collect();
-        if completed.is_empty() { return; }
+        let completed: Vec<&WorkItem> = items
+            .iter()
+            .filter(|i| i.state == WorkItemState::Completed && i.wq_name == self.name)
+            .collect();
+        if completed.is_empty() {
+            return;
+        }
         let total_queue: u64 = completed.iter().map(|i| i.queue_latency_ns()).sum();
         let total_exec: u64 = completed.iter().map(|i| i.exec_time_ns()).sum();
         self.avg_queue_latency_ns = total_queue / completed.len() as u64;
@@ -196,8 +233,11 @@ pub struct HolisticWorkqueueMgr {
 impl HolisticWorkqueueMgr {
     pub fn new() -> Self {
         Self {
-            workqueues: BTreeMap::new(), pools: BTreeMap::new(),
-            items: Vec::new(), max_items: 4096, next_item_id: 1,
+            workqueues: BTreeMap::new(),
+            pools: BTreeMap::new(),
+            items: Vec::new(),
+            max_items: 4096,
+            next_item_id: 1,
             stats: WorkqueueStats::default(),
         }
     }
@@ -221,7 +261,8 @@ impl HolisticWorkqueueMgr {
             wq.pending_items += 1;
         }
         if self.items.len() > self.max_items {
-            self.items.retain(|i| i.state == WorkItemState::Queued || i.state == WorkItemState::Running);
+            self.items
+                .retain(|i| i.state == WorkItemState::Queued || i.state == WorkItemState::Running);
         }
         id
     }
@@ -273,19 +314,38 @@ impl HolisticWorkqueueMgr {
         self.stats.total_workqueues = self.workqueues.len();
         self.stats.total_pools = self.pools.len();
         self.stats.total_workers = self.pools.values().map(|p| p.nr_workers).sum();
-        self.stats.total_items_completed = self.workqueues.values().map(|w| w.total_completed).sum();
+        self.stats.total_items_completed =
+            self.workqueues.values().map(|w| w.total_completed).sum();
         self.stats.total_items_failed = self.workqueues.values().map(|w| w.total_failed).sum();
         self.stats.total_items_pending = self.workqueues.values().map(|w| w.pending_items).sum();
         let utils: Vec<f64> = self.pools.values().map(|p| p.utilization()).collect();
-        self.stats.avg_pool_utilization = if utils.is_empty() { 0.0 } else { utils.iter().sum::<f64>() / utils.len() as f64 };
-        let lats: Vec<u64> = self.workqueues.values().map(|w| w.avg_queue_latency_ns).collect();
-        self.stats.avg_queue_latency_ns = if lats.is_empty() { 0 } else { lats.iter().sum::<u64>() / lats.len() as u64 };
+        self.stats.avg_pool_utilization = if utils.is_empty() {
+            0.0
+        } else {
+            utils.iter().sum::<f64>() / utils.len() as f64
+        };
+        let lats: Vec<u64> = self
+            .workqueues
+            .values()
+            .map(|w| w.avg_queue_latency_ns)
+            .collect();
+        self.stats.avg_queue_latency_ns = if lats.is_empty() {
+            0
+        } else {
+            lats.iter().sum::<u64>() / lats.len() as u64
+        };
     }
 
     #[inline(always)]
-    pub fn wq(&self, name: &str) -> Option<&WqDescriptor> { self.workqueues.get(&String::from(name)) }
+    pub fn wq(&self, name: &str) -> Option<&WqDescriptor> {
+        self.workqueues.get(&String::from(name))
+    }
     #[inline(always)]
-    pub fn pool(&self, id: u32) -> Option<&WorkerPool> { self.pools.get(&id) }
+    pub fn pool(&self, id: u32) -> Option<&WorkerPool> {
+        self.pools.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &WorkqueueStats { &self.stats }
+    pub fn stats(&self) -> &WorkqueueStats {
+        &self.stats
+    }
 }

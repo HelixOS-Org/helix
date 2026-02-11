@@ -50,26 +50,49 @@ pub struct IoSchedQueue {
 
 impl IoSchedQueue {
     pub fn new(queue_id: u32) -> Self {
-        Self { queue_id, pending: 0, dispatched: 0, completed: 0, merged: 0, requeued: 0, avg_latency_ns: 0, total_latency_ns: 0 }
+        Self {
+            queue_id,
+            pending: 0,
+            dispatched: 0,
+            completed: 0,
+            merged: 0,
+            requeued: 0,
+            avg_latency_ns: 0,
+            total_latency_ns: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn enqueue(&mut self) { self.pending += 1; }
+    pub fn enqueue(&mut self) {
+        self.pending += 1;
+    }
     #[inline(always)]
-    pub fn dispatch(&mut self) { self.pending = self.pending.saturating_sub(1); self.dispatched += 1; }
+    pub fn dispatch(&mut self) {
+        self.pending = self.pending.saturating_sub(1);
+        self.dispatched += 1;
+    }
     #[inline]
     pub fn complete(&mut self, latency_ns: u64) {
         self.completed += 1;
         self.total_latency_ns += latency_ns;
-        if self.completed > 0 { self.avg_latency_ns = self.total_latency_ns / self.completed; }
+        if self.completed > 0 {
+            self.avg_latency_ns = self.total_latency_ns / self.completed;
+        }
     }
 
     #[inline(always)]
-    pub fn merge(&mut self) { self.merged += 1; }
+    pub fn merge(&mut self) {
+        self.merged += 1;
+    }
     #[inline(always)]
-    pub fn requeue(&mut self) { self.requeued += 1; self.pending += 1; }
+    pub fn requeue(&mut self) {
+        self.requeued += 1;
+        self.pending += 1;
+    }
     #[inline(always)]
-    pub fn utilization(&self) -> f64 { self.pending as f64 }
+    pub fn utilization(&self) -> f64 {
+        self.pending as f64
+    }
 }
 
 /// BFQ budget accounting
@@ -84,15 +107,29 @@ pub struct BfqBudget {
 
 impl BfqBudget {
     pub fn new(pid: u32, weight: u32) -> Self {
-        Self { pid, weight, budget_sectors: 0, used_sectors: 0, slices: 0 }
+        Self {
+            pid,
+            weight,
+            budget_sectors: 0,
+            used_sectors: 0,
+            slices: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn charge(&mut self, sectors: u64) { self.used_sectors += sectors; }
+    pub fn charge(&mut self, sectors: u64) {
+        self.used_sectors += sectors;
+    }
     #[inline(always)]
-    pub fn new_slice(&mut self, budget: u64) { self.budget_sectors = budget; self.used_sectors = 0; self.slices += 1; }
+    pub fn new_slice(&mut self, budget: u64) {
+        self.budget_sectors = budget;
+        self.used_sectors = 0;
+        self.slices += 1;
+    }
     #[inline(always)]
-    pub fn remaining(&self) -> u64 { self.budget_sectors.saturating_sub(self.used_sectors) }
+    pub fn remaining(&self) -> u64 {
+        self.budget_sectors.saturating_sub(self.used_sectors)
+    }
 }
 
 /// IO scheduler holistic stats
@@ -121,7 +158,13 @@ impl HolisticIoScheduler {
             sched_type,
             queues: BTreeMap::new(),
             bfq_budgets: BTreeMap::new(),
-            stats: HolisticIoSchedStats { total_requests: 0, total_merges: 0, total_dispatched: 0, total_completed: 0, avg_queue_depth: 0.0 },
+            stats: HolisticIoSchedStats {
+                total_requests: 0,
+                total_merges: 0,
+                total_dispatched: 0,
+                total_completed: 0,
+                avg_queue_depth: 0.0,
+            },
         }
     }
 

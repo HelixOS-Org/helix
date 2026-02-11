@@ -195,24 +195,16 @@ impl BridgeBreakthroughDetector {
     /// Register a known optimization dimension.
     pub fn register_dimension(&mut self, name: &str) {
         let id = fnv1a_hash(name.as_bytes());
-        self.known_dimensions.insert(
-            id,
-            KnownDimension {
-                name: String::from(name),
-                discovery_tick: self.tick,
-                best_performance: self.current_baseline,
-                exploration_count: 0,
-            },
-        );
+        self.known_dimensions.insert(id, KnownDimension {
+            name: String::from(name),
+            discovery_tick: self.tick,
+            best_performance: self.current_baseline,
+            exploration_count: 0,
+        });
     }
 
     /// Submit a candidate finding for breakthrough evaluation.
-    pub fn submit_candidate(
-        &mut self,
-        description: &str,
-        baseline: f32,
-        measured: f32,
-    ) -> u64 {
+    pub fn submit_candidate(&mut self, description: &str, baseline: f32, measured: f32) -> u64 {
         self.tick += 1;
         self.stats.total_candidates += 1;
 
@@ -227,20 +219,17 @@ impl BridgeBreakthroughDetector {
             self.evict_oldest_candidate();
         }
 
-        self.candidates.insert(
+        self.candidates.insert(id, Candidate {
             id,
-            Candidate {
-                id,
-                description: String::from(description),
-                baseline,
-                measured,
-                improvement_ratio: improvement,
-                novelty_score: 0.0,
-                evidence_pieces: Vec::new(),
-                submit_tick: self.tick,
-                evaluated: false,
-            },
-        );
+            description: String::from(description),
+            baseline,
+            measured,
+            improvement_ratio: improvement,
+            novelty_score: 0.0,
+            evidence_pieces: Vec::new(),
+            submit_tick: self.tick,
+            evaluated: false,
+        });
         id
     }
 
@@ -356,7 +345,9 @@ impl BridgeBreakthroughDetector {
     #[inline]
     pub fn breakthrough_magnitude(&self, candidate_id: u64) -> f32 {
         match self.candidates.get(&candidate_id) {
-            Some(c) => self.breakthrough_magnitude_internal(c.improvement_ratio, c.evidence_pieces.len()),
+            Some(c) => {
+                self.breakthrough_magnitude_internal(c.improvement_ratio, c.evidence_pieces.len())
+            },
             None => 0.0,
         }
     }
@@ -417,7 +408,9 @@ impl BridgeBreakthroughDetector {
         let base_mag = improvement * MAGNITUDE_SCALE;
         let evidence_factor = (evidence_count as f32 / 10.0).min(1.0);
         let confidence_boost = evidence_factor * 0.3;
-        (base_mag * (1.0 + confidence_boost)).max(0.0).min(MAGNITUDE_SCALE)
+        (base_mag * (1.0 + confidence_boost))
+            .max(0.0)
+            .min(MAGNITUDE_SCALE)
     }
 
     fn novelty_assessment_internal(&self, description: &str) -> f32 {

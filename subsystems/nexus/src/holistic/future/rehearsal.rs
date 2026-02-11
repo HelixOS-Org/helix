@@ -12,12 +12,12 @@
 
 extern crate alloc;
 
-use crate::fast::fast_hash::FastHasher;
-
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::fast_hash::FastHasher;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -452,7 +452,12 @@ impl HolisticRehearsal {
 
         self.regret_ema = EMA_ALPHA * regret + (1.0 - EMA_ALPHA) * self.regret_ema;
 
-        let id = FastHasher::new().feed_str("cf-").feed_u64(original_id as u64).feed_str("-").feed_u64(alternative as u64).finish()
+        let id = FastHasher::new()
+            .feed_str("cf-")
+            .feed_u64(original_id as u64)
+            .feed_str("-")
+            .feed_u64(alternative as u64)
+            .finish()
             ^ xorshift64(&mut self.rng_state);
 
         let result = CounterfactualResult {

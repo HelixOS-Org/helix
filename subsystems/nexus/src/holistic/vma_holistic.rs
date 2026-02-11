@@ -13,15 +13,25 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VmaHealth { Optimal, Acceptable, Fragmented, Overloaded }
+pub enum VmaHealth {
+    Optimal,
+    Acceptable,
+    Fragmented,
+    Overloaded,
+}
 
 impl VmaHealth {
     #[inline]
     pub fn from_count(vma_count: u64) -> Self {
-        if vma_count < 100 { Self::Optimal }
-        else if vma_count < 500 { Self::Acceptable }
-        else if vma_count < 2000 { Self::Fragmented }
-        else { Self::Overloaded }
+        if vma_count < 100 {
+            Self::Optimal
+        } else if vma_count < 500 {
+            Self::Acceptable
+        } else if vma_count < 2000 {
+            Self::Fragmented
+        } else {
+            Self::Overloaded
+        }
     }
 }
 
@@ -45,7 +55,9 @@ impl ProcessVmaProfile {
     }
     #[inline(always)]
     pub fn residency(&self) -> f64 {
-        if self.total_mapped == 0 { return 0.0; }
+        if self.total_mapped == 0 {
+            return 0.0;
+        }
         self.total_resident as f64 / self.total_mapped as f64
     }
 }
@@ -96,7 +108,9 @@ impl VmaHolisticManager {
 
     fn recompute_stats(&mut self) {
         let count = self.profiles.len() as u64;
-        if count == 0 { return; }
+        if count == 0 {
+            return;
+        }
         self.stats.total_system_vmas = self.profiles.values().map(|p| p.vma_count).sum();
         self.stats.avg_vma_per_process = self.stats.total_system_vmas as f64 / count as f64;
         self.stats.system_vma_overhead_bytes = self.stats.total_system_vmas * 200;
@@ -105,7 +119,9 @@ impl VmaHolisticManager {
     /// Find processes with most VMAs (potential overhead problems)
     #[inline]
     pub fn top_vma_consumers(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut sorted: Vec<_> = self.profiles.iter()
+        let mut sorted: Vec<_> = self
+            .profiles
+            .iter()
             .map(|(&pid, p)| (pid, p.vma_count))
             .collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
@@ -115,7 +131,9 @@ impl VmaHolisticManager {
     /// Find processes with most merge opportunities
     #[inline]
     pub fn top_merge_candidates(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut sorted: Vec<_> = self.profiles.iter()
+        let mut sorted: Vec<_> = self
+            .profiles
+            .iter()
             .map(|(&pid, p)| (pid, p.merge_opportunities))
             .filter(|&(_, m)| m > 0)
             .collect();
@@ -127,10 +145,15 @@ impl VmaHolisticManager {
     #[inline]
     pub fn learn_template(&mut self, class_hash: u64, layout: Vec<(u64, u64)>) {
         let vma_count = layout.len() as u64;
-        let template = self.templates.entry(class_hash).or_insert(WorkloadTemplate {
-            class_hash, typical_vma_count: vma_count,
-            typical_layout: layout.clone(), sample_count: 0,
-        });
+        let template = self
+            .templates
+            .entry(class_hash)
+            .or_insert(WorkloadTemplate {
+                class_hash,
+                typical_vma_count: vma_count,
+                typical_layout: layout.clone(),
+                sample_count: 0,
+            });
         template.sample_count += 1;
         // EMA update of typical count
         template.typical_vma_count = (template.typical_vma_count * 7 + vma_count) / 8;
@@ -152,12 +175,18 @@ impl VmaHolisticManager {
     pub fn system_vma_density(&self) -> f64 {
         let total_mapped: u64 = self.profiles.values().map(|p| p.total_mapped).sum();
         let gb = total_mapped as f64 / (1024.0 * 1024.0 * 1024.0);
-        if gb < 0.001 { return 0.0; }
+        if gb < 0.001 {
+            return 0.0;
+        }
         self.stats.total_system_vmas as f64 / gb
     }
 
     #[inline(always)]
-    pub fn profile(&self, pid: u64) -> Option<&ProcessVmaProfile> { self.profiles.get(&pid) }
+    pub fn profile(&self, pid: u64) -> Option<&ProcessVmaProfile> {
+        self.profiles.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &VmaHolisticStats { &self.stats }
+    pub fn stats(&self) -> &VmaHolisticStats {
+        &self.stats
+    }
 }

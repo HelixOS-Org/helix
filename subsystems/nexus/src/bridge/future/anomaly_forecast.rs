@@ -11,10 +11,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -115,8 +115,8 @@ impl AnomalyPrecursor {
     #[inline]
     fn record_true_positive(&mut self, actual_lead_time: u64) {
         self.true_positives += 1;
-        self.lead_time_ema = self.lead_time_ema * (1.0 - EMA_ALPHA)
-            + actual_lead_time as f32 * EMA_ALPHA;
+        self.lead_time_ema =
+            self.lead_time_ema * (1.0 - EMA_ALPHA) + actual_lead_time as f32 * EMA_ALPHA;
         self.lead_time_ticks = self.lead_time_ema as u64;
         self.update_confidence();
     }
@@ -216,7 +216,10 @@ impl EventStream {
             let prev = self.ticks[self.ticks.len() - 2];
             let gap = last.saturating_sub(prev) as f32;
             let mean_gap = if self.ticks.len() > 1 {
-                let total_span = self.ticks.back().unwrap_or(&0)
+                let total_span = self
+                    .ticks
+                    .back()
+                    .unwrap_or(&0)
                     .saturating_sub(*self.ticks.front().unwrap_or(&0));
                 total_span as f32 / self.ticks.len() as f32
             } else {
@@ -228,7 +231,11 @@ impl EventStream {
     }
 
     fn recent_window(&self, n: usize) -> &[u64] {
-        let start = if self.events.len() > n { self.events.len() - n } else { 0 };
+        let start = if self.events.len() > n {
+            self.events.len() - n
+        } else {
+            0
+        };
         &self.events[start..]
     }
 
@@ -400,7 +407,9 @@ impl BridgeAnomalyForecast {
 
         if new_warnings.len() > MAX_ACTIVE_WARNINGS {
             new_warnings.sort_by(|a, b| {
-                b.severity.partial_cmp(&a.severity).unwrap_or(core::cmp::Ordering::Equal)
+                b.severity
+                    .partial_cmp(&a.severity)
+                    .unwrap_or(core::cmp::Ordering::Equal)
             });
             new_warnings.truncate(MAX_ACTIVE_WARNINGS);
         }
@@ -434,7 +443,9 @@ impl BridgeAnomalyForecast {
     }
 
     fn is_already_warned(&self, pattern: u64) -> bool {
-        self.warnings.iter().any(|w| w.precursor_pattern == pattern && !w.resolved)
+        self.warnings
+            .iter()
+            .any(|w| w.precursor_pattern == pattern && !w.resolved)
     }
 
     fn expire_warnings(&mut self) {
@@ -453,7 +464,8 @@ impl BridgeAnomalyForecast {
             }
         }
         // Clean up old resolved warnings
-        self.warnings.retain(|w| !w.resolved || self.tick.saturating_sub(w.issued_tick) < 10000);
+        self.warnings
+            .retain(|w| !w.resolved || self.tick.saturating_sub(w.issued_tick) < 10000);
     }
 
     /// Forecast the most likely anomaly type in the near future.
@@ -465,7 +477,7 @@ impl BridgeAnomalyForecast {
                 continue;
             }
             match &best {
-                Some((_, s, _)) if w.severity <= *s => {}
+                Some((_, s, _)) if w.severity <= *s => {},
                 _ => best = Some((w.anomaly_type, w.severity, w.confidence)),
             }
         }
@@ -491,7 +503,9 @@ impl BridgeAnomalyForecast {
     pub fn precursor_library(&self) -> Vec<&AnomalyPrecursor> {
         let mut result: Vec<&AnomalyPrecursor> = self.precursors.values().collect();
         result.sort_by(|a, b| {
-            b.confidence.partial_cmp(&a.confidence).unwrap_or(core::cmp::Ordering::Equal)
+            b.confidence
+                .partial_cmp(&a.confidence)
+                .unwrap_or(core::cmp::Ordering::Equal)
         });
         result
     }
@@ -532,8 +546,7 @@ impl BridgeAnomalyForecast {
     fn update_false_alarm_rate(&mut self) {
         let total = self.stats.total_true_positives + self.stats.total_false_positives;
         if total > 0 {
-            self.stats.false_alarm_rate =
-                self.stats.total_false_positives as f32 / total as f32;
+            self.stats.false_alarm_rate = self.stats.total_false_positives as f32 / total as f32;
         }
     }
 

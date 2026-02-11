@@ -112,7 +112,9 @@ impl BandwidthBucket {
     /// Utilization ratio
     #[inline]
     pub fn utilization(&self) -> f64 {
-        if self.capacity == 0 { 0.0 } else {
+        if self.capacity == 0 {
+            0.0
+        } else {
             1.0 - (self.tokens as f64 / self.capacity as f64)
         }
     }
@@ -146,7 +148,10 @@ impl ProcessBandwidth {
 
     #[inline(always)]
     pub fn add_bucket(&mut self, resource: BandwidthResource, rate: u64, capacity: u64) {
-        self.buckets.insert(resource as u8, BandwidthBucket::new(resource, rate, capacity));
+        self.buckets.insert(
+            resource as u8,
+            BandwidthBucket::new(resource, rate, capacity),
+        );
     }
 
     pub fn try_consume(&mut self, resource: BandwidthResource, bytes: u64, now_ns: u64) -> bool {
@@ -166,7 +171,8 @@ impl ProcessBandwidth {
     /// Request bandwidth lending
     #[inline]
     pub fn can_lend(&self, resource: BandwidthResource, amount: u64) -> bool {
-        self.buckets.get(&(resource as u8))
+        self.buckets
+            .get(&(resource as u8))
             .map(|b| b.tokens >= amount && b.utilization() < 0.5)
             .unwrap_or(false)
     }
@@ -230,7 +236,8 @@ impl CoopBandwidthAllocator {
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64, priority: u8) {
-        self.processes.entry(pid)
+        self.processes
+            .entry(pid)
             .or_insert_with(|| ProcessBandwidth::new(pid, priority));
     }
 
@@ -242,7 +249,13 @@ impl CoopBandwidthAllocator {
     }
 
     #[inline]
-    pub fn try_consume(&mut self, pid: u64, resource: BandwidthResource, bytes: u64, now_ns: u64) -> bool {
+    pub fn try_consume(
+        &mut self,
+        pid: u64,
+        resource: BandwidthResource,
+        bytes: u64,
+        now_ns: u64,
+    ) -> bool {
         if let Some(proc) = self.processes.get_mut(&pid) {
             if proc.try_consume(resource, bytes, now_ns) {
                 return true;
@@ -252,13 +265,23 @@ impl CoopBandwidthAllocator {
         self.try_borrow(pid, resource, bytes, now_ns)
     }
 
-    fn try_borrow(&mut self, borrower_pid: u64, resource: BandwidthResource, amount: u64, now_ns: u64) -> bool {
+    fn try_borrow(
+        &mut self,
+        borrower_pid: u64,
+        resource: BandwidthResource,
+        amount: u64,
+        now_ns: u64,
+    ) -> bool {
         // Find a lender with spare capacity
         let lender_pid = {
-            let mut candidates: Vec<(u64, u64)> = self.processes.iter()
+            let mut candidates: Vec<(u64, u64)> = self
+                .processes
+                .iter()
                 .filter(|&(&pid, proc)| pid != borrower_pid && proc.can_lend(resource, amount))
                 .map(|(&pid, proc)| {
-                    let available = proc.buckets.get(&(resource as u8))
+                    let available = proc
+                        .buckets
+                        .get(&(resource as u8))
                         .map(|b| b.tokens)
                         .unwrap_or(0);
                     (pid, available)
@@ -296,13 +319,13 @@ impl CoopBandwidthAllocator {
         self.stats.total_denied = self.processes.values().map(|p| p.total_denied).sum();
         self.stats.total_transfers = self.transfers.len() as u64;
         if !self.processes.is_empty() {
-            let total_util: f64 = self.processes.values()
+            let total_util: f64 = self
+                .processes
+                .values()
                 .flat_map(|p| p.buckets.values())
                 .map(|b| b.utilization())
                 .sum();
-            let count: usize = self.processes.values()
-                .map(|p| p.buckets.len())
-                .sum();
+            let count: usize = self.processes.values().map(|p| p.buckets.len()).sum();
             if count > 0 {
                 self.stats.avg_utilization = total_util / count as f64;
             }

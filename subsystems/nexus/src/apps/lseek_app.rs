@@ -83,25 +83,33 @@ impl AppLseekManager {
         if let Some(pos) = self.positions.get_mut(&fd) {
             let new_offset = match whence {
                 AppSeekWhence::Set => {
-                    if offset < 0 { return None; }
+                    if offset < 0 {
+                        return None;
+                    }
                     offset as u64
-                }
+                },
                 AppSeekWhence::Current => {
                     let cur = pos.current_offset as i64;
                     let new = cur.wrapping_add(offset);
-                    if new < 0 { return None; }
+                    if new < 0 {
+                        return None;
+                    }
                     new as u64
-                }
+                },
                 AppSeekWhence::End => {
                     let end = pos.file_size as i64;
                     let new = end.wrapping_add(offset);
-                    if new < 0 { return None; }
+                    if new < 0 {
+                        return None;
+                    }
                     new as u64
-                }
+                },
                 AppSeekWhence::Data | AppSeekWhence::Hole => {
-                    if offset < 0 { return None; }
+                    if offset < 0 {
+                        return None;
+                    }
                     offset as u64
-                }
+                },
             };
             let distance = if new_offset > pos.current_offset {
                 new_offset - pos.current_offset

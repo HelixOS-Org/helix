@@ -2,12 +2,12 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 
 use super::types::{PState, PowerMode};
 use super::workload::WorkloadPredictor;
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // GOVERNOR ALGORITHM

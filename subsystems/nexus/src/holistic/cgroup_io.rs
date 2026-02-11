@@ -121,23 +121,24 @@ impl CgroupIoAccounting {
             IoDirection::Read => {
                 self.bytes_read += bytes;
                 self.ios_read += 1;
-            }
+            },
             IoDirection::Write => {
                 self.bytes_written += bytes;
                 self.ios_written += 1;
-            }
+            },
             IoDirection::Discard => {
                 self.bytes_discarded += bytes;
                 self.ios_discarded += 1;
-            }
-            IoDirection::Flush => {}
+            },
+            IoDirection::Flush => {},
         }
         if latency_us > self.max_latency_us {
             self.max_latency_us = latency_us;
         }
         let total_ios = self.ios_read + self.ios_written + self.ios_discarded;
         if total_ios > 0 {
-            self.avg_latency_us = ((self.avg_latency_us * (total_ios - 1)) + latency_us) / total_ios;
+            self.avg_latency_us =
+                ((self.avg_latency_us * (total_ios - 1)) + latency_us) / total_ios;
         }
     }
 
@@ -187,7 +188,12 @@ impl CgroupIoInstance {
         self.device_limits.insert(dev_num, limit);
     }
 
-    pub fn check_throttle(&self, device: CgroupIoDeviceId, direction: IoDirection, bps: u64) -> bool {
+    pub fn check_throttle(
+        &self,
+        device: CgroupIoDeviceId,
+        direction: IoDirection,
+        bps: u64,
+    ) -> bool {
         let dev_num = device.dev_number();
         if let Some(limit) = self.device_limits.get(&dev_num) {
             match direction {

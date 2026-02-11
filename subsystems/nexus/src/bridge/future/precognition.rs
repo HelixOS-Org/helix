@@ -11,10 +11,10 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -228,10 +228,10 @@ impl FeatureTracker {
         // Update variance
         let diff_fast = value - self.fast_ema;
         let diff_slow = value - self.slow_ema;
-        self.variance_fast = self.variance_fast * (1.0 - FAST_EMA_ALPHA)
-            + diff_fast * diff_fast * FAST_EMA_ALPHA;
-        self.variance_slow = self.variance_slow * (1.0 - SLOW_EMA_ALPHA)
-            + diff_slow * diff_slow * SLOW_EMA_ALPHA;
+        self.variance_fast =
+            self.variance_fast * (1.0 - FAST_EMA_ALPHA) + diff_fast * diff_fast * FAST_EMA_ALPHA;
+        self.variance_slow =
+            self.variance_slow * (1.0 - SLOW_EMA_ALPHA) + diff_slow * diff_slow * SLOW_EMA_ALPHA;
 
         // Update skewness: E[(X-μ)^3] / σ^3
         let std_fast = self.variance_fast.sqrt().max(0.001);
@@ -328,7 +328,9 @@ impl FeatureTracker {
         }
 
         // 5. Distribution drift: JS divergence between reference and current
-        let js_div = self.reference_fingerprint.js_divergence(&self.current_fingerprint);
+        let js_div = self
+            .reference_fingerprint
+            .js_divergence(&self.current_fingerprint);
         if js_div > SHIFT_DETECTION_THRESHOLD {
             let magnitude = (js_div / 0.5).min(1.0);
             signals.push(EarlySignal {
@@ -431,9 +433,10 @@ impl BridgePrecognition {
     pub fn observe(&mut self, feature_hash: u64, value: f32, tick: u64) {
         self.tick = tick;
 
-        let tracker = self.features.entry(feature_hash).or_insert_with(|| {
-            FeatureTracker::new(feature_hash)
-        });
+        let tracker = self
+            .features
+            .entry(feature_hash)
+            .or_insert_with(|| FeatureTracker::new(feature_hash));
         tracker.observe(value);
 
         if self.features.len() > MAX_SIGNALS {
@@ -474,8 +477,8 @@ impl BridgePrecognition {
         if !all_signals.is_empty() {
             let avg_mag: f32 =
                 all_signals.iter().map(|s| s.magnitude).sum::<f32>() / all_signals.len() as f32;
-            self.stats.avg_signal_magnitude = self.stats.avg_signal_magnitude * (1.0 - EMA_ALPHA)
-                + avg_mag * EMA_ALPHA;
+            self.stats.avg_signal_magnitude =
+                self.stats.avg_signal_magnitude * (1.0 - EMA_ALPHA) + avg_mag * EMA_ALPHA;
 
             let avg_lead: f32 = all_signals
                 .iter()
@@ -487,11 +490,8 @@ impl BridgePrecognition {
         }
 
         // Update active drifts
-        self.stats.active_drifts = self
-            .features
-            .values()
-            .filter(|f| f.shift_detected)
-            .count() as u32;
+        self.stats.active_drifts =
+            self.features.values().filter(|f| f.shift_detected).count() as u32;
 
         // Store recent signals
         self.recent_signals.extend(all_signals.iter().cloned());
@@ -555,10 +555,8 @@ impl BridgePrecognition {
     fn update_accuracy(&mut self) {
         let total = self.confirmed_signals + self.false_positives;
         if total > 0 {
-            self.stats.precognition_accuracy =
-                self.confirmed_signals as f32 / total as f32;
-            self.stats.false_positive_rate =
-                self.false_positives as f32 / total as f32;
+            self.stats.precognition_accuracy = self.confirmed_signals as f32 / total as f32;
+            self.stats.false_positive_rate = self.false_positives as f32 / total as f32;
         }
     }
 

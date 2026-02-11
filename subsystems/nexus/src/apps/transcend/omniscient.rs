@@ -142,7 +142,10 @@ impl AppsOmniscient {
             profiles: BTreeMap::new(),
             taxonomy,
             edges: Vec::new(),
-            stats: OmniscientStats { taxonomy_nodes: 1, ..Default::default() },
+            stats: OmniscientStats {
+                taxonomy_nodes: 1,
+                ..Default::default()
+            },
             rng: seed | 1,
             tick: 0,
         }
@@ -200,11 +203,15 @@ impl AppsOmniscient {
         if self.stats.total_apps_tracked == 0 {
             return 0;
         }
-        let classified = self.profiles.values()
+        let classified = self
+            .profiles
+            .values()
             .filter(|p| !p.classes.is_empty())
             .count() as u64;
         let ratio = classified * 100 / self.stats.total_apps_tracked;
-        let obs_factor = if self.stats.total_observations > 1000 { 100 } else {
+        let obs_factor = if self.stats.total_observations > 1000 {
+            100
+        } else {
             self.stats.total_observations * 100 / 1000
         };
         (ratio + obs_factor) / 2
@@ -213,7 +220,10 @@ impl AppsOmniscient {
     /// Build the application knowledge graph as a vector of edges.
     #[inline(always)]
     pub fn app_knowledge_graph(&self) -> Vec<(u64, u64, u64)> {
-        self.edges.iter().map(|e| (e.src_app, e.dst_app, e.weight)).collect()
+        self.edges
+            .iter()
+            .map(|e| (e.src_app, e.dst_app, e.weight))
+            .collect()
     }
 
     /// Measure completeness of behavioral classification (0–100).
@@ -221,11 +231,11 @@ impl AppsOmniscient {
         if self.stats.total_apps_tracked == 0 {
             return 100;
         }
-        let total_classes: u64 = self.profiles.values()
-            .map(|p| p.classes.len() as u64)
-            .sum();
+        let total_classes: u64 = self.profiles.values().map(|p| p.classes.len() as u64).sum();
         let expected = self.stats.total_apps_tracked * 4; // 4 dimensions
-        if expected == 0 { return 100; }
+        if expected == 0 {
+            return 100;
+        }
         let pct = total_classes * 100 / expected;
         if pct > 100 { 100 } else { pct }
     }
@@ -233,7 +243,8 @@ impl AppsOmniscient {
     /// Return the count of completely unknown applications (no classification).
     #[inline]
     pub fn unknown_app_zero(&self) -> u64 {
-        self.profiles.values()
+        self.profiles
+            .values()
             .filter(|p| p.classes.is_empty() && p.observation_count < 3)
             .count() as u64
     }
@@ -249,14 +260,20 @@ impl AppsOmniscient {
         };
         let graph_density = if self.stats.total_apps_tracked > 1 {
             let max_edges = self.stats.total_apps_tracked * (self.stats.total_apps_tracked - 1);
-            if max_edges == 0 { 0 } else {
+            if max_edges == 0 {
+                0
+            } else {
                 (self.stats.knowledge_edges * 100).min(max_edges * 100) / max_edges
             }
         } else {
             0
         };
         let raw = (understanding + completeness + graph_density) / 3;
-        if raw > zero_penalty { raw - zero_penalty } else { 0 }
+        if raw > zero_penalty {
+            raw - zero_penalty
+        } else {
+            0
+        }
     }
 
     /// Return a snapshot of current statistics.
@@ -355,7 +372,9 @@ impl AppsOmniscient {
             None => return,
         };
         for cls in &profile.classes {
-            if !self.taxonomy.contains_key(&cls.class_id) && self.taxonomy.len() < MAX_TAXONOMY_DEPTH * 64 {
+            if !self.taxonomy.contains_key(&cls.class_id)
+                && self.taxonomy.len() < MAX_TAXONOMY_DEPTH * 64
+            {
                 let node = TaxonomyNode {
                     node_id: cls.class_id,
                     parent_id: 0,
@@ -372,8 +391,16 @@ impl AppsOmniscient {
     }
 
     fn compute_edge_weight(&mut self, src: u64, dst: u64) -> u64 {
-        let src_obs = self.profiles.get(&src).map(|p| p.observation_count).unwrap_or(1);
-        let dst_obs = self.profiles.get(&dst).map(|p| p.observation_count).unwrap_or(1);
+        let src_obs = self
+            .profiles
+            .get(&src)
+            .map(|p| p.observation_count)
+            .unwrap_or(1);
+        let dst_obs = self
+            .profiles
+            .get(&dst)
+            .map(|p| p.observation_count)
+            .unwrap_or(1);
         let noise = xorshift64(&mut self.rng) % 10;
         ((src_obs + dst_obs) / 2).saturating_add(noise)
     }

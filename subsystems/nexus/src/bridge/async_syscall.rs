@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Async syscall state
@@ -109,7 +108,9 @@ impl<T: Clone> Ring<T> {
 
     #[inline]
     pub fn push(&mut self, entry: T) -> bool {
-        if self.is_full() { return false; }
+        if self.is_full() {
+            return false;
+        }
         self.entries.push_back(entry);
         self.tail = self.tail.wrapping_add(1);
         true
@@ -117,8 +118,12 @@ impl<T: Clone> Ring<T> {
 
     #[inline]
     pub fn pop(&mut self) -> Option<T> {
-        if self.is_empty() { return None; }
-        if self.entries.is_empty() { return None; }
+        if self.is_empty() {
+            return None;
+        }
+        if self.entries.is_empty() {
+            return None;
+        }
         let entry = self.entries.remove(0).unwrap();
         self.head = self.head.wrapping_add(1);
         Some(entry)
@@ -158,7 +163,9 @@ impl AsyncContext {
         if self.sq.push(entry) {
             self.total_submitted += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn complete(&mut self, user_data: u64, result: i64, now: u64) -> bool {
@@ -172,7 +179,9 @@ impl AsyncContext {
             self.in_flight = self.in_flight.saturating_sub(1);
             self.total_completed += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -233,15 +242,19 @@ impl BridgeAsyncSyscall {
 
     #[inline]
     pub fn create_context(&mut self, thread_id: u64) {
-        self.contexts.insert(thread_id, AsyncContext::new(
-            thread_id, self.default_sq_size, self.default_cq_size));
+        self.contexts.insert(
+            thread_id,
+            AsyncContext::new(thread_id, self.default_sq_size, self.default_cq_size),
+        );
         self.recompute();
     }
 
     pub fn destroy_context(&mut self, thread_id: u64) {
         self.contexts.remove(&thread_id);
         // Cancel all in-flight for this thread
-        let to_cancel: Vec<u64> = self.in_flight.iter()
+        let to_cancel: Vec<u64> = self
+            .in_flight
+            .iter()
             .filter(|(_, s)| s.thread_id == thread_id)
             .map(|(&ud, _)| ud)
             .collect();
@@ -255,7 +268,11 @@ impl BridgeAsyncSyscall {
     pub fn submit(&mut self, thread_id: u64, entry: SqEntry, now: u64) -> bool {
         let user_data = entry.user_data;
         let syscall_nr = entry.syscall_nr;
-        let deadline = if entry.timeout_ns > 0 { now + entry.timeout_ns } else { 0 };
+        let deadline = if entry.timeout_ns > 0 {
+            now + entry.timeout_ns
+        } else {
+            0
+        };
         let linked = match entry.flags {
             AsyncSyscallFlag::Link | AsyncSyscallFlag::HardLink => Some(user_data + 1),
             _ => None,
@@ -266,7 +283,9 @@ impl BridgeAsyncSyscall {
             None => return false,
         };
 
-        if !ctx.submit(entry) { return false; }
+        if !ctx.submit(entry) {
+            return false;
+        }
         ctx.in_flight += 1;
 
         self.in_flight.insert(user_data, InFlightSyscall {
@@ -313,12 +332,16 @@ impl BridgeAsyncSyscall {
             }
             self.recompute();
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     /// Check for timeouts
     pub fn check_timeouts(&mut self, now: u64) -> Vec<u64> {
-        let timed_out: Vec<u64> = self.in_flight.iter()
+        let timed_out: Vec<u64> = self
+            .in_flight
+            .iter()
             .filter(|(_, s)| s.deadline_ns > 0 && now > s.deadline_ns)
             .map(|(&ud, _)| ud)
             .collect();
@@ -334,7 +357,9 @@ impl BridgeAsyncSyscall {
             }
         }
 
-        if !timed_out.is_empty() { self.recompute(); }
+        if !timed_out.is_empty() {
+            self.recompute();
+        }
         timed_out
     }
 
@@ -346,7 +371,9 @@ impl BridgeAsyncSyscall {
         let total_timeout: u64 = self.contexts.values().map(|c| c.total_timed_out).sum();
         let avg_lat = if self.latency_count > 0 {
             self.latency_sum_ns as f64 / self.latency_count as f64
-        } else { 0.0 };
+        } else {
+            0.0
+        };
 
         self.stats = BridgeAsyncSyscallStats {
             active_contexts: self.contexts.len(),

@@ -56,7 +56,7 @@ impl OptimizationObjective {
             | Self::MinCost => OptimizationDirection::Minimize,
             Self::MaxThroughput | Self::MaxFairness | Self::MaxUtilization => {
                 OptimizationDirection::Maximize
-            }
+            },
         }
     }
 }
@@ -116,7 +116,7 @@ impl ObjectiveDef {
                 } else {
                     self.target / self.current_value
                 }
-            }
+            },
             OptimizationDirection::Maximize => {
                 if self.current_value >= self.target {
                     1.0
@@ -125,7 +125,7 @@ impl ObjectiveDef {
                 } else {
                     0.0
                 }
-            }
+            },
         }
     }
 }
@@ -166,14 +166,14 @@ impl ConstraintDef {
                 } else {
                     0.0
                 }
-            }
+            },
             ConstraintType::GreaterEqual => {
                 if value < self.bound {
                     self.bound - value
                 } else {
                     0.0
                 }
-            }
+            },
             ConstraintType::Equal => libm::fabs(value - self.bound),
             ConstraintType::Range => {
                 if value < self.bound {
@@ -183,7 +183,7 @@ impl ConstraintDef {
                 } else {
                     0.0
                 }
-            }
+            },
         }
     }
 }
@@ -216,7 +216,11 @@ impl OptSolution {
             return false;
         }
         let mut at_least_one_better = false;
-        for (a, b) in self.objective_values.iter().zip(other.objective_values.iter()) {
+        for (a, b) in self
+            .objective_values
+            .iter()
+            .zip(other.objective_values.iter())
+        {
             if a > b {
                 return false;
             }
@@ -263,9 +267,11 @@ impl ParetoFront {
     /// Best by weighted score
     #[inline]
     pub fn best_weighted(&self) -> Option<&OptSolution> {
-        self.solutions
-            .iter()
-            .max_by(|a, b| a.score.partial_cmp(&b.score).unwrap_or(core::cmp::Ordering::Equal))
+        self.solutions.iter().max_by(|a, b| {
+            a.score
+                .partial_cmp(&b.score)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        })
     }
 }
 

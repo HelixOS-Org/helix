@@ -142,7 +142,10 @@ impl ConsistentSnapshot {
 
     #[inline(always)]
     pub fn total_size(&self) -> usize {
-        self.component_snapshots.values().map(|cs| cs.state_size).sum()
+        self.component_snapshots
+            .values()
+            .map(|cs| cs.state_size)
+            .sum()
     }
 
     #[inline(always)]
@@ -267,7 +270,9 @@ impl CoopSnapshotSync {
         }
 
         // Collect channel messages into snapshot
-        let channel_msgs: Vec<RecordedMessage> = self.channels.iter()
+        let channel_msgs: Vec<RecordedMessage> = self
+            .channels
+            .iter()
             .flat_map(|ch| ch.messages.clone())
             .collect();
 
@@ -277,7 +282,9 @@ impl CoopSnapshotSync {
             self.latest_complete = Some(snapshot_id);
             self.gc();
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     /// Compute diff between two snapshots
@@ -321,9 +328,13 @@ impl CoopSnapshotSync {
         while self.snapshots.len() > self.max_stored {
             if let Some(&oldest_id) = self.snapshots.keys().next() {
                 // Don't remove latest
-                if Some(oldest_id) == self.latest_complete { break; }
+                if Some(oldest_id) == self.latest_complete {
+                    break;
+                }
                 self.snapshots.remove(&oldest_id);
-            } else { break; }
+            } else {
+                break;
+            }
         }
     }
 
@@ -333,8 +344,12 @@ impl CoopSnapshotSync {
     }
 
     #[inline(always)]
-    pub fn latest_id(&self) -> Option<u64> { self.latest_complete }
+    pub fn latest_id(&self) -> Option<u64> {
+        self.latest_complete
+    }
 
     #[inline(always)]
-    pub fn stored_count(&self) -> usize { self.snapshots.len() }
+    pub fn stored_count(&self) -> usize {
+        self.snapshots.len()
+    }
 }

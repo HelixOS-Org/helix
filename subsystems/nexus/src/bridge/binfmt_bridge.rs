@@ -72,9 +72,15 @@ pub struct BinaryImage {
 impl BinaryImage {
     pub fn new(id: u64, fmt: BinfmtType) -> Self {
         Self {
-            id, fmt_type: fmt, state: BinfmtLoadState::Parsing,
-            elf_info: None, segments: Vec::new(), load_addr: 0,
-            entry_point: 0, total_size: 0, load_time_ns: 0,
+            id,
+            fmt_type: fmt,
+            state: BinfmtLoadState::Parsing,
+            elf_info: None,
+            segments: Vec::new(),
+            load_addr: 0,
+            entry_point: 0,
+            total_size: 0,
+            load_time_ns: 0,
         }
     }
 
@@ -88,7 +94,9 @@ impl BinaryImage {
     }
 
     #[inline(always)]
-    pub fn fail(&mut self) { self.state = BinfmtLoadState::Failed; }
+    pub fn fail(&mut self) {
+        self.state = BinfmtLoadState::Failed;
+    }
 }
 
 /// Binfmt misc rule
@@ -124,34 +132,83 @@ pub struct BridgeBinfmt {
 }
 
 impl BridgeBinfmt {
-    pub fn new() -> Self { Self { images: BTreeMap::new(), misc_rules: Vec::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            images: BTreeMap::new(),
+            misc_rules: Vec::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn load_image(&mut self, fmt: BinfmtType) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.images.insert(id, BinaryImage::new(id, fmt));
         id
     }
 
     #[inline(always)]
     pub fn complete_load(&mut self, id: u64, addr: u64, entry: u64, size: u64, duration: u64) {
-        if let Some(img) = self.images.get_mut(&id) { img.set_loaded(addr, entry, size, duration); }
+        if let Some(img) = self.images.get_mut(&id) {
+            img.set_loaded(addr, entry, size, duration);
+        }
     }
 
     #[inline(always)]
     pub fn add_misc_rule(&mut self, name_hash: u64, magic: Vec<u8>, interp_hash: u64) {
-        self.misc_rules.push(BinfmtMiscRule { name_hash, magic: magic.clone(), mask: Vec::new(), interpreter_hash: interp_hash, offset: 0, enabled: true, match_count: 0 });
+        self.misc_rules.push(BinfmtMiscRule {
+            name_hash,
+            magic: magic.clone(),
+            mask: Vec::new(),
+            interpreter_hash: interp_hash,
+            offset: 0,
+            enabled: true,
+            match_count: 0,
+        });
     }
 
     #[inline]
     pub fn stats(&self) -> BinfmtBridgeStats {
-        let loaded = self.images.values().filter(|i| i.state == BinfmtLoadState::Ready).count() as u64;
-        let failed = self.images.values().filter(|i| i.state == BinfmtLoadState::Failed).count() as u64;
-        let elf = self.images.values().filter(|i| i.fmt_type == BinfmtType::Elf).count() as u64;
-        let script = self.images.values().filter(|i| i.fmt_type == BinfmtType::Script).count() as u64;
-        let times: Vec<u64> = self.images.values().filter(|i| i.load_time_ns > 0).map(|i| i.load_time_ns).collect();
-        let avg = if times.is_empty() { 0 } else { times.iter().sum::<u64>() / times.len() as u64 };
-        BinfmtBridgeStats { total_loaded: loaded, total_failed: failed, elf_count: elf, script_count: script, misc_rules: self.misc_rules.len() as u32, avg_load_time_ns: avg }
+        let loaded = self
+            .images
+            .values()
+            .filter(|i| i.state == BinfmtLoadState::Ready)
+            .count() as u64;
+        let failed = self
+            .images
+            .values()
+            .filter(|i| i.state == BinfmtLoadState::Failed)
+            .count() as u64;
+        let elf = self
+            .images
+            .values()
+            .filter(|i| i.fmt_type == BinfmtType::Elf)
+            .count() as u64;
+        let script = self
+            .images
+            .values()
+            .filter(|i| i.fmt_type == BinfmtType::Script)
+            .count() as u64;
+        let times: Vec<u64> = self
+            .images
+            .values()
+            .filter(|i| i.load_time_ns > 0)
+            .map(|i| i.load_time_ns)
+            .collect();
+        let avg = if times.is_empty() {
+            0
+        } else {
+            times.iter().sum::<u64>() / times.len() as u64
+        };
+        BinfmtBridgeStats {
+            total_loaded: loaded,
+            total_failed: failed,
+            elf_count: elf,
+            script_count: script,
+            misc_rules: self.misc_rules.len() as u32,
+            avg_load_time_ns: avg,
+        }
     }
 }
 
@@ -184,7 +241,16 @@ pub struct BinfmtV2Entry {
 
 impl BinfmtV2Entry {
     pub fn new(magic: u64, fmt: BinfmtV2Type) -> Self {
-        Self { magic, mask: u64::MAX, fmt_type: fmt, interpreter_hash: 0, offset: 0, flags: 0, enabled: true, exec_count: 0 }
+        Self {
+            magic,
+            mask: u64::MAX,
+            fmt_type: fmt,
+            interpreter_hash: 0,
+            offset: 0,
+            flags: 0,
+            enabled: true,
+            exec_count: 0,
+        }
     }
 }
 
@@ -217,10 +283,16 @@ pub struct BridgeBinfmtV2 {
 }
 
 impl BridgeBinfmtV2 {
-    pub fn new() -> Self { Self { formats: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            formats: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn register(&mut self, magic: u64, fmt: BinfmtV2Type) { self.formats.insert(magic, BinfmtV2Entry::new(magic, fmt)); }
+    pub fn register(&mut self, magic: u64, fmt: BinfmtV2Type) {
+        self.formats.insert(magic, BinfmtV2Entry::new(magic, fmt));
+    }
 
     #[inline]
     pub fn lookup(&mut self, magic: u64) -> Option<&BinfmtV2Entry> {
@@ -234,12 +306,20 @@ impl BridgeBinfmtV2 {
     }
 
     #[inline(always)]
-    pub fn disable(&mut self, magic: u64) { if let Some(e) = self.formats.get_mut(&magic) { e.enabled = false; } }
+    pub fn disable(&mut self, magic: u64) {
+        if let Some(e) = self.formats.get_mut(&magic) {
+            e.enabled = false;
+        }
+    }
 
     #[inline]
     pub fn stats(&self) -> BinfmtV2BridgeStats {
         let enabled = self.formats.values().filter(|e| e.enabled).count() as u32;
         let execs: u64 = self.formats.values().map(|e| e.exec_count).sum();
-        BinfmtV2BridgeStats { total_formats: self.formats.len() as u32, enabled, total_executions: execs }
+        BinfmtV2BridgeStats {
+            total_formats: self.formats.len() as u32,
+            enabled,
+            total_executions: execs,
+        }
     }
 }

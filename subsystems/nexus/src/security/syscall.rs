@@ -1,14 +1,13 @@
 //! Syscall monitoring and pattern detection.
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use super::types::{ThreatSeverity, ThreatType};
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // SYSCALL MONITOR

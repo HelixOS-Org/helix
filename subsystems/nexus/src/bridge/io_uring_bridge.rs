@@ -62,8 +62,12 @@ impl SqeFlags {
     #[inline]
     pub fn empty() -> Self {
         Self {
-            fixed_file: false, io_drain: false, io_link: false,
-            io_hardlink: false, async_op: false, buffer_select: false,
+            fixed_file: false,
+            io_drain: false,
+            io_link: false,
+            io_hardlink: false,
+            async_op: false,
+            buffer_select: false,
             cqe_skip_success: false,
         }
     }
@@ -109,7 +113,9 @@ pub struct OpStats {
 impl OpStats {
     #[inline(always)]
     pub fn avg_latency_ns(&self) -> u64 {
-        if self.count == 0 { return 0; }
+        if self.count == 0 {
+            return 0;
+        }
         self.total_latency_ns / self.count
     }
 
@@ -117,8 +123,12 @@ impl OpStats {
     pub fn record(&mut self, latency: u64, result: i32, bytes: u64) {
         self.count += 1;
         self.total_latency_ns += latency;
-        if latency > self.max_latency_ns { self.max_latency_ns = latency; }
-        if result < 0 { self.errors += 1; }
+        if latency > self.max_latency_ns {
+            self.max_latency_ns = latency;
+        }
+        if result < 0 {
+            self.errors += 1;
+        }
         self.bytes_transferred += bytes;
     }
 }
@@ -134,26 +144,40 @@ pub struct RegisteredFdTable {
 impl RegisteredFdTable {
     pub fn new(cap: u32) -> Self {
         let mut fds = Vec::with_capacity(cap as usize);
-        for _ in 0..cap { fds.push(None); }
-        Self { fds, capacity: cap, used: 0 }
+        for _ in 0..cap {
+            fds.push(None);
+        }
+        Self {
+            fds,
+            capacity: cap,
+            used: 0,
+        }
     }
 
     #[inline]
     pub fn register(&mut self, slot: u32, fd: i32) -> bool {
-        if slot >= self.capacity { return false; }
+        if slot >= self.capacity {
+            return false;
+        }
         let was_none = self.fds[slot as usize].is_none();
         self.fds[slot as usize] = Some(fd);
-        if was_none { self.used += 1; }
+        if was_none {
+            self.used += 1;
+        }
         true
     }
 
     #[inline]
     pub fn unregister(&mut self, slot: u32) -> bool {
-        if slot >= self.capacity { return false; }
+        if slot >= self.capacity {
+            return false;
+        }
         if self.fds[slot as usize].take().is_some() {
             self.used -= 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -211,7 +235,9 @@ impl IoUringInstance {
 
     #[inline]
     pub fn submit(&mut self, sqe: BridgeSqe) -> bool {
-        if self.sq_pending.len() >= self.sq_size as usize { return false; }
+        if self.sq_pending.len() >= self.sq_size as usize {
+            return false;
+        }
         self.sq_pending.push(sqe);
         self.total_submitted += 1;
         true
@@ -219,22 +245,35 @@ impl IoUringInstance {
 
     pub fn complete(&mut self, user_data: u64, result: i32, flags: u32, now: u64) {
         // find submission to calculate latency
-        let submit_ns = self.sq_pending.iter()
+        let submit_ns = self
+            .sq_pending
+            .iter()
             .find(|s| s.user_data == user_data)
             .map(|s| s.submit_ns)
             .unwrap_or(now);
         let latency = now.saturating_sub(submit_ns);
 
         // remove from pending
-        if let Some(idx) = self.sq_pending.iter().position(|s| s.user_data == user_data) {
+        if let Some(idx) = self
+            .sq_pending
+            .iter()
+            .position(|s| s.user_data == user_data)
+        {
             let sqe = self.sq_pending.remove(idx);
             let op_key = sqe.opcode as u8;
-            self.op_stats.entry(op_key)
+            self.op_stats
+                .entry(op_key)
                 .or_insert_with(OpStats::default)
                 .record(latency, result, 0);
         }
 
-        let cqe = BridgeCqe { user_data, result, flags, complete_ns: now, latency_ns: latency };
+        let cqe = BridgeCqe {
+            user_data,
+            result,
+            flags,
+            complete_ns: now,
+            latency_ns: latency,
+        };
         if self.cq_ready.len() >= self.cq_size as usize {
             self.cq_overflow += 1;
         } else {
@@ -256,13 +295,21 @@ impl IoUringInstance {
 
     #[inline(always)]
     pub fn add_fixed_buffer(&mut self, addr: u64, len: u64) {
-        self.fixed_buffers.push(FixedBuffer { addr, len, registered: true });
+        self.fixed_buffers.push(FixedBuffer {
+            addr,
+            len,
+            registered: true,
+        });
     }
 
     #[inline(always)]
-    pub fn inflight(&self) -> usize { self.sq_pending.len() }
+    pub fn inflight(&self) -> usize {
+        self.sq_pending.len()
+    }
     #[inline(always)]
-    pub fn completions_available(&self) -> usize { self.cq_ready.len() }
+    pub fn completions_available(&self) -> usize {
+        self.cq_ready.len()
+    }
 }
 
 /// Global io_uring bridge stats
@@ -297,17 +344,28 @@ impl BridgeIoUringBridge {
     pub fn setup_ring(&mut self, pid: u64, sq_sz: u32, cq_sz: u32, ts: u64) -> i32 {
         let fd = self.next_ring_fd;
         self.next_ring_fd += 1;
-        self.rings.insert(fd, IoUringInstance::new(fd, pid, sq_sz, cq_sz, ts));
+        self.rings
+            .insert(fd, IoUringInstance::new(fd, pid, sq_sz, cq_sz, ts));
         fd
     }
 
     #[inline(always)]
     pub fn submit_sqe(&mut self, ring_fd: i32, sqe: BridgeSqe) -> bool {
-        self.rings.get_mut(&ring_fd).map(|r| r.submit(sqe)).unwrap_or(false)
+        self.rings
+            .get_mut(&ring_fd)
+            .map(|r| r.submit(sqe))
+            .unwrap_or(false)
     }
 
     #[inline]
-    pub fn complete_sqe(&mut self, ring_fd: i32, user_data: u64, result: i32, flags: u32, now: u64) {
+    pub fn complete_sqe(
+        &mut self,
+        ring_fd: i32,
+        user_data: u64,
+        result: i32,
+        flags: u32,
+        now: u64,
+    ) {
         if let Some(ring) = self.rings.get_mut(&ring_fd) {
             ring.complete(user_data, result, flags, now);
         }
@@ -315,7 +373,10 @@ impl BridgeIoUringBridge {
 
     #[inline(always)]
     pub fn reap_cqes(&mut self, ring_fd: i32, max: usize) -> Vec<BridgeCqe> {
-        self.rings.get_mut(&ring_fd).map(|r| r.reap(max)).unwrap_or_default()
+        self.rings
+            .get_mut(&ring_fd)
+            .map(|r| r.reap(max))
+            .unwrap_or_default()
     }
 
     #[inline(always)]
@@ -333,9 +394,13 @@ impl BridgeIoUringBridge {
     }
 
     #[inline(always)]
-    pub fn ring(&self, fd: i32) -> Option<&IoUringInstance> { self.rings.get(&fd) }
+    pub fn ring(&self, fd: i32) -> Option<&IoUringInstance> {
+        self.rings.get(&fd)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &BridgeIoUringStats { &self.stats }
+    pub fn stats(&self) -> &BridgeIoUringStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -720,7 +785,11 @@ impl RegisteredBufPool {
 
     #[inline(always)]
     pub fn utilization_pct(&self) -> f64 {
-        if self.buf_count == 0 { 0.0 } else { (self.allocated as f64 / self.buf_count as f64) * 100.0 }
+        if self.buf_count == 0 {
+            0.0
+        } else {
+            (self.allocated as f64 / self.buf_count as f64) * 100.0
+        }
     }
 
     #[inline(always)]
@@ -781,7 +850,9 @@ impl IoUringV3Ring {
 
     #[inline]
     pub fn complete(&mut self) -> bool {
-        if self.sq_pending == 0 { return false; }
+        if self.sq_pending == 0 {
+            return false;
+        }
         self.sq_pending -= 1;
         self.cq_pending += 1;
         self.completions += 1;
@@ -790,7 +861,12 @@ impl IoUringV3Ring {
 
     #[inline(always)]
     pub fn reap(&mut self) -> bool {
-        if self.cq_pending > 0 { self.cq_pending -= 1; true } else { false }
+        if self.cq_pending > 0 {
+            self.cq_pending -= 1;
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -800,7 +876,11 @@ impl IoUringV3Ring {
 
     #[inline(always)]
     pub fn sq_utilization_pct(&self) -> f64 {
-        if self.sq_size == 0 { 0.0 } else { (self.sq_pending as f64 / self.sq_size as f64) * 100.0 }
+        if self.sq_size == 0 {
+            0.0
+        } else {
+            (self.sq_pending as f64 / self.sq_size as f64) * 100.0
+        }
     }
 }
 
@@ -841,7 +921,8 @@ impl BridgeIoUringV3 {
     pub fn create_ring(&mut self, sq_size: u32, cq_size: u32) -> u32 {
         let id = self.next_ring_id;
         self.next_ring_id += 1;
-        self.rings.insert(id, IoUringV3Ring::new(id, sq_size, cq_size));
+        self.rings
+            .insert(id, IoUringV3Ring::new(id, sq_size, cq_size));
         self.stats.total_rings += 1;
         id
     }

@@ -170,7 +170,9 @@ impl IntentDeclaration {
             self.fulfillment = 1.0;
             return;
         }
-        let sum: f64 = self.requirements.iter()
+        let sum: f64 = self
+            .requirements
+            .iter()
             .map(|r| {
                 let alloc = allocations.get(&r.resource_hash).unwrap_or(&0.0);
                 r.satisfaction(*alloc)
@@ -269,8 +271,12 @@ impl CoopIntentEngine {
     pub fn declare(&mut self, pid: u64, category: IntentCategory, now: u64) -> u64 {
         let id = self.next_intent_id;
         self.next_intent_id += 1;
-        self.intents.insert(id, IntentDeclaration::new(id, pid, category, now));
-        self.process_intents.entry(pid).or_insert_with(Vec::new).push(id);
+        self.intents
+            .insert(id, IntentDeclaration::new(id, pid, category, now));
+        self.process_intents
+            .entry(pid)
+            .or_insert_with(Vec::new)
+            .push(id);
         self.stats.total_declared += 1;
         self.update_stats();
         id
@@ -286,7 +292,9 @@ impl CoopIntentEngine {
 
     /// Try fulfill pending intents
     pub fn try_fulfill(&mut self) {
-        let pending: Vec<u64> = self.intents.iter()
+        let pending: Vec<u64> = self
+            .intents
+            .iter()
             .filter(|(_, i)| i.state == IntentState::Pending)
             .map(|(&id, _)| id)
             .collect();
@@ -306,15 +314,23 @@ impl CoopIntentEngine {
     /// Detect conflicts
     pub fn detect_conflicts(&self) -> Vec<IntentConflict> {
         let mut conflicts = Vec::new();
-        let active: Vec<&IntentDeclaration> = self.intents.values()
-            .filter(|i| matches!(i.state, IntentState::Pending | IntentState::Staging | IntentState::Active))
+        let active: Vec<&IntentDeclaration> = self
+            .intents
+            .values()
+            .filter(|i| {
+                matches!(
+                    i.state,
+                    IntentState::Pending | IntentState::Staging | IntentState::Active
+                )
+            })
             .collect();
 
         // Check each resource for over-commitment
         let mut demand_per_resource: BTreeMap<u64, Vec<(u64, f64)>> = BTreeMap::new();
         for intent in &active {
             for req in &intent.requirements {
-                demand_per_resource.entry(req.resource_hash)
+                demand_per_resource
+                    .entry(req.resource_hash)
                     .or_insert_with(Vec::new)
                     .push((intent.intent_id, req.desired));
             }
@@ -362,15 +378,28 @@ impl CoopIntentEngine {
     }
 
     fn update_stats(&mut self) {
-        self.stats.active_intents = self.intents.values()
-            .filter(|i| matches!(i.state, IntentState::Pending | IntentState::Staging | IntentState::Active | IntentState::Fulfilled))
+        self.stats.active_intents = self
+            .intents
+            .values()
+            .filter(|i| {
+                matches!(
+                    i.state,
+                    IntentState::Pending
+                        | IntentState::Staging
+                        | IntentState::Active
+                        | IntentState::Fulfilled
+                )
+            })
             .count();
-        let active_fulfillments: Vec<f64> = self.intents.values()
+        let active_fulfillments: Vec<f64> = self
+            .intents
+            .values()
             .filter(|i| i.state != IntentState::Cancelled)
             .map(|i| i.fulfillment)
             .collect();
         if !active_fulfillments.is_empty() {
-            self.stats.avg_fulfillment = active_fulfillments.iter().sum::<f64>() / active_fulfillments.len() as f64;
+            self.stats.avg_fulfillment =
+                active_fulfillments.iter().sum::<f64>() / active_fulfillments.len() as f64;
         }
     }
 

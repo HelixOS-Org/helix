@@ -32,15 +32,25 @@ impl Clone3Flags {
     pub const IO: u64 = 1 << 19;
     pub const INTO_CGROUP: u64 = 1 << 20;
 
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn set(&mut self, f: u64) { self.0 |= f; }
+    pub fn set(&mut self, f: u64) {
+        self.0 |= f;
+    }
     #[inline(always)]
-    pub fn has(&self, f: u64) -> bool { self.0 & f != 0 }
+    pub fn has(&self, f: u64) -> bool {
+        self.0 & f != 0
+    }
     #[inline(always)]
-    pub fn is_thread(&self) -> bool { self.has(Self::THREAD) }
+    pub fn is_thread(&self) -> bool {
+        self.has(Self::THREAD)
+    }
     #[inline(always)]
-    pub fn creates_ns(&self) -> bool { self.0 & 0x1FC00 != 0 }
+    pub fn creates_ns(&self) -> bool {
+        self.0 & 0x1FC00 != 0
+    }
 }
 
 /// Clone3 args
@@ -100,24 +110,64 @@ pub struct AppClone3 {
 }
 
 impl AppClone3 {
-    pub fn new() -> Self { Self { events: Vec::new(), next_id: 1, max_events: 8192 } }
+    pub fn new() -> Self {
+        Self {
+            events: Vec::new(),
+            next_id: 1,
+            max_events: 8192,
+        }
+    }
 
     #[inline]
-    pub fn clone3(&mut self, parent: u64, child: u64, args: &Clone3Args, result: Clone3Result, duration: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        if self.events.len() >= self.max_events { self.events.drain(..self.max_events / 2); }
-        self.events.push(Clone3Event { id, parent_pid: parent, child_pid: child, flags: args.flags, result, duration_ns: duration, timestamp: now });
+    pub fn clone3(
+        &mut self,
+        parent: u64,
+        child: u64,
+        args: &Clone3Args,
+        result: Clone3Result,
+        duration: u64,
+        now: u64,
+    ) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
+        if self.events.len() >= self.max_events {
+            self.events.drain(..self.max_events / 2);
+        }
+        self.events.push(Clone3Event {
+            id,
+            parent_pid: parent,
+            child_pid: child,
+            flags: args.flags,
+            result,
+            duration_ns: duration,
+            timestamp: now,
+        });
         id
     }
 
     #[inline]
     pub fn stats(&self) -> Clone3AppStats {
-        let success = self.events.iter().filter(|e| matches!(e.result, Clone3Result::Success { .. })).count() as u64;
+        let success = self
+            .events
+            .iter()
+            .filter(|e| matches!(e.result, Clone3Result::Success { .. }))
+            .count() as u64;
         let failed = self.events.len() as u64 - success;
         let threads = self.events.iter().filter(|e| e.flags.is_thread()).count() as u64;
         let ns = self.events.iter().filter(|e| e.flags.creates_ns()).count() as u64;
         let durs: Vec<u64> = self.events.iter().map(|e| e.duration_ns).collect();
-        let avg = if durs.is_empty() { 0 } else { durs.iter().sum::<u64>() / durs.len() as u64 };
-        Clone3AppStats { total_clones: self.events.len() as u64, successful: success, failed, thread_creates: threads, ns_creates: ns, avg_duration_ns: avg }
+        let avg = if durs.is_empty() {
+            0
+        } else {
+            durs.iter().sum::<u64>() / durs.len() as u64
+        };
+        Clone3AppStats {
+            total_clones: self.events.len() as u64,
+            successful: success,
+            failed,
+            thread_creates: threads,
+            ns_creates: ns,
+            avg_duration_ns: avg,
+        }
     }
 }

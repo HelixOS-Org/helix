@@ -78,7 +78,9 @@ impl LoadVector {
         let d_mem = self.memory_pressure - other.memory_pressure;
         let d_io = self.io_bandwidth - other.io_bandwidth;
         let d_cache = self.cache_pressure - other.cache_pressure;
-        libm::sqrt(d_cpu * d_cpu + d_rq * d_rq * 0.01 + d_mem * d_mem + d_io * d_io + d_cache * d_cache)
+        libm::sqrt(
+            d_cpu * d_cpu + d_rq * d_rq * 0.01 + d_mem * d_mem + d_io * d_io + d_cache * d_cache,
+        )
     }
 }
 
@@ -229,8 +231,11 @@ impl HolisticLoadBalance {
 
     #[inline]
     pub fn register_cpu(&mut self, cpu_id: u32, group_id: u32) {
-        self.cpus.insert(cpu_id, CpuLoadState::new(cpu_id, group_id));
-        let group = self.groups.entry(group_id)
+        self.cpus
+            .insert(cpu_id, CpuLoadState::new(cpu_id, group_id));
+        let group = self
+            .groups
+            .entry(group_id)
             .or_insert_with(|| BalanceGroup::new(group_id, BalanceDomainLevel::System));
         if !group.cpus.contains(&cpu_id) {
             group.cpus.push(cpu_id);
@@ -264,13 +269,19 @@ impl HolisticLoadBalance {
                 }
             }
 
-            group.avg_load = if count > 0 { total_load / count as f64 } else { 0.0 };
+            group.avg_load = if count > 0 {
+                total_load / count as f64
+            } else {
+                0.0
+            };
             group.total_tasks = total_tasks;
         }
 
         // Find busiest and idlest CPUs per group
         for group in self.groups.values() {
-            if group.cpus.len() < 2 { continue; }
+            if group.cpus.len() < 2 {
+                continue;
+            }
 
             let mut busiest_id = 0u32;
             let mut busiest_load = 0.0f64;
@@ -296,7 +307,11 @@ impl HolisticLoadBalance {
                 let tasks_to_move = (busiest_tasks / 2).max(1);
 
                 self.recommendations.push(MigrationRecommendation {
-                    migration_type: if idlest_load < 0.01 { MigrationType::Pull } else { MigrationType::Push },
+                    migration_type: if idlest_load < 0.01 {
+                        MigrationType::Pull
+                    } else {
+                        MigrationType::Push
+                    },
                     from_cpu: busiest_id,
                     to_cpu: idlest_id,
                     domain_level: group.level,
@@ -309,9 +324,19 @@ impl HolisticLoadBalance {
 
         // Update stats
         let loads: Vec<f64> = self.cpus.values().map(|c| c.composite_load).collect();
-        let max_l = loads.iter().copied().fold(0.0f64, |a, b| if b > a { b } else { a });
-        let min_l = loads.iter().copied().fold(f64::MAX, |a, b| if b < a { b } else { a });
-        let avg_l = if loads.is_empty() { 0.0 } else { loads.iter().sum::<f64>() / loads.len() as f64 };
+        let max_l = loads
+            .iter()
+            .copied()
+            .fold(0.0f64, |a, b| if b > a { b } else { a });
+        let min_l = loads
+            .iter()
+            .copied()
+            .fold(f64::MAX, |a, b| if b < a { b } else { a });
+        let avg_l = if loads.is_empty() {
+            0.0
+        } else {
+            loads.iter().sum::<f64>() / loads.len() as f64
+        };
 
         self.stats = HolisticLoadBalanceStats {
             tracked_cpus: self.cpus.len(),
@@ -319,7 +344,11 @@ impl HolisticLoadBalance {
             max_load: max_l,
             min_load: if min_l == f64::MAX { 0.0 } else { min_l },
             avg_load: avg_l,
-            imbalance: if avg_l > 0.01 { (max_l - min_l) / avg_l } else { 0.0 },
+            imbalance: if avg_l > 0.01 {
+                (max_l - min_l) / avg_l
+            } else {
+                0.0
+            },
             idle_cpus: self.cpus.values().filter(|c| c.idle).count(),
             pending_migrations: self.recommendations.len(),
             total_migrations: self.total_migrations,

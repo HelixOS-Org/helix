@@ -260,8 +260,7 @@ mod tests {
         map.insert(3, 30);
         map.insert(5, 50);
 
-        let entries: alloc::vec::Vec<(usize, u32)> =
-            map.iter().map(|(k, v)| (k, *v)).collect();
+        let entries: alloc::vec::Vec<(usize, u32)> = map.iter().map(|(k, v)| (k, *v)).collect();
         assert_eq!(entries, alloc::vec![(1, 10), (3, 30), (5, 50)]);
     }
 

@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Eventfd flags
@@ -47,10 +46,18 @@ pub struct EventfdInstance {
 impl EventfdInstance {
     pub fn new(fd: i32, flags: EventfdFlags, owner_pid: u32, now: u64) -> Self {
         Self {
-            fd, counter: 0, flags, owner_pid,
-            write_count: 0, read_count: 0, poll_count: 0,
-            overflow_count: 0, waiters: 0,
-            create_timestamp: now, last_write: 0, last_read: 0,
+            fd,
+            counter: 0,
+            flags,
+            owner_pid,
+            write_count: 0,
+            read_count: 0,
+            poll_count: 0,
+            overflow_count: 0,
+            waiters: 0,
+            create_timestamp: now,
+            last_write: 0,
+            last_read: 0,
         }
     }
 
@@ -69,7 +76,12 @@ impl EventfdInstance {
 
     pub fn read(&mut self, now: u64) -> u64 {
         let val = if self.flags.is_semaphore() {
-            if self.counter > 0 { self.counter -= 1; 1 } else { 0 }
+            if self.counter > 0 {
+                self.counter -= 1;
+                1
+            } else {
+                0
+            }
         } else {
             let v = self.counter;
             self.counter = 0;
@@ -96,7 +108,9 @@ impl EventfdInstance {
     #[inline]
     pub fn activity_ratio(&self) -> f64 {
         let total = self.write_count + self.read_count;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.read_count as f64 / self.write_count.max(1) as f64
     }
 }
@@ -149,9 +163,12 @@ impl BridgeEventfd {
             events: VecDeque::new(),
             max_events: 4096,
             stats: EventfdBridgeStats {
-                active_eventfds: 0, total_created: 0,
-                total_writes: 0, total_reads: 0,
-                total_overflows: 0, semaphore_count: 0,
+                active_eventfds: 0,
+                total_created: 0,
+                total_writes: 0,
+                total_reads: 0,
+                total_overflows: 0,
+                semaphore_count: 0,
             },
         }
     }
@@ -161,7 +178,9 @@ impl BridgeEventfd {
         let inst = EventfdInstance::new(fd, flags, pid, now);
         self.stats.total_created += 1;
         self.stats.active_eventfds += 1;
-        if flags.is_semaphore() { self.stats.semaphore_count += 1; }
+        if flags.is_semaphore() {
+            self.stats.semaphore_count += 1;
+        }
         self.instances.insert(fd, inst);
     }
 
@@ -170,9 +189,13 @@ impl BridgeEventfd {
         if let Some(inst) = self.instances.get_mut(&fd) {
             let ok = inst.write(value, now);
             self.stats.total_writes += 1;
-            if !ok { self.stats.total_overflows += 1; }
+            if !ok {
+                self.stats.total_overflows += 1;
+            }
             ok
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -181,29 +204,38 @@ impl BridgeEventfd {
             let val = inst.read(now);
             self.stats.total_reads += 1;
             Some(val)
-        } else { None }
+        } else {
+            None
+        }
     }
 
     #[inline]
     pub fn close(&mut self, fd: i32) -> bool {
         if let Some(inst) = self.instances.remove(&fd) {
-            if self.stats.active_eventfds > 0 { self.stats.active_eventfds -= 1; }
+            if self.stats.active_eventfds > 0 {
+                self.stats.active_eventfds -= 1;
+            }
             if inst.flags.is_semaphore() && self.stats.semaphore_count > 0 {
                 self.stats.semaphore_count -= 1;
             }
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn record_event(&mut self, event: EventfdEvent) {
-        if self.events.len() >= self.max_events { self.events.remove(0); }
+        if self.events.len() >= self.max_events {
+            self.events.remove(0);
+        }
         self.events.push_back(event);
     }
 
     #[inline]
     pub fn idle_eventfds(&self, now: u64, threshold: u64) -> Vec<i32> {
-        self.instances.iter()
+        self.instances
+            .iter()
             .filter(|(_, inst)| inst.idle_time(now) > threshold)
             .map(|(&fd, _)| fd)
             .collect()
@@ -211,7 +243,9 @@ impl BridgeEventfd {
 
     #[inline]
     pub fn busiest_eventfds(&self, n: usize) -> Vec<(i32, u64)> {
-        let mut v: Vec<_> = self.instances.iter()
+        let mut v: Vec<_> = self
+            .instances
+            .iter()
             .map(|(&fd, inst)| (fd, inst.write_count + inst.read_count))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));
@@ -456,7 +490,13 @@ pub struct EventfdV3Record {
 
 impl EventfdV3Record {
     pub fn new(op: EventfdV3Op) -> Self {
-        Self { op, flag: EventfdV3Flag::None, fd: -1, counter: 0, pid: 0 }
+        Self {
+            op,
+            flag: EventfdV3Flag::None,
+            fd: -1,
+            counter: 0,
+            pid: 0,
+        }
     }
 }
 
@@ -479,7 +519,15 @@ pub struct BridgeEventfdV3 {
 
 impl BridgeEventfdV3 {
     pub fn new() -> Self {
-        Self { stats: EventfdV3BridgeStats { total_ops: 0, fds_created: 0, reads: 0, writes: 0, semaphore_mode: 0 } }
+        Self {
+            stats: EventfdV3BridgeStats {
+                total_ops: 0,
+                fds_created: 0,
+                reads: 0,
+                writes: 0,
+                semaphore_mode: 0,
+            },
+        }
     }
 
     pub fn record(&mut self, rec: &EventfdV3Record) {
@@ -487,11 +535,13 @@ impl BridgeEventfdV3 {
         match rec.op {
             EventfdV3Op::Create => {
                 self.stats.fds_created += 1;
-                if rec.flag == EventfdV3Flag::Semaphore { self.stats.semaphore_mode += 1; }
-            }
+                if rec.flag == EventfdV3Flag::Semaphore {
+                    self.stats.semaphore_mode += 1;
+                }
+            },
             EventfdV3Op::Read => self.stats.reads += 1,
             EventfdV3Op::Write => self.stats.writes += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

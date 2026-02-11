@@ -26,12 +26,23 @@ pub struct IntegrityHolisticFinding {
 
 impl IntegrityHolisticFinding {
     pub fn new(metric: IntegrityHolisticMetric) -> Self {
-        Self { metric, score: 0, measured_files: 0, total_files: 0, stale_digests: 0, appraisal_failures: 0 }
+        Self {
+            metric,
+            score: 0,
+            measured_files: 0,
+            total_files: 0,
+            stale_digests: 0,
+            appraisal_failures: 0,
+        }
     }
 
     #[inline(always)]
     pub fn coverage(&self) -> f64 {
-        if self.total_files == 0 { 0.0 } else { self.measured_files as f64 / self.total_files as f64 }
+        if self.total_files == 0 {
+            0.0
+        } else {
+            self.measured_files as f64 / self.total_files as f64
+        }
     }
 }
 
@@ -53,14 +64,25 @@ pub struct HolisticIntegrity {
 
 impl HolisticIntegrity {
     pub fn new() -> Self {
-        Self { stats: IntegrityHolisticStats { total_analyses: 0, coverage_gaps: 0, stale_detections: 0, tamper_alerts: 0 } }
+        Self {
+            stats: IntegrityHolisticStats {
+                total_analyses: 0,
+                coverage_gaps: 0,
+                stale_detections: 0,
+                tamper_alerts: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn analyze(&mut self, finding: &IntegrityHolisticFinding) {
         self.stats.total_analyses += 1;
-        if finding.coverage() < 0.8 { self.stats.coverage_gaps += 1; }
+        if finding.coverage() < 0.8 {
+            self.stats.coverage_gaps += 1;
+        }
         self.stats.stale_detections += finding.stale_digests as u64;
-        if matches!(finding.metric, IntegrityHolisticMetric::TamperDetection) { self.stats.tamper_alerts += 1; }
+        if matches!(finding.metric, IntegrityHolisticMetric::TamperDetection) {
+            self.stats.tamper_alerts += 1;
+        }
     }
 }

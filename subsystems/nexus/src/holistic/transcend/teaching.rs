@@ -14,8 +14,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -516,7 +515,11 @@ impl HolisticTeaching {
             .count() as u64;
 
         let coverage = if self.stats.total_lessons > 0 {
-            let transferred = self.lessons.values().filter(|l| l.transfer_count > 0).count() as u64;
+            let transferred = self
+                .lessons
+                .values()
+                .filter(|l| l.transfer_count > 0)
+                .count() as u64;
             (transferred.saturating_mul(10_000)) / self.stats.total_lessons
         } else {
             0
@@ -562,7 +565,9 @@ impl HolisticTeaching {
                 && lesson.effectiveness_bps >= HIGH_IMPACT_BPS
             {
                 let verified = 3_u64.wrapping_add(self.rng.next() % 10);
-                let avg_imp = lesson.effectiveness_bps.saturating_sub(self.rng.next() % 1_000);
+                let avg_imp = lesson
+                    .effectiveness_bps
+                    .saturating_sub(self.rng.next() % 1_000);
                 let uh = fnv1a(&lesson.lesson_hash.to_le_bytes()) ^ self.rng.next();
                 let ul = UniversalLesson {
                     universal_hash: uh,

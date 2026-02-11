@@ -5,7 +5,10 @@ extern crate alloc;
 
 /// Pause result
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PauseResult { Interrupted, Error }
+pub enum PauseResult {
+    Interrupted,
+    Error,
+}
 
 /// Pause record
 #[derive(Debug, Clone)]
@@ -17,20 +20,41 @@ pub struct PauseRecord {
 }
 
 impl PauseRecord {
-    pub fn new() -> Self { Self { result: PauseResult::Interrupted, signal_nr: 0, wait_ns: 0, pid: 0 } }
+    pub fn new() -> Self {
+        Self {
+            result: PauseResult::Interrupted,
+            signal_nr: 0,
+            wait_ns: 0,
+            pid: 0,
+        }
+    }
 }
 
 /// Pause app stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct PauseAppStats { pub total_ops: u64, pub total_wait_ns: u64, pub avg_wait_ns: f64 }
+pub struct PauseAppStats {
+    pub total_ops: u64,
+    pub total_wait_ns: u64,
+    pub avg_wait_ns: f64,
+}
 
 /// Main app pause
 #[derive(Debug)]
-pub struct AppPause { pub stats: PauseAppStats }
+pub struct AppPause {
+    pub stats: PauseAppStats,
+}
 
 impl AppPause {
-    pub fn new() -> Self { Self { stats: PauseAppStats { total_ops: 0, total_wait_ns: 0, avg_wait_ns: 0.0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: PauseAppStats {
+                total_ops: 0,
+                total_wait_ns: 0,
+                avg_wait_ns: 0.0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &PauseRecord) {
         self.stats.total_ops += 1;

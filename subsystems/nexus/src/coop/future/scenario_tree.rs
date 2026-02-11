@@ -8,9 +8,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
 fn fnv1a_hash(data: &[u8]) -> u64 {
@@ -184,11 +185,14 @@ impl CoopScenarioTree {
         resource_demand: u64,
         trust_impact: i64,
     ) {
-        let sid = fnv1a_hash(&[
-            process_id.to_le_bytes().as_slice(),
-            cooperation_level.to_le_bytes().as_slice(),
-            resource_offer.to_le_bytes().as_slice(),
-        ].concat());
+        let sid = fnv1a_hash(
+            &[
+                process_id.to_le_bytes().as_slice(),
+                cooperation_level.to_le_bytes().as_slice(),
+                resource_offer.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
 
         let strategy = ProcessStrategy {
             strategy_id: sid,
@@ -209,7 +213,10 @@ impl CoopScenarioTree {
     /// Build a cooperation scenario tree for a set of participants.
     pub fn build_cooperation_tree(&mut self, participants: &[u64]) -> u64 {
         let tree_id = fnv1a_hash(
-            &participants.iter().flat_map(|p| p.to_le_bytes()).collect::<Vec<u8>>(),
+            &participants
+                .iter()
+                .flat_map(|p| p.to_le_bytes())
+                .collect::<Vec<u8>>(),
         ) ^ self.current_tick;
 
         let mut nodes: BTreeMap<u64, ScenarioNode> = BTreeMap::new();
@@ -250,22 +257,31 @@ impl CoopScenarioTree {
 
                 for si in 0..branch_count as usize {
                     let strat = &strategies[si % strategies.len().max(1)];
-                    let child_id = fnv1a_hash(&[
-                        parent_nid.to_le_bytes().as_slice(),
-                        (si as u64).to_le_bytes().as_slice(),
-                        depth.to_le_bytes().as_slice(),
-                    ].concat());
+                    let child_id = fnv1a_hash(
+                        &[
+                            parent_nid.to_le_bytes().as_slice(),
+                            (si as u64).to_le_bytes().as_slice(),
+                            depth.to_le_bytes().as_slice(),
+                        ]
+                        .concat(),
+                    );
 
-                    let payoff_self = strat.trust_impact
+                    let payoff_self = strat
+                        .trust_impact
                         .saturating_add(strat.resource_offer as i64)
                         .saturating_sub(strat.resource_demand as i64);
-                    let payoff_social = parent.payoff_social
+                    let payoff_social = parent
+                        .payoff_social
                         .saturating_add(strat.cooperation_level as i64);
 
                     let trust_delta = if strat.trust_impact > 0 {
-                        parent.cumulative_trust.saturating_add(strat.trust_impact as u64)
+                        parent
+                            .cumulative_trust
+                            .saturating_add(strat.trust_impact as u64)
                     } else {
-                        parent.cumulative_trust.saturating_sub(strat.trust_impact.unsigned_abs())
+                        parent
+                            .cumulative_trust
+                            .saturating_sub(strat.trust_impact.unsigned_abs())
                     };
 
                     let prob = parent.probability.saturating_mul(800) / 1000;
@@ -314,12 +330,8 @@ impl CoopScenarioTree {
 
         self.trees.insert(tree_id, record);
         self.stats.trees_built = self.stats.trees_built.saturating_add(1);
-        self.stats.avg_tree_depth = ema_update(
-            self.stats.avg_tree_depth,
-            self.max_depth as u64,
-            200,
-            1000,
-        );
+        self.stats.avg_tree_depth =
+            ema_update(self.stats.avg_tree_depth, self.max_depth as u64, 200, 1000);
 
         tree_id
     }
@@ -388,23 +400,26 @@ impl CoopScenarioTree {
             1000
         };
 
-        self.stats.price_of_anarchy_ema = ema_update(
-            self.stats.price_of_anarchy_ema,
-            poa,
-            150,
-            1000,
-        );
+        self.stats.price_of_anarchy_ema =
+            ema_update(self.stats.price_of_anarchy_ema, poa, 150, 1000);
 
         poa
     }
 
     /// Evaluate a specific scenario path in a tree.
-    pub fn scenario_evaluate(&mut self, tree_id: u64, path_nodes: &[u64]) -> Option<ScenarioEvaluation> {
+    pub fn scenario_evaluate(
+        &mut self,
+        tree_id: u64,
+        path_nodes: &[u64],
+    ) -> Option<ScenarioEvaluation> {
         let tree = self.trees.get(&tree_id)?;
         let eval = self.evaluate_path_internal(&tree.nodes, path_nodes);
 
         let cache_key = fnv1a_hash(
-            &path_nodes.iter().flat_map(|n| n.to_le_bytes()).collect::<Vec<u8>>(),
+            &path_nodes
+                .iter()
+                .flat_map(|n| n.to_le_bytes())
+                .collect::<Vec<u8>>(),
         );
         self.path_cache.insert(cache_key, PathCache {
             path_hash: cache_key,
@@ -425,11 +440,15 @@ impl CoopScenarioTree {
         let total_nodes = tree.nodes.len() as u64;
         let max_depth = tree.nodes.values().map(|n| n.depth).max().unwrap_or(0);
 
-        let total_children: u64 = tree.nodes.values()
+        let total_children: u64 = tree
+            .nodes
+            .values()
             .filter(|n| !n.children.is_empty())
             .map(|n| n.children.len() as u64)
             .sum();
-        let inner_count = tree.nodes.values()
+        let inner_count = tree
+            .nodes
+            .values()
             .filter(|n| !n.children.is_empty())
             .count() as u64;
         let branching_avg = if inner_count > 0 {
@@ -445,10 +464,14 @@ impl CoopScenarioTree {
             }
         }
 
-        let nash_count = tree.leaf_ids.iter().filter(|&&lid| {
-            let path = self.trace_path(&tree.nodes, tree.root_id, lid);
-            self.compute_nash_deviation(&tree.nodes, &path) >= 0
-        }).count() as u64;
+        let nash_count = tree
+            .leaf_ids
+            .iter()
+            .filter(|&&lid| {
+                let path = self.trace_path(&tree.nodes, tree.root_id, lid);
+                self.compute_nash_deviation(&tree.nodes, &path) >= 0
+            })
+            .count() as u64;
 
         Some(TreeComplexity {
             total_nodes,
@@ -482,10 +505,13 @@ impl CoopScenarioTree {
                 let mut defaults = Vec::new();
                 for level in [200u64, 500, 800] {
                     defaults.push(ProcessStrategy {
-                        strategy_id: fnv1a_hash(&[
-                            process_id.to_le_bytes().as_slice(),
-                            level.to_le_bytes().as_slice(),
-                        ].concat()),
+                        strategy_id: fnv1a_hash(
+                            &[
+                                process_id.to_le_bytes().as_slice(),
+                                level.to_le_bytes().as_slice(),
+                            ]
+                            .concat(),
+                        ),
                         process_id,
                         description_hash: fnv1a_hash(&level.to_le_bytes()),
                         cooperation_level: level,
@@ -563,10 +589,14 @@ impl CoopScenarioTree {
         for &nid in path {
             if let Some(node) = nodes.get(&nid) {
                 let current_payoff = node.payoff_self;
-                let best_alt = node.strategies.iter()
-                    .map(|s| s.trust_impact
-                        .saturating_add(s.resource_offer as i64)
-                        .saturating_sub(s.resource_demand as i64))
+                let best_alt = node
+                    .strategies
+                    .iter()
+                    .map(|s| {
+                        s.trust_impact
+                            .saturating_add(s.resource_offer as i64)
+                            .saturating_sub(s.resource_demand as i64)
+                    })
                     .max()
                     .unwrap_or(current_payoff);
 
@@ -615,7 +645,9 @@ impl CoopScenarioTree {
 
     fn prune_cache(&mut self) {
         while self.path_cache.len() > self.max_cache {
-            let oldest = self.path_cache.iter()
+            let oldest = self
+                .path_cache
+                .iter()
                 .min_by_key(|(_, v)| v.last_access)
                 .map(|(&k, _)| k);
             if let Some(key) = oldest {

@@ -84,13 +84,13 @@ fn xorshift64(state: &mut u64) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PrincipleLevel {
     /// Informational — nice to follow
-    Advisory    = 0,
+    Advisory   = 0,
     /// Should be followed unless compelling reason
-    Normal      = 1,
+    Normal     = 1,
     /// Must be followed unless emergency
-    Strong      = 2,
+    Strong     = 2,
     /// NEVER violate under ANY circumstances
-    Inviolable  = 3,
+    Inviolable = 3,
 }
 
 // ============================================================================
@@ -294,7 +294,12 @@ impl HolisticConscience {
     }
 
     /// Check an action against ALL principles
-    pub fn system_ethical_check(&mut self, action_name: &str, compliance_scores: &BTreeMap<u64, f32>, tick: u64) -> EthicalCheckResult {
+    pub fn system_ethical_check(
+        &mut self,
+        action_name: &str,
+        compliance_scores: &BTreeMap<u64, f32>,
+        tick: u64,
+    ) -> EthicalCheckResult {
         self.tick = tick;
         let mut violated = Vec::new();
         let mut warned = Vec::new();
@@ -319,7 +324,11 @@ impl HolisticConscience {
             }
         }
 
-        let overall = if count > 0 { total_compliance / count as f32 } else { 1.0 };
+        let overall = if count > 0 {
+            total_compliance / count as f32
+        } else {
+            1.0
+        };
         let verdict = if inviolable_violated {
             self.stats.total_vetoes += 1;
             EthicalVerdict::Vetoed
@@ -355,19 +364,34 @@ impl HolisticConscience {
         if self.principles.is_empty() {
             return 1.0;
         }
-        let total: f32 = self.principles.values().map(|p| p.compliance_rate * p.importance).sum();
+        let total: f32 = self
+            .principles
+            .values()
+            .map(|p| p.compliance_rate * p.importance)
+            .sum();
         let weight: f32 = self.principles.values().map(|p| p.importance).sum();
         if weight > 0.0 { total / weight } else { 1.0 }
     }
 
     /// Detect injustice across the system
-    pub fn detect_system_injustice(&mut self, entity: &str, fairness_score: f32, tick: u64) -> Option<InjusticeRecord> {
+    pub fn detect_system_injustice(
+        &mut self,
+        entity: &str,
+        fairness_score: f32,
+        tick: u64,
+    ) -> Option<InjusticeRecord> {
         self.tick = tick;
         if fairness_score < INJUSTICE_THRESHOLD {
             // Find which principle is most relevant
-            let most_relevant = self.principles.values()
+            let most_relevant = self
+                .principles
+                .values()
                 .filter(|p| p.compliance_rate < COMPLIANCE_WARN)
-                .min_by(|a, b| a.compliance_rate.partial_cmp(&b.compliance_rate).unwrap_or(core::cmp::Ordering::Equal))
+                .min_by(|a, b| {
+                    a.compliance_rate
+                        .partial_cmp(&b.compliance_rate)
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
                 .map(|p| p.id)
                 .unwrap_or(0);
 
@@ -398,7 +422,13 @@ impl HolisticConscience {
     }
 
     /// Attempt a conscience override for a specific principle
-    pub fn conscience_override(&mut self, action: &str, principle_id: u64, justification: &str, tick: u64) -> bool {
+    pub fn conscience_override(
+        &mut self,
+        action: &str,
+        principle_id: u64,
+        justification: &str,
+        tick: u64,
+    ) -> bool {
         self.tick = tick;
         self.stats.total_overrides_attempted += 1;
         let approved = if let Some(principle) = self.principles.get(&principle_id) {
@@ -438,17 +468,22 @@ impl HolisticConscience {
             1.0
         };
         let debt_penalty = (self.stats.override_debt / 100.0).min(0.5);
-        (compliance * 0.4 + consistency * 0.4 - debt_penalty * 0.2).max(0.0).min(1.0)
+        (compliance * 0.4 + consistency * 0.4 - debt_penalty * 0.2)
+            .max(0.0)
+            .min(1.0)
     }
 
     /// Get the principle hierarchy — sorted by level then importance
     #[inline]
     pub fn principle_hierarchy(&self) -> Vec<(u64, String, PrincipleLevel, f32)> {
-        let mut hierarchy: Vec<_> = self.principles.values()
+        let mut hierarchy: Vec<_> = self
+            .principles
+            .values()
             .map(|p| (p.id, p.name.clone(), p.level, p.importance))
             .collect();
         hierarchy.sort_by(|a, b| {
-            b.2.cmp(&a.2).then(b.3.partial_cmp(&a.3).unwrap_or(core::cmp::Ordering::Equal))
+            b.2.cmp(&a.2)
+                .then(b.3.partial_cmp(&a.3).unwrap_or(core::cmp::Ordering::Equal))
         });
         hierarchy
     }

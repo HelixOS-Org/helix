@@ -13,7 +13,13 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LockPriority { Realtime, High, Normal, Low, Background }
+pub enum LockPriority {
+    Realtime,
+    High,
+    Normal,
+    Low,
+    Background,
+}
 
 impl LockPriority {
     #[inline]
@@ -40,9 +46,13 @@ pub struct LockedRegion {
 
 impl LockedRegion {
     #[inline(always)]
-    pub fn pages(&self) -> u64 { self.size / 4096 }
+    pub fn pages(&self) -> u64 {
+        self.size / 4096
+    }
     #[inline(always)]
-    pub fn idle_ticks(&self, now: u64) -> u64 { now.saturating_sub(self.last_access) }
+    pub fn idle_ticks(&self, now: u64) -> u64 {
+        now.saturating_sub(self.last_access)
+    }
     #[inline(always)]
     pub fn worth_locking(&self, now: u64, threshold: u64) -> bool {
         self.idle_ticks(now) < threshold && self.fault_saved > 0
@@ -62,10 +72,14 @@ pub struct AppLockProfile {
 
 impl AppLockProfile {
     #[inline(always)]
-    pub fn budget_remaining(&self) -> u64 { self.budget_pages.saturating_sub(self.locked_pages) }
+    pub fn budget_remaining(&self) -> u64 {
+        self.budget_pages.saturating_sub(self.locked_pages)
+    }
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.budget_pages == 0 { return 0.0; }
+        if self.budget_pages == 0 {
+            return 0.0;
+        }
         self.locked_pages as f64 / self.budget_pages as f64
     }
 }
@@ -101,7 +115,9 @@ impl MlockAppManager {
     pub fn register_app(&mut self, app_id: u64, priority: LockPriority, base_budget: u64) {
         let budget = (base_budget as f64 * priority.budget_multiplier()) as u64;
         self.profiles.insert(app_id, AppLockProfile {
-            app_id, priority, locked_pages: 0,
+            app_id,
+            priority,
+            locked_pages: 0,
             budget_pages: budget,
             regions: Vec::new(),
             mlockall_active: false,
@@ -111,9 +127,7 @@ impl MlockAppManager {
     }
 
     /// Try to lock a region for an app. Returns false if over budget.
-    pub fn try_lock(
-        &mut self, app_id: u64, start: u64, size: u64, now: u64,
-    ) -> bool {
+    pub fn try_lock(&mut self, app_id: u64, start: u64, size: u64, now: u64) -> bool {
         let pages = size / 4096;
 
         // System-wide check
@@ -139,8 +153,12 @@ impl MlockAppManager {
         }
 
         profile.regions.push(LockedRegion {
-            start, size, locked_at: now, last_access: now,
-            access_count: 0, fault_saved: 0,
+            start,
+            size,
+            locked_at: now,
+            last_access: now,
+            access_count: 0,
+            fault_saved: 0,
         });
         profile.locked_pages += pages;
         self.stats.total_locked_pages += pages;
@@ -194,7 +212,11 @@ impl MlockAppManager {
     }
 
     #[inline(always)]
-    pub fn profile(&self, app_id: u64) -> Option<&AppLockProfile> { self.profiles.get(&app_id) }
+    pub fn profile(&self, app_id: u64) -> Option<&AppLockProfile> {
+        self.profiles.get(&app_id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &MlockAppStats { &self.stats }
+    pub fn stats(&self) -> &MlockAppStats {
+        &self.stats
+    }
 }

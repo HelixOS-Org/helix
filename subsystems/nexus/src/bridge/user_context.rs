@@ -55,13 +55,28 @@ impl GpRegs {
     #[inline]
     pub fn zeroed() -> Self {
         Self {
-            rax: 0, rbx: 0, rcx: 0, rdx: 0,
-            rsi: 0, rdi: 0, rbp: 0, rsp: 0,
-            r8: 0, r9: 0, r10: 0, r11: 0,
-            r12: 0, r13: 0, r14: 0, r15: 0,
-            rip: 0, rflags: 0x202, // IF set
-            cs: 0x33, ss: 0x2b,
-            fs_base: 0, gs_base: 0,
+            rax: 0,
+            rbx: 0,
+            rcx: 0,
+            rdx: 0,
+            rsi: 0,
+            rdi: 0,
+            rbp: 0,
+            rsp: 0,
+            r8: 0,
+            r9: 0,
+            r10: 0,
+            r11: 0,
+            r12: 0,
+            r13: 0,
+            r14: 0,
+            r15: 0,
+            rip: 0,
+            rflags: 0x202, // IF set
+            cs: 0x33,
+            ss: 0x2b,
+            fs_base: 0,
+            gs_base: 0,
         }
     }
 
@@ -93,7 +108,7 @@ pub struct FpuState {
 impl FpuState {
     pub fn new() -> Self {
         Self {
-            xsave_size: 576, // legacy FXSAVE
+            xsave_size: 576,       // legacy FXSAVE
             features_present: 0x3, // x87 + SSE
             mxcsr: 0x1F80,
             fcw: 0x037F,
@@ -140,7 +155,9 @@ impl UserStack {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.stack_size == 0 { return 0.0; }
+        if self.stack_size == 0 {
+            return 0.0;
+        }
         self.used() as f64 / self.stack_size as f64
     }
 
@@ -205,7 +222,9 @@ impl ThreadUserContext {
 
     #[inline(always)]
     pub fn avg_kernel_time_ns(&self) -> f64 {
-        if self.kernel_exits == 0 { return 0.0; }
+        if self.kernel_exits == 0 {
+            return 0.0;
+        }
         self.total_kernel_time_ns as f64 / self.kernel_exits as f64
     }
 
@@ -291,13 +310,18 @@ impl BridgeUserContext {
         self.stats.tracked_threads = self.contexts.len();
         self.stats.in_kernel = self.contexts.values().filter(|c| c.in_syscall).count();
         self.stats.fpu_dirty = self.contexts.values().filter(|c| c.fpu.dirty).count();
-        self.stats.near_stack_overflow = self.contexts.values()
+        self.stats.near_stack_overflow = self
+            .contexts
+            .values()
             .filter(|c| c.user_stack.is_near_overflow())
             .count();
         self.stats.total_kernel_entries = self.contexts.values().map(|c| c.kernel_entries).sum();
         let total_time: f64 = self.contexts.values().map(|c| c.avg_kernel_time_ns()).sum();
-        self.stats.avg_kernel_time_ns = if self.contexts.is_empty() { 0.0 }
-            else { total_time / self.contexts.len() as f64 };
+        self.stats.avg_kernel_time_ns = if self.contexts.is_empty() {
+            0.0
+        } else {
+            total_time / self.contexts.len() as f64
+        };
     }
 
     #[inline(always)]

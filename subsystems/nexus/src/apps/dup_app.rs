@@ -169,7 +169,10 @@ impl AppDup {
             rec.flags.push(DupFlag::CloseExec);
             self.stats.cloexec_count += 1;
         }
-        let state = self.processes.entry(pid).or_insert_with(|| ProcessDupState::new(pid));
+        let state = self
+            .processes
+            .entry(pid)
+            .or_insert_with(|| ProcessDupState::new(pid));
         state.record_dup(old_fd, new_fd);
         match variant {
             DupVariant::Dup => self.stats.total_dups += 1,

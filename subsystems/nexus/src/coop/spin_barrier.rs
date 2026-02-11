@@ -26,7 +26,14 @@ pub struct SpinBarrier {
 
 impl SpinBarrier {
     pub fn new(id: u64, parties: u32) -> Self {
-        Self { id, parties, count: AtomicU32::new(0), generation: 0, total_waits: 0, total_completions: 0 }
+        Self {
+            id,
+            parties,
+            count: AtomicU32::new(0),
+            generation: 0,
+            total_waits: 0,
+            total_completions: 0,
+        }
     }
 
     #[inline]
@@ -38,7 +45,9 @@ impl SpinBarrier {
             self.generation += 1;
             self.total_completions += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -64,24 +73,38 @@ pub struct CoopSpinBarrier {
 }
 
 impl CoopSpinBarrier {
-    pub fn new() -> Self { Self { barriers: Vec::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            barriers: Vec::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create(&mut self, parties: u32) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         self.barriers.push(SpinBarrier::new(id, parties));
         id
     }
 
     #[inline(always)]
     pub fn arrive(&mut self, idx: usize) -> bool {
-        if idx < self.barriers.len() { self.barriers[idx].arrive() } else { false }
+        if idx < self.barriers.len() {
+            self.barriers[idx].arrive()
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> SpinBarrierStats {
         let waits: u64 = self.barriers.iter().map(|b| b.total_waits).sum();
         let comps: u64 = self.barriers.iter().map(|b| b.total_completions).sum();
-        SpinBarrierStats { total_barriers: self.barriers.len() as u32, total_waits: waits, total_completions: comps }
+        SpinBarrierStats {
+            total_barriers: self.barriers.len() as u32,
+            total_waits: waits,
+            total_completions: comps,
+        }
     }
 }

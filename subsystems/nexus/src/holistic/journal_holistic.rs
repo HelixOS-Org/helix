@@ -39,17 +39,33 @@ pub struct JournalTransaction {
 
 impl JournalTransaction {
     pub fn new(tid: u64) -> Self {
-        Self { tid, state: JournalState::Active, blocks_logged: 0, start_ns: 0, commit_ns: 0, handles: 0 }
+        Self {
+            tid,
+            state: JournalState::Active,
+            blocks_logged: 0,
+            start_ns: 0,
+            commit_ns: 0,
+            handles: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn commit(&mut self, now_ns: u64) { self.state = JournalState::Committing; self.commit_ns = now_ns; }
+    pub fn commit(&mut self, now_ns: u64) {
+        self.state = JournalState::Committing;
+        self.commit_ns = now_ns;
+    }
     #[inline(always)]
-    pub fn latency_ns(&self) -> u64 { self.commit_ns.saturating_sub(self.start_ns) }
+    pub fn latency_ns(&self) -> u64 {
+        self.commit_ns.saturating_sub(self.start_ns)
+    }
     #[inline(always)]
-    pub fn add_block(&mut self) { self.blocks_logged += 1; }
+    pub fn add_block(&mut self) {
+        self.blocks_logged += 1;
+    }
     #[inline(always)]
-    pub fn add_handle(&mut self) { self.handles += 1; }
+    pub fn add_handle(&mut self) {
+        self.handles += 1;
+    }
 }
 
 /// Holistic journal stats
@@ -72,23 +88,40 @@ pub struct HolisticJournal {
 
 impl HolisticJournal {
     pub fn new() -> Self {
-        Self { stats: HolisticJournalStats { total_transactions: 0, committed: 0, aborted: 0, checkpoints: 0, total_blocks_logged: 0, total_latency_ns: 0 } }
+        Self {
+            stats: HolisticJournalStats {
+                total_transactions: 0,
+                committed: 0,
+                aborted: 0,
+                checkpoints: 0,
+                total_blocks_logged: 0,
+                total_latency_ns: 0,
+            },
+        }
     }
 
     #[inline]
     pub fn record_op(&mut self, op: JournalOp, txn: &JournalTransaction) {
         match op {
             JournalOp::StartTransaction => self.stats.total_transactions += 1,
-            JournalOp::CommitTransaction => { self.stats.committed += 1; self.stats.total_latency_ns += txn.latency_ns(); self.stats.total_blocks_logged += txn.blocks_logged; }
+            JournalOp::CommitTransaction => {
+                self.stats.committed += 1;
+                self.stats.total_latency_ns += txn.latency_ns();
+                self.stats.total_blocks_logged += txn.blocks_logged;
+            },
             JournalOp::AbortTransaction => self.stats.aborted += 1,
             JournalOp::Checkpoint => self.stats.checkpoints += 1,
-            _ => {}
+            _ => {},
         }
     }
 
     #[inline(always)]
     pub fn avg_commit_latency_ns(&self) -> u64 {
-        if self.stats.committed == 0 { 0 } else { self.stats.total_latency_ns / self.stats.committed }
+        if self.stats.committed == 0 {
+            0
+        } else {
+            self.stats.total_latency_ns / self.stats.committed
+        }
     }
 }
 
@@ -179,24 +212,39 @@ impl HolisticJournalV2Manager {
 
     pub fn analyze(&mut self) -> &HolisticJournalV2Health {
         self.stats.analyses += 1;
-        let commit_samples: VecDeque<&HolisticJournalV2Sample> = self.samples.iter()
+        let commit_samples: VecDeque<&HolisticJournalV2Sample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticJournalV2Metric::CommitLatency))
             .collect();
         if !commit_samples.is_empty() {
-            let avg: u64 = commit_samples.iter().map(|s| s.value).sum::<u64>() / commit_samples.len() as u64;
-            self.health.latency_score = if avg < 1000 { 100 } else if avg < 5000 { 70 } else { 30 };
+            let avg: u64 =
+                commit_samples.iter().map(|s| s.value).sum::<u64>() / commit_samples.len() as u64;
+            self.health.latency_score = if avg < 1000 {
+                100
+            } else if avg < 5000 {
+                70
+            } else {
+                30
+            };
         }
-        let abort_samples: VecDeque<&HolisticJournalV2Sample> = self.samples.iter()
+        let abort_samples: VecDeque<&HolisticJournalV2Sample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticJournalV2Metric::AbortRate))
             .collect();
         if !abort_samples.is_empty() {
-            let avg: u64 = abort_samples.iter().map(|s| s.value).sum::<u64>() / abort_samples.len() as u64;
+            let avg: u64 =
+                abort_samples.iter().map(|s| s.value).sum::<u64>() / abort_samples.len() as u64;
             if avg > 5 {
                 self.stats.reliability_alerts += 1;
                 self.health.reliability_score = 100u64.saturating_sub(avg * 10);
             }
         }
-        self.health.overall = (self.health.throughput_score + self.health.latency_score + self.health.reliability_score) / 3;
+        self.health.overall = (self.health.throughput_score
+            + self.health.latency_score
+            + self.health.reliability_score)
+            / 3;
         &self.health
     }
 

@@ -201,20 +201,17 @@ impl BridgeCuriosityEngine {
             return;
         }
         let id = fnv1a_hash(name.as_bytes());
-        self.dimensions.insert(
+        self.dimensions.insert(id, Dimension {
             id,
-            Dimension {
-                id,
-                name: String::from(name),
-                range_low: low,
-                range_high: high,
-                granularity: if granularity > 0.0 { granularity } else { 1.0 },
-                visit_count: 0,
-                best_reward: 0.0,
-                total_reward: 0.0,
-                last_visit_tick: 0,
-            },
-        );
+            name: String::from(name),
+            range_low: low,
+            range_high: high,
+            granularity: if granularity > 0.0 { granularity } else { 1.0 },
+            visit_count: 0,
+            best_reward: 0.0,
+            total_reward: 0.0,
+            last_visit_tick: 0,
+        });
         // Initialize frontier cells for this dimension
         self.init_frontier_for(id, low, high, granularity);
     }
@@ -273,7 +270,11 @@ impl BridgeCuriosityEngine {
         let mut best_cell_id: u64 = 0;
 
         for (&cid, cell) in self.frontier.iter() {
-            let ucb = self.ucb1_score(cell.total_reward, cell.visit_count, self.total_global_visits);
+            let ucb = self.ucb1_score(
+                cell.total_reward,
+                cell.visit_count,
+                self.total_global_visits,
+            );
             let combined = ucb + cell.novelty_score * 0.5;
             if combined > best_score {
                 best_score = combined;
@@ -310,8 +311,8 @@ impl BridgeCuriosityEngine {
         } else {
             0.0
         };
-        let explore_prob = (base_explore_prob + boredom_bonus + novelty_bonus)
-            .min(MAX_EXPLORATION_RATIO);
+        let explore_prob =
+            (base_explore_prob + boredom_bonus + novelty_bonus).min(MAX_EXPLORATION_RATIO);
 
         let r = xorshift_f32(&mut self.rng_state);
         r < explore_prob
@@ -377,23 +378,24 @@ impl BridgeCuriosityEngine {
     // ========================================================================
 
     fn init_frontier_for(&mut self, dim_id: u64, low: f32, high: f32, gran: f32) {
-        let step = if gran > 0.0 { gran } else { (high - low) / 10.0 };
+        let step = if gran > 0.0 {
+            gran
+        } else {
+            (high - low) / 10.0
+        };
         let mut pos = low;
         while pos < high && self.frontier.len() < MAX_FRONTIER_CELLS {
             let cell_key = self.cell_key(dim_id, pos);
-            self.frontier.insert(
-                cell_key,
-                FrontierCell {
-                    dim_id,
-                    region_low: pos,
-                    region_high: (pos + step).min(high),
-                    visit_count: 0,
-                    total_reward: 0.0,
-                    avg_reward_ema: 0.0,
-                    novelty_score: 1.0,
-                    last_visit: 0,
-                },
-            );
+            self.frontier.insert(cell_key, FrontierCell {
+                dim_id,
+                region_low: pos,
+                region_high: (pos + step).min(high),
+                visit_count: 0,
+                total_reward: 0.0,
+                avg_reward_ema: 0.0,
+                novelty_score: 1.0,
+                last_visit: 0,
+            });
             pos += step;
         }
     }
@@ -412,8 +414,8 @@ impl BridgeCuriosityEngine {
             return f32::MAX;
         }
         let avg = total_reward / visits as f32;
-        let exploration = UCB_C
-            * sqrt_approx(ln_approx(global_visits.max(1) as f32) / visits as f32);
+        let exploration =
+            UCB_C * sqrt_approx(ln_approx(global_visits.max(1) as f32) / visits as f32);
         avg + exploration
     }
 
@@ -465,7 +467,7 @@ impl BridgeCuriosityEngine {
                     ucb_score: score,
                     times_explored: cell.visit_count,
                 }
-            }
+            },
             None => CuriosityTarget {
                 dimension: String::from("none"),
                 unexplored_region: (0.0, 0.0),
@@ -482,7 +484,9 @@ impl BridgeCuriosityEngine {
         let base = xorshift_f32(&mut self.rng_state) * REWARD_SCALE;
         let novelty_bonus = target.novelty * 20.0;
         let risk_penalty = target.risk * 15.0;
-        ((base + novelty_bonus - risk_penalty) / REWARD_SCALE).max(0.0).min(1.0)
+        ((base + novelty_bonus - risk_penalty) / REWARD_SCALE)
+            .max(0.0)
+            .min(1.0)
     }
 
     fn novelty_score_internal(&self, target: &CuriosityTarget) -> f32 {

@@ -195,7 +195,8 @@ impl ProcessFdTable {
     /// Leak candidates
     #[inline]
     pub fn leak_candidates(&self, now_ns: u64) -> Vec<u32> {
-        self.fds.iter()
+        self.fds
+            .iter()
             .filter(|(_, e)| e.is_leak_candidate(now_ns))
             .map(|(&fd, _)| fd)
             .collect()
@@ -274,10 +275,15 @@ impl BridgeFdTableProxy {
     /// Scan for leaks
     #[inline]
     pub fn scan_leaks(&self, now_ns: u64) -> Vec<(u64, Vec<u32>)> {
-        self.tables.iter()
+        self.tables
+            .iter()
             .filter_map(|(&pid, table)| {
                 let leaks = table.leak_candidates(now_ns);
-                if leaks.is_empty() { None } else { Some((pid, leaks)) }
+                if leaks.is_empty() {
+                    None
+                } else {
+                    Some((pid, leaks))
+                }
             })
             .collect()
     }
@@ -285,7 +291,9 @@ impl BridgeFdTableProxy {
     fn update_stats(&mut self) {
         self.stats.tracked_processes = self.tables.len();
         self.stats.total_open_fds = self.tables.values().map(|t| t.open_count()).sum();
-        self.stats.max_pressure = self.tables.values()
+        self.stats.max_pressure = self
+            .tables
+            .values()
             .map(|t| t.pressure())
             .fold(0.0_f64, f64::max);
         self.stats.total_opens = self.tables.values().map(|t| t.total_opens).sum();

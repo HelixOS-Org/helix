@@ -17,11 +17,11 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -114,7 +114,8 @@ pub struct QualiaState {
 
 impl QualiaState {
     fn compute_overall(&self) -> f32 {
-        let positive = self.processing_smoothness * 0.3 + self.flow_state * 0.3 + self.harmony * 0.2;
+        let positive =
+            self.processing_smoothness * 0.3 + self.flow_state * 0.3 + self.harmony * 0.2;
         let negative = self.friction * 0.2;
         (positive - negative).clamp(0.0, 1.0)
     }
@@ -308,21 +309,21 @@ impl BridgeQualiaEngine {
                     let jitter_penalty = (channel.jitter() * SMOOTHNESS_JITTER_PENALTY).min(1.0);
                     smoothness_sum += (channel.ema_value - jitter_penalty).max(0.0);
                     smoothness_count += 1;
-                }
+                },
                 QualiaDimension::Flow => {
                     flow_sum += channel.ema_value;
                     flow_count += 1;
-                }
+                },
                 QualiaDimension::Friction => {
                     friction_sum += channel.ema_value;
                     friction_count += 1;
-                }
+                },
                 QualiaDimension::Harmony => {
                     // Harmony is inversely related to variance
                     let var_penalty = channel.variance.sqrt().min(1.0);
                     harmony_sum += (channel.ema_value - var_penalty * 0.5).max(0.0);
                     harmony_count += 1;
-                }
+                },
             }
         }
 
@@ -361,20 +362,20 @@ impl BridgeQualiaEngine {
                 if self.flow_streak > self.best_flow_streak {
                     self.best_flow_streak = self.flow_streak;
                 }
-            }
+            },
             FlowLevel::Flowing => {
                 self.flow_streak += 1;
                 if self.flow_streak > self.best_flow_streak {
                     self.best_flow_streak = self.flow_streak;
                 }
-            }
+            },
             FlowLevel::Disrupted => {
                 self.disrupted_count += 1;
                 self.flow_streak = 0;
-            }
+            },
             FlowLevel::Normal => {
                 self.flow_streak = 0;
-            }
+            },
         }
 
         // Record in history
@@ -500,7 +501,10 @@ impl BridgeQualiaEngine {
         } else {
             "distressed"
         };
-        report.push((String::from("overall_experience"), String::from(overall_desc)));
+        report.push((
+            String::from("overall_experience"),
+            String::from(overall_desc),
+        ));
 
         report
     }

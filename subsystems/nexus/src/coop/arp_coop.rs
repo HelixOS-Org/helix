@@ -33,12 +33,20 @@ impl CoopArpEntry {
     pub fn new(ip: &[u8], mac: &[u8]) -> Self {
         let hash = |data: &[u8]| -> u64 {
             let mut h: u64 = 0xcbf29ce484222325;
-            for b in data { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+            for b in data {
+                h ^= *b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
             h
         };
         Self {
-            ip_hash: hash(ip), mac_hash: hash(mac), state: CoopArpState::Reachable,
-            confirmed_ns: 0, probes_sent: 0, ref_count: 1, shared_by: Vec::new(),
+            ip_hash: hash(ip),
+            mac_hash: hash(mac),
+            state: CoopArpState::Reachable,
+            confirmed_ns: 0,
+            probes_sent: 0,
+            ref_count: 1,
+            shared_by: Vec::new(),
         }
     }
 
@@ -50,11 +58,18 @@ impl CoopArpEntry {
     }
 
     #[inline(always)]
-    pub fn mark_stale(&mut self) { self.state = CoopArpState::Stale; }
+    pub fn mark_stale(&mut self) {
+        self.state = CoopArpState::Stale;
+    }
     #[inline(always)]
-    pub fn probe(&mut self) { self.probes_sent += 1; self.state = CoopArpState::Probe; }
+    pub fn probe(&mut self) {
+        self.probes_sent += 1;
+        self.state = CoopArpState::Probe;
+    }
     #[inline(always)]
-    pub fn fail(&mut self) { self.state = CoopArpState::Failed; }
+    pub fn fail(&mut self) {
+        self.state = CoopArpState::Failed;
+    }
 
     #[inline]
     pub fn share_with(&mut self, ns_id: u64) {
@@ -67,12 +82,19 @@ impl CoopArpEntry {
 
     #[inline(always)]
     pub fn is_valid(&self) -> bool {
-        matches!(self.state, CoopArpState::Reachable | CoopArpState::Shared | CoopArpState::Stale)
+        matches!(
+            self.state,
+            CoopArpState::Reachable | CoopArpState::Shared | CoopArpState::Stale
+        )
     }
 
     #[inline(always)]
     pub fn age_ms(&self, now_ns: u64) -> u64 {
-        if now_ns > self.confirmed_ns { (now_ns - self.confirmed_ns) / 1_000_000 } else { 0 }
+        if now_ns > self.confirmed_ns {
+            (now_ns - self.confirmed_ns) / 1_000_000
+        } else {
+            0
+        }
     }
 }
 
@@ -87,7 +109,11 @@ pub struct SharedArpCache {
 
 impl SharedArpCache {
     pub fn new(max_entries: u32, gc_threshold_ms: u64) -> Self {
-        Self { entries: BTreeMap::new(), max_entries, gc_threshold: gc_threshold_ms * 1_000_000 }
+        Self {
+            entries: BTreeMap::new(),
+            max_entries,
+            gc_threshold: gc_threshold_ms * 1_000_000,
+        }
     }
 
     #[inline(always)]
@@ -132,7 +158,13 @@ impl CoopArp {
     pub fn new(max_entries: u32) -> Self {
         Self {
             cache: SharedArpCache::new(max_entries, 300_000),
-            stats: CoopArpStats { total_entries: 0, shared_entries: 0, cache_hits: 0, cache_misses: 0, gc_runs: 0 },
+            stats: CoopArpStats {
+                total_entries: 0,
+                shared_entries: 0,
+                cache_hits: 0,
+                cache_misses: 0,
+                gc_runs: 0,
+            },
         }
     }
 
@@ -156,6 +188,10 @@ impl CoopArp {
     #[inline(always)]
     pub fn hit_rate(&self) -> f64 {
         let total = self.stats.cache_hits + self.stats.cache_misses;
-        if total == 0 { 0.0 } else { self.stats.cache_hits as f64 / total as f64 }
+        if total == 0 {
+            0.0
+        } else {
+            self.stats.cache_hits as f64 / total as f64
+        }
     }
 }

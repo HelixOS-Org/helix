@@ -22,15 +22,35 @@ pub struct IoPriority {
 }
 
 impl IoPriority {
-    pub fn new(class: IoSchedClass, level: u8) -> Self { Self { class, level: level.min(7) } }
+    pub fn new(class: IoSchedClass, level: u8) -> Self {
+        Self {
+            class,
+            level: level.min(7),
+        }
+    }
     #[inline(always)]
-    pub fn default_prio() -> Self { Self { class: IoSchedClass::BestEffort, level: 4 } }
+    pub fn default_prio() -> Self {
+        Self {
+            class: IoSchedClass::BestEffort,
+            level: 4,
+        }
+    }
     #[inline(always)]
-    pub fn encode(&self) -> u16 { ((self.class as u16) << 13) | (self.level as u16) }
+    pub fn encode(&self) -> u16 {
+        ((self.class as u16) << 13) | (self.level as u16)
+    }
     #[inline(always)]
     pub fn decode(val: u16) -> Self {
-        let class = match val >> 13 { 0 => IoSchedClass::None, 1 => IoSchedClass::RealTime, 2 => IoSchedClass::BestEffort, _ => IoSchedClass::Idle };
-        Self { class, level: (val & 7) as u8 }
+        let class = match val >> 13 {
+            0 => IoSchedClass::None,
+            1 => IoSchedClass::RealTime,
+            2 => IoSchedClass::BestEffort,
+            _ => IoSchedClass::Idle,
+        };
+        Self {
+            class,
+            level: (val & 7) as u8,
+        }
     }
 }
 
@@ -46,9 +66,20 @@ pub struct ProcessIoPrio {
 }
 
 impl ProcessIoPrio {
-    pub fn new(pid: u64) -> Self { Self { pid, prio: IoPriority::default_prio(), io_bytes_read: 0, io_bytes_written: 0, io_ops: 0, throttled_ns: 0 } }
+    pub fn new(pid: u64) -> Self {
+        Self {
+            pid,
+            prio: IoPriority::default_prio(),
+            io_bytes_read: 0,
+            io_bytes_written: 0,
+            io_ops: 0,
+            throttled_ns: 0,
+        }
+    }
     #[inline(always)]
-    pub fn total_bytes(&self) -> u64 { self.io_bytes_read + self.io_bytes_written }
+    pub fn total_bytes(&self) -> u64 {
+        self.io_bytes_read + self.io_bytes_written
+    }
 }
 
 /// I/O priority change event
@@ -82,29 +113,60 @@ pub struct BridgeIoPrio {
 }
 
 impl BridgeIoPrio {
-    pub fn new() -> Self { Self { processes: BTreeMap::new(), prio_changes: 0 } }
+    pub fn new() -> Self {
+        Self {
+            processes: BTreeMap::new(),
+            prio_changes: 0,
+        }
+    }
 
     #[inline(always)]
-    pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessIoPrio::new(pid)); }
+    pub fn register(&mut self, pid: u64) {
+        self.processes.insert(pid, ProcessIoPrio::new(pid));
+    }
     #[inline(always)]
-    pub fn unregister(&mut self, pid: u64) { self.processes.remove(&pid); }
+    pub fn unregister(&mut self, pid: u64) {
+        self.processes.remove(&pid);
+    }
 
     #[inline(always)]
     pub fn set_priority(&mut self, pid: u64, class: IoSchedClass, level: u8) {
-        if let Some(p) = self.processes.get_mut(&pid) { p.prio = IoPriority::new(class, level); self.prio_changes += 1; }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.prio = IoPriority::new(class, level);
+            self.prio_changes += 1;
+        }
     }
 
     #[inline(always)]
     pub fn record_io(&mut self, pid: u64, read: u64, written: u64) {
-        if let Some(p) = self.processes.get_mut(&pid) { p.io_bytes_read += read; p.io_bytes_written += written; p.io_ops += 1; }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.io_bytes_read += read;
+            p.io_bytes_written += written;
+            p.io_ops += 1;
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> IoPrioBridgeStats {
-        let rt = self.processes.values().filter(|p| p.prio.class == IoSchedClass::RealTime).count() as u32;
-        let idle = self.processes.values().filter(|p| p.prio.class == IoSchedClass::Idle).count() as u32;
+        let rt = self
+            .processes
+            .values()
+            .filter(|p| p.prio.class == IoSchedClass::RealTime)
+            .count() as u32;
+        let idle = self
+            .processes
+            .values()
+            .filter(|p| p.prio.class == IoSchedClass::Idle)
+            .count() as u32;
         let bytes: u64 = self.processes.values().map(|p| p.total_bytes()).sum();
         let ops: u64 = self.processes.values().map(|p| p.io_ops).sum();
-        IoPrioBridgeStats { tracked_processes: self.processes.len() as u32, rt_processes: rt, idle_processes: idle, total_io_bytes: bytes, total_io_ops: ops, prio_changes: self.prio_changes }
+        IoPrioBridgeStats {
+            tracked_processes: self.processes.len() as u32,
+            rt_processes: rt,
+            idle_processes: idle,
+            total_io_bytes: bytes,
+            total_io_ops: ops,
+            prio_changes: self.prio_changes,
+        }
     }
 }

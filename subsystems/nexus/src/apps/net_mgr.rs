@@ -77,24 +77,35 @@ pub struct TcpConnInfo {
 impl TcpConnInfo {
     pub fn new(tuple: ConnTuple, ts: u64) -> Self {
         Self {
-            tuple, state: TcpState::Closed,
-            bytes_sent: 0, bytes_recv: 0,
-            packets_sent: 0, packets_recv: 0,
-            retransmits: 0, rtt_us: 0, rtt_var_us: 0,
-            cwnd: 10, ssthresh: 65535, mss: 1460,
+            tuple,
+            state: TcpState::Closed,
+            bytes_sent: 0,
+            bytes_recv: 0,
+            packets_sent: 0,
+            packets_recv: 0,
+            retransmits: 0,
+            rtt_us: 0,
+            rtt_var_us: 0,
+            cwnd: 10,
+            ssthresh: 65535,
+            mss: 1460,
             established_ns: ts,
         }
     }
 
     #[inline(always)]
     pub fn goodput_bps(&self, duration_ns: u64) -> f64 {
-        if duration_ns == 0 { return 0.0; }
+        if duration_ns == 0 {
+            return 0.0;
+        }
         (self.bytes_sent + self.bytes_recv) as f64 / (duration_ns as f64 / 1_000_000_000.0)
     }
 
     #[inline(always)]
     pub fn retransmit_rate(&self) -> f64 {
-        if self.packets_sent == 0 { return 0.0; }
+        if self.packets_sent == 0 {
+            return 0.0;
+        }
         self.retransmits as f64 / self.packets_sent as f64
     }
 }
@@ -114,8 +125,12 @@ pub struct UdpFlowInfo {
 impl UdpFlowInfo {
     pub fn new(tuple: ConnTuple, ts: u64) -> Self {
         Self {
-            tuple, bytes_sent: 0, bytes_recv: 0,
-            packets_sent: 0, packets_recv: 0, drops: 0,
+            tuple,
+            bytes_sent: 0,
+            bytes_recv: 0,
+            packets_sent: 0,
+            packets_recv: 0,
+            drops: 0,
             first_seen_ns: ts,
         }
     }
@@ -198,12 +213,18 @@ impl AppNetState {
     }
 
     #[inline(always)]
-    pub fn record_send(&mut self, bytes: u64) { self.total_bytes_sent += bytes; }
+    pub fn record_send(&mut self, bytes: u64) {
+        self.total_bytes_sent += bytes;
+    }
     #[inline(always)]
-    pub fn record_recv(&mut self, bytes: u64) { self.total_bytes_recv += bytes; }
+    pub fn record_recv(&mut self, bytes: u64) {
+        self.total_bytes_recv += bytes;
+    }
 
     #[inline(always)]
-    pub fn reset_rate_counter(&mut self) { self.connections_this_second = 0; }
+    pub fn reset_rate_counter(&mut self) {
+        self.connections_this_second = 0;
+    }
 
     #[inline(always)]
     pub fn expire_dns(&mut self, now: u64) {
@@ -231,46 +252,66 @@ pub struct AppsNetMgr {
 
 impl AppsNetMgr {
     pub fn new() -> Self {
-        Self { states: BTreeMap::new(), stats: AppsNetMgrStats::default() }
+        Self {
+            states: BTreeMap::new(),
+            stats: AppsNetMgrStats::default(),
+        }
     }
 
     #[inline(always)]
     pub fn register(&mut self, pid: u64) {
-        self.states.entry(pid).or_insert_with(|| AppNetState::new(pid));
+        self.states
+            .entry(pid)
+            .or_insert_with(|| AppNetState::new(pid));
     }
 
     #[inline(always)]
     pub fn add_tcp(&mut self, pid: u64, conn: TcpConnInfo) -> bool {
-        self.states.get_mut(&pid).map(|s| s.add_tcp_conn(conn)).unwrap_or(false)
+        self.states
+            .get_mut(&pid)
+            .map(|s| s.add_tcp_conn(conn))
+            .unwrap_or(false)
     }
 
     #[inline(always)]
     pub fn remove_tcp(&mut self, pid: u64, tuple: &ConnTuple) {
-        if let Some(s) = self.states.get_mut(&pid) { s.remove_tcp_conn(tuple); }
+        if let Some(s) = self.states.get_mut(&pid) {
+            s.remove_tcp_conn(tuple);
+        }
     }
 
     #[inline(always)]
     pub fn record_send(&mut self, pid: u64, bytes: u64) {
-        if let Some(s) = self.states.get_mut(&pid) { s.record_send(bytes); }
+        if let Some(s) = self.states.get_mut(&pid) {
+            s.record_send(bytes);
+        }
     }
 
     #[inline(always)]
     pub fn record_recv(&mut self, pid: u64, bytes: u64) {
-        if let Some(s) = self.states.get_mut(&pid) { s.record_recv(bytes); }
+        if let Some(s) = self.states.get_mut(&pid) {
+            s.record_recv(bytes);
+        }
     }
 
     #[inline(always)]
     pub fn set_rate_limit(&mut self, pid: u64, limit: u32) {
-        if let Some(s) = self.states.get_mut(&pid) { s.connection_rate_limit = Some(limit); }
+        if let Some(s) = self.states.get_mut(&pid) {
+            s.connection_rate_limit = Some(limit);
+        }
     }
 
     #[inline(always)]
     pub fn tick_rate_counters(&mut self) {
-        for s in self.states.values_mut() { s.reset_rate_counter(); }
+        for s in self.states.values_mut() {
+            s.reset_rate_counter();
+        }
     }
 
     #[inline(always)]
-    pub fn remove_process(&mut self, pid: u64) { self.states.remove(&pid); }
+    pub fn remove_process(&mut self, pid: u64) {
+        self.states.remove(&pid);
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
@@ -283,7 +324,11 @@ impl AppsNetMgr {
     }
 
     #[inline(always)]
-    pub fn app_state(&self, pid: u64) -> Option<&AppNetState> { self.states.get(&pid) }
+    pub fn app_state(&self, pid: u64) -> Option<&AppNetState> {
+        self.states.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &AppsNetMgrStats { &self.stats }
+    pub fn stats(&self) -> &AppsNetMgrStats {
+        &self.stats
+    }
 }

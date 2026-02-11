@@ -3,10 +3,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Sysctl value type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,11 +32,17 @@ impl SysctlPerm {
     pub const RW: u16 = 0o644;
     pub const ROOT_RW: u16 = 0o600;
 
-    pub fn new(bits: u16) -> Self { Self { bits } }
+    pub fn new(bits: u16) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn is_readable(&self) -> bool { self.bits & 0o444 != 0 }
+    pub fn is_readable(&self) -> bool {
+        self.bits & 0o444 != 0
+    }
     #[inline(always)]
-    pub fn is_writable(&self) -> bool { self.bits & 0o222 != 0 }
+    pub fn is_writable(&self) -> bool {
+        self.bits & 0o222 != 0
+    }
 }
 
 /// Sysctl namespace
@@ -72,22 +79,38 @@ impl SysctlParam {
     #[inline]
     pub fn new_int(id: u64, path: String, ns: SysctlNs, value: i64) -> Self {
         Self {
-            id, path, ns, value_type: SysctlValueType::Integer,
-            int_val: value, str_val: String::new(),
-            min_val: i64::MIN, max_val: i64::MAX, default_val: value,
+            id,
+            path,
+            ns,
+            value_type: SysctlValueType::Integer,
+            int_val: value,
+            str_val: String::new(),
+            min_val: i64::MIN,
+            max_val: i64::MAX,
+            default_val: value,
             perm: SysctlPerm::new(SysctlPerm::RW),
-            read_count: 0, write_count: 0, last_modified: 0,
+            read_count: 0,
+            write_count: 0,
+            last_modified: 0,
         }
     }
 
     #[inline]
     pub fn new_string(id: u64, path: String, ns: SysctlNs, value: String) -> Self {
         Self {
-            id, path, ns, value_type: SysctlValueType::String,
-            int_val: 0, str_val: value,
-            min_val: 0, max_val: 0, default_val: 0,
+            id,
+            path,
+            ns,
+            value_type: SysctlValueType::String,
+            int_val: 0,
+            str_val: value,
+            min_val: 0,
+            max_val: 0,
+            default_val: 0,
             perm: SysctlPerm::new(SysctlPerm::RW),
-            read_count: 0, write_count: 0, last_modified: 0,
+            read_count: 0,
+            write_count: 0,
+            last_modified: 0,
         }
     }
 
@@ -99,7 +122,9 @@ impl SysctlParam {
 
     #[inline]
     pub fn write(&mut self, value: i64, now: u64) -> bool {
-        if value < self.min_val || value > self.max_val { return false; }
+        if value < self.min_val || value > self.max_val {
+            return false;
+        }
         self.int_val = value;
         self.write_count += 1;
         self.last_modified = now;
@@ -107,7 +132,9 @@ impl SysctlParam {
     }
 
     #[inline(always)]
-    pub fn is_default(&self) -> bool { self.int_val == self.default_val }
+    pub fn is_default(&self) -> bool {
+        self.int_val == self.default_val
+    }
 
     #[inline(always)]
     pub fn set_range(&mut self, min: i64, max: i64) {
@@ -168,8 +195,11 @@ pub struct BridgeSysctl {
 impl BridgeSysctl {
     pub fn new() -> Self {
         Self {
-            params: BTreeMap::new(), changes: Vec::new(),
-            path_index: LinearMap::new(), next_id: 1, max_changes: 4096,
+            params: BTreeMap::new(),
+            changes: Vec::new(),
+            path_index: LinearMap::new(),
+            next_id: 1,
+            max_changes: 4096,
         }
     }
 
@@ -205,8 +235,16 @@ impl BridgeSysctl {
         if let Some(param) = self.params.get_mut(&id) {
             let old = param.int_val;
             if param.write(value, now) {
-                if self.changes.len() >= self.max_changes { self.changes.drain(..self.max_changes / 4); }
-                self.changes.push(SysctlChangeEvent { param_id: id, old_val: old, new_val: value, pid, timestamp: now });
+                if self.changes.len() >= self.max_changes {
+                    self.changes.drain(..self.max_changes / 4);
+                }
+                self.changes.push(SysctlChangeEvent {
+                    param_id: id,
+                    old_val: old,
+                    new_val: value,
+                    pid,
+                    timestamp: now,
+                });
                 return true;
             }
         }
@@ -218,11 +256,15 @@ impl BridgeSysctl {
         let total_reads: u64 = self.params.values().map(|p| p.read_count).sum();
         let total_writes: u64 = self.params.values().map(|p| p.write_count).sum();
         let mut by_ns = BTreeMap::new();
-        for p in self.params.values() { *by_ns.entry(p.ns as u8).or_insert(0u32) += 1; }
+        for p in self.params.values() {
+            *by_ns.entry(p.ns as u8).or_insert(0u32) += 1;
+        }
         SysctlBridgeStats {
             total_params: self.params.len() as u32,
-            total_reads, total_writes,
-            modified_params: modified, params_by_ns: by_ns,
+            total_reads,
+            total_writes,
+            modified_params: modified,
+            params_by_ns: by_ns,
         }
     }
 }

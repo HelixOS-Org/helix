@@ -11,8 +11,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Slab allocator backend
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,14 +60,20 @@ impl SlabPage {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.objects_total == 0 { return 0.0; }
+        if self.objects_total == 0 {
+            return 0.0;
+        }
         self.objects_used as f64 / self.objects_total as f64
     }
 
     #[inline(always)]
-    pub fn is_empty(&self) -> bool { self.objects_used == 0 }
+    pub fn is_empty(&self) -> bool {
+        self.objects_used == 0
+    }
     #[inline(always)]
-    pub fn is_full(&self) -> bool { self.objects_used >= self.objects_total }
+    pub fn is_full(&self) -> bool {
+        self.objects_used >= self.objects_total
+    }
 }
 
 /// Slab cache descriptor
@@ -132,7 +138,9 @@ impl SlabCache {
 
     #[inline]
     pub fn fragmentation(&self) -> f64 {
-        if self.total_objects == 0 { return 0.0; }
+        if self.total_objects == 0 {
+            return 0.0;
+        }
         let wasted = self.total_objects - self.active_objects;
         wasted as f64 / self.total_objects as f64
     }
@@ -151,13 +159,17 @@ impl SlabCache {
     #[inline]
     pub fn numa_locality_ratio(&self) -> f64 {
         let total = self.numa_local_allocs + self.numa_remote_allocs;
-        if total == 0 { return 1.0; }
+        if total == 0 {
+            return 1.0;
+        }
         self.numa_local_allocs as f64 / total as f64
     }
 
     #[inline(always)]
     pub fn reclaimable_pages(&self) -> u64 {
-        if !self.reclaimable { return 0; }
+        if !self.reclaimable {
+            return 0;
+        }
         self.free_slabs
     }
 }
@@ -217,21 +229,34 @@ impl HolisticSlabOptimizer {
     /// Find merge candidates
     pub fn find_merges(&mut self) {
         self.merge_candidates.clear();
-        let caches: Vec<(u64, u32, bool)> = self.caches.iter()
+        let caches: Vec<(u64, u32, bool)> = self
+            .caches
+            .iter()
             .map(|(&hash, c)| (hash, c.object_size, c.mergeable))
             .collect();
 
         for i in 0..caches.len() {
-            if !caches[i].2 { continue; }
+            if !caches[i].2 {
+                continue;
+            }
             for j in (i + 1)..caches.len() {
-                if !caches[j].2 { continue; }
+                if !caches[j].2 {
+                    continue;
+                }
                 let (size_a, size_b) = (caches[i].1, caches[j].1);
-                let diff = if size_a > size_b { size_a - size_b } else { size_b - size_a };
+                let diff = if size_a > size_b {
+                    size_a - size_b
+                } else {
+                    size_b - size_a
+                };
                 let max_size = size_a.max(size_b);
                 if max_size > 0 && diff as f64 / max_size as f64 <= 0.125 {
                     // Within 12.5% size — merge candidate
-                    let smaller = self.caches.get(&caches[i].0)
-                        .map(|c| c.free_slabs).unwrap_or(0);
+                    let smaller = self
+                        .caches
+                        .get(&caches[i].0)
+                        .map(|c| c.free_slabs)
+                        .unwrap_or(0);
                     self.merge_candidates.push(MergeCandidate {
                         cache_a_hash: caches[i].0,
                         cache_b_hash: caches[j].0,
@@ -247,7 +272,9 @@ impl HolisticSlabOptimizer {
     /// Get caches by fragmentation (worst first)
     #[inline]
     pub fn fragmented_caches(&self, min_frag: f64) -> Vec<u64> {
-        let mut entries: Vec<(u64, f64)> = self.caches.iter()
+        let mut entries: Vec<(u64, f64)> = self
+            .caches
+            .iter()
             .filter(|(_, c)| c.fragmentation() >= min_frag)
             .map(|(&hash, c)| (hash, c.fragmentation()))
             .collect();
@@ -262,14 +289,20 @@ impl HolisticSlabOptimizer {
         let active_obj: u64 = self.caches.values().map(|c| c.active_objects).sum();
         self.stats.total_fragmentation_pct = if total_obj > 0 {
             (total_obj - active_obj) as f64 / total_obj as f64 * 100.0
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         self.stats.total_wasted_bytes = self.caches.values().map(|c| c.memory_wasted_bytes()).sum();
         self.stats.reclaimable_pages = self.caches.values().map(|c| c.reclaimable_pages()).sum();
         self.stats.merge_candidates = self.merge_candidates.len();
     }
 
     #[inline(always)]
-    pub fn cache(&self, hash: u64) -> Option<&SlabCache> { self.caches.get(&hash) }
+    pub fn cache(&self, hash: u64) -> Option<&SlabCache> {
+        self.caches.get(&hash)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &HolisticSlabStats { &self.stats }
+    pub fn stats(&self) -> &HolisticSlabStats {
+        &self.stats
+    }
 }

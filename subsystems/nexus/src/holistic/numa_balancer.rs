@@ -11,6 +11,7 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
 use libm::sqrt;
 
 // ============================================================================
@@ -154,7 +155,10 @@ impl NumaDistanceMatrix {
                 distances[i * node_count + j] = if i == j { 10 } else { 20 };
             }
         }
-        Self { distances, node_count }
+        Self {
+            distances,
+            node_count,
+        }
     }
 
     /// Set distance
@@ -178,7 +182,11 @@ impl NumaDistanceMatrix {
 
     /// Find nearest node with capacity
     #[inline]
-    pub fn nearest_with_capacity(&self, from: usize, nodes: &BTreeMap<u32, NumaNode>) -> Option<u32> {
+    pub fn nearest_with_capacity(
+        &self,
+        from: usize,
+        nodes: &BTreeMap<u32, NumaNode>,
+    ) -> Option<u32> {
         let mut candidates: Vec<(u32, u32)> = Vec::new();
         for (&nid, node) in nodes {
             if nid as usize != from && node.free_pages > 0 && node.state != NumaNodeState::Offline {
@@ -260,7 +268,8 @@ impl HolisticNumaBalancer {
     /// Register node
     #[inline(always)]
     pub fn register_node(&mut self, node_id: u32, total_pages: u64, cpu_capacity: u32) {
-        self.nodes.insert(node_id, NumaNode::new(node_id, total_pages, cpu_capacity));
+        self.nodes
+            .insert(node_id, NumaNode::new(node_id, total_pages, cpu_capacity));
         self.update_stats();
     }
 
@@ -276,7 +285,9 @@ impl HolisticNumaBalancer {
         // Consider migration if access node has capacity
         if let Some(access) = self.nodes.get(&access_node) {
             if access.free_pages > 0 {
-                let dist = self.distances.distance(home_node as usize, access_node as usize);
+                let dist = self
+                    .distances
+                    .distance(home_node as usize, access_node as usize);
                 self.pending.push(NumaPageMigration {
                     pfn,
                     src_node: home_node,
@@ -300,13 +311,23 @@ impl HolisticNumaBalancer {
         }
 
         // Find pressured nodes and try to offload
-        let pressured: Vec<u32> = self.nodes.iter()
-            .filter(|(_, n)| matches!(n.state, NumaNodeState::Pressured | NumaNodeState::Overcommitted))
+        let pressured: Vec<u32> = self
+            .nodes
+            .iter()
+            .filter(|(_, n)| {
+                matches!(
+                    n.state,
+                    NumaNodeState::Pressured | NumaNodeState::Overcommitted
+                )
+            })
             .map(|(&id, _)| id)
             .collect();
 
         for &src_nid in &pressured {
-            if let Some(target) = self.distances.nearest_with_capacity(src_nid as usize, &self.nodes) {
+            if let Some(target) = self
+                .distances
+                .nearest_with_capacity(src_nid as usize, &self.nodes)
+            {
                 let dist = self.distances.distance(src_nid as usize, target as usize);
                 self.pending.push(NumaPageMigration {
                     pfn: 0, // placeholder
@@ -322,7 +343,10 @@ impl HolisticNumaBalancer {
 
     /// Execute pending migrations
     pub fn execute_migrations(&mut self, max_migrations: usize) -> usize {
-        let to_execute: Vec<NumaPageMigration> = self.pending.drain(..self.pending.len().min(max_migrations)).collect();
+        let to_execute: Vec<NumaPageMigration> = self
+            .pending
+            .drain(..self.pending.len().min(max_migrations))
+            .collect();
         let mut executed = 0;
 
         for mig in &to_execute {
@@ -344,11 +368,20 @@ impl HolisticNumaBalancer {
     }
 
     fn update_stats(&mut self) {
-        self.stats.active_nodes = self.nodes.values()
+        self.stats.active_nodes = self
+            .nodes
+            .values()
             .filter(|n| n.state != NumaNodeState::Offline)
             .count();
-        self.stats.pressured_nodes = self.nodes.values()
-            .filter(|n| matches!(n.state, NumaNodeState::Pressured | NumaNodeState::Overcommitted))
+        self.stats.pressured_nodes = self
+            .nodes
+            .values()
+            .filter(|n| {
+                matches!(
+                    n.state,
+                    NumaNodeState::Pressured | NumaNodeState::Overcommitted
+                )
+            })
             .count();
 
         let localities: Vec<f64> = self.nodes.values().map(|n| n.locality_ratio()).collect();
@@ -357,7 +390,11 @@ impl HolisticNumaBalancer {
             let mean = sum / localities.len() as f64;
             self.stats.avg_locality = mean;
 
-            let var: f64 = localities.iter().map(|l| (l - mean) * (l - mean)).sum::<f64>() / localities.len() as f64;
+            let var: f64 = localities
+                .iter()
+                .map(|l| (l - mean) * (l - mean))
+                .sum::<f64>()
+                / localities.len() as f64;
             self.stats.locality_imbalance = sqrt(var);
         }
         self.stats.total_migrations = self.total_migrations;

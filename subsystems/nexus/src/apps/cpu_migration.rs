@@ -9,8 +9,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Migration type
@@ -55,7 +54,13 @@ pub struct CpuMigrationEvent {
 }
 
 impl CpuMigrationEvent {
-    pub fn new(thread_id: u64, from: u32, to: u32, kind: CpuMigrationKind, reason: CpuMigrationReason) -> Self {
+    pub fn new(
+        thread_id: u64,
+        from: u32,
+        to: u32,
+        kind: CpuMigrationKind,
+        reason: CpuMigrationReason,
+    ) -> Self {
         let cost = match kind {
             CpuMigrationKind::IntraCore => 500,
             CpuMigrationKind::IntraPackage => 5_000,
@@ -132,9 +137,15 @@ impl ThreadCpuMigrationHistory {
 
     #[inline]
     pub fn migration_rate(&self, window_ns: u64, now: u64) -> f64 {
-        if window_ns == 0 { return 0.0; }
+        if window_ns == 0 {
+            return 0.0;
+        }
         let cutoff = now.saturating_sub(window_ns);
-        let recent = self.recent_events.iter().filter(|e| e.timestamp >= cutoff).count();
+        let recent = self
+            .recent_events
+            .iter()
+            .filter(|e| e.timestamp >= cutoff)
+            .count();
         recent as f64 / (window_ns as f64 / 1_000_000_000.0)
     }
 
@@ -150,7 +161,9 @@ impl ThreadCpuMigrationHistory {
 
     #[inline(always)]
     pub fn cross_numa_ratio(&self) -> f64 {
-        if self.total_migrations == 0 { return 0.0; }
+        if self.total_migrations == 0 {
+            return 0.0;
+        }
         self.cross_numa_count as f64 / self.total_migrations as f64
     }
 }
@@ -178,7 +191,8 @@ impl ProcessCpuMigrationProfile {
 
     #[inline(always)]
     pub fn register_thread(&mut self, thread_id: u64, cpu: u32) {
-        self.threads.entry(thread_id)
+        self.threads
+            .entry(thread_id)
             .or_insert_with(|| ThreadCpuMigrationHistory::new(thread_id, cpu, 32));
     }
 
@@ -193,19 +207,23 @@ impl ProcessCpuMigrationProfile {
 
         self.total_migrations += 1;
         self.total_cost_ns += cost;
-        if is_cross { self.total_cross_numa += 1; }
+        if is_cross {
+            self.total_cross_numa += 1;
+        }
     }
 
     #[inline]
     pub fn most_migrated_thread(&self) -> Option<u64> {
-        self.threads.values()
+        self.threads
+            .values()
             .max_by_key(|h| h.total_migrations)
             .map(|h| h.thread_id)
     }
 
     #[inline]
     pub fn bouncing_threads(&self) -> Vec<u64> {
-        self.threads.values()
+        self.threads
+            .values()
             .filter(|h| h.is_bouncing())
             .map(|h| h.thread_id)
             .collect()
@@ -240,7 +258,9 @@ impl AppCpuMigrationTracker {
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u64) {
-        self.processes.entry(pid).or_insert_with(|| ProcessCpuMigrationProfile::new(pid));
+        self.processes
+            .entry(pid)
+            .or_insert_with(|| ProcessCpuMigrationProfile::new(pid));
         self.recompute();
     }
 
@@ -273,7 +293,8 @@ impl AppCpuMigrationTracker {
 
     #[inline]
     pub fn high_migration_processes(&self, threshold: u64) -> Vec<u64> {
-        self.processes.values()
+        self.processes
+            .values()
             .filter(|p| p.total_migrations > threshold)
             .map(|p| p.pid)
             .collect()
@@ -285,7 +306,9 @@ impl AppCpuMigrationTracker {
         self.stats.total_migrations = self.processes.values().map(|p| p.total_migrations).sum();
         self.stats.total_cross_numa = self.processes.values().map(|p| p.total_cross_numa).sum();
         self.stats.total_cost_ns = self.processes.values().map(|p| p.total_cost_ns).sum();
-        self.stats.total_bouncing = self.processes.values()
+        self.stats.total_bouncing = self
+            .processes
+            .values()
             .flat_map(|p| p.threads.values())
             .filter(|h| h.is_bouncing())
             .count();

@@ -30,13 +30,13 @@
 //! | SlabPool    | O(1)   | O(1)   | O(1)   | Stack  |
 //! | BitSet      | O(1)   | O(1)   | O(1)   | Stack  |
 
-pub mod ring_buffer;
-pub mod fast_ema;
-pub mod flat_map;
-pub mod fast_hash;
 pub mod array_map;
-pub mod linear_map;
-pub mod inline_str;
-pub mod slab_pool;
 pub mod bitset;
+pub mod fast_ema;
+pub mod fast_hash;
+pub mod flat_map;
+pub mod inline_str;
+pub mod linear_map;
 pub mod math;
+pub mod ring_buffer;
+pub mod slab_pool;

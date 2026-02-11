@@ -15,7 +15,12 @@ pub enum HugePageSize {
 
 impl HugePageSize {
     #[inline(always)]
-    pub fn bytes(self) -> u64 { match self { Self::Size2M => 2 * 1024 * 1024, Self::Size1G => 1024 * 1024 * 1024 } }
+    pub fn bytes(self) -> u64 {
+        match self {
+            Self::Size2M => 2 * 1024 * 1024,
+            Self::Size1G => 1024 * 1024 * 1024,
+        }
+    }
 }
 
 /// THP policy
@@ -44,19 +49,43 @@ pub struct HugePagePool {
 
 impl HugePagePool {
     pub fn new(size: HugePageSize, total: u64) -> Self {
-        Self { size, total, free: total, reserved: 0, surplus: 0, alloc_count: 0, free_count: 0, fail_count: 0 }
+        Self {
+            size,
+            total,
+            free: total,
+            reserved: 0,
+            surplus: 0,
+            alloc_count: 0,
+            free_count: 0,
+            fail_count: 0,
+        }
     }
 
     #[inline(always)]
     pub fn alloc(&mut self) -> Option<u64> {
-        if self.free > 0 { self.free -= 1; self.alloc_count += 1; Some(self.alloc_count) }
-        else { self.fail_count += 1; None }
+        if self.free > 0 {
+            self.free -= 1;
+            self.alloc_count += 1;
+            Some(self.alloc_count)
+        } else {
+            self.fail_count += 1;
+            None
+        }
     }
 
     #[inline(always)]
-    pub fn free(&mut self) { self.free += 1; self.free_count += 1; }
+    pub fn free(&mut self) {
+        self.free += 1;
+        self.free_count += 1;
+    }
     #[inline(always)]
-    pub fn utilization(&self) -> f64 { if self.total == 0 { 0.0 } else { (self.total - self.free) as f64 / self.total as f64 } }
+    pub fn utilization(&self) -> f64 {
+        if self.total == 0 {
+            0.0
+        } else {
+            (self.total - self.free) as f64 / self.total as f64
+        }
+    }
 }
 
 /// THP collapse event
@@ -92,17 +121,27 @@ pub struct HolisticHugePageV2 {
 }
 
 impl HolisticHugePageV2 {
-    pub fn new() -> Self { Self { pools: BTreeMap::new(), thp_policy: ThpPolicy::Madvise, thp_events: Vec::new(), next_pool_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            pools: BTreeMap::new(),
+            thp_policy: ThpPolicy::Madvise,
+            thp_events: Vec::new(),
+            next_pool_id: 1,
+        }
+    }
 
     #[inline]
     pub fn add_pool(&mut self, size: HugePageSize, count: u64) -> u32 {
-        let id = self.next_pool_id; self.next_pool_id += 1;
+        let id = self.next_pool_id;
+        self.next_pool_id += 1;
         self.pools.insert(id, HugePagePool::new(size, count));
         id
     }
 
     #[inline(always)]
-    pub fn set_thp_policy(&mut self, policy: ThpPolicy) { self.thp_policy = policy; }
+    pub fn set_thp_policy(&mut self, policy: ThpPolicy) {
+        self.thp_policy = policy;
+    }
 
     #[inline(always)]
     pub fn alloc(&mut self, pool: u32) -> Option<u64> {
@@ -111,19 +150,50 @@ impl HolisticHugePageV2 {
 
     #[inline(always)]
     pub fn record_thp(&mut self, event: ThpCollapseEvent) {
-        if self.thp_events.len() >= 4096 { self.thp_events.drain(..2048); }
+        if self.thp_events.len() >= 4096 {
+            self.thp_events.drain(..2048);
+        }
         self.thp_events.push(event);
     }
 
     #[inline]
     pub fn stats(&self) -> HugePageV2Stats {
-        let total_2m: u64 = self.pools.values().filter(|p| p.size == HugePageSize::Size2M).map(|p| p.total).sum();
-        let free_2m: u64 = self.pools.values().filter(|p| p.size == HugePageSize::Size2M).map(|p| p.free).sum();
-        let total_1g: u64 = self.pools.values().filter(|p| p.size == HugePageSize::Size1G).map(|p| p.total).sum();
-        let free_1g: u64 = self.pools.values().filter(|p| p.size == HugePageSize::Size1G).map(|p| p.free).sum();
+        let total_2m: u64 = self
+            .pools
+            .values()
+            .filter(|p| p.size == HugePageSize::Size2M)
+            .map(|p| p.total)
+            .sum();
+        let free_2m: u64 = self
+            .pools
+            .values()
+            .filter(|p| p.size == HugePageSize::Size2M)
+            .map(|p| p.free)
+            .sum();
+        let total_1g: u64 = self
+            .pools
+            .values()
+            .filter(|p| p.size == HugePageSize::Size1G)
+            .map(|p| p.total)
+            .sum();
+        let free_1g: u64 = self
+            .pools
+            .values()
+            .filter(|p| p.size == HugePageSize::Size1G)
+            .map(|p| p.free)
+            .sum();
         let collapses = self.thp_events.iter().filter(|e| e.success).count() as u64;
         let failures = self.thp_events.iter().filter(|e| !e.success).count() as u64;
-        HugePageV2Stats { pools: self.pools.len() as u32, total_2m, free_2m, total_1g, free_1g, thp_collapses: collapses, thp_failures: failures, thp_policy: self.thp_policy as u8 }
+        HugePageV2Stats {
+            pools: self.pools.len() as u32,
+            total_2m,
+            free_2m,
+            total_1g,
+            free_1g,
+            thp_collapses: collapses,
+            thp_failures: failures,
+            thp_policy: self.thp_policy as u8,
+        }
     }
 }
 
@@ -335,7 +405,8 @@ impl HolisticHugePageV3 {
     #[inline(always)]
     pub fn enqueue_migration(&mut self, candidate: MigrationCandidate) {
         self.migration_queue.push(candidate);
-        self.migration_queue.sort_by(|a, b| a.estimated_cost.cmp(&b.estimated_cost));
+        self.migration_queue
+            .sort_by(|a, b| a.estimated_cost.cmp(&b.estimated_cost));
     }
 
     pub fn run_compaction(&mut self) -> u64 {

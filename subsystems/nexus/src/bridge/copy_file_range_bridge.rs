@@ -86,12 +86,20 @@ impl CopyRangeOp {
     #[inline(always)]
     pub fn throughput_bps(&self) -> u64 {
         let dur = self.end_ns.saturating_sub(self.start_ns);
-        if dur == 0 { 0 } else { (self.copied_len * 8 * 1_000_000_000) / dur }
+        if dur == 0 {
+            0
+        } else {
+            (self.copied_len * 8 * 1_000_000_000) / dur
+        }
     }
 
     #[inline(always)]
     pub fn completion_pct(&self) -> f64 {
-        if self.requested_len == 0 { 0.0 } else { (self.copied_len as f64 / self.requested_len as f64) * 100.0 }
+        if self.requested_len == 0 {
+            0.0
+        } else {
+            (self.copied_len as f64 / self.requested_len as f64) * 100.0
+        }
     }
 }
 
@@ -132,7 +140,16 @@ impl BridgeCopyFileRange {
         }
     }
 
-    pub fn start_copy(&mut self, src_fd: i32, dst_fd: i32, src_off: u64, dst_off: u64, len: u64, ts_ns: u64, mode: CopyRangeMode) -> u64 {
+    pub fn start_copy(
+        &mut self,
+        src_fd: i32,
+        dst_fd: i32,
+        src_off: u64,
+        dst_off: u64,
+        len: u64,
+        ts_ns: u64,
+        mode: CopyRangeMode,
+    ) -> u64 {
         let id = self.next_op_id;
         self.next_op_id += 1;
         let mut op = CopyRangeOp::new(id, src_fd, dst_fd, src_off, dst_off, len);
@@ -143,7 +160,7 @@ impl BridgeCopyFileRange {
             CopyRangeMode::Reflink => self.stats.reflink_ops += 1,
             CopyRangeMode::CoW => self.stats.cow_ops += 1,
             CopyRangeMode::FallbackCopy => self.stats.fallback_ops += 1,
-            _ => {}
+            _ => {},
         }
         id
     }
@@ -164,6 +181,10 @@ impl BridgeCopyFileRange {
 
     #[inline(always)]
     pub fn reflink_rate(&self) -> f64 {
-        if self.stats.total_ops == 0 { 0.0 } else { self.stats.reflink_ops as f64 / self.stats.total_ops as f64 }
+        if self.stats.total_ops == 0 {
+            0.0
+        } else {
+            self.stats.reflink_ops as f64 / self.stats.total_ops as f64
+        }
     }
 }

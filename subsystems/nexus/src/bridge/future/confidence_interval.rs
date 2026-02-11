@@ -13,7 +13,8 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -208,8 +209,7 @@ impl PredictorHistory {
 
         self.bias_ema = self.bias_ema * (1.0 - EMA_ALPHA) + residual * EMA_ALPHA;
         let sq_residual = residual * residual;
-        self.variance_ema =
-            self.variance_ema * (1.0 - EMA_ALPHA) + sq_residual * EMA_ALPHA;
+        self.variance_ema = self.variance_ema * (1.0 - EMA_ALPHA) + sq_residual * EMA_ALPHA;
     }
 
     fn stddev(&self) -> f32 {
@@ -315,7 +315,11 @@ impl BridgeConfidenceInterval {
     }
 
     /// Generate a prediction with confidence intervals using bootstrap resampling.
-    pub fn prediction_with_ci(&mut self, predictor_id: u64, point_estimate: f32) -> PredictionWithCI {
+    pub fn prediction_with_ci(
+        &mut self,
+        predictor_id: u64,
+        point_estimate: f32,
+    ) -> PredictionWithCI {
         self.stats.total_predictions_with_ci += 1;
 
         let hist = self.histories.get(&predictor_id);
@@ -374,8 +378,8 @@ impl BridgeConfidenceInterval {
 
         let alpha = 1.0 - level;
         let lower_idx = ((alpha / 2.0) * bootstrap_means.len() as f32) as usize;
-        let upper_idx =
-            (((1.0 - alpha / 2.0) * bootstrap_means.len() as f32) as usize).min(bootstrap_means.len() - 1);
+        let upper_idx = (((1.0 - alpha / 2.0) * bootstrap_means.len() as f32) as usize)
+            .min(bootstrap_means.len() - 1);
 
         let lower = bootstrap_means[lower_idx];
         let upper = bootstrap_means[upper_idx];
@@ -445,7 +449,11 @@ impl BridgeConfidenceInterval {
 
         for (i, &level) in CI_LEVELS.iter().enumerate() {
             let cal_key = (predictor_id, i as u32);
-            let scale = self.calibration.get(&cal_key).map(|c| c.scale_factor).unwrap_or(1.0);
+            let scale = self
+                .calibration
+                .get(&cal_key)
+                .map(|c| c.scale_factor)
+                .unwrap_or(1.0);
 
             let z_scores = [0.674f32, 1.645, 2.576];
             let half_width = stddev * z_scores[i] * scale;
@@ -482,18 +490,18 @@ impl BridgeConfidenceInterval {
                     sum_50 += cal.coverage_rate();
                     w_50 += cal.width_ema;
                     count_50 += 1;
-                }
+                },
                 1 => {
                     sum_90 += cal.coverage_rate();
                     w_90 += cal.width_ema;
                     count_90 += 1;
-                }
+                },
                 2 => {
                     sum_99 += cal.coverage_rate();
                     w_99 += cal.width_ema;
                     count_99 += 1;
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
         if count_50 > 0 {

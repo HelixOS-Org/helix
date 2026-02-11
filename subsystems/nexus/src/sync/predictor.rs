@@ -2,8 +2,7 @@
 //!
 //! Predicts lock wait times using linear regression.
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 
 use super::LockId;
 use crate::core::NexusTimestamp;

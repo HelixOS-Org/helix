@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // ENTROPY TYPES
@@ -269,7 +270,8 @@ impl HolisticEntropyTracker {
     /// Register source
     #[inline(always)]
     pub fn register_source(&mut self, source: EntropySource) {
-        self.sources.insert(source as u8, SourceTracker::new(source));
+        self.sources
+            .insert(source as u8, SourceTracker::new(source));
         self.update_stats();
     }
 
@@ -297,9 +299,8 @@ impl HolisticEntropyTracker {
         self.stats.total_pool_bits = self.pool.current_bits;
         self.stats.total_capacity = self.pool.capacity_bits;
         if !self.sources.is_empty() {
-            self.stats.avg_quality = self.sources.values()
-                .map(|s| s.quality)
-                .sum::<f64>() / self.sources.len() as f64;
+            self.stats.avg_quality =
+                self.sources.values().map(|s| s.quality).sum::<f64>() / self.sources.len() as f64;
         }
         self.stats.pool_health = self.pool.health() as u8;
     }

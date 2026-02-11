@@ -42,28 +42,56 @@ pub struct Claim {
 
 impl Claim {
     pub fn new(id: u64, resource: u64, owner: u64, ctype: ClaimType, prio: i32, now: u64) -> Self {
-        Self { id, resource_id: resource, owner, claim_type: ctype, state: ClaimState::Pending, priority: prio, created_at: now, expires_at: 0, granted_at: 0 }
+        Self {
+            id,
+            resource_id: resource,
+            owner,
+            claim_type: ctype,
+            state: ClaimState::Pending,
+            priority: prio,
+            created_at: now,
+            expires_at: 0,
+            granted_at: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn grant(&mut self, now: u64) { self.state = ClaimState::Granted; self.granted_at = now; }
+    pub fn grant(&mut self, now: u64) {
+        self.state = ClaimState::Granted;
+        self.granted_at = now;
+    }
     #[inline(always)]
-    pub fn revoke(&mut self) { self.state = ClaimState::Revoked; }
+    pub fn revoke(&mut self) {
+        self.state = ClaimState::Revoked;
+    }
     #[inline(always)]
-    pub fn expire(&mut self) { self.state = ClaimState::Expired; }
+    pub fn expire(&mut self) {
+        self.state = ClaimState::Expired;
+    }
 
     #[inline(always)]
-    pub fn is_active(&self) -> bool { self.state == ClaimState::Granted }
+    pub fn is_active(&self) -> bool {
+        self.state == ClaimState::Granted
+    }
     #[inline(always)]
     pub fn check_expiry(&mut self, now: u64) -> bool {
-        if self.expires_at > 0 && now >= self.expires_at && self.is_active() { self.expire(); true } else { false }
+        if self.expires_at > 0 && now >= self.expires_at && self.is_active() {
+            self.expire();
+            true
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn conflicts_with(&self, other: &Claim) -> bool {
-        if self.resource_id != other.resource_id { return false; }
-        matches!((self.claim_type, other.claim_type),
-            (ClaimType::Exclusive, _) | (_, ClaimType::Exclusive))
+        if self.resource_id != other.resource_id {
+            return false;
+        }
+        matches!(
+            (self.claim_type, other.claim_type),
+            (ClaimType::Exclusive, _) | (_, ClaimType::Exclusive)
+        )
     }
 }
 
@@ -86,32 +114,85 @@ pub struct CoopClaimMgr {
 }
 
 impl CoopClaimMgr {
-    pub fn new() -> Self { Self { claims: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            claims: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
-    pub fn claim(&mut self, resource: u64, owner: u64, ctype: ClaimType, prio: i32, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+    pub fn claim(
+        &mut self,
+        resource: u64,
+        owner: u64,
+        ctype: ClaimType,
+        prio: i32,
+        now: u64,
+    ) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
         let mut c = Claim::new(id, resource, owner, ctype, prio, now);
-        let conflicts: Vec<u64> = self.claims.values()
-            .filter(|e| e.is_active() && c.conflicts_with(e)).map(|e| e.id).collect();
-        if conflicts.is_empty() { c.grant(now); }
+        let conflicts: Vec<u64> = self
+            .claims
+            .values()
+            .filter(|e| e.is_active() && c.conflicts_with(e))
+            .map(|e| e.id)
+            .collect();
+        if conflicts.is_empty() {
+            c.grant(now);
+        }
         self.claims.insert(id, c);
         id
     }
 
     #[inline(always)]
     pub fn release(&mut self, id: u64) {
-        if let Some(c) = self.claims.get_mut(&id) { c.revoke(); }
+        if let Some(c) = self.claims.get_mut(&id) {
+            c.revoke();
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> ClaimMgrStats {
-        let granted = self.claims.values().filter(|c| c.state == ClaimState::Granted).count() as u32;
-        let pending = self.claims.values().filter(|c| c.state == ClaimState::Pending).count() as u32;
-        let contested = self.claims.values().filter(|c| c.state == ClaimState::Contested).count() as u32;
-        let revoked = self.claims.values().filter(|c| c.state == ClaimState::Revoked).count() as u64;
-        let lats: Vec<u64> = self.claims.values().filter(|c| c.granted_at > 0).map(|c| c.granted_at - c.created_at).collect();
-        let avg = if lats.is_empty() { 0 } else { lats.iter().sum::<u64>() / lats.len() as u64 };
-        ClaimMgrStats { total_claims: self.claims.len() as u32, granted, pending, contested, total_revocations: revoked, avg_grant_latency_ns: avg }
+        let granted = self
+            .claims
+            .values()
+            .filter(|c| c.state == ClaimState::Granted)
+            .count() as u32;
+        let pending = self
+            .claims
+            .values()
+            .filter(|c| c.state == ClaimState::Pending)
+            .count() as u32;
+        let contested = self
+            .claims
+            .values()
+            .filter(|c| c.state == ClaimState::Contested)
+            .count() as u32;
+        let revoked = self
+            .claims
+            .values()
+            .filter(|c| c.state == ClaimState::Revoked)
+            .count() as u64;
+        let lats: Vec<u64> = self
+            .claims
+            .values()
+            .filter(|c| c.granted_at > 0)
+            .map(|c| c.granted_at - c.created_at)
+            .collect();
+        let avg = if lats.is_empty() {
+            0
+        } else {
+            lats.iter().sum::<u64>() / lats.len() as u64
+        };
+        ClaimMgrStats {
+            total_claims: self.claims.len() as u32,
+            granted,
+            pending,
+            contested,
+            total_revocations: revoked,
+            avg_grant_latency_ns: avg,
+        }
     }
 }

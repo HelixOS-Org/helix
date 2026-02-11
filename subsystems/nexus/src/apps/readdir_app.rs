@@ -242,7 +242,13 @@ impl DirentV2Entry {
 
     #[inline(always)]
     pub fn is_special(&self) -> bool {
-        matches!(self.entry_type, DirentV2Type::CharDevice | DirentV2Type::BlockDevice | DirentV2Type::Socket | DirentV2Type::Fifo)
+        matches!(
+            self.entry_type,
+            DirentV2Type::CharDevice
+                | DirentV2Type::BlockDevice
+                | DirentV2Type::Socket
+                | DirentV2Type::Fifo
+        )
     }
 }
 
@@ -301,7 +307,11 @@ impl ReaddirV2Stream {
 
     #[inline(always)]
     pub fn avg_entry_size(&self) -> u64 {
-        if self.entries_read == 0 { 0 } else { self.total_bytes / self.entries_read }
+        if self.entries_read == 0 {
+            0
+        } else {
+            self.total_bytes / self.entries_read
+        }
     }
 }
 
@@ -337,7 +347,8 @@ impl AppReaddirV2 {
 
     #[inline(always)]
     pub fn open_dir(&mut self, fd: i32, buffer_size: u32) {
-        self.streams.insert(fd, ReaddirV2Stream::new(fd, buffer_size));
+        self.streams
+            .insert(fd, ReaddirV2Stream::new(fd, buffer_size));
         self.stats.total_streams += 1;
     }
 
@@ -443,7 +454,13 @@ impl AppReaddirV3Manager {
         fd
     }
 
-    pub fn add_entry(&mut self, fd: u64, name: &str, entry_type: AppDirEntryType, inode: u64) -> bool {
+    pub fn add_entry(
+        &mut self,
+        fd: u64,
+        name: &str,
+        entry_type: AppDirEntryType,
+        inode: u64,
+    ) -> bool {
         if let Some(stream) = self.streams.get_mut(&fd) {
             let offset = stream.entries.len() as u64;
             let entry = AppDirEntryV3 {

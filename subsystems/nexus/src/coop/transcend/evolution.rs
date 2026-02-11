@@ -9,10 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -59,7 +59,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(val: u64, lo: u64, hi: u64) -> u64 {
-    if val < lo { lo } else if val > hi { hi } else { val }
+    if val < lo {
+        lo
+    } else if val > hi {
+        hi
+    } else {
+        val
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -177,11 +183,7 @@ impl CoopEvolution {
     // -----------------------------------------------------------------------
     // evolve_fairness — create and evolve a fairness protocol genome
     // -----------------------------------------------------------------------
-    pub fn evolve_fairness(
-        &mut self,
-        seed_genes: &[u64],
-        observed_fairness: u64,
-    ) -> u64 {
+    pub fn evolve_fairness(&mut self, seed_genes: &[u64], observed_fairness: u64) -> u64 {
         self.current_tick += 1;
 
         let mut genes = seed_genes.to_vec();
@@ -201,9 +203,9 @@ impl CoopEvolution {
             genes.push(xorshift64(&mut self.rng_state) % 100);
         }
 
-        let fingerprint = genes.iter().fold(FNV_OFFSET, |acc, &g| {
-            acc ^ fnv1a(&g.to_le_bytes())
-        });
+        let fingerprint = genes
+            .iter()
+            .fold(FNV_OFFSET, |acc, &g| acc ^ fnv1a(&g.to_le_bytes()));
         let gid = fingerprint ^ self.current_tick;
 
         let fitness = clamp(observed_fairness, FITNESS_FLOOR, 100);
@@ -254,29 +256,29 @@ impl CoopEvolution {
                     // Point mutation
                     let delta = xorshift64(&mut self.rng_state) % 20;
                     new_genes[idx] = new_genes[idx].wrapping_add(delta);
-                }
+                },
                 1 => {
                     // Deletion
                     if new_genes.len() > 1 {
                         new_genes.remove(idx);
                     }
-                }
+                },
                 2 => {
                     // Insertion
                     let val = xorshift64(&mut self.rng_state) % 100;
                     new_genes.insert(idx, val);
-                }
+                },
                 _ => {
                     // Inversion
                     let new_val = 100u64.saturating_sub(new_genes[idx] % 100);
                     new_genes[idx] = new_val;
-                }
+                },
             }
         }
 
-        let fp = new_genes.iter().fold(FNV_OFFSET, |acc, &g| {
-            acc ^ fnv1a(&g.to_le_bytes())
-        });
+        let fp = new_genes
+            .iter()
+            .fold(FNV_OFFSET, |acc, &g| acc ^ fnv1a(&g.to_le_bytes()));
         let child_id = fp ^ self.current_tick;
 
         let child = Genome {
@@ -317,7 +319,11 @@ impl CoopEvolution {
         let r = xorshift64(&mut self.rng_state) % 100;
         if r >= CROSSOVER_RATE {
             // No crossover — return clone of fitter parent
-            return if ga.fitness >= gb.fitness { parent_a_id } else { parent_b_id };
+            return if ga.fitness >= gb.fitness {
+                parent_a_id
+            } else {
+                parent_b_id
+            };
         }
 
         let min_len = core::cmp::min(ga.genes.len(), gb.genes.len());
@@ -346,9 +352,9 @@ impl CoopEvolution {
             child_genes[idx] = child_genes[idx].wrapping_add(xorshift64(&mut self.rng_state) % 10);
         }
 
-        let fp = child_genes.iter().fold(FNV_OFFSET, |acc, &g| {
-            acc ^ fnv1a(&g.to_le_bytes())
-        });
+        let fp = child_genes
+            .iter()
+            .fold(FNV_OFFSET, |acc, &g| acc ^ fnv1a(&g.to_le_bytes()));
         let child_id = fp ^ self.current_tick;
 
         let child_fitness = (ga.fitness + gb.fitness) / 2;
@@ -417,7 +423,11 @@ impl CoopEvolution {
                 champion_id: gid,
                 generation: self.stats.current_generation,
                 fitness,
-                fingerprint: self.population.get(&gid).map(|g| g.fingerprint).unwrap_or(0),
+                fingerprint: self
+                    .population
+                    .get(&gid)
+                    .map(|g| g.fingerprint)
+                    .unwrap_or(0),
                 gene_count,
                 crowned_tick: self.current_tick,
             };
@@ -483,14 +493,15 @@ impl CoopEvolution {
             (self.population.len() as u64 * ELITE_FRACTION_NUM / ELITE_FRACTION_DEN) as usize,
             1,
         );
-        let mut sorted_fitness: Vec<(u64, u64)> = self
-            .fitness_index
-            .iter()
-            .map(|(k, f)| (k, f))
-            .collect();
+        let mut sorted_fitness: Vec<(u64, u64)> =
+            self.fitness_index.iter().map(|(k, f)| (k, f)).collect();
         sorted_fitness.sort_by(|a, b| b.1.cmp(&a.1));
 
-        let survivors: Vec<u64> = sorted_fitness.iter().take(elite_count).map(|(k, _)| *k).collect();
+        let survivors: Vec<u64> = sorted_fitness
+            .iter()
+            .take(elite_count)
+            .map(|(k, _)| *k)
+            .collect();
         let to_remove: Vec<u64> = self
             .population
             .keys()

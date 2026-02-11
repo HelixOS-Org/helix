@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Vector clock
 #[derive(Debug, Clone)]
@@ -39,7 +40,11 @@ impl PartialEq for VectorClock {
 impl Eq for VectorClock {}
 
 impl VectorClock {
-    pub fn new() -> Self { Self { entries: LinearMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            entries: LinearMap::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn increment(&mut self, node_id: u64) {
@@ -56,7 +61,9 @@ impl VectorClock {
     pub fn merge(&mut self, other: &VectorClock) {
         for (node, counter) in other.entries.iter() {
             let entry = self.entries.entry(node).or_insert(0);
-            if counter > *entry { *entry = counter; }
+            if counter > *entry {
+                *entry = counter;
+            }
         }
     }
 
@@ -64,8 +71,12 @@ impl VectorClock {
         let mut at_least_one_less = false;
         for (node, counter) in self.entries.iter() {
             let other_counter = other.get(node);
-            if counter > other_counter { return false; }
-            if counter < other_counter { at_least_one_less = true; }
+            if counter > other_counter {
+                return false;
+            }
+            if counter < other_counter {
+                at_least_one_less = true;
+            }
         }
         // Check for nodes in other not in self
         for (node, counter) in other.entries.iter() {
@@ -87,7 +98,9 @@ impl VectorClock {
     }
 
     #[inline(always)]
-    pub fn size(&self) -> usize { self.entries.len() }
+    pub fn size(&self) -> usize {
+        self.entries.len()
+    }
 }
 
 /// Causal event
@@ -105,11 +118,22 @@ pub struct CausalEvent {
 
 impl CausalEvent {
     pub fn new(id: u64, node: u64, clock: VectorClock, ts: u64) -> Self {
-        Self { id, node_id: node, clock, timestamp: ts, payload_hash: 0, dependencies: Vec::new(), delivered: false, delivery_ts: None }
+        Self {
+            id,
+            node_id: node,
+            clock,
+            timestamp: ts,
+            payload_hash: 0,
+            dependencies: Vec::new(),
+            delivered: false,
+            delivery_ts: None,
+        }
     }
 
     #[inline(always)]
-    pub fn add_dependency(&mut self, dep_id: u64) { self.dependencies.push(dep_id); }
+    pub fn add_dependency(&mut self, dep_id: u64) {
+        self.dependencies.push(dep_id);
+    }
 }
 
 /// Delivery order
@@ -133,13 +157,24 @@ pub struct CausalBarrier {
 
 impl CausalBarrier {
     pub fn new(id: u64, expected: Vec<u64>, ts: u64) -> Self {
-        Self { id, expected_nodes: expected, received_clocks: BTreeMap::new(), is_complete: false, created_ts: ts, completed_ts: None }
+        Self {
+            id,
+            expected_nodes: expected,
+            received_clocks: BTreeMap::new(),
+            is_complete: false,
+            created_ts: ts,
+            completed_ts: None,
+        }
     }
 
     #[inline]
     pub fn receive(&mut self, node: u64, clock: VectorClock, now: u64) {
         self.received_clocks.insert(node, clock);
-        if self.expected_nodes.iter().all(|n| self.received_clocks.contains_key(n)) {
+        if self
+            .expected_nodes
+            .iter()
+            .all(|n| self.received_clocks.contains_key(n))
+        {
             self.is_complete = true;
             self.completed_ts = Some(now);
         }
@@ -148,7 +183,9 @@ impl CausalBarrier {
     #[inline]
     pub fn merged_clock(&self) -> VectorClock {
         let mut merged = VectorClock::new();
-        for clock in self.received_clocks.values() { merged.merge(clock); }
+        for clock in self.received_clocks.values() {
+            merged.merge(clock);
+        }
         merged
     }
 }
@@ -171,9 +208,14 @@ pub struct NodeCausalState {
 impl NodeCausalState {
     pub fn new(node_id: u64) -> Self {
         Self {
-            node_id, clock: VectorClock::new(), pending_events: Vec::new(),
-            delivered_events: Vec::new(), last_delivered_clock: VectorClock::new(),
-            events_sent: 0, events_delivered: 0, events_buffered: 0,
+            node_id,
+            clock: VectorClock::new(),
+            pending_events: Vec::new(),
+            delivered_events: Vec::new(),
+            last_delivered_clock: VectorClock::new(),
+            events_sent: 0,
+            events_delivered: 0,
+            events_buffered: 0,
             out_of_order_count: 0,
         }
     }
@@ -190,9 +232,13 @@ impl NodeCausalState {
         // For causal delivery: event's clock[source] == delivered_clock[source] + 1
         // and for all other j: event's clock[j] <= delivered_clock[j]
         let expected = self.last_delivered_clock.get(source_node) + 1;
-        if event_clock.get(source_node) != expected { return false; }
+        if event_clock.get(source_node) != expected {
+            return false;
+        }
         for (node, counter) in event_clock.entries.iter() {
-            if node as u64 != source_node && counter > self.last_delivered_clock.get(node as u64) { return false; }
+            if node as u64 != source_node && counter > self.last_delivered_clock.get(node as u64) {
+                return false;
+            }
         }
         true
     }
@@ -231,29 +277,45 @@ pub struct CoopCausalOrder {
 
 impl CoopCausalOrder {
     pub fn new() -> Self {
-        Self { nodes: BTreeMap::new(), events: BTreeMap::new(), barriers: BTreeMap::new(), stats: CausalOrderStats::default(), next_id: 1 }
+        Self {
+            nodes: BTreeMap::new(),
+            events: BTreeMap::new(),
+            barriers: BTreeMap::new(),
+            stats: CausalOrderStats::default(),
+            next_id: 1,
+        }
     }
 
     #[inline(always)]
     pub fn add_node(&mut self, node_id: u64) {
-        self.nodes.entry(node_id).or_insert_with(|| NodeCausalState::new(node_id));
+        self.nodes
+            .entry(node_id)
+            .or_insert_with(|| NodeCausalState::new(node_id));
     }
 
     #[inline]
     pub fn send(&mut self, source_node: u64, ts: u64) -> Option<u64> {
         let clock = self.nodes.get_mut(&source_node)?.send_event();
-        let id = self.next_id; self.next_id += 1;
-        self.events.insert(id, CausalEvent::new(id, source_node, clock, ts));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.events
+            .insert(id, CausalEvent::new(id, source_node, clock, ts));
         Some(id)
     }
 
     pub fn receive(&mut self, dest_node: u64, event_id: u64) -> bool {
-        let (source, clock) = if let Some(e) = self.events.get(&event_id) { (e.node_id, e.clock.clone()) } else { return false; };
+        let (source, clock) = if let Some(e) = self.events.get(&event_id) {
+            (e.node_id, e.clock.clone())
+        } else {
+            return false;
+        };
         if let Some(node) = self.nodes.get_mut(&dest_node) {
             if node.can_deliver(&clock, source) {
                 node.mark_delivered(event_id, &clock);
                 node.clock.merge(&clock);
-                if let Some(e) = self.events.get_mut(&event_id) { e.delivered = true; }
+                if let Some(e) = self.events.get_mut(&event_id) {
+                    e.delivered = true;
+                }
                 return true;
             } else {
                 node.pending_events.push(event_id);
@@ -265,14 +327,18 @@ impl CoopCausalOrder {
 
     #[inline]
     pub fn create_barrier(&mut self, expected: Vec<u64>, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.barriers.insert(id, CausalBarrier::new(id, expected, ts));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.barriers
+            .insert(id, CausalBarrier::new(id, expected, ts));
         id
     }
 
     #[inline(always)]
     pub fn barrier_receive(&mut self, barrier_id: u64, node: u64, clock: VectorClock, now: u64) {
-        if let Some(b) = self.barriers.get_mut(&barrier_id) { b.receive(node, clock, now); }
+        if let Some(b) = self.barriers.get_mut(&barrier_id) {
+            b.receive(node, clock, now);
+        }
     }
 
     pub fn try_deliver_pending(&mut self, dest_node: u64) -> Vec<u64> {
@@ -282,7 +348,10 @@ impl CoopCausalOrder {
             if let Some(node) = self.nodes.get(&dest_node) {
                 for &eid in &node.pending_events {
                     if let Some(e) = self.events.get(&eid) {
-                        if node.can_deliver(&e.clock, e.node_id) { found = Some((eid, e.clock.clone())); break; }
+                        if node.can_deliver(&e.clock, e.node_id) {
+                            found = Some((eid, e.clock.clone()));
+                            break;
+                        }
                     }
                 }
             }
@@ -291,9 +360,13 @@ impl CoopCausalOrder {
                     node.mark_delivered(eid, &clock);
                     node.clock.merge(&clock);
                 }
-                if let Some(e) = self.events.get_mut(&eid) { e.delivered = true; }
+                if let Some(e) = self.events.get_mut(&eid) {
+                    e.delivered = true;
+                }
                 delivered.push(eid);
-            } else { break; }
+            } else {
+                break;
+            }
         }
         delivered
     }
@@ -303,13 +376,24 @@ impl CoopCausalOrder {
         self.stats.total_nodes = self.nodes.len();
         self.stats.total_events = self.events.len();
         self.stats.delivered_events = self.events.values().filter(|e| e.delivered).count() as u64;
-        self.stats.pending_events = self.nodes.values().map(|n| n.pending_events.len() as u64).sum();
+        self.stats.pending_events = self
+            .nodes
+            .values()
+            .map(|n| n.pending_events.len() as u64)
+            .sum();
         self.stats.out_of_order_total = self.nodes.values().map(|n| n.out_of_order_count).sum();
         self.stats.active_barriers = self.barriers.values().filter(|b| !b.is_complete).count();
         self.stats.completed_barriers = self.barriers.values().filter(|b| b.is_complete).count();
-        self.stats.max_clock_size = self.nodes.values().map(|n| n.clock.size()).max().unwrap_or(0);
+        self.stats.max_clock_size = self
+            .nodes
+            .values()
+            .map(|n| n.clock.size())
+            .max()
+            .unwrap_or(0);
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &CausalOrderStats { &self.stats }
+    pub fn stats(&self) -> &CausalOrderStats {
+        &self.stats
+    }
 }

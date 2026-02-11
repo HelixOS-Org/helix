@@ -8,11 +8,11 @@ use alloc::collections::BTreeMap;
 /// Page table level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PtLevel {
-    Pml5,  // 5-level paging
-    Pml4,  // PML4/PGD
-    Pdpt,  // Page Directory Pointer Table
-    Pd,    // Page Directory
-    Pt,    // Page Table
+    Pml5, // 5-level paging
+    Pml4, // PML4/PGD
+    Pdpt, // Page Directory Pointer Table
+    Pd,   // Page Directory
+    Pt,   // Page Table
 }
 
 /// Page flags
@@ -31,21 +31,37 @@ impl PageFlags {
     pub const GLOBAL: u64 = 1 << 8;
     pub const NO_EXECUTE: u64 = 1 << 63;
 
-    pub fn new() -> Self { Self(0) }
+    pub fn new() -> Self {
+        Self(0)
+    }
     #[inline(always)]
-    pub fn set(&mut self, flag: u64) { self.0 |= flag; }
+    pub fn set(&mut self, flag: u64) {
+        self.0 |= flag;
+    }
     #[inline(always)]
-    pub fn clear(&mut self, flag: u64) { self.0 &= !flag; }
+    pub fn clear(&mut self, flag: u64) {
+        self.0 &= !flag;
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u64) -> bool { self.0 & flag != 0 }
+    pub fn has(&self, flag: u64) -> bool {
+        self.0 & flag != 0
+    }
     #[inline(always)]
-    pub fn is_present(&self) -> bool { self.has(Self::PRESENT) }
+    pub fn is_present(&self) -> bool {
+        self.has(Self::PRESENT)
+    }
     #[inline(always)]
-    pub fn is_writable(&self) -> bool { self.has(Self::WRITABLE) }
+    pub fn is_writable(&self) -> bool {
+        self.has(Self::WRITABLE)
+    }
     #[inline(always)]
-    pub fn is_user(&self) -> bool { self.has(Self::USER) }
+    pub fn is_user(&self) -> bool {
+        self.has(Self::USER)
+    }
     #[inline(always)]
-    pub fn is_huge(&self) -> bool { self.has(Self::HUGE) }
+    pub fn is_huge(&self) -> bool {
+        self.has(Self::HUGE)
+    }
 }
 
 /// Page table entry
@@ -60,7 +76,13 @@ pub struct PtEntry {
 
 impl PtEntry {
     pub fn new(vaddr: u64, paddr: u64, flags: PageFlags, level: PtLevel) -> Self {
-        Self { vaddr, paddr, flags, level, access_count: 0 }
+        Self {
+            vaddr,
+            paddr,
+            flags,
+            level,
+            access_count: 0,
+        }
     }
 
     #[inline]
@@ -74,7 +96,9 @@ impl PtEntry {
     }
 
     #[inline(always)]
-    pub fn frame_number(&self) -> u64 { self.paddr >> 12 }
+    pub fn frame_number(&self) -> u64 {
+        self.paddr >> 12
+    }
 }
 
 /// Address space
@@ -92,8 +116,13 @@ pub struct AddressSpace {
 impl AddressSpace {
     pub fn new(id: u64, root: u64, levels: u8) -> Self {
         Self {
-            id, root_paddr: root, entries: BTreeMap::new(),
-            total_mapped: 0, page_faults: 0, tlb_flushes: 0, levels,
+            id,
+            root_paddr: root,
+            entries: BTreeMap::new(),
+            total_mapped: 0,
+            page_faults: 0,
+            tlb_flushes: 0,
+            levels,
         }
     }
 
@@ -155,7 +184,12 @@ pub struct HolisticPageTable {
 }
 
 impl HolisticPageTable {
-    pub fn new() -> Self { Self { spaces: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            spaces: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn create_space(&mut self, root: u64, levels: u8) -> u64 {
@@ -167,7 +201,9 @@ impl HolisticPageTable {
 
     #[inline(always)]
     pub fn map(&mut self, space: u64, vaddr: u64, paddr: u64, flags: PageFlags, level: PtLevel) {
-        if let Some(s) = self.spaces.get_mut(&space) { s.map_page(vaddr, paddr, flags, level); }
+        if let Some(s) = self.spaces.get_mut(&space) {
+            s.map_page(vaddr, paddr, flags, level);
+        }
     }
 
     #[inline(always)]
@@ -185,12 +221,26 @@ impl HolisticPageTable {
         let mapped: u64 = self.spaces.values().map(|s| s.total_mapped).sum();
         let faults: u64 = self.spaces.values().map(|s| s.page_faults).sum();
         let flushes: u64 = self.spaces.values().map(|s| s.tlb_flushes).sum();
-        let huge_2m = self.spaces.values().flat_map(|s| s.entries.values()).filter(|e| matches!(e.level, PtLevel::Pd) && e.flags.is_huge()).count() as u32;
-        let huge_1g = self.spaces.values().flat_map(|s| s.entries.values()).filter(|e| matches!(e.level, PtLevel::Pdpt) && e.flags.is_huge()).count() as u32;
+        let huge_2m = self
+            .spaces
+            .values()
+            .flat_map(|s| s.entries.values())
+            .filter(|e| matches!(e.level, PtLevel::Pd) && e.flags.is_huge())
+            .count() as u32;
+        let huge_1g = self
+            .spaces
+            .values()
+            .flat_map(|s| s.entries.values())
+            .filter(|e| matches!(e.level, PtLevel::Pdpt) && e.flags.is_huge())
+            .count() as u32;
         PageTableStats {
-            total_address_spaces: self.spaces.len() as u32, total_mappings: mappings,
-            total_mapped_bytes: mapped, total_page_faults: faults,
-            total_tlb_flushes: flushes, huge_pages_2m: huge_2m, huge_pages_1g: huge_1g,
+            total_address_spaces: self.spaces.len() as u32,
+            total_mappings: mappings,
+            total_mapped_bytes: mapped,
+            total_page_faults: faults,
+            total_tlb_flushes: flushes,
+            huge_pages_2m: huge_2m,
+            huge_pages_1g: huge_1g,
         }
     }
 }

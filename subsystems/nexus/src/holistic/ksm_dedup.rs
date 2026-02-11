@@ -31,7 +31,10 @@ impl PageFingerprint {
             h2 ^= b as u64;
             h2 = h2.wrapping_mul(0x00000100000001b3);
         }
-        Self { hash_high: h1, hash_low: h2 }
+        Self {
+            hash_high: h1,
+            hash_low: h2,
+        }
     }
 
     #[inline(always)]
@@ -66,9 +69,17 @@ pub struct KsmPage {
 impl KsmPage {
     pub fn new(addr: u64, owner: u64) -> Self {
         Self {
-            page_addr: addr, fingerprint: PageFingerprint { hash_high: 0, hash_low: 0 },
-            state: KsmPageState::Unscanned, share_count: 1, cow_breaks: 0,
-            owner_process: owner, last_scan_ts: 0, stable_since: 0,
+            page_addr: addr,
+            fingerprint: PageFingerprint {
+                hash_high: 0,
+                hash_low: 0,
+            },
+            state: KsmPageState::Unscanned,
+            share_count: 1,
+            cow_breaks: 0,
+            owner_process: owner,
+            last_scan_ts: 0,
+            stable_since: 0,
         }
     }
 
@@ -95,7 +106,11 @@ impl KsmPage {
 
     #[inline(always)]
     pub fn savings_pages(&self) -> u32 {
-        if self.share_count > 1 { self.share_count - 1 } else { 0 }
+        if self.share_count > 1 {
+            self.share_count - 1
+        } else {
+            0
+        }
     }
 }
 
@@ -110,7 +125,12 @@ pub struct StableTreeNode {
 
 impl StableTreeNode {
     pub fn new(fp: PageFingerprint, addr: u64) -> Self {
-        Self { fingerprint: fp, representative_addr: addr, merged_pages: Vec::new(), total_shares: 1 }
+        Self {
+            fingerprint: fp,
+            representative_addr: addr,
+            merged_pages: Vec::new(),
+            total_shares: 1,
+        }
     }
 
     #[inline(always)]
@@ -121,7 +141,11 @@ impl StableTreeNode {
 
     #[inline(always)]
     pub fn savings(&self) -> u32 {
-        if self.total_shares > 1 { self.total_shares - 1 } else { 0 }
+        if self.total_shares > 1 {
+            self.total_shares - 1
+        } else {
+            0
+        }
     }
 }
 
@@ -138,7 +162,14 @@ pub struct ProcessKsmInfo {
 
 impl ProcessKsmInfo {
     pub fn new(pid: u64) -> Self {
-        Self { process_id: pid, pages_scanned: 0, pages_shared: 0, pages_sharing: 0, cow_breaks: 0, savings_bytes: 0 }
+        Self {
+            process_id: pid,
+            pages_scanned: 0,
+            pages_shared: 0,
+            pages_sharing: 0,
+            cow_breaks: 0,
+            savings_bytes: 0,
+        }
     }
 }
 
@@ -156,9 +187,12 @@ pub struct KsmScanConfig {
 impl Default for KsmScanConfig {
     fn default() -> Self {
         Self {
-            pages_per_scan: 100, sleep_interval_ms: 200,
-            max_merge_ratio: 0.5, cow_break_threshold: 10,
-            adaptive_scan: true, min_page_age_ms: 1000,
+            pages_per_scan: 100,
+            sleep_interval_ms: 200,
+            max_merge_ratio: 0.5,
+            cow_break_threshold: 10,
+            adaptive_scan: true,
+            min_page_age_ms: 1000,
         }
     }
 }
@@ -193,17 +227,23 @@ pub struct HolisticKsmDedup {
 impl HolisticKsmDedup {
     pub fn new(config: KsmScanConfig) -> Self {
         Self {
-            pages: BTreeMap::new(), stable_tree: BTreeMap::new(),
-            unstable_pages: Vec::new(), process_info: BTreeMap::new(),
-            config, stats: KsmDedupStats::default(),
-            scan_cursor: 0, current_ts: 0,
+            pages: BTreeMap::new(),
+            stable_tree: BTreeMap::new(),
+            unstable_pages: Vec::new(),
+            process_info: BTreeMap::new(),
+            config,
+            stats: KsmDedupStats::default(),
+            scan_cursor: 0,
+            current_ts: 0,
         }
     }
 
     #[inline(always)]
     pub fn register_page(&mut self, addr: u64, owner: u64) {
         self.pages.insert(addr, KsmPage::new(addr, owner));
-        self.process_info.entry(owner).or_insert_with(|| ProcessKsmInfo::new(owner));
+        self.process_info
+            .entry(owner)
+            .or_insert_with(|| ProcessKsmInfo::new(owner));
     }
 
     pub fn scan_page(&mut self, addr: u64, content: &[u8], ts: u64) {
@@ -278,11 +318,14 @@ impl HolisticKsmDedup {
 
     #[inline]
     pub fn adapt_scan_rate(&mut self) {
-        if !self.config.adaptive_scan { return; }
+        if !self.config.adaptive_scan {
+            return;
+        }
         let merge_rate = self.stats.merge_rate;
         if merge_rate > 0.3 {
             self.config.pages_per_scan = (self.config.pages_per_scan + 50).min(1000);
-            self.config.sleep_interval_ms = (self.config.sleep_interval_ms.saturating_sub(50)).max(50);
+            self.config.sleep_interval_ms =
+                (self.config.sleep_interval_ms.saturating_sub(50)).max(50);
         } else if merge_rate < 0.05 {
             self.config.pages_per_scan = (self.config.pages_per_scan.saturating_sub(20)).max(10);
             self.config.sleep_interval_ms = (self.config.sleep_interval_ms + 100).min(5000);
@@ -295,7 +338,11 @@ impl HolisticKsmDedup {
         self.stats.unstable_pages = self.unstable_pages.len();
         let total_savings: u64 = self.stable_tree.values().map(|n| n.savings() as u64).sum();
         self.stats.total_savings_pages = total_savings;
-        self.stats.shared_pages = self.pages.values().filter(|p| p.state == KsmPageState::Shared).count() as u64;
+        self.stats.shared_pages = self
+            .pages
+            .values()
+            .filter(|p| p.state == KsmPageState::Shared)
+            .count() as u64;
         self.stats.total_cow_breaks = self.pages.values().map(|p| p.cow_breaks as u64).sum();
         self.stats.scan_rounds += 1;
         let total = self.stats.total_pages_tracked as f64;
@@ -306,9 +353,15 @@ impl HolisticKsmDedup {
     }
 
     #[inline(always)]
-    pub fn process_info(&self, pid: u64) -> Option<&ProcessKsmInfo> { self.process_info.get(&pid) }
+    pub fn process_info(&self, pid: u64) -> Option<&ProcessKsmInfo> {
+        self.process_info.get(&pid)
+    }
     #[inline(always)]
-    pub fn config(&self) -> &KsmScanConfig { &self.config }
+    pub fn config(&self) -> &KsmScanConfig {
+        &self.config
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &KsmDedupStats { &self.stats }
+    pub fn stats(&self) -> &KsmDedupStats {
+        &self.stats
+    }
 }

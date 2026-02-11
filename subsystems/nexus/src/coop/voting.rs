@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // VOTING TYPES
@@ -208,21 +209,17 @@ impl Ballot {
         let winner = match self.vote_type {
             VoteType::Binary => {
                 let (yes, no) = self.tally_binary();
-                if yes > no {
-                    Some(1)
-                } else {
-                    Some(0)
-                }
-            }
+                if yes > no { Some(1) } else { Some(0) }
+            },
             VoteType::SingleChoice | VoteType::Weighted => {
                 let tallies = self.tally_choice();
                 tallies.first().map(|(opt, _)| *opt)
-            }
+            },
             VoteType::RankedChoice => {
                 // Simplified: use first-choice only
                 let tallies = self.tally_choice();
                 tallies.first().map(|(opt, _)| *opt)
-            }
+            },
         };
 
         self.result = winner;
@@ -372,9 +369,7 @@ impl CoopVotingManager {
         self.stats.active_ballots = self
             .ballots
             .values()
-            .filter(|b| {
-                b.state == BallotState::Open || b.state == BallotState::QuorumReached
-            })
+            .filter(|b| b.state == BallotState::Open || b.state == BallotState::QuorumReached)
             .count();
         if self.participation_count > 0 {
             self.stats.avg_participation = self.participation_sum / self.participation_count as f64;

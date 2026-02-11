@@ -38,15 +38,36 @@ pub struct StatfsResult {
 
 impl StatfsResult {
     pub fn new(fs_type: FsTypeId, bsize: u64, total: u64, free: u64) -> Self {
-        Self { fs_type, block_size: bsize, total_blocks: total, free_blocks: free, avail_blocks: free, total_inodes: 0, free_inodes: 0, fs_id: 0, name_max: 255, flags: 0 }
+        Self {
+            fs_type,
+            block_size: bsize,
+            total_blocks: total,
+            free_blocks: free,
+            avail_blocks: free,
+            total_inodes: 0,
+            free_inodes: 0,
+            fs_id: 0,
+            name_max: 255,
+            flags: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn total_bytes(&self) -> u64 { self.total_blocks * self.block_size }
+    pub fn total_bytes(&self) -> u64 {
+        self.total_blocks * self.block_size
+    }
     #[inline(always)]
-    pub fn free_bytes(&self) -> u64 { self.free_blocks * self.block_size }
+    pub fn free_bytes(&self) -> u64 {
+        self.free_blocks * self.block_size
+    }
     #[inline(always)]
-    pub fn usage_ratio(&self) -> f64 { if self.total_blocks == 0 { 0.0 } else { 1.0 - self.free_blocks as f64 / self.total_blocks as f64 } }
+    pub fn usage_ratio(&self) -> f64 {
+        if self.total_blocks == 0 {
+            0.0
+        } else {
+            1.0 - self.free_blocks as f64 / self.total_blocks as f64
+        }
+    }
 }
 
 /// Stats
@@ -66,10 +87,17 @@ pub struct AppStatfs {
 }
 
 impl AppStatfs {
-    pub fn new() -> Self { Self { filesystems: BTreeMap::new(), queries: 0 } }
+    pub fn new() -> Self {
+        Self {
+            filesystems: BTreeMap::new(),
+            queries: 0,
+        }
+    }
 
     #[inline(always)]
-    pub fn register(&mut self, fs_id: u64, result: StatfsResult) { self.filesystems.insert(fs_id, result); }
+    pub fn register(&mut self, fs_id: u64, result: StatfsResult) {
+        self.filesystems.insert(fs_id, result);
+    }
 
     #[inline(always)]
     pub fn query(&mut self, fs_id: u64) -> Option<&StatfsResult> {
@@ -81,6 +109,11 @@ impl AppStatfs {
     pub fn stats(&self) -> StatfsAppStats {
         let cap: u64 = self.filesystems.values().map(|f| f.total_bytes()).sum();
         let free: u64 = self.filesystems.values().map(|f| f.free_bytes()).sum();
-        StatfsAppStats { total_queries: self.queries, unique_filesystems: self.filesystems.len() as u32, total_capacity_bytes: cap, total_free_bytes: free }
+        StatfsAppStats {
+            total_queries: self.queries,
+            unique_filesystems: self.filesystems.len() as u32,
+            total_capacity_bytes: cap,
+            total_free_bytes: free,
+        }
     }
 }

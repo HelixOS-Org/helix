@@ -11,8 +11,10 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
 use libm::sqrt;
-use crate::fast::math::{F64Ext};
+
+use crate::fast::math::F64Ext;
 
 /// IO access pattern
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -102,12 +104,12 @@ impl FileIoPattern {
             IoOpType::Read | IoOpType::ReadWrite => {
                 self.reads += 1;
                 self.bytes_read += record.size as u64;
-            }
+            },
             IoOpType::Write => {
                 self.writes += 1;
                 self.bytes_written += record.size as u64;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // Track offset
@@ -116,8 +118,15 @@ impl FileIoPattern {
         self.recent_pos += 1;
 
         // Size bucket
-        let bucket = if record.size == 0 { 0 } else { (record.size as f64).log2() as u8 };
-        let entry = self.size_buckets.entry(bucket).or_insert_with(IoSizeBucket::default);
+        let bucket = if record.size == 0 {
+            0
+        } else {
+            (record.size as f64).log2() as u8
+        };
+        let entry = self
+            .size_buckets
+            .entry(bucket)
+            .or_insert_with(IoSizeBucket::default);
         entry.count += 1;
         entry.total_bytes += record.size as u64;
         entry.total_latency_ns += record.latency_ns;
@@ -134,9 +143,15 @@ impl FileIoPattern {
         // Calculate strides between consecutive accesses
         let mut strides = Vec::new();
         for i in 1..count {
-            let prev = self.recent_offsets[(self.recent_pos - count + i - 1) % self.recent_offsets.len()];
-            let curr = self.recent_offsets[(self.recent_pos - count + i) % self.recent_offsets.len()];
-            let stride = if curr >= prev { curr - prev } else { prev - curr };
+            let prev =
+                self.recent_offsets[(self.recent_pos - count + i - 1) % self.recent_offsets.len()];
+            let curr =
+                self.recent_offsets[(self.recent_pos - count + i) % self.recent_offsets.len()];
+            let stride = if curr >= prev {
+                curr - prev
+            } else {
+                prev - curr
+            };
             strides.push(stride);
         }
 
@@ -153,14 +168,20 @@ impl FileIoPattern {
         self.avg_stride = stride_sum as f64 / strides.len() as f64;
 
         // Stride variance
-        let stride_var: f64 = strides.iter()
+        let stride_var: f64 = strides
+            .iter()
             .map(|&s| {
                 let diff = s as f64 - self.avg_stride;
                 diff * diff
             })
-            .sum::<f64>() / strides.len() as f64;
+            .sum::<f64>()
+            / strides.len() as f64;
         let stride_stddev = sqrt(stride_var);
-        let cv = if self.avg_stride > 0.0 { stride_stddev / self.avg_stride } else { 1.0 };
+        let cv = if self.avg_stride > 0.0 {
+            stride_stddev / self.avg_stride
+        } else {
+            1.0
+        };
 
         self.pattern = if self.sequentiality > 0.8 {
             IoPatternType::Sequential
@@ -185,7 +206,8 @@ impl FileIoPattern {
     /// Dominant IO size
     #[inline]
     pub fn dominant_size(&self) -> u32 {
-        self.size_buckets.iter()
+        self.size_buckets
+            .iter()
             .max_by_key(|(_, v)| v.count)
             .map(|(&bucket, _)| 1u32 << bucket)
             .unwrap_or(4096)
@@ -195,7 +217,7 @@ impl FileIoPattern {
     #[inline]
     pub fn prefetch_bytes(&self) -> u64 {
         match self.pattern {
-            IoPatternType::Sequential => 256 * 1024,     // 256KB
+            IoPatternType::Sequential => 256 * 1024, // 256KB
             IoPatternType::Strided => self.avg_stride as u64 * 4,
             IoPatternType::Periodic => 128 * 1024,
             _ => 0,
@@ -234,7 +256,9 @@ impl AppIoPatternAnalyzer {
     /// Record IO access
     #[inline]
     pub fn record(&mut self, file_hash: u64, record: &IoAccessRecord) {
-        let pattern = self.files.entry(file_hash)
+        let pattern = self
+            .files
+            .entry(file_hash)
             .or_insert_with(|| FileIoPattern::new(file_hash));
         pattern.record_access(record);
         self.update_stats();
@@ -248,18 +272,21 @@ impl AppIoPatternAnalyzer {
 
     fn update_stats(&mut self) {
         self.stats.tracked_files = self.files.len();
-        self.stats.sequential_files = self.files.values()
+        self.stats.sequential_files = self
+            .files
+            .values()
             .filter(|f| matches!(f.pattern, IoPatternType::Sequential))
             .count();
-        self.stats.random_files = self.files.values()
+        self.stats.random_files = self
+            .files
+            .values()
             .filter(|f| matches!(f.pattern, IoPatternType::Random))
             .count();
         self.stats.total_reads = self.files.values().map(|f| f.reads).sum();
         self.stats.total_writes = self.files.values().map(|f| f.writes).sum();
         if !self.files.is_empty() {
-            self.stats.avg_sequentiality = self.files.values()
-                .map(|f| f.sequentiality)
-                .sum::<f64>() / self.files.len() as f64;
+            self.stats.avg_sequentiality =
+                self.files.values().map(|f| f.sequentiality).sum::<f64>() / self.files.len() as f64;
         }
     }
 

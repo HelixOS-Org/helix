@@ -18,11 +18,12 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::linear_map::LinearMap;
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -320,11 +321,7 @@ impl HolisticEnsemble {
 
         let total_weight: f32 = active_members.iter().map(|(_, _, w, _)| *w).sum();
         let prediction = if total_weight > 0.0 {
-            active_members
-                .iter()
-                .map(|(_, p, w, _)| p * w)
-                .sum::<f32>()
-                / total_weight
+            active_members.iter().map(|(_, p, w, _)| p * w).sum::<f32>() / total_weight
         } else {
             0.0
         };
@@ -344,7 +341,11 @@ impl HolisticEnsemble {
 
         let mut contributions: LinearMap<f32, 64> = LinearMap::new();
         for (id, _, w, _) in &active_members {
-            let contrib = if total_weight > 0.0 { w / total_weight } else { 0.0 };
+            let contrib = if total_weight > 0.0 {
+                w / total_weight
+            } else {
+                0.0
+            };
             contributions.insert(*id, contrib);
         }
 
@@ -444,7 +445,10 @@ impl HolisticEnsemble {
         // Level 1: subsystem ensembles
         let mut source_groups: BTreeMap<u8, Vec<&EnsembleMember>> = BTreeMap::new();
         for m in self.members.values().filter(|m| m.active) {
-            source_groups.entry(m.source as u8).or_insert_with(Vec::new).push(m);
+            source_groups
+                .entry(m.source as u8)
+                .or_insert_with(Vec::new)
+                .push(m);
         }
         let subsys_count = source_groups.len();
         let mut subsys_pred = 0.0_f32;
@@ -514,7 +518,11 @@ impl HolisticEnsemble {
         sorted_members.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
 
         for (rank, (id, weight, source, accuracy)) in sorted_members.iter().enumerate() {
-            let contrib = if total_weight > 0.0 { weight / total_weight } else { 0.0 };
+            let contrib = if total_weight > 0.0 {
+                weight / total_weight
+            } else {
+                0.0
+            };
             rankings.push(ModelRanking {
                 model_id: *id,
                 source: *source,
@@ -542,21 +550,27 @@ impl HolisticEnsemble {
         let active: Vec<&EnsembleMember> = self.members.values().filter(|m| m.active).collect();
         let total_weight: f32 = active.iter().map(|m| m.weight).sum();
 
-        let dominant = active
-            .iter()
-            .max_by(|a, b| a.weight.partial_cmp(&b.weight).unwrap_or(core::cmp::Ordering::Equal));
+        let dominant = active.iter().max_by(|a, b| {
+            a.weight
+                .partial_cmp(&b.weight)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
 
         let (dom_id, dom_source, dom_weight) = match dominant {
             Some(m) => (m.model_id, m.source, m.weight),
             None => (0, EnsembleSource::BridgePredictor, 0.0),
         };
 
-        let dom_score = if total_weight > 0.0 { dom_weight / total_weight } else { 0.0 };
+        let dom_score = if total_weight > 0.0 {
+            dom_weight / total_weight
+        } else {
+            0.0
+        };
         let top_k = 3_usize;
         let mut sorted_weights: Vec<f32> = active.iter().map(|m| m.weight).collect();
         sorted_weights.sort_by(|a, b| b.partial_cmp(a).unwrap_or(core::cmp::Ordering::Equal));
-        let top_k_share: f32 = sorted_weights.iter().take(top_k).sum::<f32>()
-            / total_weight.max(0.001);
+        let top_k_share: f32 =
+            sorted_weights.iter().take(top_k).sum::<f32>() / total_weight.max(0.001);
 
         let concentration = sorted_weights
             .iter()
@@ -606,7 +620,11 @@ impl HolisticEnsemble {
             recent_count += 1;
         }
 
-        let overall = if count > 0 { 1.0 - (total_error / count as f32).min(1.0) } else { 0.5 };
+        let overall = if count > 0 {
+            1.0 - (total_error / count as f32).min(1.0)
+        } else {
+            0.5
+        };
         let recent = if recent_count > 0 {
             1.0 - (recent_error / recent_count as f32).min(1.0)
         } else {
@@ -615,7 +633,11 @@ impl HolisticEnsemble {
 
         let mut accuracy_by_source: LinearMap<f32, 64> = LinearMap::new();
         for (k, (err, cnt)) in &source_errors {
-            let acc = if *cnt > 0 { 1.0 - (err / *cnt as f32).min(1.0) } else { 0.5 };
+            let acc = if *cnt > 0 {
+                1.0 - (err / *cnt as f32).min(1.0)
+            } else {
+                0.5
+            };
             accuracy_by_source.insert(*k, acc);
         }
 

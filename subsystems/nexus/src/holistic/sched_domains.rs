@@ -3,11 +3,11 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 /// Domain level
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -100,15 +100,21 @@ impl SchedGroup {
     pub fn new(id: u32, cpus: Vec<u32>) -> Self {
         let w = cpus.len() as u32;
         Self {
-            id, cpus, capacity: 0, load: 0,
-            nr_running: 0, group_weight: w,
+            id,
+            cpus,
+            capacity: 0,
+            load: 0,
+            nr_running: 0,
+            group_weight: w,
             group_type: GroupType::Other,
         }
     }
 
     #[inline(always)]
     pub fn avg_load(&self) -> u64 {
-        if self.group_weight == 0 { return 0; }
+        if self.group_weight == 0 {
+            return 0;
+        }
         self.load / self.group_weight as u64
     }
 
@@ -163,10 +169,14 @@ pub struct SchedDomain {
 impl SchedDomain {
     pub fn new(id: u32, name: String, level: DomainLevel) -> Self {
         Self {
-            id, name, level,
-            flags: DomainFlags(DomainFlags::LOAD_BALANCE.0
-                | DomainFlags::BALANCE_NEWIDLE.0
-                | DomainFlags::BALANCE_WAKE.0),
+            id,
+            name,
+            level,
+            flags: DomainFlags(
+                DomainFlags::LOAD_BALANCE.0
+                    | DomainFlags::BALANCE_NEWIDLE.0
+                    | DomainFlags::BALANCE_WAKE.0,
+            ),
             span: Vec::new(),
             groups: Vec::new(),
             parent_id: None,
@@ -194,7 +204,9 @@ impl SchedDomain {
     #[inline]
     pub fn balance_success_rate(&self) -> f64 {
         let total = self.balance_count;
-        if total == 0 { return 1.0; }
+        if total == 0 {
+            return 1.0;
+        }
         1.0 - (self.balance_failed as f64 / total as f64)
     }
 
@@ -282,9 +294,12 @@ impl HolisticSchedDomains {
             max_history: 2048,
             next_id: 1,
             stats: SchedDomainsStats {
-                total_domains: 0, total_groups: 0,
-                balance_attempts: 0, tasks_moved: 0,
-                load_moved: 0, newidle_balances: 0,
+                total_domains: 0,
+                total_groups: 0,
+                balance_attempts: 0,
+                tasks_moved: 0,
+                load_moved: 0,
+                newidle_balances: 0,
             },
         }
     }
@@ -336,7 +351,9 @@ impl HolisticSchedDomains {
 
     #[inline]
     pub fn most_imbalanced(&self, n: usize) -> Vec<(u32, u64)> {
-        let mut v: Vec<_> = self.domains.iter()
+        let mut v: Vec<_> = self
+            .domains
+            .iter()
             .map(|(&id, d)| (id, d.load_imbalance()))
             .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1));

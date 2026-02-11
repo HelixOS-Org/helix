@@ -20,10 +20,11 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // CONSTANTS
@@ -236,23 +237,39 @@ impl HolisticPeerReview {
     #[inline]
     pub fn register_reviewer(&mut self, subsystem: ReviewerSubsystem) {
         let key = subsystem as u64;
-        if self.reviewer_profiles.contains_key(&key) { return; }
+        if self.reviewer_profiles.contains_key(&key) {
+            return;
+        }
         self.reviewer_profiles.insert(key, ReviewerProfile {
-            subsystem, reviews_completed: 0, accuracy_ema: 0.5,
-            agreement_rate_ema: 0.5, weight: 1.0, last_review_tick: 0,
+            subsystem,
+            reviews_completed: 0,
+            accuracy_ema: 0.5,
+            agreement_rate_ema: 0.5,
+            weight: 1.0,
+            last_review_tick: 0,
         });
         self.stats.reviewer_count = self.reviewer_profiles.len() as u64;
     }
 
     /// Submit a finding for master peer review
-    pub fn submit_finding(&mut self, source: ReviewerSubsystem, description: String,
-                          claimed_effect: f32, evidence: f32) -> u64 {
+    pub fn submit_finding(
+        &mut self,
+        source: ReviewerSubsystem,
+        description: String,
+        claimed_effect: f32,
+        evidence: f32,
+    ) -> u64 {
         let id = self.stats.total_findings_submitted;
         let hash = fnv1a_hash(description.as_bytes());
         let finding = ReviewableFinding {
-            id, source, description, claimed_effect,
-            evidence_strength: evidence, status: ReviewStatus::Submitted,
-            submitted_tick: self.tick, hash,
+            id,
+            source,
+            description,
+            claimed_effect,
+            evidence_strength: evidence,
+            status: ReviewStatus::Submitted,
+            submitted_tick: self.tick,
+            hash,
         };
         self.findings.insert(id, finding);
         self.stats.total_findings_submitted += 1;
@@ -263,46 +280,70 @@ impl HolisticPeerReview {
     /// Run the master review cycle for a finding
     pub fn master_review(&mut self, finding_id: u64) -> ReviewStatus {
         let finding = match self.findings.get_mut(&finding_id) {
-            Some(f) => { f.status = ReviewStatus::UnderReview; f.clone() }
+            Some(f) => {
+                f.status = ReviewStatus::UnderReview;
+                f.clone()
+            },
             None => return ReviewStatus::Withdrawn,
         };
         let mut accept_score = 0.0f32;
         let mut reject_score = 0.0f32;
         let mut review_count = 0u64;
         for profile in self.reviewer_profiles.values() {
-            if profile.subsystem == finding.source { continue; }
+            if profile.subsystem == finding.source {
+                continue;
+            }
             let noise = xorshift_f32(&mut self.rng_state);
             let base = finding.evidence_strength * profile.accuracy_ema;
-            let verdict = if base + noise * 0.3 > 0.7 { ReviewVerdict::Accept }
-                else if base + noise * 0.3 > 0.5 { ReviewVerdict::WeakAccept }
-                else if base + noise * 0.3 > 0.35 { ReviewVerdict::Neutral }
-                else if base + noise * 0.3 > 0.2 { ReviewVerdict::WeakReject }
-                else { ReviewVerdict::Reject };
+            let verdict = if base + noise * 0.3 > 0.7 {
+                ReviewVerdict::Accept
+            } else if base + noise * 0.3 > 0.5 {
+                ReviewVerdict::WeakAccept
+            } else if base + noise * 0.3 > 0.35 {
+                ReviewVerdict::Neutral
+            } else if base + noise * 0.3 > 0.2 {
+                ReviewVerdict::WeakReject
+            } else {
+                ReviewVerdict::Reject
+            };
             let conf = (base * 0.7 + noise * 0.3).min(1.0);
             let rev_id = self.stats.total_reviews_completed;
             self.reviews.push(PeerReviewRecord {
-                id: rev_id, finding_id, reviewer: profile.subsystem,
-                verdict, confidence: conf, comments_hash: fnv1a_hash(&[
-                    profile.subsystem as u8, (self.tick & 0xFF) as u8,
-                ]), tick: self.tick,
+                id: rev_id,
+                finding_id,
+                reviewer: profile.subsystem,
+                verdict,
+                confidence: conf,
+                comments_hash: fnv1a_hash(&[profile.subsystem as u8, (self.tick & 0xFF) as u8]),
+                tick: self.tick,
             });
             match verdict {
-                ReviewVerdict::StrongAccept | ReviewVerdict::Accept => accept_score += conf * profile.weight,
+                ReviewVerdict::StrongAccept | ReviewVerdict::Accept => {
+                    accept_score += conf * profile.weight
+                },
                 ReviewVerdict::WeakAccept => accept_score += conf * profile.weight * 0.5,
                 ReviewVerdict::WeakReject => reject_score += conf * profile.weight * 0.5,
-                ReviewVerdict::Reject | ReviewVerdict::StrongReject => reject_score += conf * profile.weight,
-                ReviewVerdict::Neutral => {}
+                ReviewVerdict::Reject | ReviewVerdict::StrongReject => {
+                    reject_score += conf * profile.weight
+                },
+                ReviewVerdict::Neutral => {},
             }
             review_count += 1;
             self.stats.total_reviews_completed += 1;
         }
         let total_weight = accept_score + reject_score;
-        let consensus = if total_weight > 0.0 { accept_score / total_weight } else { 0.5 };
+        let consensus = if total_weight > 0.0 {
+            accept_score / total_weight
+        } else {
+            0.5
+        };
         let disagreement = if review_count > 1 {
             let mean = consensus;
             let variance = (accept_score - mean * total_weight).abs() / (total_weight + 0.001);
             variance.min(1.0)
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         let status = if disagreement > ESCALATION_DISAGREEMENT {
             ReviewStatus::Escalated
         } else if consensus >= CONSENSUS_THRESHOLD {
@@ -315,9 +356,13 @@ impl HolisticPeerReview {
         if status == ReviewStatus::Escalated {
             let esc_id = self.stats.escalations_total;
             self.escalations.push(ReviewEscalation {
-                id: esc_id, finding_id, disagreement_level: disagreement,
-                escalation_tier: 1, resolved: false,
-                resolution_verdict: ReviewVerdict::Neutral, tick: self.tick,
+                id: esc_id,
+                finding_id,
+                disagreement_level: disagreement,
+                escalation_tier: 1,
+                resolved: false,
+                resolution_verdict: ReviewVerdict::Neutral,
+                tick: self.tick,
             });
             self.stats.escalations_total += 1;
             if self.escalations.len() > MAX_ESCALATIONS {
@@ -331,20 +376,42 @@ impl HolisticPeerReview {
             }
         }
         self.consensus_records.insert(finding_id, ConsensusRecord {
-            finding_id, consensus_score: consensus,
-            accept_count: review_count / 2, reject_count: review_count / 4,
-            neutral_count: review_count / 4, final_status: status,
-            aggregated_confidence: consensus, tick: self.tick,
+            finding_id,
+            consensus_score: consensus,
+            accept_count: review_count / 2,
+            reject_count: review_count / 4,
+            neutral_count: review_count / 4,
+            final_status: status,
+            aggregated_confidence: consensus,
+            tick: self.tick,
         });
-        let is_accept = if status == ReviewStatus::Accepted { 1.0 } else { 0.0 };
-        let is_reject = if status == ReviewStatus::Rejected { 1.0 } else { 0.0 };
-        let is_escalate = if status == ReviewStatus::Escalated { 1.0 } else { 0.0 };
-        self.stats.acceptance_rate_ema = self.stats.acceptance_rate_ema * (1.0 - EMA_ALPHA) + is_accept * EMA_ALPHA;
-        self.stats.rejection_rate_ema = self.stats.rejection_rate_ema * (1.0 - EMA_ALPHA) + is_reject * EMA_ALPHA;
-        self.stats.escalation_rate_ema = self.stats.escalation_rate_ema * (1.0 - EMA_ALPHA) + is_escalate * EMA_ALPHA;
-        self.stats.avg_consensus_score_ema = self.stats.avg_consensus_score_ema * (1.0 - EMA_ALPHA) + consensus * EMA_ALPHA;
+        let is_accept = if status == ReviewStatus::Accepted {
+            1.0
+        } else {
+            0.0
+        };
+        let is_reject = if status == ReviewStatus::Rejected {
+            1.0
+        } else {
+            0.0
+        };
+        let is_escalate = if status == ReviewStatus::Escalated {
+            1.0
+        } else {
+            0.0
+        };
+        self.stats.acceptance_rate_ema =
+            self.stats.acceptance_rate_ema * (1.0 - EMA_ALPHA) + is_accept * EMA_ALPHA;
+        self.stats.rejection_rate_ema =
+            self.stats.rejection_rate_ema * (1.0 - EMA_ALPHA) + is_reject * EMA_ALPHA;
+        self.stats.escalation_rate_ema =
+            self.stats.escalation_rate_ema * (1.0 - EMA_ALPHA) + is_escalate * EMA_ALPHA;
+        self.stats.avg_consensus_score_ema =
+            self.stats.avg_consensus_score_ema * (1.0 - EMA_ALPHA) + consensus * EMA_ALPHA;
         self.stats.last_tick = self.tick;
-        if self.reviews.len() > MAX_REVIEWS { self.reviews.drain(0..MAX_REVIEWS / 4); }
+        if self.reviews.len() > MAX_REVIEWS {
+            self.reviews.drain(0..MAX_REVIEWS / 4);
+        }
         status
     }
 
@@ -357,25 +424,36 @@ impl HolisticPeerReview {
         let mut validation_sum = 0.0f32;
         let mut weight_sum = 0.0f32;
         for profile in self.reviewer_profiles.values() {
-            if profile.subsystem == finding.source { continue; }
+            if profile.subsystem == finding.source {
+                continue;
+            }
             let noise = xorshift_f32(&mut self.rng_state) * 0.1;
             let compatibility = finding.evidence_strength * profile.accuracy_ema + noise;
             validation_sum += compatibility * profile.weight;
             weight_sum += profile.weight;
         }
-        if weight_sum > 0.0 { validation_sum / weight_sum } else { 0.0 }
+        if weight_sum > 0.0 {
+            validation_sum / weight_sum
+        } else {
+            0.0
+        }
     }
 
     /// Build global consensus across all pending findings
     #[inline]
     pub fn global_consensus(&mut self) -> f32 {
-        if self.consensus_records.is_empty() { return 0.0; }
-        let total: f32 = self.consensus_records.values()
-            .map(|c| c.consensus_score).sum();
+        if self.consensus_records.is_empty() {
+            return 0.0;
+        }
+        let total: f32 = self
+            .consensus_records
+            .values()
+            .map(|c| c.consensus_score)
+            .sum();
         let count = self.consensus_records.len() as f32;
         let global = total / count;
-        self.stats.avg_consensus_score_ema = self.stats.avg_consensus_score_ema
-            * (1.0 - EMA_ALPHA) + global * EMA_ALPHA;
+        self.stats.avg_consensus_score_ema =
+            self.stats.avg_consensus_score_ema * (1.0 - EMA_ALPHA) + global * EMA_ALPHA;
         global
     }
 
@@ -391,26 +469,43 @@ impl HolisticPeerReview {
 
     /// Aggregate confidence scores for a finding
     pub fn confidence_aggregation(&self, finding_id: u64) -> f32 {
-        let reviews: Vec<&PeerReviewRecord> = self.reviews.iter()
-            .filter(|r| r.finding_id == finding_id).collect();
-        if reviews.is_empty() { return 0.0; }
+        let reviews: Vec<&PeerReviewRecord> = self
+            .reviews
+            .iter()
+            .filter(|r| r.finding_id == finding_id)
+            .collect();
+        if reviews.is_empty() {
+            return 0.0;
+        }
         let mut weighted_sum = 0.0f32;
         let mut weight_sum = 0.0f32;
         for rev in &reviews {
-            let w = self.reviewer_profiles.get(&(rev.reviewer as u64))
-                .map(|p| p.weight).unwrap_or(1.0);
+            let w = self
+                .reviewer_profiles
+                .get(&(rev.reviewer as u64))
+                .map(|p| p.weight)
+                .unwrap_or(1.0);
             weighted_sum += rev.confidence * w;
             weight_sum += w;
         }
-        if weight_sum > 0.0 { weighted_sum / weight_sum } else { 0.0 }
+        if weight_sum > 0.0 {
+            weighted_sum / weight_sum
+        } else {
+            0.0
+        }
     }
 
     /// Compute review completeness — fraction of findings fully reviewed
     #[inline]
     pub fn review_completeness(&mut self) -> f32 {
-        if self.findings.is_empty() { return 1.0; }
-        let reviewed = self.findings.values()
-            .filter(|f| f.status != ReviewStatus::Submitted).count();
+        if self.findings.is_empty() {
+            return 1.0;
+        }
+        let reviewed = self
+            .findings
+            .values()
+            .filter(|f| f.status != ReviewStatus::Submitted)
+            .count();
         let completeness = reviewed as f32 / self.findings.len() as f32;
         self.stats.review_completeness = completeness;
         completeness
@@ -418,18 +513,24 @@ impl HolisticPeerReview {
 
     /// Advance the engine tick
     #[inline(always)]
-    pub fn tick(&mut self) { self.tick += 1; }
+    pub fn tick(&mut self) {
+        self.tick += 1;
+    }
 
     /// Update reviewer accuracy based on consensus outcomes
     pub fn update_reviewer_accuracy(&mut self) {
-        let consensus_vals: Vec<(ReviewerSubsystem, f32)> = self.reviews.iter()
+        let consensus_vals: Vec<(ReviewerSubsystem, f32)> = self
+            .reviews
+            .iter()
             .filter_map(|rev| {
                 self.consensus_records.get(&rev.finding_id).map(|c| {
                     let agreed = match rev.verdict {
-                        ReviewVerdict::StrongAccept | ReviewVerdict::Accept
-                            | ReviewVerdict::WeakAccept => c.final_status == ReviewStatus::Accepted,
-                        ReviewVerdict::Reject | ReviewVerdict::StrongReject
-                            | ReviewVerdict::WeakReject => c.final_status == ReviewStatus::Rejected,
+                        ReviewVerdict::StrongAccept
+                        | ReviewVerdict::Accept
+                        | ReviewVerdict::WeakAccept => c.final_status == ReviewStatus::Accepted,
+                        ReviewVerdict::Reject
+                        | ReviewVerdict::StrongReject
+                        | ReviewVerdict::WeakReject => c.final_status == ReviewStatus::Rejected,
                         ReviewVerdict::Neutral => true,
                     };
                     (rev.reviewer, if agreed { 1.0f32 } else { 0.0f32 })
@@ -439,10 +540,9 @@ impl HolisticPeerReview {
         for (subsystem, score) in &consensus_vals {
             let key = *subsystem as u64;
             if let Some(profile) = self.reviewer_profiles.get_mut(&key) {
-                profile.accuracy_ema = profile.accuracy_ema
-                    * (1.0 - EMA_ALPHA) + score * EMA_ALPHA;
-                profile.agreement_rate_ema = profile.agreement_rate_ema
-                    * (1.0 - EMA_ALPHA) + score * EMA_ALPHA;
+                profile.accuracy_ema = profile.accuracy_ema * (1.0 - EMA_ALPHA) + score * EMA_ALPHA;
+                profile.agreement_rate_ema =
+                    profile.agreement_rate_ema * (1.0 - EMA_ALPHA) + score * EMA_ALPHA;
                 profile.weight = 0.5 + profile.accuracy_ema * 0.5;
                 profile.last_review_tick = self.tick;
             }
@@ -450,19 +550,24 @@ impl HolisticPeerReview {
     }
 
     /// Resolve a pending escalation with a forced verdict
-    pub fn resolve_escalation(&mut self, escalation_idx: usize,
-                               verdict: ReviewVerdict) -> bool {
-        if escalation_idx >= self.escalations.len() { return false; }
+    pub fn resolve_escalation(&mut self, escalation_idx: usize, verdict: ReviewVerdict) -> bool {
+        if escalation_idx >= self.escalations.len() {
+            return false;
+        }
         let esc = &mut self.escalations[escalation_idx];
-        if esc.resolved { return false; }
+        if esc.resolved {
+            return false;
+        }
         esc.resolved = true;
         esc.resolution_verdict = verdict;
         let finding_id = esc.finding_id;
         let status = match verdict {
-            ReviewVerdict::StrongAccept | ReviewVerdict::Accept
-                | ReviewVerdict::WeakAccept => ReviewStatus::Accepted,
-            ReviewVerdict::Reject | ReviewVerdict::StrongReject
-                | ReviewVerdict::WeakReject => ReviewStatus::Rejected,
+            ReviewVerdict::StrongAccept | ReviewVerdict::Accept | ReviewVerdict::WeakAccept => {
+                ReviewStatus::Accepted
+            },
+            ReviewVerdict::Reject | ReviewVerdict::StrongReject | ReviewVerdict::WeakReject => {
+                ReviewStatus::Rejected
+            },
             ReviewVerdict::Neutral => ReviewStatus::Consensus,
         };
         if let Some(f) = self.findings.get_mut(&finding_id) {
@@ -474,19 +579,27 @@ impl HolisticPeerReview {
 
     /// Get current statistics
     #[inline(always)]
-    pub fn stats(&self) -> &PeerReviewStats { &self.stats }
+    pub fn stats(&self) -> &PeerReviewStats {
+        &self.stats
+    }
 
     /// Get all findings
     #[inline(always)]
-    pub fn findings(&self) -> &BTreeMap<u64, ReviewableFinding> { &self.findings }
+    pub fn findings(&self) -> &BTreeMap<u64, ReviewableFinding> {
+        &self.findings
+    }
 
     /// Get consensus records
     #[inline(always)]
-    pub fn consensus_records(&self) -> &BTreeMap<u64, ConsensusRecord> { &self.consensus_records }
+    pub fn consensus_records(&self) -> &BTreeMap<u64, ConsensusRecord> {
+        &self.consensus_records
+    }
 
     /// Get escalation log
     #[inline(always)]
-    pub fn escalations(&self) -> &[ReviewEscalation] { &self.escalations }
+    pub fn escalations(&self) -> &[ReviewEscalation] {
+        &self.escalations
+    }
 
     /// Get reviewer profiles
     #[inline(always)]
@@ -496,5 +609,7 @@ impl HolisticPeerReview {
 
     /// Get review log
     #[inline(always)]
-    pub fn review_log(&self) -> &[PeerReviewRecord] { &self.reviews }
+    pub fn review_log(&self) -> &[PeerReviewRecord] {
+        &self.reviews
+    }
 }

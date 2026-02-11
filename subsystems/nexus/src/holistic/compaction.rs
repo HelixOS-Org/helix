@@ -9,9 +9,10 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // COMPACTION TYPES
@@ -263,7 +264,8 @@ impl HolisticCompactionEngine {
     /// Register zone
     #[inline(always)]
     pub fn register_zone(&mut self, zone: CompactZone, total_pages: u64) {
-        self.zones.insert(zone as u8, ZoneCompactState::new(zone, total_pages));
+        self.zones
+            .insert(zone as u8, ZoneCompactState::new(zone, total_pages));
     }
 
     /// Update zone free pages
@@ -318,9 +320,12 @@ impl HolisticCompactionEngine {
         self.stats.tracked_zones = self.zones.len();
         self.stats.total_migrations = self.zones.values().map(|z| z.migrations).sum();
         if !self.zones.is_empty() {
-            self.stats.avg_fragmentation = self.zones.values()
+            self.stats.avg_fragmentation = self
+                .zones
+                .values()
                 .map(|z| z.fragmentation_index(9))
-                .sum::<f64>() / self.zones.len() as f64;
+                .sum::<f64>()
+                / self.zones.len() as f64;
         }
         self.stats.huge_utilization = self.huge_2m.utilization();
         self.stats.total_promotions = self.huge_2m.promotions + self.huge_1g.promotions;
@@ -370,7 +375,16 @@ pub struct CompactionV2Zone {
 
 impl CompactionV2Zone {
     pub fn new(id: u32) -> Self {
-        Self { zone_id: id, migrate_pfn: 0, free_pfn: u64::MAX, pages_migrated: 0, pages_freed: 0, compact_count: 0, compact_fail: 0, fragmentation_score: 0 }
+        Self {
+            zone_id: id,
+            migrate_pfn: 0,
+            free_pfn: u64::MAX,
+            pages_migrated: 0,
+            pages_freed: 0,
+            compact_count: 0,
+            compact_fail: 0,
+            fragmentation_score: 0,
+        }
     }
 
     #[inline]
@@ -403,19 +417,29 @@ pub struct HolisticCompactionV2 {
 }
 
 impl HolisticCompactionV2 {
-    pub fn new() -> Self { Self { zones: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            zones: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
-    pub fn add_zone(&mut self, id: u32) { self.zones.insert(id, CompactionV2Zone::new(id)); }
+    pub fn add_zone(&mut self, id: u32) {
+        self.zones.insert(id, CompactionV2Zone::new(id));
+    }
 
     #[inline(always)]
     pub fn compact(&mut self, zone: u32, migrated: u64, freed: u64) {
-        if let Some(z) = self.zones.get_mut(&zone) { z.compact(migrated, freed); }
+        if let Some(z) = self.zones.get_mut(&zone) {
+            z.compact(migrated, freed);
+        }
     }
 
     #[inline(always)]
     pub fn update_fragmentation(&mut self, zone: u32, score: u32) {
-        if let Some(z) = self.zones.get_mut(&zone) { z.update_fragmentation(score); }
+        if let Some(z) = self.zones.get_mut(&zone) {
+            z.update_fragmentation(score);
+        }
     }
 
     #[inline]
@@ -423,9 +447,21 @@ impl HolisticCompactionV2 {
         let compactions: u64 = self.zones.values().map(|z| z.compact_count).sum();
         let migrated: u64 = self.zones.values().map(|z| z.pages_migrated).sum();
         let freed: u64 = self.zones.values().map(|z| z.pages_freed).sum();
-        let frag: u32 = if self.zones.is_empty() { 0 } else {
-            self.zones.values().map(|z| z.fragmentation_score).sum::<u32>() / self.zones.len() as u32
+        let frag: u32 = if self.zones.is_empty() {
+            0
+        } else {
+            self.zones
+                .values()
+                .map(|z| z.fragmentation_score)
+                .sum::<u32>()
+                / self.zones.len() as u32
         };
-        CompactionV2Stats { total_zones: self.zones.len() as u32, total_compactions: compactions, total_migrated: migrated, total_freed: freed, avg_fragmentation: frag }
+        CompactionV2Stats {
+            total_zones: self.zones.len() as u32,
+            total_compactions: compactions,
+            total_migrated: migrated,
+            total_freed: freed,
+            avg_fragmentation: frag,
+        }
     }
 }

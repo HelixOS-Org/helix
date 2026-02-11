@@ -11,6 +11,7 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
 use libm::sqrt;
 
 // ============================================================================
@@ -188,9 +189,8 @@ impl SchedDomain {
         if mean < 1.0 {
             return 0.0;
         }
-        let variance = loads.iter()
-            .map(|l| (l - mean) * (l - mean))
-            .sum::<f64>() / loads.len() as f64;
+        let variance =
+            loads.iter().map(|l| (l - mean) * (l - mean)).sum::<f64>() / loads.len() as f64;
         sqrt(variance) / mean
     }
 
@@ -319,7 +319,8 @@ impl HolisticSchedDomain {
     /// Create domain
     #[inline(always)]
     pub fn create_domain(&mut self, domain_id: u32, level: SchedDomainLevel) {
-        self.domains.insert(domain_id, SchedDomain::new(domain_id, level));
+        self.domains
+            .insert(domain_id, SchedDomain::new(domain_id, level));
         self.update_stats();
     }
 
@@ -368,15 +369,17 @@ impl HolisticSchedDomain {
 
     fn update_stats(&mut self) {
         self.stats.active_domains = self.domains.len();
-        self.stats.total_groups = self.domains.values()
-            .map(|d| d.groups.len())
-            .sum();
-        self.stats.imbalanced_domains = self.domains.values()
+        self.stats.total_groups = self.domains.values().map(|d| d.groups.len()).sum();
+        self.stats.imbalanced_domains = self
+            .domains
+            .values()
             .filter(|d| !matches!(d.state, DomainBalanceState::Balanced))
             .count();
         self.stats.total_balances = self.domains.values().map(|d| d.total_balances).sum();
         self.stats.total_migrations = self.domains.values().map(|d| d.total_migrations).sum();
-        self.stats.worst_imbalance = self.domains.values()
+        self.stats.worst_imbalance = self
+            .domains
+            .values()
             .map(|d| d.calculate_imbalance())
             .fold(0.0_f64, f64::max);
     }

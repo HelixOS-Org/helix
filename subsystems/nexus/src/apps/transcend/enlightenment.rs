@@ -71,13 +71,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EnlightenmentLevel {
     /// Minimal contact with the application.
-    Ignorance = 0,
+    Ignorance     = 0,
     /// The system is aware the app exists.
-    Awareness = 1,
+    Awareness     = 1,
     /// Behavioural patterns are understood.
     Comprehension = 2,
     /// The system can predict and control.
-    Mastery = 3,
+    Mastery       = 3,
     /// Understanding surpasses traditional metrics.
     Transcendence = 4,
     /// Perfect, effortless understanding.
@@ -403,9 +403,8 @@ impl AppsEnlightenment {
             String::from("emerging_mastery")
         };
 
-        let insight_hash = fnv1a(desc.as_bytes())
-            ^ fnv1a(&app_id.to_le_bytes())
-            ^ fnv1a(&self.tick.to_le_bytes());
+        let insight_hash =
+            fnv1a(desc.as_bytes()) ^ fnv1a(&app_id.to_le_bytes()) ^ fnv1a(&self.tick.to_le_bytes());
 
         let insight = TranscendentInsight {
             app_id,
@@ -446,7 +445,11 @@ impl AppsEnlightenment {
 
     fn compute_essence(&mut self, cpu: u64, mem: u64, io: u64, ipc: u64) -> Vec<u64> {
         let noise = xorshift64(&mut self.rng) % 5;
-        let burstiness = if cpu > 80 || io > 80 { 80 + noise } else { 20 + noise };
+        let burstiness = if cpu > 80 || io > 80 {
+            80 + noise
+        } else {
+            20 + noise
+        };
         let sociality = if ipc > 50 { 70 + noise } else { 15 + noise };
         alloc::vec![cpu, mem, io, ipc, burstiness, sociality]
     }
@@ -528,11 +531,7 @@ impl AppsEnlightenment {
         } else {
             0
         };
-        self.stats.avg_prediction_accuracy = if count > 0 {
-            total_accuracy / count
-        } else {
-            0
-        };
+        self.stats.avg_prediction_accuracy = if count > 0 { total_accuracy / count } else { 0 };
     }
 }
 

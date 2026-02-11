@@ -2,8 +2,9 @@
 //! NEXUS Holistic — Thread (holistic thread analysis)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Thread usage pattern
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,7 +62,13 @@ impl HolisticThreadManager {
         }
     }
 
-    pub fn analyze_group(&mut self, tgid: u64, count: u32, util: f64, contention: f64) -> HolisticThreadPattern {
+    pub fn analyze_group(
+        &mut self,
+        tgid: u64,
+        count: u32,
+        util: f64,
+        contention: f64,
+    ) -> HolisticThreadPattern {
         self.group_counts.insert(tgid, count);
         let pattern = if count > 1000 {
             self.stats.thread_bombs += 1;

@@ -26,8 +26,17 @@ pub struct AppArmorCoopRecord {
 impl AppArmorCoopRecord {
     pub fn new(event: AppArmorCoopEvent, profile: &[u8]) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in profile { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
-        Self { event, profile_hash: h, ns_hash: 0, stack_depth: 1, pid: 0 }
+        for b in profile {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        Self {
+            event,
+            profile_hash: h,
+            ns_hash: 0,
+            stack_depth: 1,
+            pid: 0,
+        }
     }
 }
 
@@ -49,7 +58,14 @@ pub struct CoopAppArmor {
 
 impl CoopAppArmor {
     pub fn new() -> Self {
-        Self { stats: AppArmorCoopStats { total_events: 0, profile_stacks: 0, inherits: 0, policy_syncs: 0 } }
+        Self {
+            stats: AppArmorCoopStats {
+                total_events: 0,
+                profile_stacks: 0,
+                inherits: 0,
+                policy_syncs: 0,
+            },
+        }
     }
 
     #[inline]
@@ -59,7 +75,7 @@ impl CoopAppArmor {
             AppArmorCoopEvent::ProfileStack => self.stats.profile_stacks += 1,
             AppArmorCoopEvent::ProfileInherit => self.stats.inherits += 1,
             AppArmorCoopEvent::PolicySync => self.stats.policy_syncs += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

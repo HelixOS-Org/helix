@@ -6,13 +6,13 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
 
 use super::ir::{IRFunction, IRModule, IROp};
+use crate::fast::linear_map::LinearMap;
 use crate::math::F64Ext;
 
 // ============================================================================
@@ -760,7 +760,7 @@ impl Default for MetricsCollector {
 mod tests {
     use super::super::ir::IRBuilder;
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     #[test]
     fn test_halstead_metrics() {

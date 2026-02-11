@@ -2,8 +2,9 @@
 //! Coop inode — cooperative inode sharing with reference tracking
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Coop inode state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,17 +31,43 @@ pub struct CoopInodeEntry {
 
 impl CoopInodeEntry {
     pub fn new(inode: u64) -> Self {
-        Self { inode, state: CoopInodeState::Clean, size: 0, nlink: 1, shared_count: 1, dirty_pages: 0, read_count: 0, write_count: 0 }
+        Self {
+            inode,
+            state: CoopInodeState::Clean,
+            size: 0,
+            nlink: 1,
+            shared_count: 1,
+            dirty_pages: 0,
+            read_count: 0,
+            write_count: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn share(&mut self) { self.shared_count += 1; self.state = CoopInodeState::Shared; }
+    pub fn share(&mut self) {
+        self.shared_count += 1;
+        self.state = CoopInodeState::Shared;
+    }
     #[inline(always)]
-    pub fn unshare(&mut self) { if self.shared_count > 0 { self.shared_count -= 1; } }
+    pub fn unshare(&mut self) {
+        if self.shared_count > 0 {
+            self.shared_count -= 1;
+        }
+    }
     #[inline(always)]
-    pub fn mark_dirty(&mut self, pages: u64) { self.dirty_pages += pages; self.state = CoopInodeState::Dirty; }
+    pub fn mark_dirty(&mut self, pages: u64) {
+        self.dirty_pages += pages;
+        self.state = CoopInodeState::Dirty;
+    }
     #[inline(always)]
-    pub fn writeback(&mut self, pages: u64) { self.dirty_pages = self.dirty_pages.saturating_sub(pages); if self.dirty_pages == 0 && self.shared_count > 1 { self.state = CoopInodeState::Shared; } else if self.dirty_pages == 0 { self.state = CoopInodeState::Clean; } }
+    pub fn writeback(&mut self, pages: u64) {
+        self.dirty_pages = self.dirty_pages.saturating_sub(pages);
+        if self.dirty_pages == 0 && self.shared_count > 1 {
+            self.state = CoopInodeState::Shared;
+        } else if self.dirty_pages == 0 {
+            self.state = CoopInodeState::Clean;
+        }
+    }
 }
 
 /// Coop inode stats
@@ -63,7 +90,16 @@ pub struct CoopInode {
 
 impl CoopInode {
     pub fn new() -> Self {
-        Self { inodes: BTreeMap::new(), stats: CoopInodeStats { total_inodes: 0, shared_inodes: 0, dirty_inodes: 0, writebacks: 0, evictions: 0 } }
+        Self {
+            inodes: BTreeMap::new(),
+            stats: CoopInodeStats {
+                total_inodes: 0,
+                shared_inodes: 0,
+                dirty_inodes: 0,
+                writebacks: 0,
+                evictions: 0,
+            },
+        }
     }
 
     #[inline(always)]
@@ -74,12 +110,17 @@ impl CoopInode {
 
     #[inline(always)]
     pub fn share(&mut self, inode: u64) {
-        if let Some(e) = self.inodes.get_mut(&inode) { e.share(); self.stats.shared_inodes += 1; }
+        if let Some(e) = self.inodes.get_mut(&inode) {
+            e.share();
+            self.stats.shared_inodes += 1;
+        }
     }
 
     #[inline(always)]
     pub fn evict(&mut self, inode: u64) {
-        if self.inodes.remove(&inode).is_some() { self.stats.evictions += 1; }
+        if self.inodes.remove(&inode).is_some() {
+            self.stats.evictions += 1;
+        }
     }
 }
 

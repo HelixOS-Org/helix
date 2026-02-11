@@ -143,7 +143,14 @@ impl ArpEntry {
 
     #[inline(always)]
     pub fn is_valid(&self) -> bool {
-        matches!(self.state, NudState::Reachable | NudState::Stale | NudState::Delay | NudState::Probe | NudState::Permanent)
+        matches!(
+            self.state,
+            NudState::Reachable
+                | NudState::Stale
+                | NudState::Delay
+                | NudState::Probe
+                | NudState::Permanent
+        )
     }
 
     #[inline(always)]
@@ -238,7 +245,7 @@ impl HolisticArpCache {
             NudState::Reachable => self.stats.reachable_entries += 1,
             NudState::Stale => self.stats.stale_entries += 1,
             NudState::Failed => self.stats.failed_entries += 1,
-            _ => {}
+            _ => {},
         }
         self.entries.insert(ip, entry);
     }
@@ -246,8 +253,12 @@ impl HolisticArpCache {
     #[inline]
     pub fn gc(&mut self, now_ns: u64) {
         self.stats.gc_runs += 1;
-        let stale_keys: Vec<u32> = self.entries.iter()
-            .filter(|(_, e)| e.state == NudState::Failed || e.age_ms(now_ns) > e.gc_staletime_ms as u64)
+        let stale_keys: Vec<u32> = self
+            .entries
+            .iter()
+            .filter(|(_, e)| {
+                e.state == NudState::Failed || e.age_ms(now_ns) > e.gc_staletime_ms as u64
+            })
             .map(|(&k, _)| k)
             .collect();
         for k in stale_keys {

@@ -34,30 +34,58 @@ pub struct PkruState {
 }
 
 impl PkruState {
-    pub fn new() -> Self { Self { pkru_value: 0, pid: 0, last_modified: 0 } }
+    pub fn new() -> Self {
+        Self {
+            pkru_value: 0,
+            pid: 0,
+            last_modified: 0,
+        }
+    }
 
     #[inline]
     pub fn set_key(&mut self, key: u32, access: PkeyAccess) {
-        if key >= 16 { return; }
+        if key >= 16 {
+            return;
+        }
         let shift = key * 2;
         let mask = !(3u32 << shift);
-        let bits = match access { PkeyAccess::ReadWrite => 0, PkeyAccess::NoAccess => 3, PkeyAccess::WriteOnly => 1, PkeyAccess::ReadOnly => 2 };
+        let bits = match access {
+            PkeyAccess::ReadWrite => 0,
+            PkeyAccess::NoAccess => 3,
+            PkeyAccess::WriteOnly => 1,
+            PkeyAccess::ReadOnly => 2,
+        };
         self.pkru_value = (self.pkru_value & mask) | (bits << shift);
     }
 
     #[inline(always)]
     pub fn get_key(&self, key: u32) -> PkeyAccess {
-        if key >= 16 { return PkeyAccess::NoAccess; }
-        match (self.pkru_value >> (key * 2)) & 3 { 0 => PkeyAccess::ReadWrite, 1 => PkeyAccess::WriteOnly, 2 => PkeyAccess::ReadOnly, _ => PkeyAccess::NoAccess }
+        if key >= 16 {
+            return PkeyAccess::NoAccess;
+        }
+        match (self.pkru_value >> (key * 2)) & 3 {
+            0 => PkeyAccess::ReadWrite,
+            1 => PkeyAccess::WriteOnly,
+            2 => PkeyAccess::ReadOnly,
+            _ => PkeyAccess::NoAccess,
+        }
     }
 
     /// Set key access by disable_write and disable_access flags (V2 API)
     #[inline]
     pub fn set_key_access(&mut self, key: u32, disable_write: bool, disable_access: bool) {
-        if key >= 16 { return; }
+        if key >= 16 {
+            return;
+        }
         let shift = key * 2;
         let mask = !(3u32 << shift);
-        let bits = if disable_access { 3u32 } else if disable_write { 2u32 } else { 0u32 };
+        let bits = if disable_access {
+            3u32
+        } else if disable_write {
+            2u32
+        } else {
+            0u32
+        };
         self.pkru_value = (self.pkru_value & mask) | (bits << shift);
     }
 }
@@ -72,12 +100,22 @@ pub struct ProcessPkeys {
 }
 
 impl ProcessPkeys {
-    pub fn new(pid: u64) -> Self { Self { pid, pkru: PkruState::new(), allocated_keys: Vec::new(), violation_count: 0 } }
+    pub fn new(pid: u64) -> Self {
+        Self {
+            pid,
+            pkru: PkruState::new(),
+            allocated_keys: Vec::new(),
+            violation_count: 0,
+        }
+    }
 
     #[inline]
     pub fn alloc_key(&mut self) -> Option<u32> {
         for k in 1u32..16 {
-            if !self.allocated_keys.contains(&k) { self.allocated_keys.push(k); return Some(k); }
+            if !self.allocated_keys.contains(&k) {
+                self.allocated_keys.push(k);
+                return Some(k);
+            }
         }
         None
     }
@@ -107,27 +145,51 @@ pub struct BridgePkey {
 }
 
 impl BridgePkey {
-    pub fn new() -> Self { Self { processes: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            processes: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn register(&mut self, pid: u64) { self.processes.insert(pid, ProcessPkeys::new(pid)); }
+    pub fn register(&mut self, pid: u64) {
+        self.processes.insert(pid, ProcessPkeys::new(pid));
+    }
     #[inline(always)]
-    pub fn unregister(&mut self, pid: u64) { self.processes.remove(&pid); }
+    pub fn unregister(&mut self, pid: u64) {
+        self.processes.remove(&pid);
+    }
 
     #[inline(always)]
-    pub fn alloc_key(&mut self, pid: u64) -> Option<u32> { self.processes.get_mut(&pid)?.alloc_key() }
+    pub fn alloc_key(&mut self, pid: u64) -> Option<u32> {
+        self.processes.get_mut(&pid)?.alloc_key()
+    }
     #[inline(always)]
-    pub fn free_key(&mut self, pid: u64, key: u32) { if let Some(p) = self.processes.get_mut(&pid) { p.free_key(key); } }
+    pub fn free_key(&mut self, pid: u64, key: u32) {
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.free_key(key);
+        }
+    }
 
     #[inline(always)]
     pub fn set_access(&mut self, pid: u64, key: u32, access: PkeyAccess) {
-        if let Some(p) = self.processes.get_mut(&pid) { p.pkru.set_key(key, access); }
+        if let Some(p) = self.processes.get_mut(&pid) {
+            p.pkru.set_key(key, access);
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> PkeyBridgeStats {
-        let keys: u32 = self.processes.values().map(|p| p.allocated_keys.len() as u32).sum();
+        let keys: u32 = self
+            .processes
+            .values()
+            .map(|p| p.allocated_keys.len() as u32)
+            .sum();
         let violations: u64 = self.processes.values().map(|p| p.violation_count).sum();
-        PkeyBridgeStats { tracked_processes: self.processes.len() as u32, total_allocated_keys: keys, total_violations: violations }
+        PkeyBridgeStats {
+            tracked_processes: self.processes.len() as u32,
+            total_allocated_keys: keys,
+            total_violations: violations,
+        }
     }
 }
 
@@ -155,11 +217,16 @@ pub struct PkeyV2Entry {
 
 impl PkeyV2Entry {
     pub fn new(key: u32, pid: u64, now: u64) -> Self {
-        Self { key, access: PkeyV2Access::ReadWrite, pid, assigned_pages: 0, violations: 0, allocated_at: now }
+        Self {
+            key,
+            access: PkeyV2Access::ReadWrite,
+            pid,
+            assigned_pages: 0,
+            violations: 0,
+            allocated_at: now,
+        }
     }
 }
-
-
 
 /// Stats
 #[derive(Debug, Clone)]
@@ -179,22 +246,39 @@ pub struct BridgePkeyV2 {
 }
 
 impl BridgePkeyV2 {
-    pub fn new() -> Self { Self { keys: BTreeMap::new(), pkru_states: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            keys: BTreeMap::new(),
+            pkru_states: BTreeMap::new(),
+        }
+    }
 
     #[inline(always)]
     pub fn alloc(&mut self, key: u32, pid: u64, now: u64) {
         self.keys.insert(key, PkeyV2Entry::new(key, pid, now));
-        self.pkru_states.entry(pid).or_insert_with(|| PkruState::new());
+        self.pkru_states
+            .entry(pid)
+            .or_insert_with(|| PkruState::new());
     }
 
     #[inline(always)]
-    pub fn free(&mut self, key: u32) { self.keys.remove(&key); }
+    pub fn free(&mut self, key: u32) {
+        self.keys.remove(&key);
+    }
 
     #[inline]
     pub fn set_access(&mut self, pid: u64, key: u32, dw: bool, da: bool) {
-        if let Some(ps) = self.pkru_states.get_mut(&pid) { ps.set_key_access(key, dw, da); }
+        if let Some(ps) = self.pkru_states.get_mut(&pid) {
+            ps.set_key_access(key, dw, da);
+        }
         if let Some(ke) = self.keys.get_mut(&key) {
-            ke.access = if da { PkeyV2Access::AccessDisable } else if dw { PkeyV2Access::WriteDisable } else { PkeyV2Access::ReadWrite };
+            ke.access = if da {
+                PkeyV2Access::AccessDisable
+            } else if dw {
+                PkeyV2Access::WriteDisable
+            } else {
+                PkeyV2Access::ReadWrite
+            };
         }
     }
 
@@ -202,6 +286,11 @@ impl BridgePkeyV2 {
     pub fn stats(&self) -> PkeyV2BridgeStats {
         let violations: u64 = self.keys.values().map(|k| k.violations).sum();
         let pages: u64 = self.keys.values().map(|k| k.assigned_pages).sum();
-        PkeyV2BridgeStats { total_keys: self.keys.len() as u32, active_processes: self.pkru_states.len() as u32, total_violations: violations, total_assigned_pages: pages }
+        PkeyV2BridgeStats {
+            total_keys: self.keys.len() as u32,
+            active_processes: self.pkru_states.len() as u32,
+            total_violations: violations,
+            total_assigned_pages: pages,
+        }
     }
 }

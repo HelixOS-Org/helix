@@ -30,11 +30,17 @@ impl WaitOptions {
     pub const NOWAIT: u32 = 32;
     pub const CLONE: u32 = 0x80000000;
 
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn has(&self, flag: u32) -> bool { self.bits & flag != 0 }
+    pub fn has(&self, flag: u32) -> bool {
+        self.bits & flag != 0
+    }
     #[inline(always)]
-    pub fn is_nohang(&self) -> bool { self.has(Self::NOHANG) }
+    pub fn is_nohang(&self) -> bool {
+        self.has(Self::NOHANG)
+    }
 }
 
 /// Child exit status
@@ -73,8 +79,13 @@ pub struct WaiterEntry {
 impl WaiterEntry {
     pub fn new(pid: u64, id_type: WaitIdType, target: u64, opts: WaitOptions, now: u64) -> Self {
         Self {
-            waiter_pid: pid, id_type, target_id: target,
-            options: opts, enqueued_at: now, satisfied: false, result: None,
+            waiter_pid: pid,
+            id_type,
+            target_id: target,
+            options: opts,
+            enqueued_at: now,
+            satisfied: false,
+            result: None,
         }
     }
 
@@ -95,7 +106,9 @@ impl WaiterEntry {
     }
 
     #[inline(always)]
-    pub fn wait_time(&self, now: u64) -> u64 { now.saturating_sub(self.enqueued_at) }
+    pub fn wait_time(&self, now: u64) -> u64 {
+        now.saturating_sub(self.enqueued_at)
+    }
 }
 
 /// Zombie process entry
@@ -114,13 +127,21 @@ pub struct ZombieEntry {
 impl ZombieEntry {
     pub fn new(pid: u64, parent: u64, pgid: u64, status: ExitStatus, now: u64) -> Self {
         Self {
-            pid, parent_pid: parent, pgid, status,
-            utime: 0, stime: 0, exit_time: now, reaped: false,
+            pid,
+            parent_pid: parent,
+            pgid,
+            status,
+            utime: 0,
+            stime: 0,
+            exit_time: now,
+            reaped: false,
         }
     }
 
     #[inline(always)]
-    pub fn zombie_time(&self, now: u64) -> u64 { now.saturating_sub(self.exit_time) }
+    pub fn zombie_time(&self, now: u64) -> u64 {
+        now.saturating_sub(self.exit_time)
+    }
 }
 
 /// Stats
@@ -144,47 +165,86 @@ pub struct AppWaitIdMgr {
 
 impl AppWaitIdMgr {
     pub fn new() -> Self {
-        Self { waiters: Vec::new(), zombies: BTreeMap::new(), total_events: 0 }
+        Self {
+            waiters: Vec::new(),
+            zombies: BTreeMap::new(),
+            total_events: 0,
+        }
     }
 
-    pub fn wait(&mut self, pid: u64, id_type: WaitIdType, target: u64, opts: u32, now: u64) -> Option<WaitSiginfo> {
+    pub fn wait(
+        &mut self,
+        pid: u64,
+        id_type: WaitIdType,
+        target: u64,
+        opts: u32,
+        now: u64,
+    ) -> Option<WaitSiginfo> {
         let options = WaitOptions::new(opts);
         self.total_events += 1;
 
         // Check for existing zombies first
-        let zombie_match = self.zombies.values().find(|z| {
-            !z.reaped && z.parent_pid == pid && match id_type {
-                WaitIdType::Pid => z.pid == target,
-                WaitIdType::Pgid => z.pgid == target,
-                WaitIdType::All => true,
-                WaitIdType::PidFd => z.pid == target,
-            }
-        }).map(|z| z.pid);
+        let zombie_match = self
+            .zombies
+            .values()
+            .find(|z| {
+                !z.reaped
+                    && z.parent_pid == pid
+                    && match id_type {
+                        WaitIdType::Pid => z.pid == target,
+                        WaitIdType::Pgid => z.pgid == target,
+                        WaitIdType::All => true,
+                        WaitIdType::PidFd => z.pid == target,
+                    }
+            })
+            .map(|z| z.pid);
 
         if let Some(zombie_pid) = zombie_match {
             if let Some(z) = self.zombies.get_mut(&zombie_pid) {
-                if !options.has(WaitOptions::NOWAIT) { z.reaped = true; }
+                if !options.has(WaitOptions::NOWAIT) {
+                    z.reaped = true;
+                }
                 return Some(WaitSiginfo {
-                    pid: z.pid, uid: 0, status: z.status,
-                    utime: z.utime, stime: z.stime,
+                    pid: z.pid,
+                    uid: 0,
+                    status: z.status,
+                    utime: z.utime,
+                    stime: z.stime,
                 });
             }
         }
 
         if !options.is_nohang() {
-            self.waiters.push(WaiterEntry::new(pid, id_type, target, options, now));
+            self.waiters
+                .push(WaiterEntry::new(pid, id_type, target, options, now));
         }
         None
     }
 
     #[inline]
-    pub fn exit_child(&mut self, child_pid: u64, parent: u64, pgid: u64, status: ExitStatus, now: u64) {
-        self.zombies.insert(child_pid, ZombieEntry::new(child_pid, parent, pgid, status, now));
+    pub fn exit_child(
+        &mut self,
+        child_pid: u64,
+        parent: u64,
+        pgid: u64,
+        status: ExitStatus,
+        now: u64,
+    ) {
+        self.zombies.insert(
+            child_pid,
+            ZombieEntry::new(child_pid, parent, pgid, status, now),
+        );
 
         // Wake matching waiters
         for waiter in &mut self.waiters {
             if waiter.waiter_pid == parent && !waiter.satisfied && waiter.matches(child_pid, pgid) {
-                waiter.satisfy(WaitSiginfo { pid: child_pid, uid: 0, status, utime: 0, stime: 0 });
+                waiter.satisfy(WaitSiginfo {
+                    pid: child_pid,
+                    uid: 0,
+                    status,
+                    utime: 0,
+                    stime: 0,
+                });
             }
         }
     }
@@ -194,9 +254,12 @@ impl AppWaitIdMgr {
         let satisfied = self.waiters.iter().filter(|w| w.satisfied).count() as u32;
         let reaped = self.zombies.values().filter(|z| z.reaped).count() as u32;
         WaitIdMgrStats {
-            total_waiters: self.waiters.len() as u32, satisfied_waiters: satisfied,
-            total_zombies: self.zombies.len() as u32, reaped_zombies: reaped,
-            total_wait_events: self.total_events, avg_wait_ns: 0,
+            total_waiters: self.waiters.len() as u32,
+            satisfied_waiters: satisfied,
+            total_zombies: self.zombies.len() as u32,
+            reaped_zombies: reaped,
+            total_wait_events: self.total_events,
+            avg_wait_ns: 0,
         }
     }
 }

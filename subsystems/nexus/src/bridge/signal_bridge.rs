@@ -6,9 +6,28 @@ extern crate alloc;
 /// Signal number
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeSignal {
-    SigHup, SigInt, SigQuit, SigIll, SigTrap, SigAbrt, SigBus, SigFpe,
-    SigKill, SigUsr1, SigSegv, SigUsr2, SigPipe, SigAlrm, SigTerm,
-    SigChld, SigCont, SigStop, SigTstp, SigTtin, SigTtou, SigUrg,
+    SigHup,
+    SigInt,
+    SigQuit,
+    SigIll,
+    SigTrap,
+    SigAbrt,
+    SigBus,
+    SigFpe,
+    SigKill,
+    SigUsr1,
+    SigSegv,
+    SigUsr2,
+    SigPipe,
+    SigAlrm,
+    SigTerm,
+    SigChld,
+    SigCont,
+    SigStop,
+    SigTstp,
+    SigTtin,
+    SigTtou,
+    SigUrg,
     SigRt(u8),
 }
 
@@ -45,7 +64,13 @@ pub struct SignalBridgeRecord {
 
 impl SignalBridgeRecord {
     pub fn new(signal: BridgeSignal, method: SignalMethod) -> Self {
-        Self { signal, method, result: SignalResult::Delivered, sender_pid: 0, target_pid: 0 }
+        Self {
+            signal,
+            method,
+            result: SignalResult::Delivered,
+            sender_pid: 0,
+            target_pid: 0,
+        }
     }
 }
 
@@ -67,7 +92,14 @@ pub struct BridgeSignalMgr {
 
 impl BridgeSignalMgr {
     pub fn new() -> Self {
-        Self { stats: SignalBridgeStats { total_ops: 0, delivered: 0, denied: 0, queued: 0 } }
+        Self {
+            stats: SignalBridgeStats {
+                total_ops: 0,
+                delivered: 0,
+                denied: 0,
+                queued: 0,
+            },
+        }
     }
 
     #[inline]
@@ -77,7 +109,7 @@ impl BridgeSignalMgr {
             SignalResult::Delivered => self.stats.delivered += 1,
             SignalResult::Queued => self.stats.queued += 1,
             SignalResult::PermissionDenied => self.stats.denied += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

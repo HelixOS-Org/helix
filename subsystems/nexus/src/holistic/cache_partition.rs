@@ -36,8 +36,12 @@ pub struct ClosEntry {
 impl ClosEntry {
     pub fn new(id: u32, level: CacheLevel, total_ways: u32) -> Self {
         Self {
-            id, bitmask: (1u64 << total_ways) - 1, level,
-            ways_allocated: total_ways, total_ways, processes: Vec::new(),
+            id,
+            bitmask: (1u64 << total_ways) - 1,
+            level,
+            ways_allocated: total_ways,
+            total_ways,
+            processes: Vec::new(),
         }
     }
 
@@ -49,7 +53,9 @@ impl ClosEntry {
 
     #[inline(always)]
     pub fn assign_process(&mut self, pid: u64) {
-        if !self.processes.contains(&pid) { self.processes.push(pid); }
+        if !self.processes.contains(&pid) {
+            self.processes.push(pid);
+        }
     }
 
     #[inline(always)]
@@ -59,7 +65,9 @@ impl ClosEntry {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.total_ways == 0 { return 0.0; }
+        if self.total_ways == 0 {
+            return 0.0;
+        }
         self.ways_allocated as f64 / self.total_ways as f64
     }
 }
@@ -85,7 +93,11 @@ pub struct CdpConfig {
 
 impl CdpConfig {
     pub fn new(code_mask: u64, data_mask: u64) -> Self {
-        Self { code_mask, data_mask, enabled: true }
+        Self {
+            code_mask,
+            data_mask,
+            enabled: true,
+        }
     }
 }
 
@@ -115,8 +127,12 @@ pub struct HolisticCachePartition {
 impl HolisticCachePartition {
     pub fn new(level: CacheLevel, total_ways: u32) -> Self {
         Self {
-            clos_entries: BTreeMap::new(), monitor_data: Vec::new(),
-            cdp: None, cache_level: level, total_ways, next_clos: 0,
+            clos_entries: BTreeMap::new(),
+            monitor_data: Vec::new(),
+            cdp: None,
+            cache_level: level,
+            total_ways,
+            next_clos: 0,
         }
     }
 
@@ -124,18 +140,23 @@ impl HolisticCachePartition {
     pub fn create_clos(&mut self) -> u32 {
         let id = self.next_clos;
         self.next_clos += 1;
-        self.clos_entries.insert(id, ClosEntry::new(id, self.cache_level, self.total_ways));
+        self.clos_entries
+            .insert(id, ClosEntry::new(id, self.cache_level, self.total_ways));
         id
     }
 
     #[inline(always)]
     pub fn set_clos_mask(&mut self, clos: u32, mask: u64) {
-        if let Some(entry) = self.clos_entries.get_mut(&clos) { entry.set_ways(mask); }
+        if let Some(entry) = self.clos_entries.get_mut(&clos) {
+            entry.set_ways(mask);
+        }
     }
 
     #[inline(always)]
     pub fn assign_process(&mut self, clos: u32, pid: u64) {
-        if let Some(entry) = self.clos_entries.get_mut(&clos) { entry.assign_process(pid); }
+        if let Some(entry) = self.clos_entries.get_mut(&clos) {
+            entry.assign_process(pid);
+        }
     }
 
     #[inline(always)]
@@ -145,20 +166,39 @@ impl HolisticCachePartition {
 
     #[inline(always)]
     pub fn record_monitor(&mut self, clos: u32, occ: u64, bw: u64, miss: f64, now: u64) {
-        self.monitor_data.push(CacheMonitorData { clos_id: clos, occupancy_bytes: occ, bandwidth_bytes: bw, miss_rate: miss, timestamp: now });
-        if self.monitor_data.len() > 4096 { self.monitor_data.drain(..2048); }
+        self.monitor_data.push(CacheMonitorData {
+            clos_id: clos,
+            occupancy_bytes: occ,
+            bandwidth_bytes: bw,
+            miss_rate: miss,
+            timestamp: now,
+        });
+        if self.monitor_data.len() > 4096 {
+            self.monitor_data.drain(..2048);
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> CachePartitionStats {
-        let procs: u32 = self.clos_entries.values().map(|c| c.processes.len() as u32).sum();
+        let procs: u32 = self
+            .clos_entries
+            .values()
+            .map(|c| c.processes.len() as u32)
+            .sum();
         let alloc: u32 = self.clos_entries.values().map(|c| c.ways_allocated).sum();
         let rates: Vec<f64> = self.monitor_data.iter().map(|m| m.miss_rate).collect();
-        let avg_miss = if rates.is_empty() { 0.0 } else { rates.iter().sum::<f64>() / rates.len() as f64 };
+        let avg_miss = if rates.is_empty() {
+            0.0
+        } else {
+            rates.iter().sum::<f64>() / rates.len() as f64
+        };
         CachePartitionStats {
-            total_clos: self.clos_entries.len() as u32, active_processes: procs,
-            total_ways: self.total_ways, allocated_ways: alloc,
-            cdp_enabled: self.cdp.is_some(), avg_miss_rate: avg_miss,
+            total_clos: self.clos_entries.len() as u32,
+            active_processes: procs,
+            total_ways: self.total_ways,
+            allocated_ways: alloc,
+            cdp_enabled: self.cdp.is_some(),
+            avg_miss_rate: avg_miss,
         }
     }
 }

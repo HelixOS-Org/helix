@@ -678,7 +678,7 @@ impl FewShotLearner {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::fast::math::{F64Ext};
+    use crate::fast::math::F64Ext;
 
     fn make_sample(features: Vec<f64>, label: f64) -> StreamingSample {
         StreamingSample::new(features, Some(label))

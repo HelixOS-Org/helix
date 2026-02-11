@@ -12,7 +12,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-
 /// TLB flush reason
 use core::sync::atomic::AtomicU64;
 use core::sync::atomic::Ordering;
@@ -69,7 +68,9 @@ impl ShootdownRequest {
 
     #[inline(always)]
     pub fn range_pages(&self, page_size: u64) -> u64 {
-        if page_size == 0 { return 0; }
+        if page_size == 0 {
+            return 0;
+        }
         (self.end_va - self.start_va) / page_size
     }
 
@@ -124,14 +125,18 @@ impl CpuTlbState {
 
     #[inline(always)]
     pub fn avg_flush_ns(&self) -> u64 {
-        if self.total_flushes == 0 { return 0; }
+        if self.total_flushes == 0 {
+            return 0;
+        }
         self.total_flush_latency_ns / self.total_flushes
     }
 
     #[inline]
     pub fn pcid_hit_rate(&self) -> f64 {
         let total = self.total_flushes;
-        if total == 0 { return 1.0; }
+        if total == 0 {
+            return 1.0;
+        }
         let saved = total.saturating_sub(self.full_flushes);
         saved as f64 / total as f64
     }
@@ -160,7 +165,9 @@ impl CpuTlbState {
 
         // Evict LRU
         self.pcid_evictions += 1;
-        let lru_idx = self.pcid_slots.iter()
+        let lru_idx = self
+            .pcid_slots
+            .iter()
             .enumerate()
             .min_by_key(|(_, s)| s.last_use_ns)
             .map(|(i, _)| i)
@@ -196,7 +203,10 @@ pub struct ShootdownBatch {
 
 impl ShootdownBatch {
     pub fn new() -> Self {
-        Self { requests: Vec::new(), coalesced_ranges: Vec::new() }
+        Self {
+            requests: Vec::new(),
+            coalesced_ranges: Vec::new(),
+        }
     }
 
     #[inline(always)]
@@ -206,8 +216,12 @@ impl ShootdownBatch {
 
     /// Coalesce overlapping ranges
     pub fn coalesce(&mut self) {
-        if self.requests.is_empty() { return; }
-        let mut ranges: Vec<(u64, u64)> = self.requests.iter()
+        if self.requests.is_empty() {
+            return;
+        }
+        let mut ranges: Vec<(u64, u64)> = self
+            .requests
+            .iter()
             .map(|r| (r.start_va, r.end_va))
             .collect();
         ranges.sort_by_key(|r| r.0);
@@ -216,7 +230,9 @@ impl ShootdownBatch {
         let mut cur = ranges[0];
         for &(start, end) in &ranges[1..] {
             if start <= cur.1 {
-                if end > cur.1 { cur.1 = end; }
+                if end > cur.1 {
+                    cur.1 = end;
+                }
             } else {
                 self.coalesced_ranges.push(cur);
                 cur = (start, end);
@@ -227,7 +243,8 @@ impl ShootdownBatch {
 
     #[inline]
     pub fn total_pages_4k(&self) -> u64 {
-        self.coalesced_ranges.iter()
+        self.coalesced_ranges
+            .iter()
             .map(|(s, e)| (e - s) / 4096)
             .sum()
     }
@@ -269,13 +286,21 @@ impl HolisticTlbMgr {
 
     #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32, pcid_cap: u16) {
-        self.cpus.entry(cpu_id)
+        self.cpus
+            .entry(cpu_id)
             .or_insert_with(|| CpuTlbState::new(cpu_id, pcid_cap));
     }
 
     /// Queue a shootdown request
     #[inline]
-    pub fn queue_shootdown(&mut self, cpu: u32, start: u64, end: u64, reason: TlbFlushReason, now: u64) {
+    pub fn queue_shootdown(
+        &mut self,
+        cpu: u32,
+        start: u64,
+        end: u64,
+        reason: TlbFlushReason,
+        now: u64,
+    ) {
         let id = self.next_request_id;
         self.next_request_id += 1;
         let req = ShootdownRequest::new(id, cpu, start, end, reason, now);
@@ -303,10 +328,15 @@ impl HolisticTlbMgr {
     pub fn record_flush(&mut self, cpu_id: u32, full: bool, latency_ns: u64) {
         if let Some(cpu) = self.cpus.get_mut(&cpu_id) {
             cpu.total_flushes += 1;
-            if full { cpu.full_flushes += 1; }
-            else { cpu.range_flushes += 1; }
+            if full {
+                cpu.full_flushes += 1;
+            } else {
+                cpu.range_flushes += 1;
+            }
             cpu.total_flush_latency_ns += latency_ns;
-            if latency_ns > cpu.max_flush_latency_ns { cpu.max_flush_latency_ns = latency_ns; }
+            if latency_ns > cpu.max_flush_latency_ns {
+                cpu.max_flush_latency_ns = latency_ns;
+            }
         }
         self.total_shootdown_latency_ns += latency_ns;
     }
@@ -318,16 +348,25 @@ impl HolisticTlbMgr {
         self.stats.total_shootdowns = self.total_shootdowns;
         self.stats.avg_shootdown_latency_ns = if self.total_shootdowns > 0 {
             self.total_shootdown_latency_ns / self.total_shootdowns
-        } else { 0 };
+        } else {
+            0
+        };
         let sum_pcid: f64 = self.cpus.values().map(|c| c.pcid_hit_rate()).sum();
-        self.stats.avg_pcid_hit_rate = if self.cpus.is_empty() { 0.0 }
-        else { sum_pcid / self.cpus.len() as f64 };
+        self.stats.avg_pcid_hit_rate = if self.cpus.is_empty() {
+            0.0
+        } else {
+            sum_pcid / self.cpus.len() as f64
+        };
     }
 
     #[inline(always)]
-    pub fn cpu_tlb(&self, id: u32) -> Option<&CpuTlbState> { self.cpus.get(&id) }
+    pub fn cpu_tlb(&self, id: u32) -> Option<&CpuTlbState> {
+        self.cpus.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &HolisticTlbMgrStats { &self.stats }
+    pub fn stats(&self) -> &HolisticTlbMgrStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -538,12 +577,7 @@ impl HolisticTlbMgrV2 {
     }
 
     #[inline]
-    pub fn create_shootdown(
-        &mut self,
-        scope: TlbV2Scope,
-        start_addr: u64,
-        end_addr: u64,
-    ) -> u64 {
+    pub fn create_shootdown(&mut self, scope: TlbV2Scope, start_addr: u64, end_addr: u64) -> u64 {
         let id = self.next_batch_id;
         self.next_batch_id += 1;
         let gen_val = self.global_generation.fetch_add(1, Ordering::SeqCst) + 1;

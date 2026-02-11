@@ -295,7 +295,11 @@ impl AppsCreativity {
         for i in 0..max_len {
             let va = *ga.genes.get(i).unwrap_or(&50);
             let vb = *gb.genes.get(i).unwrap_or(&50);
-            let pick = if xorshift64(&mut self.rng) % 2 == 0 { va } else { vb };
+            let pick = if xorshift64(&mut self.rng) % 2 == 0 {
+                va
+            } else {
+                vb
+            };
             offspring_genes.push(pick);
         }
 
@@ -367,8 +371,10 @@ impl AppsCreativity {
     #[inline]
     pub fn tick(&mut self) {
         self.tick += 1;
-        self.stats.innovations_per_tick_ema =
-            ema_update(self.stats.innovations_per_tick_ema, self.innovations_this_tick);
+        self.stats.innovations_per_tick_ema = ema_update(
+            self.stats.innovations_per_tick_ema,
+            self.innovations_this_tick,
+        );
         self.innovations_this_tick = 0;
         self.refresh_creativity_score();
         self.stats.generation = self.generation;
@@ -423,7 +429,9 @@ impl AppsCreativity {
             return None;
         }
         // Return the genome with the best combined fitness + novelty score.
-        self.genomes.values().max_by_key(|g| g.fitness + g.novelty / 2)
+        self.genomes
+            .values()
+            .max_by_key(|g| g.fitness + g.novelty / 2)
     }
 
     fn enforce_population_cap(&mut self) {

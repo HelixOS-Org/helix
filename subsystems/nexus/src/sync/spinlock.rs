@@ -2,8 +2,7 @@
 //!
 //! Analyzes spinlock behavior and spin times.
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 use super::{LockId, ThreadId};

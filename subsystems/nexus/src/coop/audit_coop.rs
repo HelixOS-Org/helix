@@ -25,7 +25,13 @@ pub struct AuditCoopRecord {
 
 impl AuditCoopRecord {
     pub fn new(event: AuditCoopEvent) -> Self {
-        Self { event, serial: 0, source_pid: 0, target_count: 0, records_merged: 0 }
+        Self {
+            event,
+            serial: 0,
+            source_pid: 0,
+            target_count: 0,
+            records_merged: 0,
+        }
     }
 }
 
@@ -47,7 +53,14 @@ pub struct CoopAudit {
 
 impl CoopAudit {
     pub fn new() -> Self {
-        Self { stats: AuditCoopStats { total_events: 0, trail_merges: 0, rule_syncs: 0, records_merged: 0 } }
+        Self {
+            stats: AuditCoopStats {
+                total_events: 0,
+                trail_merges: 0,
+                rule_syncs: 0,
+                records_merged: 0,
+            },
+        }
     }
 
     #[inline]
@@ -55,8 +68,10 @@ impl CoopAudit {
         self.stats.total_events += 1;
         match rec.event {
             AuditCoopEvent::TrailMerge => self.stats.trail_merges += 1,
-            AuditCoopEvent::RuleSync | AuditCoopEvent::FilterPropagate => self.stats.rule_syncs += 1,
-            _ => {}
+            AuditCoopEvent::RuleSync | AuditCoopEvent::FilterPropagate => {
+                self.stats.rule_syncs += 1
+            },
+            _ => {},
         }
         self.stats.records_merged += rec.records_merged as u64;
     }

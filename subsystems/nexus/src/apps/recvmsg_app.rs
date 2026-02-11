@@ -63,10 +63,15 @@ pub struct SocketRecvState {
 impl SocketRecvState {
     pub fn new(fd: u64) -> Self {
         Self {
-            fd, total_bytes: 0, total_calls: 0,
-            total_iov_entries: 0, peek_calls: 0,
-            truncated_count: 0, eof_count: 0,
-            failed_calls: 0, max_msg_size: 0,
+            fd,
+            total_bytes: 0,
+            total_calls: 0,
+            total_iov_entries: 0,
+            peek_calls: 0,
+            truncated_count: 0,
+            eof_count: 0,
+            failed_calls: 0,
+            max_msg_size: 0,
             ancillary_count: 0,
         }
     }
@@ -76,19 +81,33 @@ impl SocketRecvState {
         self.total_bytes += bytes;
         self.total_calls += 1;
         self.total_iov_entries += iov as u64;
-        if truncated { self.truncated_count += 1; }
-        if peek { self.peek_calls += 1; }
-        if bytes > self.max_msg_size { self.max_msg_size = bytes; }
+        if truncated {
+            self.truncated_count += 1;
+        }
+        if peek {
+            self.peek_calls += 1;
+        }
+        if bytes > self.max_msg_size {
+            self.max_msg_size = bytes;
+        }
     }
 
     #[inline(always)]
     pub fn avg_msg_size(&self) -> u64 {
-        if self.total_calls == 0 { 0 } else { self.total_bytes / self.total_calls }
+        if self.total_calls == 0 {
+            0
+        } else {
+            self.total_bytes / self.total_calls
+        }
     }
 
     #[inline(always)]
     pub fn truncation_rate(&self) -> u64 {
-        if self.total_calls == 0 { 0 } else { (self.truncated_count * 100) / self.total_calls }
+        if self.total_calls == 0 {
+            0
+        } else {
+            (self.truncated_count * 100) / self.total_calls
+        }
     }
 }
 
@@ -112,8 +131,10 @@ impl AppRecvmsg {
         Self {
             sockets: BTreeMap::new(),
             stats: RecvmsgAppStats {
-                total_recvs: 0, total_bytes: 0,
-                total_truncated: 0, total_eof: 0,
+                total_recvs: 0,
+                total_bytes: 0,
+                total_truncated: 0,
+                total_eof: 0,
                 total_failures: 0,
             },
         }
@@ -130,10 +151,14 @@ impl AppRecvmsg {
             s.record_recv(bytes, iov, truncated, false);
             self.stats.total_recvs += 1;
             self.stats.total_bytes += bytes;
-            if truncated { self.stats.total_truncated += 1; }
+            if truncated {
+                self.stats.total_truncated += 1;
+            }
         }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &RecvmsgAppStats { &self.stats }
+    pub fn stats(&self) -> &RecvmsgAppStats {
+        &self.stats
+    }
 }

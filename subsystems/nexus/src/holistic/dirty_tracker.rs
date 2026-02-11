@@ -48,9 +48,14 @@ pub struct DirtyPage {
 impl DirtyPage {
     pub fn new(pfn: u64, pid: u32, inode: u64, ts: u64) -> Self {
         Self {
-            pfn, state: DirtyState::Dirty, owner_pid: pid,
-            inode_id: inode, dirtied_ts: ts, age_ns: 0,
-            write_count: 1, priority: WritebackPriority::Normal,
+            pfn,
+            state: DirtyState::Dirty,
+            owner_pid: pid,
+            inode_id: inode,
+            dirtied_ts: ts,
+            age_ns: 0,
+            write_count: 1,
+            priority: WritebackPriority::Normal,
         }
     }
 
@@ -71,7 +76,9 @@ impl DirtyPage {
     pub fn re_dirty(&mut self, ts: u64) {
         self.state = DirtyState::Dirty;
         self.write_count += 1;
-        if self.write_count > 10 { self.priority = WritebackPriority::Background; }
+        if self.write_count > 10 {
+            self.priority = WritebackPriority::Background;
+        }
         self.dirtied_ts = ts;
     }
 }
@@ -93,20 +100,29 @@ pub struct ProcessDirtyState {
 impl ProcessDirtyState {
     pub fn new(pid: u32, limit: u64) -> Self {
         Self {
-            pid, dirty_pages: 0, writeback_pages: 0,
-            total_dirtied: 0, total_written_back: 0,
-            dirty_limit: limit, throttled: false, throttle_start_ts: 0,
+            pid,
+            dirty_pages: 0,
+            writeback_pages: 0,
+            total_dirtied: 0,
+            total_written_back: 0,
+            dirty_limit: limit,
+            throttled: false,
+            throttle_start_ts: 0,
         }
     }
 
     #[inline(always)]
     pub fn dirty_ratio(&self) -> f64 {
-        if self.dirty_limit == 0 { return 0.0; }
+        if self.dirty_limit == 0 {
+            return 0.0;
+        }
         self.dirty_pages as f64 / self.dirty_limit as f64
     }
 
     #[inline(always)]
-    pub fn needs_throttle(&self) -> bool { self.dirty_pages >= self.dirty_limit }
+    pub fn needs_throttle(&self) -> bool {
+        self.dirty_pages >= self.dirty_limit
+    }
 }
 
 /// Dirty limits configuration
@@ -122,10 +138,10 @@ pub struct DirtyLimits {
 impl Default for DirtyLimits {
     fn default() -> Self {
         Self {
-            global_dirty_limit_pages: 262144,  // ~1GB with 4K pages
-            global_bg_limit_pages: 131072,     // ~512MB
-            per_process_limit_pages: 32768,    // ~128MB
-            dirty_expire_ns: 30_000_000_000,   // 30s
+            global_dirty_limit_pages: 262144,     // ~1GB with 4K pages
+            global_bg_limit_pages: 131072,        // ~512MB
+            per_process_limit_pages: 32768,       // ~128MB
+            dirty_expire_ns: 30_000_000_000,      // 30s
             writeback_interval_ns: 5_000_000_000, // 5s
         }
     }
@@ -172,16 +188,23 @@ pub struct HolisticDirtyTracker {
 impl HolisticDirtyTracker {
     pub fn new(total_pages: u64) -> Self {
         Self {
-            pages: BTreeMap::new(), processes: BTreeMap::new(),
-            batches: Vec::new(), limits: DirtyLimits::default(),
-            next_batch_id: 1, total_system_pages: total_pages,
-            emergency_writebacks: 0, stats: DirtyTrackerStats::default(),
+            pages: BTreeMap::new(),
+            processes: BTreeMap::new(),
+            batches: Vec::new(),
+            limits: DirtyLimits::default(),
+            next_batch_id: 1,
+            total_system_pages: total_pages,
+            emergency_writebacks: 0,
+            stats: DirtyTrackerStats::default(),
         }
     }
 
     #[inline(always)]
     pub fn register_process(&mut self, pid: u32) {
-        self.processes.insert(pid, ProcessDirtyState::new(pid, self.limits.per_process_limit_pages));
+        self.processes.insert(
+            pid,
+            ProcessDirtyState::new(pid, self.limits.per_process_limit_pages),
+        );
     }
 
     #[inline]
@@ -212,10 +235,16 @@ impl HolisticDirtyTracker {
 
     pub fn schedule_writeback(&mut self, now: u64, max_batch: usize) -> Vec<WritebackBatch> {
         // Age all pages
-        for page in self.pages.values_mut() { page.reclassify(now); }
+        for page in self.pages.values_mut() {
+            page.reclassify(now);
+        }
 
         // Check global limits
-        let dirty_count = self.pages.values().filter(|p| p.state == DirtyState::Dirty).count() as u64;
+        let dirty_count = self
+            .pages
+            .values()
+            .filter(|p| p.state == DirtyState::Dirty)
+            .count() as u64;
         let needs_emergency = dirty_count > self.limits.global_dirty_limit_pages;
 
         // Group by inode, sorted by priority
@@ -229,17 +258,24 @@ impl HolisticDirtyTracker {
         let mut result = Vec::new();
         for (inode, pfns) in &by_inode {
             let batch_pages: Vec<u64> = pfns.iter().take(max_batch).copied().collect();
-            if batch_pages.is_empty() { continue; }
+            if batch_pages.is_empty() {
+                continue;
+            }
             let prio = if needs_emergency {
                 self.emergency_writebacks += 1;
                 WritebackPriority::Emergency
             } else {
                 WritebackPriority::Background
             };
-            let bid = self.next_batch_id; self.next_batch_id += 1;
+            let bid = self.next_batch_id;
+            self.next_batch_id += 1;
             let batch = WritebackBatch {
-                batch_id: bid, pages: batch_pages, priority: prio,
-                inode_id: *inode, started_ts: now, completed_ts: None,
+                batch_id: bid,
+                pages: batch_pages,
+                priority: prio,
+                inode_id: *inode,
+                started_ts: now,
+                completed_ts: None,
             };
             result.push(batch.clone());
             self.batches.push(batch);
@@ -248,14 +284,17 @@ impl HolisticDirtyTracker {
         // Mark pages as writeback
         for batch in &result {
             for &pfn in &batch.pages {
-                if let Some(p) = self.pages.get_mut(&pfn) { p.state = DirtyState::Writeback; }
+                if let Some(p) = self.pages.get_mut(&pfn) {
+                    p.state = DirtyState::Writeback;
+                }
             }
         }
 
         // Update throttle state
         for proc in self.processes.values_mut() {
             if proc.needs_throttle() && !proc.throttled {
-                proc.throttled = true; proc.throttle_start_ts = now;
+                proc.throttled = true;
+                proc.throttle_start_ts = now;
             } else if !proc.needs_throttle() && proc.throttled {
                 proc.throttled = false;
             }
@@ -265,21 +304,34 @@ impl HolisticDirtyTracker {
     }
 
     pub fn recompute(&mut self) {
-        self.stats.total_dirty = self.pages.values().filter(|p| p.state == DirtyState::Dirty).count() as u64;
-        self.stats.total_writeback = self.pages.values().filter(|p| p.state == DirtyState::Writeback).count() as u64;
+        self.stats.total_dirty = self
+            .pages
+            .values()
+            .filter(|p| p.state == DirtyState::Dirty)
+            .count() as u64;
+        self.stats.total_writeback = self
+            .pages
+            .values()
+            .filter(|p| p.state == DirtyState::Writeback)
+            .count() as u64;
         self.stats.global_dirty_ratio = if self.total_system_pages > 0 {
             self.stats.total_dirty as f64 / self.total_system_pages as f64
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         self.stats.tracked_processes = self.processes.len();
         self.stats.throttled_processes = self.processes.values().filter(|p| p.throttled).count();
         self.stats.total_batches_issued = self.batches.len() as u64;
         self.stats.total_pages_written = self.batches.iter().map(|b| b.pages.len() as u64).sum();
         if !self.pages.is_empty() {
-            self.stats.avg_dirty_age_ns = self.pages.values().map(|p| p.age_ns as f64).sum::<f64>() / self.pages.len() as f64;
+            self.stats.avg_dirty_age_ns =
+                self.pages.values().map(|p| p.age_ns as f64).sum::<f64>() / self.pages.len() as f64;
         }
         self.stats.emergency_writebacks = self.emergency_writebacks;
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &DirtyTrackerStats { &self.stats }
+    pub fn stats(&self) -> &DirtyTrackerStats {
+        &self.stats
+    }
 }

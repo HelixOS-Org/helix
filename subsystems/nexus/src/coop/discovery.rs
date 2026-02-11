@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // SERVICE TYPES
@@ -180,9 +181,7 @@ impl ServiceInstance {
     /// Is healthy? (active, not expired, low error rate)
     #[inline]
     pub fn is_healthy(&self, now: u64) -> bool {
-        self.state == ServiceState::Active
-            && !self.is_expired(now)
-            && self.error_rate() < 0.5
+        self.state == ServiceState::Active && !self.is_expired(now) && self.error_rate() < 0.5
     }
 }
 
@@ -364,34 +363,39 @@ impl CoopDiscoveryManager {
                 let idx = *counter % candidates.len();
                 *counter += 1;
                 Some(candidates[idx])
-            }
-            LoadBalanceStrategy::LeastConnections => {
-                candidates.iter().copied()
-                    .min_by_key(|&id| {
-                        self.instances.get(&id).map(|i| i.active_connections).unwrap_or(u32::MAX)
-                    })
-            }
+            },
+            LoadBalanceStrategy::LeastConnections => candidates.iter().copied().min_by_key(|&id| {
+                self.instances
+                    .get(&id)
+                    .map(|i| i.active_connections)
+                    .unwrap_or(u32::MAX)
+            }),
             LoadBalanceStrategy::Weighted => {
                 // Choose highest weight that's healthy
-                candidates.iter().copied()
+                candidates
+                    .iter()
+                    .copied()
                     .filter(|&id| {
-                        self.instances.get(&id).map(|i| i.is_healthy(now)).unwrap_or(false)
+                        self.instances
+                            .get(&id)
+                            .map(|i| i.is_healthy(now))
+                            .unwrap_or(false)
                     })
-                    .max_by_key(|&id| {
-                        self.instances.get(&id).map(|i| i.weight).unwrap_or(0)
-                    })
-            }
+                    .max_by_key(|&id| self.instances.get(&id).map(|i| i.weight).unwrap_or(0))
+            },
             LoadBalanceStrategy::Random => {
                 // Simple hash-based selection
                 let idx = (now as usize) % candidates.len();
                 Some(candidates[idx])
-            }
+            },
         }
     }
 
     /// Expire stale instances
     pub fn expire_stale(&mut self, now: u64) {
-        let expired: Vec<u64> = self.instances.iter()
+        let expired: Vec<u64> = self
+            .instances
+            .iter()
             .filter(|(_, inst)| inst.is_expired(now))
             .map(|(&id, _)| id)
             .collect();
@@ -405,10 +409,16 @@ impl CoopDiscoveryManager {
 
     fn update_stats(&mut self) {
         self.stats.total_instances = self.instances.len();
-        self.stats.active_instances = self.instances.values()
-            .filter(|i| i.state == ServiceState::Active).count();
-        self.stats.failed_instances = self.instances.values()
-            .filter(|i| i.state == ServiceState::Failed).count();
+        self.stats.active_instances = self
+            .instances
+            .values()
+            .filter(|i| i.state == ServiceState::Active)
+            .count();
+        self.stats.failed_instances = self
+            .instances
+            .values()
+            .filter(|i| i.state == ServiceState::Failed)
+            .count();
         self.stats.unique_services = self.name_index.len();
     }
 

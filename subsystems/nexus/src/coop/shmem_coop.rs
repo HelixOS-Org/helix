@@ -9,9 +9,10 @@
 //! - Segment migration between NUMA nodes
 
 extern crate alloc;
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShmRole {

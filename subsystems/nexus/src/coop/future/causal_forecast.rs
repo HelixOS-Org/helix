@@ -7,10 +7,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
 fn fnv1a_hash(data: &[u8]) -> u64 {
@@ -220,13 +220,16 @@ impl CoopCausalForecast {
             records.remove(0);
         }
 
-        let var = self.variables.entry(event_id).or_insert_with(|| CausalVariable {
-            variable_id: event_id,
-            ema_value: value,
-            history: VecDeque::new(),
-            incoming_edges: Vec::new(),
-            outgoing_edges: Vec::new(),
-        });
+        let var = self
+            .variables
+            .entry(event_id)
+            .or_insert_with(|| CausalVariable {
+                variable_id: event_id,
+                ema_value: value,
+                history: VecDeque::new(),
+                incoming_edges: Vec::new(),
+                outgoing_edges: Vec::new(),
+            });
         var.ema_value = ema_update(var.ema_value, value, 200, 1000);
         var.history.push_back(value);
         if var.history.len() > self.max_history {
@@ -276,7 +279,9 @@ impl CoopCausalForecast {
             visited.insert(current, true);
             causal_path.push(current);
 
-            let incoming: Vec<(u64, CausalMechanism, u64)> = self.factors.values()
+            let incoming: Vec<(u64, CausalMechanism, u64)> = self
+                .factors
+                .values()
                 .filter(|f| f.effect_event == current)
                 .map(|f| (f.cause_event, f.mechanism.clone(), f.strength))
                 .collect();
@@ -286,9 +291,7 @@ impl CoopCausalForecast {
                 break;
             }
 
-            let strongest = incoming.iter()
-                .max_by_key(|&(_, _, s)| *s)
-                .cloned();
+            let strongest = incoming.iter().max_by_key(|&(_, _, s)| *s).cloned();
 
             if let Some((cause, mech, _)) = strongest {
                 mechanism_chain.push(mech);
@@ -299,9 +302,14 @@ impl CoopCausalForecast {
             }
         }
 
-        let intervention_point = causal_path.get(causal_path.len() / 2).copied().unwrap_or(root_event);
+        let intervention_point = causal_path
+            .get(causal_path.len() / 2)
+            .copied()
+            .unwrap_or(root_event);
 
-        let severity = self.variables.get(&contention_var)
+        let severity = self
+            .variables
+            .get(&contention_var)
             .map(|v| v.ema_value)
             .unwrap_or(500);
 
@@ -335,43 +343,54 @@ impl CoopCausalForecast {
         target_factor: u64,
         intervention_magnitude: i64,
     ) -> InterventionEffect {
-        let intervention_id = fnv1a_hash(&[
-            target_factor.to_le_bytes().as_slice(),
-            intervention_magnitude.to_le_bytes().as_slice(),
-            self.current_tick.to_le_bytes().as_slice(),
-        ].concat());
+        let intervention_id = fnv1a_hash(
+            &[
+                target_factor.to_le_bytes().as_slice(),
+                intervention_magnitude.to_le_bytes().as_slice(),
+                self.current_tick.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
 
-        let base_value = self.variables.get(&target_factor)
+        let base_value = self
+            .variables
+            .get(&target_factor)
             .map(|v| v.ema_value)
             .unwrap_or(500);
 
         let predicted_delta = intervention_magnitude;
 
         let mut side_effects: Vec<(u64, i64)> = Vec::new();
-        let downstream: Vec<(u64, u64)> = self.factors.values()
+        let downstream: Vec<(u64, u64)> = self
+            .factors
+            .values()
             .filter(|f| f.cause_event == target_factor)
             .map(|f| (f.effect_event, f.strength))
             .collect();
 
         for (effect_id, strength) in &downstream {
-            let propagated = intervention_magnitude
-                .saturating_mul(*strength as i64) / 1000;
+            let propagated = intervention_magnitude.saturating_mul(*strength as i64) / 1000;
             if propagated.unsigned_abs() > 10 {
                 side_effects.push((*effect_id, propagated));
             }
         }
 
-        let confidence = if self.observations.get(&target_factor)
+        let confidence = if self
+            .observations
+            .get(&target_factor)
             .map(|o| o.len() as u64)
-            .unwrap_or(0) >= self.min_observations
+            .unwrap_or(0)
+            >= self.min_observations
         {
             700
         } else {
             400
         };
 
-        let cost_estimate = intervention_magnitude.unsigned_abs()
-            .saturating_mul(base_value) / 1000;
+        let cost_estimate = intervention_magnitude
+            .unsigned_abs()
+            .saturating_mul(base_value)
+            / 1000;
 
         self.stats.interventions_analyzed = self.stats.interventions_analyzed.saturating_add(1);
 
@@ -398,7 +417,9 @@ impl CoopCausalForecast {
             }
             visited.insert(current, true);
 
-            let incoming: Vec<&CausalFactor> = self.factors.values()
+            let incoming: Vec<&CausalFactor> = self
+                .factors
+                .values()
                 .filter(|f| f.effect_event == current)
                 .collect();
 
@@ -406,9 +427,7 @@ impl CoopCausalForecast {
                 break;
             }
 
-            let strongest = incoming.iter()
-                .max_by_key(|f| f.strength)
-                .cloned();
+            let strongest = incoming.iter().max_by_key(|f| f.strength).cloned();
 
             if let Some(factor) = strongest {
                 if chain.is_empty() {
@@ -421,7 +440,8 @@ impl CoopCausalForecast {
             }
         }
 
-        let counterfactual_delta = chain.iter()
+        let counterfactual_delta = chain
+            .iter()
             .map(|f| f.strength as i64)
             .sum::<i64>()
             .saturating_neg();
@@ -429,8 +449,8 @@ impl CoopCausalForecast {
         let explanation_score = if chain.is_empty() {
             200
         } else {
-            let avg_conf: u64 = chain.iter().map(|f| f.confidence).sum::<u64>()
-                / chain.len().max(1) as u64;
+            let avg_conf: u64 =
+                chain.iter().map(|f| f.confidence).sum::<u64>() / chain.len().max(1) as u64;
             avg_conf.min(1000)
         };
 
@@ -486,23 +506,29 @@ impl CoopCausalForecast {
     // ── Private helpers ──────────────────────────────────────────────
 
     fn infer_causal_link(&mut self, cause: u64, effect: u64, effect_value: u64) {
-        let factor_id = fnv1a_hash(&[
-            cause.to_le_bytes().as_slice(),
-            effect.to_le_bytes().as_slice(),
-        ].concat());
+        let factor_id = fnv1a_hash(
+            &[
+                cause.to_le_bytes().as_slice(),
+                effect.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
 
         let mechanism = self.infer_mechanism(cause, effect);
 
-        let factor = self.factors.entry(factor_id).or_insert_with(|| CausalFactor {
-            factor_id,
-            cause_event: cause,
-            effect_event: effect,
-            mechanism: mechanism.clone(),
-            strength: 0,
-            confidence: 0,
-            lag_ticks: 0,
-            observation_count: 0,
-        });
+        let factor = self
+            .factors
+            .entry(factor_id)
+            .or_insert_with(|| CausalFactor {
+                factor_id,
+                cause_event: cause,
+                effect_event: effect,
+                mechanism: mechanism.clone(),
+                strength: 0,
+                confidence: 0,
+                lag_ticks: 0,
+                observation_count: 0,
+            });
         factor.observation_count = factor.observation_count.saturating_add(1);
         factor.strength = ema_update(factor.strength, effect_value, 200, 1000);
         factor.confidence = (factor.observation_count.min(20) * 50).min(1000);
@@ -544,9 +570,15 @@ impl CoopCausalForecast {
     }
 
     fn trace_causal_effect(&self, target: u64) -> (u64, u64, CausalMechanism, u32) {
-        let base = self.variables.get(&target).map(|v| v.ema_value).unwrap_or(500);
+        let base = self
+            .variables
+            .get(&target)
+            .map(|v| v.ema_value)
+            .unwrap_or(500);
 
-        let incoming: Vec<&CausalFactor> = self.factors.values()
+        let incoming: Vec<&CausalFactor> = self
+            .factors
+            .values()
             .filter(|f| f.effect_event == target)
             .collect();
 
@@ -554,9 +586,7 @@ impl CoopCausalForecast {
             return (base, 0, CausalMechanism::DirectResource, 0);
         }
 
-        let strongest = incoming.iter()
-            .max_by_key(|f| f.strength)
-            .unwrap();
+        let strongest = incoming.iter().max_by_key(|f| f.strength).unwrap();
 
         let delta = strongest.strength.saturating_mul(200) / 1000;
         let predicted = if strongest.mechanism == CausalMechanism::ReputationDecay
@@ -567,14 +597,23 @@ impl CoopCausalForecast {
             base.saturating_add(delta).min(1000)
         };
 
-        (predicted, strongest.cause_event, strongest.mechanism.clone(), 1)
+        (
+            predicted,
+            strongest.cause_event,
+            strongest.mechanism.clone(),
+            1,
+        )
     }
 
     fn compute_prediction_confidence(&self, var_id: u64) -> u64 {
-        let obs_count = self.observations.get(&var_id)
+        let obs_count = self
+            .observations
+            .get(&var_id)
             .map(|o| o.len() as u64)
             .unwrap_or(0);
-        let factor_count = self.factors.values()
+        let factor_count = self
+            .factors
+            .values()
             .filter(|f| f.effect_event == var_id)
             .count() as u64;
 
@@ -603,11 +642,14 @@ impl CoopCausalForecast {
     }
 
     fn find_dominant_mechanism(&self, var_id: u64) -> CausalMechanism {
-        let incoming: Vec<&CausalFactor> = self.factors.values()
+        let incoming: Vec<&CausalFactor> = self
+            .factors
+            .values()
             .filter(|f| f.effect_event == var_id)
             .collect();
 
-        incoming.iter()
+        incoming
+            .iter()
             .max_by_key(|f| f.strength)
             .map(|f| f.mechanism.clone())
             .unwrap_or(CausalMechanism::DirectResource)
@@ -616,6 +658,8 @@ impl CoopCausalForecast {
     fn compute_forecast_confidence(&self, horizon: u64) -> u64 {
         let base_conf: u64 = 800;
         let decay_per_tick: u64 = 15;
-        base_conf.saturating_sub(horizon.saturating_mul(decay_per_tick)).max(100)
+        base_conf
+            .saturating_sub(horizon.saturating_mul(decay_per_tick))
+            .max(100)
     }
 }

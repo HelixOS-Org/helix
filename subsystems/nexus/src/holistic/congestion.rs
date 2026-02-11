@@ -151,15 +151,15 @@ impl CongestionWindow {
                 if self.cwnd >= self.ssthresh {
                     self.state = CwndState::CongestionAvoidance;
                 }
-            }
+            },
             CwndState::CongestionAvoidance => {
                 // Additive increase
                 self.cwnd = (self.cwnd + 1).min(self.max_cwnd);
-            }
+            },
             CwndState::FastRecovery => {
                 self.cwnd = self.ssthresh;
                 self.state = CwndState::CongestionAvoidance;
-            }
+            },
         }
     }
 
@@ -325,7 +325,8 @@ impl HolisticCongestionEngine {
     #[inline]
     pub fn register(&mut self, resource: CongestionResource, capacity: u64) {
         let key = resource as u8;
-        self.resources.insert(key, ResourceCongestion::new(resource, capacity));
+        self.resources
+            .insert(key, ResourceCongestion::new(resource, capacity));
         self.update_stats();
     }
 
@@ -394,7 +395,8 @@ impl HolisticCongestionEngine {
 
     fn update_stats(&mut self) {
         self.stats.resources_tracked = self.resources.len();
-        self.stats.congested_count = self.resources
+        self.stats.congested_count = self
+            .resources
             .values()
             .filter(|r| r.level >= CongestionLevel::Moderate)
             .count();

@@ -72,9 +72,17 @@ pub struct MemcgCounters {
 
 impl MemcgCounters {
     #[inline(always)]
-    pub fn total_mem(&self) -> u64 { self.cache_bytes + self.rss_bytes + self.kernel_stack_bytes + self.slab_reclaimable + self.slab_unreclaimable }
+    pub fn total_mem(&self) -> u64 {
+        self.cache_bytes
+            + self.rss_bytes
+            + self.kernel_stack_bytes
+            + self.slab_reclaimable
+            + self.slab_unreclaimable
+    }
     #[inline(always)]
-    pub fn total_with_swap(&self) -> u64 { self.total_mem() + self.swap_bytes }
+    pub fn total_with_swap(&self) -> u64 {
+        self.total_mem() + self.swap_bytes
+    }
 }
 
 /// Single memcg
@@ -107,21 +115,38 @@ impl Memcg {
         let wl = hard * 60 / 100;
         let wh = hard * 90 / 100;
         Self {
-            id, name, parent_id: parent, children: Vec::new(),
-            hard_limit: hard, soft_limit: soft, swap_limit: hard / 2,
-            counters: MemcgCounters::default(), usage_bytes: 0, max_usage_bytes: 0,
-            watermark_low: wl, watermark_high: wh,
-            pressure: MemcgPressure::None, oom_policy: MemcgOomPolicy::Kill,
-            oom_kill_count: 0, failcnt: 0,
-            move_charge_at_immigrate: false, use_hierarchy: true, created_at: 0,
+            id,
+            name,
+            parent_id: parent,
+            children: Vec::new(),
+            hard_limit: hard,
+            soft_limit: soft,
+            swap_limit: hard / 2,
+            counters: MemcgCounters::default(),
+            usage_bytes: 0,
+            max_usage_bytes: 0,
+            watermark_low: wl,
+            watermark_high: wh,
+            pressure: MemcgPressure::None,
+            oom_policy: MemcgOomPolicy::Kill,
+            oom_kill_count: 0,
+            failcnt: 0,
+            move_charge_at_immigrate: false,
+            use_hierarchy: true,
+            created_at: 0,
         }
     }
 
     #[inline]
     pub fn charge(&mut self, bytes: u64) -> bool {
-        if self.usage_bytes + bytes > self.hard_limit { self.failcnt += 1; return false; }
+        if self.usage_bytes + bytes > self.hard_limit {
+            self.failcnt += 1;
+            return false;
+        }
         self.usage_bytes += bytes;
-        if self.usage_bytes > self.max_usage_bytes { self.max_usage_bytes = self.usage_bytes; }
+        if self.usage_bytes > self.max_usage_bytes {
+            self.max_usage_bytes = self.usage_bytes;
+        }
         self.update_pressure();
         true
     }
@@ -133,7 +158,11 @@ impl Memcg {
     }
 
     fn update_pressure(&mut self) {
-        let pct = if self.hard_limit == 0 { 0 } else { (self.usage_bytes * 100) / self.hard_limit };
+        let pct = if self.hard_limit == 0 {
+            0
+        } else {
+            (self.usage_bytes * 100) / self.hard_limit
+        };
         self.pressure = match pct {
             0..=59 => MemcgPressure::None,
             60..=79 => MemcgPressure::Low,
@@ -144,11 +173,21 @@ impl Memcg {
     }
 
     #[inline(always)]
-    pub fn usage_pct(&self) -> f64 { if self.hard_limit == 0 { 0.0 } else { self.usage_bytes as f64 / self.hard_limit as f64 * 100.0 } }
+    pub fn usage_pct(&self) -> f64 {
+        if self.hard_limit == 0 {
+            0.0
+        } else {
+            self.usage_bytes as f64 / self.hard_limit as f64 * 100.0
+        }
+    }
     #[inline(always)]
-    pub fn above_soft(&self) -> bool { self.usage_bytes > self.soft_limit }
+    pub fn above_soft(&self) -> bool {
+        self.usage_bytes > self.soft_limit
+    }
     #[inline(always)]
-    pub fn above_high(&self) -> bool { self.usage_bytes > self.watermark_high }
+    pub fn above_high(&self) -> bool {
+        self.usage_bytes > self.watermark_high
+    }
 }
 
 /// Memcg event
@@ -196,7 +235,9 @@ pub struct MemcgStats {
 }
 
 impl Default for MemcgPressure {
-    fn default() -> Self { MemcgPressure::None }
+    fn default() -> Self {
+        MemcgPressure::None
+    }
 }
 
 /// Holistic memcg manager
@@ -210,16 +251,25 @@ pub struct HolisticMemcgMgr {
 
 impl HolisticMemcgMgr {
     pub fn new() -> Self {
-        Self { cgroups: BTreeMap::new(), events: Vec::new(), reclaim_log: Vec::new(), stats: MemcgStats::default(), next_id: 1 }
+        Self {
+            cgroups: BTreeMap::new(),
+            events: Vec::new(),
+            reclaim_log: Vec::new(),
+            stats: MemcgStats::default(),
+            next_id: 1,
+        }
     }
 
     #[inline]
     pub fn create_cgroup(&mut self, name: String, parent: Option<u64>, limit: u64, ts: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
+        let id = self.next_id;
+        self.next_id += 1;
         let mut cg = Memcg::new(id, name, parent, limit);
         cg.created_at = ts;
         if let Some(pid) = parent {
-            if let Some(p) = self.cgroups.get_mut(&pid) { p.children.push(id); }
+            if let Some(p) = self.cgroups.get_mut(&pid) {
+                p.children.push(id);
+            }
         }
         self.cgroups.insert(id, cg);
         id
@@ -227,21 +277,37 @@ impl HolisticMemcgMgr {
 
     #[inline]
     pub fn charge(&mut self, id: u64, bytes: u64, ts: u64) -> bool {
-        let ok = if let Some(cg) = self.cgroups.get_mut(&id) { cg.charge(bytes) } else { return false; };
+        let ok = if let Some(cg) = self.cgroups.get_mut(&id) {
+            cg.charge(bytes)
+        } else {
+            return false;
+        };
         if !ok {
-            self.events.push(MemcgEvent { cgroup_id: id, kind: MemcgEventKind::HardLimitHit, ts });
+            self.events.push(MemcgEvent {
+                cgroup_id: id,
+                kind: MemcgEventKind::HardLimitHit,
+                ts,
+            });
         }
         ok
     }
 
     #[inline(always)]
-    pub fn uncharge(&mut self, id: u64, bytes: u64) { if let Some(cg) = self.cgroups.get_mut(&id) { cg.uncharge(bytes); } }
+    pub fn uncharge(&mut self, id: u64, bytes: u64) {
+        if let Some(cg) = self.cgroups.get_mut(&id) {
+            cg.uncharge(bytes);
+        }
+    }
 
     #[inline]
     pub fn record_oom_kill(&mut self, id: u64, ts: u64) {
         if let Some(cg) = self.cgroups.get_mut(&id) {
             cg.oom_kill_count += 1;
-            self.events.push(MemcgEvent { cgroup_id: id, kind: MemcgEventKind::OomKill, ts });
+            self.events.push(MemcgEvent {
+                cgroup_id: id,
+                kind: MemcgEventKind::OomKill,
+                ts,
+            });
         }
     }
 
@@ -251,29 +317,55 @@ impl HolisticMemcgMgr {
             cg.counters.pgscan += scanned;
             cg.counters.pgsteal += reclaimed;
         }
-        self.reclaim_log.push(MemcgReclaimInfo { cgroup_id: id, pages_scanned: scanned, pages_reclaimed: reclaimed, scan_priority: prio, nr_attempts: 1, ts });
+        self.reclaim_log.push(MemcgReclaimInfo {
+            cgroup_id: id,
+            pages_scanned: scanned,
+            pages_reclaimed: reclaimed,
+            scan_priority: prio,
+            nr_attempts: 1,
+            ts,
+        });
     }
 
     #[inline(always)]
     pub fn set_limits(&mut self, id: u64, hard: u64, soft: u64, swap: u64) {
-        if let Some(cg) = self.cgroups.get_mut(&id) { cg.hard_limit = hard; cg.soft_limit = soft; cg.swap_limit = swap; }
+        if let Some(cg) = self.cgroups.get_mut(&id) {
+            cg.hard_limit = hard;
+            cg.soft_limit = soft;
+            cg.swap_limit = swap;
+        }
     }
 
     #[inline(always)]
     pub fn set_oom_policy(&mut self, id: u64, policy: MemcgOomPolicy) {
-        if let Some(cg) = self.cgroups.get_mut(&id) { cg.oom_policy = policy; }
+        if let Some(cg) = self.cgroups.get_mut(&id) {
+            cg.oom_policy = policy;
+        }
     }
 
     #[inline]
     pub fn hierarchical_usage(&self, id: u64) -> u64 {
         let own = self.cgroups.get(&id).map(|c| c.usage_bytes).unwrap_or(0);
-        let children_ids: Vec<u64> = self.cgroups.get(&id).map(|c| c.children.clone()).unwrap_or_default();
-        let child_sum: u64 = children_ids.iter().map(|&cid| self.hierarchical_usage(cid)).sum();
+        let children_ids: Vec<u64> = self
+            .cgroups
+            .get(&id)
+            .map(|c| c.children.clone())
+            .unwrap_or_default();
+        let child_sum: u64 = children_ids
+            .iter()
+            .map(|&cid| self.hierarchical_usage(cid))
+            .sum();
         own + child_sum
     }
 
     #[inline(always)]
-    pub fn above_soft_cgroups(&self) -> Vec<u64> { self.cgroups.values().filter(|c| c.above_soft()).map(|c| c.id).collect() }
+    pub fn above_soft_cgroups(&self) -> Vec<u64> {
+        self.cgroups
+            .values()
+            .filter(|c| c.above_soft())
+            .map(|c| c.id)
+            .collect()
+    }
 
     #[inline]
     pub fn recompute(&mut self) {
@@ -282,14 +374,25 @@ impl HolisticMemcgMgr {
         self.stats.total_limit_bytes = self.cgroups.values().map(|c| c.hard_limit).sum();
         self.stats.total_oom_kills = self.cgroups.values().map(|c| c.oom_kill_count).sum();
         self.stats.total_failcnt = self.cgroups.values().map(|c| c.failcnt).sum();
-        self.stats.max_pressure = self.cgroups.values().map(|c| c.pressure).max().unwrap_or(MemcgPressure::None);
+        self.stats.max_pressure = self
+            .cgroups
+            .values()
+            .map(|c| c.pressure)
+            .max()
+            .unwrap_or(MemcgPressure::None);
         self.stats.above_soft_count = self.cgroups.values().filter(|c| c.above_soft()).count();
     }
 
     #[inline(always)]
-    pub fn cgroup(&self, id: u64) -> Option<&Memcg> { self.cgroups.get(&id) }
+    pub fn cgroup(&self, id: u64) -> Option<&Memcg> {
+        self.cgroups.get(&id)
+    }
     #[inline(always)]
-    pub fn events(&self) -> &[MemcgEvent] { &self.events }
+    pub fn events(&self) -> &[MemcgEvent] {
+        &self.events
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &MemcgStats { &self.stats }
+    pub fn stats(&self) -> &MemcgStats {
+        &self.stats
+    }
 }

@@ -11,8 +11,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -262,7 +261,11 @@ impl HolisticBeyond {
     /// Evolve the architecture — create a new generation with mutations.
     pub fn architecture_evolution(&mut self) -> EvolutionEvent {
         self.advance_tick();
-        let gen_val = self.stats.evolution_generation.wrapping_add(1).min(EVOLUTION_GENERATION_CAP);
+        let gen_val = self
+            .stats
+            .evolution_generation
+            .wrapping_add(1)
+            .min(EVOLUTION_GENERATION_CAP);
         self.stats.evolution_generation = gen_val;
         let parent = self.evolutions.last().map(|e| e.event_hash).unwrap_or(0);
         let fitness = self.rng.next() % 10_000;
@@ -309,7 +312,11 @@ impl HolisticBeyond {
     }
 
     /// Register a transcendence breakthrough — a dissolved limit.
-    pub fn transcendence_breakthrough(&mut self, description: String, limit: String) -> Breakthrough {
+    pub fn transcendence_breakthrough(
+        &mut self,
+        description: String,
+        limit: String,
+    ) -> Breakthrough {
         self.advance_tick();
         let magnitude = self.rng.next() % 10_000;
         let id_hash = fnv1a(description.as_bytes()) ^ fnv1a(&self.tick.to_le_bytes());
@@ -370,8 +377,9 @@ impl HolisticBeyond {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::string::ToString;
+
+    use super::*;
 
     #[test]
     fn test_zero_latency_cache() {

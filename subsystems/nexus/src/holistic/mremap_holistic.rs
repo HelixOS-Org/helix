@@ -9,9 +9,10 @@
 //! - Address space entropy monitoring
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 #[derive(Debug, Clone)]
 pub struct RemapHotspot {
@@ -87,9 +88,8 @@ impl MremapHolisticManager {
         self.stats.total_remaps += 1;
 
         // Update latency EMA
-        self.stats.avg_remap_latency = self.stats.avg_remap_latency
-            - (self.stats.avg_remap_latency / 16)
-            + (latency / 16);
+        self.stats.avg_remap_latency =
+            self.stats.avg_remap_latency - (self.stats.avg_remap_latency / 16) + (latency / 16);
 
         // Check if this is a hotspot (frequently remapped region)
         let key = addr / (2 * 1024 * 1024); // 2MB granularity
@@ -108,7 +108,8 @@ impl MremapHolisticManager {
     /// Find hotspots above threshold
     #[inline]
     pub fn active_hotspots(&self, min_count: u64, now: u64) -> Vec<&RemapHotspot> {
-        self.hotspots.values()
+        self.hotspots
+            .values()
             .filter(|h| h.remap_count >= min_count && h.is_active(now, 60_000_000_000))
             .collect()
     }
@@ -124,13 +125,19 @@ impl MremapHolisticManager {
                 let cost = gaps / 4096 * 100; // 100ns per page copy
                 let benefit = frag * 0.8; // expected improvement
                 self.compaction_candidates.push(CompactionCandidate {
-                    pid, fragmentation: frag, gap_bytes: gaps,
-                    remap_cost: cost, benefit,
+                    pid,
+                    fragmentation: frag,
+                    gap_bytes: gaps,
+                    remap_cost: cost,
+                    benefit,
                 });
             }
         }
-        self.compaction_candidates.sort_by(|a, b|
-            b.benefit.partial_cmp(&a.benefit).unwrap_or(core::cmp::Ordering::Equal));
+        self.compaction_candidates.sort_by(|a, b| {
+            b.benefit
+                .partial_cmp(&a.benefit)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         self.stats.total_compactions += self.compaction_candidates.len() as u64;
     }
 
@@ -144,14 +151,18 @@ impl MremapHolisticManager {
     #[inline]
     pub fn schedule_aslr(&mut self, pid: u64, period_ns: u64, entropy: u32, now: u64) {
         self.aslr_schedules.insert(pid, AslrSchedule {
-            pid, last_randomized: now, period_ns, entropy_bits: entropy,
+            pid,
+            last_randomized: now,
+            period_ns,
+            entropy_bits: entropy,
         });
     }
 
     /// Check which processes are due for ASLR refresh
     #[inline]
     pub fn due_for_aslr_refresh(&self, now: u64) -> Vec<u64> {
-        self.aslr_schedules.iter()
+        self.aslr_schedules
+            .iter()
             .filter(|(_, s)| now.saturating_sub(s.last_randomized) >= s.period_ns)
             .map(|(&pid, _)| pid)
             .collect()
@@ -160,10 +171,14 @@ impl MremapHolisticManager {
     /// Compute system-wide address space entropy
     #[inline]
     pub fn compute_entropy(&mut self, bases: &[u64]) -> f64 {
-        if bases.is_empty() { return 0.0; }
+        if bases.is_empty() {
+            return 0.0;
+        }
         // XOR-fold to estimate randomness
         let mut xor_fold = 0u64;
-        for &b in bases { xor_fold ^= b; }
+        for &b in bases {
+            xor_fold ^= b;
+        }
         let bits_set = xor_fold.count_ones();
         let entropy = bits_set as f64 / 64.0;
         self.stats.address_entropy = entropy;
@@ -171,5 +186,7 @@ impl MremapHolisticManager {
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &MremapHolisticStats { &self.stats }
+    pub fn stats(&self) -> &MremapHolisticStats {
+        &self.stats
+    }
 }

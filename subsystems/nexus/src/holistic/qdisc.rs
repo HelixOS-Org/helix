@@ -278,11 +278,24 @@ impl HolisticQdisc {
         id
     }
 
-    pub fn classify_and_send(&mut self, class_id: u32, flow_hash: u64, pkt_bytes: u64, now_ns: u64) -> bool {
-        let cid = if self.classes.contains_key(&class_id) { class_id } else { self.default_class };
+    pub fn classify_and_send(
+        &mut self,
+        class_id: u32,
+        flow_hash: u64,
+        pkt_bytes: u64,
+        now_ns: u64,
+    ) -> bool {
+        let cid = if self.classes.contains_key(&class_id) {
+            class_id
+        } else {
+            self.default_class
+        };
         if let Some(class) = self.classes.get_mut(&cid) {
             if class.try_send(pkt_bytes, now_ns) {
-                let flow = self.flows.entry(flow_hash).or_insert_with(|| FqCodelFlow::new(flow_hash));
+                let flow = self
+                    .flows
+                    .entry(flow_hash)
+                    .or_insert_with(|| FqCodelFlow::new(flow_hash));
                 flow.enqueue(pkt_bytes);
                 self.stats.total_packets += 1;
                 self.stats.total_bytes += pkt_bytes;

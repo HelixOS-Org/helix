@@ -2,8 +2,9 @@
 //! NEXUS Apps — Exit (process exit application interface)
 
 extern crate alloc;
-use crate::fast::linear_map::LinearMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// Exit reason
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

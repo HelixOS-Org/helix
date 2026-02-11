@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 
 // ============================================================================
 // NETWORK TOPOLOGY
@@ -486,8 +485,10 @@ impl HolisticNetworkAnalyzer {
     ) -> u64 {
         let id = self.next_flow_id;
         self.next_flow_id += 1;
-        self.flows
-            .insert(id, NetworkFlow::new(src_pid, dst_pid, protocol, direction, now));
+        self.flows.insert(
+            id,
+            NetworkFlow::new(src_pid, dst_pid, protocol, direction, now),
+        );
         self.stats.total_flows += 1;
         self.stats.active_flows = self.flows.len();
         id
@@ -563,11 +564,21 @@ impl HolisticNetworkAnalyzer {
 // ============================================================================
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NetLayerV2 { Link, Network, Transport, Application }
+pub enum NetLayerV2 {
+    Link,
+    Network,
+    Transport,
+    Application,
+}
 
 /// Network health
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NetHealthV2 { Healthy, Warning, Critical, Down }
+pub enum NetHealthV2 {
+    Healthy,
+    Warning,
+    Critical,
+    Down,
+}
 
 /// Network v2 holistic record
 #[derive(Debug, Clone)]
@@ -579,28 +590,53 @@ pub struct NetworkV2HolisticRecord {
 }
 
 impl NetworkV2HolisticRecord {
-    pub fn new(layer: NetLayerV2, health: NetHealthV2) -> Self { Self { layer, health, packets_sec: 0, errors_sec: 0 } }
+    pub fn new(layer: NetLayerV2, health: NetHealthV2) -> Self {
+        Self {
+            layer,
+            health,
+            packets_sec: 0,
+            errors_sec: 0,
+        }
+    }
 }
 
 /// Network v2 holistic stats
 #[derive(Debug, Clone)]
 #[repr(align(64))]
-pub struct NetworkV2HolisticStats { pub total_samples: u64, pub warnings: u64, pub criticals: u64, pub peak_pps: u64 }
+pub struct NetworkV2HolisticStats {
+    pub total_samples: u64,
+    pub warnings: u64,
+    pub criticals: u64,
+    pub peak_pps: u64,
+}
 
 /// Main holistic network v2
 #[derive(Debug)]
-pub struct HolisticNetworkV2 { pub stats: NetworkV2HolisticStats }
+pub struct HolisticNetworkV2 {
+    pub stats: NetworkV2HolisticStats,
+}
 
 impl HolisticNetworkV2 {
-    pub fn new() -> Self { Self { stats: NetworkV2HolisticStats { total_samples: 0, warnings: 0, criticals: 0, peak_pps: 0 } } }
+    pub fn new() -> Self {
+        Self {
+            stats: NetworkV2HolisticStats {
+                total_samples: 0,
+                warnings: 0,
+                criticals: 0,
+                peak_pps: 0,
+            },
+        }
+    }
     #[inline]
     pub fn record(&mut self, rec: &NetworkV2HolisticRecord) {
         self.stats.total_samples += 1;
         match rec.health {
             NetHealthV2::Warning => self.stats.warnings += 1,
             NetHealthV2::Critical | NetHealthV2::Down => self.stats.criticals += 1,
-            _ => {}
+            _ => {},
         }
-        if rec.packets_sec > self.stats.peak_pps { self.stats.peak_pps = rec.packets_sec; }
+        if rec.packets_sec > self.stats.peak_pps {
+            self.stats.peak_pps = rec.packets_sec;
+        }
     }
 }

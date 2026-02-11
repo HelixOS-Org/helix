@@ -55,10 +55,9 @@ pub mod wisdom;
 // ---------------------------------------------------------------------------
 // Re-exports — abstraction.rs
 // ---------------------------------------------------------------------------
-pub use abstraction::Abstraction;
 pub use abstraction::{
-    AbstractionStats, AbstractionTowerSummary, CompressionResult, Concept, EmergentConceptReport,
-    HolisticAbstraction, MetaAbstraction,
+    Abstraction, AbstractionStats, AbstractionTowerSummary, CompressionResult, Concept,
+    EmergentConceptReport, HolisticAbstraction, MetaAbstraction,
 };
 // ---------------------------------------------------------------------------
 // Re-exports — ascension.rs

@@ -10,9 +10,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -246,20 +247,19 @@ impl BridgeScenarioTree {
         to_state: u64,
         observed_outcome: f32,
     ) {
-        let entry = self.transitions.entry(from_state).or_insert_with(|| {
-            TransitionEntry {
+        let entry = self
+            .transitions
+            .entry(from_state)
+            .or_insert_with(|| TransitionEntry {
                 from_hash: from_state,
                 events: Vec::new(),
                 total_observations: 0,
-            }
-        });
+            });
         entry.total_observations += 1;
 
         let mut found = false;
         for (ev, prob, dest) in entry.events.iter_mut() {
-            if core::mem::discriminant(ev) == core::mem::discriminant(&event)
-                && *dest == to_state
-            {
+            if core::mem::discriminant(ev) == core::mem::discriminant(&event) && *dest == to_state {
                 // Update probability with EMA
                 let obs_count = entry.total_observations as f32;
                 *prob = *prob * (1.0 - 1.0 / obs_count) + 1.0 / obs_count;
@@ -380,7 +380,11 @@ impl BridgeScenarioTree {
         }
 
         let children = self.arena[node_idx].children.clone();
-        let mut best = if maximizing { f32::NEG_INFINITY } else { f32::INFINITY };
+        let mut best = if maximizing {
+            f32::NEG_INFINITY
+        } else {
+            f32::INFINITY
+        };
 
         for &child_idx in &children {
             let child_val = self.propagate_minimax(child_idx, !maximizing);
@@ -462,7 +466,11 @@ impl BridgeScenarioTree {
         }
 
         let mut best_child: Option<usize> = None;
-        let mut best_val = if maximize { f32::NEG_INFINITY } else { f32::INFINITY };
+        let mut best_val = if maximize {
+            f32::NEG_INFINITY
+        } else {
+            f32::INFINITY
+        };
 
         for &child_idx in &node.children {
             if child_idx < self.arena.len() {
@@ -501,7 +509,10 @@ impl BridgeScenarioTree {
             let ev = weighted_sum / total_prob;
             // Store in evaluation history
             let root_hash = self.arena.first().map(|n| n.state_hash).unwrap_or(0);
-            let hist = self.evaluation_history.entry(root_hash).or_insert_with(Vec::new);
+            let hist = self
+                .evaluation_history
+                .entry(root_hash)
+                .or_insert_with(Vec::new);
             hist.push(ev);
             if hist.len() > 64 {
                 hist.remove(0);
@@ -515,7 +526,11 @@ impl BridgeScenarioTree {
 
     /// Prune nodes with probability below threshold.
     pub fn prune_unlikely(&mut self, threshold: f32) -> usize {
-        let thresh = if threshold <= 0.0 { PRUNE_THRESHOLD } else { threshold };
+        let thresh = if threshold <= 0.0 {
+            PRUNE_THRESHOLD
+        } else {
+            threshold
+        };
         let mut pruned_count = 0usize;
         for i in 0..self.arena.len() {
             if self.arena[i].probability < thresh && !self.arena[i].pruned && i != 0 {
@@ -592,8 +607,16 @@ impl BridgeScenarioTree {
 
     /// Generate synthetic transitions for testing / cold-start.
     pub fn generate_synthetic(&mut self, base_state: u64, breadth: usize) {
-        let depth_limit = if self.max_depth > 4 { 4 } else { self.max_depth };
-        let b = if breadth > MAX_CHILDREN_PER_NODE { MAX_CHILDREN_PER_NODE } else { breadth };
+        let depth_limit = if self.max_depth > 4 {
+            4
+        } else {
+            self.max_depth
+        };
+        let b = if breadth > MAX_CHILDREN_PER_NODE {
+            MAX_CHILDREN_PER_NODE
+        } else {
+            breadth
+        };
 
         let mut stack: Vec<(u64, usize)> = Vec::new();
         stack.push((base_state, 0));
@@ -650,7 +673,11 @@ impl BridgeScenarioTree {
                 }
             }
         }
-        paths.sort_by(|a, b| b.outcome.partial_cmp(&a.outcome).unwrap_or(core::cmp::Ordering::Equal));
+        paths.sort_by(|a, b| {
+            b.outcome
+                .partial_cmp(&a.outcome)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         paths
     }
 }

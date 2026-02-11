@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -115,12 +114,20 @@ impl ScxTaskState {
 
     #[inline(always)]
     pub fn avg_wait_ns(&self) -> u64 {
-        if self.dispatch_count == 0 { 0 } else { self.total_wait_ns / self.dispatch_count }
+        if self.dispatch_count == 0 {
+            0
+        } else {
+            self.total_wait_ns / self.dispatch_count
+        }
     }
 
     #[inline(always)]
     pub fn avg_runtime_ns(&self) -> u64 {
-        if self.dispatch_count == 0 { 0 } else { self.total_runtime_ns / self.dispatch_count }
+        if self.dispatch_count == 0 {
+            0
+        } else {
+            self.total_runtime_ns / self.dispatch_count
+        }
     }
 }
 
@@ -192,7 +199,9 @@ impl DispatchQueue {
 
     #[inline(always)]
     pub fn throughput_ratio(&self) -> f64 {
-        if self.total_dispatched == 0 { return 0.0; }
+        if self.total_dispatched == 0 {
+            return 0.0;
+        }
         self.total_consumed as f64 / self.total_dispatched as f64
     }
 }
@@ -263,7 +272,10 @@ impl BridgeSchedExt {
     pub fn new() -> Self {
         let mut dsqs = BTreeMap::new();
         // Create global DSQ
-        dsqs.insert(u64::MAX, DispatchQueue::new(u64::MAX, String::from("global")));
+        dsqs.insert(
+            u64::MAX,
+            DispatchQueue::new(u64::MAX, String::from("global")),
+        );
         Self {
             tasks: BTreeMap::new(),
             dsqs,
@@ -358,7 +370,13 @@ impl BridgeSchedExt {
         true
     }
 
-    pub fn scx_enqueue(&mut self, pid: u64, dsq_id: u64, flags: DispatchFlags, now_ns: u64) -> bool {
+    pub fn scx_enqueue(
+        &mut self,
+        pid: u64,
+        dsq_id: u64,
+        flags: DispatchFlags,
+        now_ns: u64,
+    ) -> bool {
         if let Some(task) = self.tasks.get_mut(&pid) {
             task.dsq_id = dsq_id;
             task.record_enqueue(now_ns);
@@ -449,12 +467,19 @@ impl BridgeSchedExt {
 
     #[inline(always)]
     pub fn dsq_depths(&self) -> Vec<(u64, usize)> {
-        self.dsqs.iter().map(|(id, dsq)| (*id, dsq.depth())).collect()
+        self.dsqs
+            .iter()
+            .map(|(id, dsq)| (*id, dsq.depth()))
+            .collect()
     }
 
     #[inline(always)]
     pub fn idle_cpus(&self) -> Vec<u32> {
-        self.cpu_states.iter().filter(|(_, c)| c.idle).map(|(id, _)| *id).collect()
+        self.cpu_states
+            .iter()
+            .filter(|(_, c)| c.idle)
+            .map(|(id, _)| *id)
+            .collect()
     }
 
     #[inline(always)]

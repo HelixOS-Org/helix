@@ -128,8 +128,7 @@ impl IoRequest {
         }
         self.merged += 1;
         // Take earlier deadline
-        if other.deadline_ns > 0
-            && (self.deadline_ns == 0 || other.deadline_ns < self.deadline_ns)
+        if other.deadline_ns > 0 && (self.deadline_ns == 0 || other.deadline_ns < self.deadline_ns)
         {
             self.deadline_ns = other.deadline_ns;
         }
@@ -245,7 +244,7 @@ impl DeviceQueue {
             (None, None) => {
                 // No deadlines, prefer reads for latency
                 !self.read_queue.is_empty()
-            }
+            },
         };
 
         let queue = if from_read {
@@ -275,7 +274,8 @@ impl DeviceQueue {
     }
 
     fn find_earliest_deadline(&self, queue: &[IoRequest], _now_ns: u64) -> Option<u64> {
-        queue.iter()
+        queue
+            .iter()
             .filter(|r| r.deadline_ns > 0)
             .map(|r| r.deadline_ns)
             .min()
@@ -358,7 +358,14 @@ impl HolisticIoScheduler {
     }
 
     /// Submit IO request to device
-    pub fn submit(&mut self, device_hash: u64, pid: u64, dir: IoDirection, sector: u64, count: u32) -> Option<u64> {
+    pub fn submit(
+        &mut self,
+        device_hash: u64,
+        pid: u64,
+        dir: IoDirection,
+        sector: u64,
+        count: u32,
+    ) -> Option<u64> {
         let id = self.next_id;
         self.next_id += 1;
         let req = IoRequest::new(id, pid, dir, sector, count);
@@ -393,7 +400,9 @@ impl HolisticIoScheduler {
         } else {
             0.0
         };
-        self.stats.max_utilization = self.devices.values()
+        self.stats.max_utilization = self
+            .devices
+            .values()
             .map(|d| d.utilization())
             .fold(0.0_f64, f64::max);
     }

@@ -52,13 +52,20 @@ pub struct FirmwareVersion {
 
 impl FirmwareVersion {
     pub fn new(major: u16, minor: u16, patch: u16) -> Self {
-        Self { major, minor, patch, build: 0 }
+        Self {
+            major,
+            minor,
+            patch,
+            build: 0,
+        }
     }
 
     #[inline(always)]
     pub fn to_u64(&self) -> u64 {
-        ((self.major as u64) << 48) | ((self.minor as u64) << 32)
-            | ((self.patch as u64) << 16) | (self.build as u64)
+        ((self.major as u64) << 48)
+            | ((self.minor as u64) << 32)
+            | ((self.patch as u64) << 16)
+            | (self.build as u64)
     }
 
     #[inline(always)]
@@ -86,12 +93,27 @@ pub struct FirmwareImage {
 }
 
 impl FirmwareImage {
-    pub fn new(id: u64, name: String, fw_type: FirmwareType, ver: FirmwareVersion, size: u64) -> Self {
+    pub fn new(
+        id: u64,
+        name: String,
+        fw_type: FirmwareType,
+        ver: FirmwareVersion,
+        size: u64,
+    ) -> Self {
         Self {
-            id, name, fw_type, state: FirmwareState::NotLoaded,
-            version: ver, sec_level: FirmwareSecLevel::Unsigned,
-            size_bytes: size, checksum: 0, load_address: 0,
-            device_id: 0, loaded_at: 0, load_time_ns: 0, apply_count: 0,
+            id,
+            name,
+            fw_type,
+            state: FirmwareState::NotLoaded,
+            version: ver,
+            sec_level: FirmwareSecLevel::Unsigned,
+            size_bytes: size,
+            checksum: 0,
+            load_address: 0,
+            device_id: 0,
+            loaded_at: 0,
+            load_time_ns: 0,
+            apply_count: 0,
         }
     }
 
@@ -115,7 +137,9 @@ impl FirmwareImage {
     }
 
     #[inline(always)]
-    pub fn fail(&mut self) { self.state = FirmwareState::Failed; }
+    pub fn fail(&mut self) {
+        self.state = FirmwareState::Failed;
+    }
 
     #[inline]
     pub fn fnv_hash(&self) -> u64 {
@@ -160,60 +184,115 @@ pub struct HolisticFirmwareMgr {
 
 impl HolisticFirmwareMgr {
     pub fn new() -> Self {
-        Self { images: BTreeMap::new(), pending_updates: Vec::new(), next_id: 1 }
+        Self {
+            images: BTreeMap::new(),
+            pending_updates: Vec::new(),
+            next_id: 1,
+        }
     }
 
     #[inline]
-    pub fn register(&mut self, name: String, fw_type: FirmwareType, ver: FirmwareVersion, size: u64) -> u64 {
+    pub fn register(
+        &mut self,
+        name: String,
+        fw_type: FirmwareType,
+        ver: FirmwareVersion,
+        size: u64,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        self.images.insert(id, FirmwareImage::new(id, name, fw_type, ver, size));
+        self.images
+            .insert(id, FirmwareImage::new(id, name, fw_type, ver, size));
         id
     }
 
     #[inline(always)]
     pub fn load(&mut self, id: u64, address: u64, now: u64) -> bool {
-        if let Some(img) = self.images.get_mut(&id) { img.load(address, now); true }
-        else { false }
+        if let Some(img) = self.images.get_mut(&id) {
+            img.load(address, now);
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn complete_load(&mut self, id: u64, duration_ns: u64) -> bool {
-        if let Some(img) = self.images.get_mut(&id) { img.mark_loaded(duration_ns); true }
-        else { false }
+        if let Some(img) = self.images.get_mut(&id) {
+            img.mark_loaded(duration_ns);
+            true
+        } else {
+            false
+        }
     }
 
     #[inline]
     pub fn apply(&mut self, id: u64) -> bool {
         if let Some(img) = self.images.get_mut(&id) {
-            if img.state == FirmwareState::Loaded { img.apply(); true }
-            else { false }
-        } else { false }
+            if img.state == FirmwareState::Loaded {
+                img.apply();
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
-    pub fn submit_update(&mut self, req: FirmwareUpdateReq) { self.pending_updates.push(req); }
+    pub fn submit_update(&mut self, req: FirmwareUpdateReq) {
+        self.pending_updates.push(req);
+    }
 
     #[inline(always)]
     pub fn images_for_device(&self, device_id: u64) -> Vec<&FirmwareImage> {
-        self.images.values().filter(|i| i.device_id == device_id).collect()
+        self.images
+            .values()
+            .filter(|i| i.device_id == device_id)
+            .collect()
     }
 
     pub fn stats(&self) -> FirmwareMgrStats {
-        let loaded = self.images.values().filter(|i| i.state == FirmwareState::Loaded).count() as u32;
-        let applied = self.images.values().filter(|i| i.state == FirmwareState::Applied).count() as u32;
-        let failed = self.images.values().filter(|i| i.state == FirmwareState::Failed).count() as u32;
-        let total_bytes: u64 = self.images.values()
+        let loaded = self
+            .images
+            .values()
+            .filter(|i| i.state == FirmwareState::Loaded)
+            .count() as u32;
+        let applied = self
+            .images
+            .values()
+            .filter(|i| i.state == FirmwareState::Applied)
+            .count() as u32;
+        let failed = self
+            .images
+            .values()
+            .filter(|i| i.state == FirmwareState::Failed)
+            .count() as u32;
+        let total_bytes: u64 = self
+            .images
+            .values()
             .filter(|i| i.state == FirmwareState::Loaded || i.state == FirmwareState::Applied)
-            .map(|i| i.size_bytes).sum();
-        let load_times: Vec<u64> = self.images.values()
+            .map(|i| i.size_bytes)
+            .sum();
+        let load_times: Vec<u64> = self
+            .images
+            .values()
             .filter(|i| i.load_time_ns > 0)
-            .map(|i| i.load_time_ns).collect();
-        let avg_load = if load_times.is_empty() { 0 } else { load_times.iter().sum::<u64>() / load_times.len() as u64 };
+            .map(|i| i.load_time_ns)
+            .collect();
+        let avg_load = if load_times.is_empty() {
+            0
+        } else {
+            load_times.iter().sum::<u64>() / load_times.len() as u64
+        };
         FirmwareMgrStats {
-            total_images: self.images.len() as u32, loaded_images: loaded,
-            applied_images: applied, failed_images: failed,
-            total_bytes_loaded: total_bytes, avg_load_time_ns: avg_load,
+            total_images: self.images.len() as u32,
+            loaded_images: loaded,
+            applied_images: applied,
+            failed_images: failed,
+            total_bytes_loaded: total_bytes,
+            avg_load_time_ns: avg_load,
             pending_updates: self.pending_updates.len() as u32,
         }
     }

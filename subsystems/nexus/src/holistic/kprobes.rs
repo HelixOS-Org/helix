@@ -45,28 +45,53 @@ pub struct KernelProbe {
 
 impl KernelProbe {
     pub fn new(id: u64, ptype: ProbeType, sym_hash: u64, addr: u64) -> Self {
-        Self { id, probe_type: ptype, state: ProbeState::Registered, symbol_hash: sym_hash, offset: 0, addr, hit_count: 0, miss_count: 0, total_ns: 0, max_handler_ns: 0, attached_prog: 0 }
+        Self {
+            id,
+            probe_type: ptype,
+            state: ProbeState::Registered,
+            symbol_hash: sym_hash,
+            offset: 0,
+            addr,
+            hit_count: 0,
+            miss_count: 0,
+            total_ns: 0,
+            max_handler_ns: 0,
+            attached_prog: 0,
+        }
     }
 
     #[inline]
     pub fn hit(&mut self, handler_ns: u64) {
         self.hit_count += 1;
         self.total_ns += handler_ns;
-        if handler_ns > self.max_handler_ns { self.max_handler_ns = handler_ns; }
+        if handler_ns > self.max_handler_ns {
+            self.max_handler_ns = handler_ns;
+        }
         self.state = ProbeState::Active;
     }
 
     #[inline(always)]
-    pub fn miss(&mut self) { self.miss_count += 1; self.state = ProbeState::Missed; }
+    pub fn miss(&mut self) {
+        self.miss_count += 1;
+        self.state = ProbeState::Missed;
+    }
 
     #[inline(always)]
-    pub fn disable(&mut self) { self.state = ProbeState::Disabled; }
+    pub fn disable(&mut self) {
+        self.state = ProbeState::Disabled;
+    }
     #[inline(always)]
-    pub fn enable(&mut self) { self.state = ProbeState::Registered; }
+    pub fn enable(&mut self) {
+        self.state = ProbeState::Registered;
+    }
 
     #[inline(always)]
     pub fn avg_handler_ns(&self) -> u64 {
-        if self.hit_count == 0 { 0 } else { self.total_ns / self.hit_count }
+        if self.hit_count == 0 {
+            0
+        } else {
+            self.total_ns / self.hit_count
+        }
     }
 }
 
@@ -88,35 +113,58 @@ pub struct HolisticKprobes {
 }
 
 impl HolisticKprobes {
-    pub fn new() -> Self { Self { probes: BTreeMap::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            probes: BTreeMap::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn register(&mut self, ptype: ProbeType, sym_hash: u64, addr: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.probes.insert(id, KernelProbe::new(id, ptype, sym_hash, addr));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.probes
+            .insert(id, KernelProbe::new(id, ptype, sym_hash, addr));
         id
     }
 
     #[inline(always)]
     pub fn hit(&mut self, id: u64, ns: u64) {
-        if let Some(p) = self.probes.get_mut(&id) { p.hit(ns); }
+        if let Some(p) = self.probes.get_mut(&id) {
+            p.hit(ns);
+        }
     }
 
     #[inline(always)]
     pub fn disable(&mut self, id: u64) {
-        if let Some(p) = self.probes.get_mut(&id) { p.disable(); }
+        if let Some(p) = self.probes.get_mut(&id) {
+            p.disable();
+        }
     }
 
     #[inline(always)]
-    pub fn unregister(&mut self, id: u64) { self.probes.remove(&id); }
+    pub fn unregister(&mut self, id: u64) {
+        self.probes.remove(&id);
+    }
 
     #[inline]
     pub fn stats(&self) -> KprobesStats {
-        let active = self.probes.values().filter(|p| p.state == ProbeState::Active).count() as u32;
+        let active = self
+            .probes
+            .values()
+            .filter(|p| p.state == ProbeState::Active)
+            .count() as u32;
         let hits: u64 = self.probes.values().map(|p| p.hit_count).sum();
         let misses: u64 = self.probes.values().map(|p| p.miss_count).sum();
         let ns: u64 = self.probes.values().map(|p| p.total_ns).sum();
         let avg = if hits == 0 { 0 } else { ns / hits };
-        KprobesStats { total_probes: self.probes.len() as u32, active, total_hits: hits, total_misses: misses, avg_handler_ns: avg }
+        KprobesStats {
+            total_probes: self.probes.len() as u32,
+            active,
+            total_hits: hits,
+            total_misses: misses,
+            avg_handler_ns: avg,
+        }
     }
 }

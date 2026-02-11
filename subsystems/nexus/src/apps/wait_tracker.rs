@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 /// Wait variant
@@ -37,11 +36,17 @@ impl WaitOptions {
     pub const WSTOPPED: u32 = 2;
     pub const WNOWAIT: u32 = 0x01000000;
 
-    pub fn new(bits: u32) -> Self { Self { bits } }
+    pub fn new(bits: u32) -> Self {
+        Self { bits }
+    }
     #[inline(always)]
-    pub fn is_nohang(&self) -> bool { self.bits & Self::WNOHANG != 0 }
+    pub fn is_nohang(&self) -> bool {
+        self.bits & Self::WNOHANG != 0
+    }
     #[inline(always)]
-    pub fn is_untraced(&self) -> bool { self.bits & Self::WUNTRACED != 0 }
+    pub fn is_untraced(&self) -> bool {
+        self.bits & Self::WUNTRACED != 0
+    }
 }
 
 /// Child exit status
@@ -94,7 +99,13 @@ pub struct ZombieEntry {
 
 impl ZombieEntry {
     pub fn new(pid: u64, parent: u64, status: ChildStatus, ts: u64) -> Self {
-        Self { pid, parent_pid: parent, exit_status: status, exit_ts: ts, zombie_duration_ns: 0 }
+        Self {
+            pid,
+            parent_pid: parent,
+            exit_status: status,
+            exit_ts: ts,
+            zombie_duration_ns: 0,
+        }
     }
 
     #[inline(always)]
@@ -125,36 +136,58 @@ pub struct WaitPattern {
 impl WaitPattern {
     pub fn new(pid: u64) -> Self {
         Self {
-            pid, total_waits: 0, nohang_waits: 0, blocking_waits: 0,
-            total_wait_time_ns: 0, children_reaped: 0, abnormal_exits: 0,
-            last_wait_ts: 0, avg_reap_latency_ns: 0,
+            pid,
+            total_waits: 0,
+            nohang_waits: 0,
+            blocking_waits: 0,
+            total_wait_time_ns: 0,
+            children_reaped: 0,
+            abnormal_exits: 0,
+            last_wait_ts: 0,
+            avg_reap_latency_ns: 0,
         }
     }
 
-    pub fn record_wait(&mut self, nohang: bool, latency_ns: u64, got_result: bool, status: ChildStatus, ts: u64) {
+    pub fn record_wait(
+        &mut self,
+        nohang: bool,
+        latency_ns: u64,
+        got_result: bool,
+        status: ChildStatus,
+        ts: u64,
+    ) {
         self.total_waits += 1;
         self.last_wait_ts = ts;
-        if nohang { self.nohang_waits += 1; }
-        else { self.blocking_waits += 1; }
+        if nohang {
+            self.nohang_waits += 1;
+        } else {
+            self.blocking_waits += 1;
+        }
         if got_result {
             self.children_reaped += 1;
             self.total_wait_time_ns += latency_ns;
             if self.children_reaped > 0 {
                 self.avg_reap_latency_ns = self.total_wait_time_ns / self.children_reaped;
             }
-            if status.is_abnormal() { self.abnormal_exits += 1; }
+            if status.is_abnormal() {
+                self.abnormal_exits += 1;
+            }
         }
     }
 
     #[inline(always)]
     pub fn nohang_ratio(&self) -> f64 {
-        if self.total_waits == 0 { return 0.0; }
+        if self.total_waits == 0 {
+            return 0.0;
+        }
         self.nohang_waits as f64 / self.total_waits as f64
     }
 
     #[inline(always)]
     pub fn abnormal_ratio(&self) -> f64 {
-        if self.children_reaped == 0 { return 0.0; }
+        if self.children_reaped == 0 {
+            return 0.0;
+        }
         self.abnormal_exits as f64 / self.children_reaped as f64
     }
 }
@@ -187,40 +220,71 @@ pub struct AppsWaitTracker {
 impl AppsWaitTracker {
     pub fn new() -> Self {
         Self {
-            patterns: BTreeMap::new(), zombies: BTreeMap::new(),
-            orphans: Vec::new(), events: VecDeque::new(),
-            max_events: 512, zombie_threshold_ns: 10_000_000_000,
+            patterns: BTreeMap::new(),
+            zombies: BTreeMap::new(),
+            orphans: Vec::new(),
+            events: VecDeque::new(),
+            max_events: 512,
+            zombie_threshold_ns: 10_000_000_000,
             stats: WaitTrackerStats::default(),
         }
     }
 
     #[inline(always)]
     pub fn record_child_exit(&mut self, pid: u64, parent: u64, status: ChildStatus, ts: u64) {
-        self.zombies.insert(pid, ZombieEntry::new(pid, parent, status, ts));
+        self.zombies
+            .insert(pid, ZombieEntry::new(pid, parent, status, ts));
     }
 
-    pub fn record_wait(&mut self, waiter: u64, waited: u64, variant: WaitVariant, options: WaitOptions, status: ChildStatus, latency_ns: u64, got_result: bool, ts: u64) {
-        let pattern = self.patterns.entry(waiter).or_insert_with(|| WaitPattern::new(waiter));
+    pub fn record_wait(
+        &mut self,
+        waiter: u64,
+        waited: u64,
+        variant: WaitVariant,
+        options: WaitOptions,
+        status: ChildStatus,
+        latency_ns: u64,
+        got_result: bool,
+        ts: u64,
+    ) {
+        let pattern = self
+            .patterns
+            .entry(waiter)
+            .or_insert_with(|| WaitPattern::new(waiter));
         pattern.record_wait(options.is_nohang(), latency_ns, got_result, status, ts);
 
-        if got_result { self.zombies.remove(&waited); }
+        if got_result {
+            self.zombies.remove(&waited);
+        }
 
         self.events.push_back(WaitEvent {
-            waiter_pid: waiter, waited_pid: waited, variant, options, status,
-            timestamp: ts, wait_latency_ns: latency_ns, was_nohang: options.is_nohang(),
+            waiter_pid: waiter,
+            waited_pid: waited,
+            variant,
+            options,
+            status,
+            timestamp: ts,
+            wait_latency_ns: latency_ns,
+            was_nohang: options.is_nohang(),
             got_result,
         });
-        if self.events.len() > self.max_events { self.events.remove(0); }
+        if self.events.len() > self.max_events {
+            self.events.remove(0);
+        }
     }
 
     #[inline(always)]
     pub fn record_orphan(&mut self, pid: u64) {
-        if !self.orphans.contains(&pid) { self.orphans.push(pid); }
+        if !self.orphans.contains(&pid) {
+            self.orphans.push(pid);
+        }
     }
 
     #[inline(always)]
     pub fn record_reparent(&mut self, pid: u64, new_parent: u64) {
-        if let Some(z) = self.zombies.get_mut(&pid) { z.parent_pid = new_parent; }
+        if let Some(z) = self.zombies.get_mut(&pid) {
+            z.parent_pid = new_parent;
+        }
         self.orphans.retain(|&o| o != pid);
     }
 
@@ -231,11 +295,17 @@ impl AppsWaitTracker {
     }
 
     pub fn recompute(&mut self, now: u64) {
-        for z in self.zombies.values_mut() { z.update_duration(now); }
+        for z in self.zombies.values_mut() {
+            z.update_duration(now);
+        }
         self.stats.tracked_processes = self.patterns.len();
         self.stats.total_wait_events = self.patterns.values().map(|p| p.total_waits).sum();
         self.stats.current_zombies = self.zombies.len();
-        self.stats.long_zombies = self.zombies.values().filter(|z| z.is_long_zombie(self.zombie_threshold_ns)).count();
+        self.stats.long_zombies = self
+            .zombies
+            .values()
+            .filter(|z| z.is_long_zombie(self.zombie_threshold_ns))
+            .count();
         self.stats.orphan_count = self.orphans.len();
         self.stats.total_reaped = self.patterns.values().map(|p| p.children_reaped).sum();
         self.stats.total_abnormal = self.patterns.values().map(|p| p.abnormal_exits).sum();
@@ -246,11 +316,17 @@ impl AppsWaitTracker {
     }
 
     #[inline(always)]
-    pub fn pattern(&self, pid: u64) -> Option<&WaitPattern> { self.patterns.get(&pid) }
+    pub fn pattern(&self, pid: u64) -> Option<&WaitPattern> {
+        self.patterns.get(&pid)
+    }
     #[inline(always)]
-    pub fn zombie(&self, pid: u64) -> Option<&ZombieEntry> { self.zombies.get(&pid) }
+    pub fn zombie(&self, pid: u64) -> Option<&ZombieEntry> {
+        self.zombies.get(&pid)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &WaitTrackerStats { &self.stats }
+    pub fn stats(&self) -> &WaitTrackerStats {
+        &self.stats
+    }
 }
 
 // ============================================================================
@@ -315,8 +391,12 @@ pub struct ProcessWaitV2State {
 impl ProcessWaitV2State {
     pub fn new(pid: u64) -> Self {
         Self {
-            pid, children: Vec::new(), zombies: Vec::new(),
-            wait_calls: 0, reaped: 0, no_hang_empty: 0,
+            pid,
+            children: Vec::new(),
+            zombies: Vec::new(),
+            wait_calls: 0,
+            reaped: 0,
+            no_hang_empty: 0,
         }
     }
 
@@ -336,7 +416,9 @@ impl ProcessWaitV2State {
         if let Some(z) = self.zombies.pop() {
             self.reaped += 1;
             Some(z)
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 
@@ -370,10 +452,14 @@ impl AppWaitV2Tracker {
             history: VecDeque::new(),
             max_history,
             stats: WaitV2TrackerStats {
-                total_wait_calls: 0, waitpid_calls: 0,
-                waitid_calls: 0, wait4_calls: 0,
-                children_reaped: 0, no_hang_returns: 0,
-                zombies_accumulated: 0, orphans_reparented: 0,
+                total_wait_calls: 0,
+                waitpid_calls: 0,
+                waitid_calls: 0,
+                wait4_calls: 0,
+                children_reaped: 0,
+                no_hang_returns: 0,
+                zombies_accumulated: 0,
+                orphans_reparented: 0,
             },
         }
     }
@@ -406,10 +492,15 @@ impl AppWaitV2Tracker {
             if let Some(child) = proc.reap() {
                 self.stats.children_reaped += 1;
                 let record = WaitV2Record {
-                    parent_pid: pid, child_pid: child,
-                    target, status: WaitV2Status::Exited(0),
-                    rusage_utime_us: 0, rusage_stime_us: 0,
-                    rusage_maxrss: 0, waited_ticks: 0, tick,
+                    parent_pid: pid,
+                    child_pid: child,
+                    target,
+                    status: WaitV2Status::Exited(0),
+                    rusage_utime_us: 0,
+                    rusage_stime_us: 0,
+                    rusage_maxrss: 0,
+                    waited_ticks: 0,
+                    tick,
                 };
                 if self.history.len() >= self.max_history {
                     self.history.remove(0);

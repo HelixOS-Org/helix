@@ -68,9 +68,13 @@ pub struct SocketSendState {
 impl SocketSendState {
     pub fn new(fd: u64) -> Self {
         Self {
-            fd, total_bytes: 0, total_calls: 0,
-            total_iov_entries: 0, zerocopy_calls: 0,
-            zerocopy_bytes: 0, failed_calls: 0,
+            fd,
+            total_bytes: 0,
+            total_calls: 0,
+            total_iov_entries: 0,
+            zerocopy_calls: 0,
+            zerocopy_bytes: 0,
+            failed_calls: 0,
             max_msg_size: 0,
         }
     }
@@ -84,22 +88,36 @@ impl SocketSendState {
             self.zerocopy_calls += 1;
             self.zerocopy_bytes += bytes;
         }
-        if bytes > self.max_msg_size { self.max_msg_size = bytes; }
+        if bytes > self.max_msg_size {
+            self.max_msg_size = bytes;
+        }
     }
 
     #[inline(always)]
     pub fn avg_msg_size(&self) -> u64 {
-        if self.total_calls == 0 { 0 } else { self.total_bytes / self.total_calls }
+        if self.total_calls == 0 {
+            0
+        } else {
+            self.total_bytes / self.total_calls
+        }
     }
 
     #[inline(always)]
     pub fn avg_iov_per_call(&self) -> u64 {
-        if self.total_calls == 0 { 0 } else { self.total_iov_entries / self.total_calls }
+        if self.total_calls == 0 {
+            0
+        } else {
+            self.total_iov_entries / self.total_calls
+        }
     }
 
     #[inline(always)]
     pub fn zerocopy_pct(&self) -> u64 {
-        if self.total_calls == 0 { 0 } else { (self.zerocopy_calls * 100) / self.total_calls }
+        if self.total_calls == 0 {
+            0
+        } else {
+            (self.zerocopy_calls * 100) / self.total_calls
+        }
     }
 }
 
@@ -122,8 +140,10 @@ impl AppSendmsg {
         Self {
             sockets: BTreeMap::new(),
             stats: SendmsgAppStats {
-                total_sends: 0, total_bytes: 0,
-                total_zerocopy: 0, total_failures: 0,
+                total_sends: 0,
+                total_bytes: 0,
+                total_zerocopy: 0,
+                total_failures: 0,
             },
         }
     }
@@ -139,10 +159,14 @@ impl AppSendmsg {
             s.record(bytes, iov, zerocopy);
             self.stats.total_sends += 1;
             self.stats.total_bytes += bytes;
-            if zerocopy { self.stats.total_zerocopy += 1; }
+            if zerocopy {
+                self.stats.total_zerocopy += 1;
+            }
         }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &SendmsgAppStats { &self.stats }
+    pub fn stats(&self) -> &SendmsgAppStats {
+        &self.stats
+    }
 }

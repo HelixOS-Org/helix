@@ -52,37 +52,70 @@ pub struct HolisticSuperblock {
 impl HolisticSuperblock {
     pub fn new(sb_id: u64, fs_type: &[u8], block_size: u32) -> Self {
         let mut h: u64 = 0xcbf29ce484222325;
-        for b in fs_type { h ^= *b as u64; h = h.wrapping_mul(0x100000001b3); }
+        for b in fs_type {
+            h ^= *b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
         Self {
-            sb_id, fs_type_hash: h, dev_id: 0, state: SuperblockState::New,
-            block_size, max_file_size: u64::MAX, total_blocks: 0, free_blocks: 0,
-            total_inodes: 0, free_inodes: 0, features: 0, mount_count: 0, mount_time_ns: 0,
+            sb_id,
+            fs_type_hash: h,
+            dev_id: 0,
+            state: SuperblockState::New,
+            block_size,
+            max_file_size: u64::MAX,
+            total_blocks: 0,
+            free_blocks: 0,
+            total_inodes: 0,
+            free_inodes: 0,
+            features: 0,
+            mount_count: 0,
+            mount_time_ns: 0,
         }
     }
 
     #[inline(always)]
-    pub fn activate(&mut self) { self.state = SuperblockState::Active; self.mount_count += 1; }
+    pub fn activate(&mut self) {
+        self.state = SuperblockState::Active;
+        self.mount_count += 1;
+    }
     #[inline(always)]
-    pub fn freeze(&mut self) { self.state = SuperblockState::Frozen; }
+    pub fn freeze(&mut self) {
+        self.state = SuperblockState::Frozen;
+    }
     #[inline(always)]
-    pub fn thaw(&mut self) { self.state = SuperblockState::Active; }
+    pub fn thaw(&mut self) {
+        self.state = SuperblockState::Active;
+    }
 
     #[inline(always)]
-    pub fn enable_feature(&mut self, feature: SbFeature) { self.features |= 1u32 << (feature as u32); }
+    pub fn enable_feature(&mut self, feature: SbFeature) {
+        self.features |= 1u32 << (feature as u32);
+    }
     #[inline(always)]
-    pub fn has_feature(&self, feature: SbFeature) -> bool { self.features & (1u32 << (feature as u32)) != 0 }
+    pub fn has_feature(&self, feature: SbFeature) -> bool {
+        self.features & (1u32 << (feature as u32)) != 0
+    }
 
     #[inline(always)]
-    pub fn used_blocks(&self) -> u64 { self.total_blocks.saturating_sub(self.free_blocks) }
+    pub fn used_blocks(&self) -> u64 {
+        self.total_blocks.saturating_sub(self.free_blocks)
+    }
     #[inline(always)]
     pub fn usage_pct(&self) -> f64 {
-        if self.total_blocks == 0 { 0.0 } else { self.used_blocks() as f64 / self.total_blocks as f64 }
+        if self.total_blocks == 0 {
+            0.0
+        } else {
+            self.used_blocks() as f64 / self.total_blocks as f64
+        }
     }
 
     #[inline(always)]
     pub fn inode_usage_pct(&self) -> f64 {
-        if self.total_inodes == 0 { 0.0 }
-        else { (self.total_inodes - self.free_inodes) as f64 / self.total_inodes as f64 }
+        if self.total_inodes == 0 {
+            0.0
+        } else {
+            (self.total_inodes - self.free_inodes) as f64 / self.total_inodes as f64
+        }
     }
 }
 
@@ -108,7 +141,13 @@ impl HolisticSuperblockMgr {
     pub fn new() -> Self {
         Self {
             superblocks: BTreeMap::new(),
-            stats: HolisticSbStats { total_superblocks: 0, active: 0, frozen: 0, total_capacity_blocks: 0, total_free_blocks: 0 },
+            stats: HolisticSbStats {
+                total_superblocks: 0,
+                active: 0,
+                frozen: 0,
+                total_capacity_blocks: 0,
+                total_free_blocks: 0,
+            },
         }
     }
 
@@ -126,13 +165,19 @@ impl HolisticSuperblockMgr {
             sb.activate();
             self.stats.active += 1;
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
     pub fn overall_usage_pct(&self) -> f64 {
-        if self.stats.total_capacity_blocks == 0 { 0.0 }
-        else { (self.stats.total_capacity_blocks - self.stats.total_free_blocks) as f64 / self.stats.total_capacity_blocks as f64 }
+        if self.stats.total_capacity_blocks == 0 {
+            0.0
+        } else {
+            (self.stats.total_capacity_blocks - self.stats.total_free_blocks) as f64
+                / self.stats.total_capacity_blocks as f64
+        }
     }
 }
 
@@ -214,24 +259,31 @@ impl HolisticSuperblockV2Manager {
             sb_id,
             timestamp: self.samples.len() as u64,
         };
-        self.per_sb.entry(sb_id).or_insert_with(Vec::new).push(sample.clone());
+        self.per_sb
+            .entry(sb_id)
+            .or_insert_with(Vec::new)
+            .push(sample.clone());
         self.samples.push(sample);
         self.stats.samples += 1;
     }
 
     pub fn analyze(&mut self) -> &HolisticSbV2Health {
         self.stats.analyses += 1;
-        let space_samples: Vec<&HolisticSbV2Sample> = self.samples.iter()
+        let space_samples: Vec<&HolisticSbV2Sample> = self
+            .samples
+            .iter()
             .filter(|s| matches!(s.metric, HolisticSbV2Metric::FreeBlockRatio))
             .collect();
         if !space_samples.is_empty() {
-            let avg: u64 = space_samples.iter().map(|s| s.value).sum::<u64>() / space_samples.len() as u64;
+            let avg: u64 =
+                space_samples.iter().map(|s| s.value).sum::<u64>() / space_samples.len() as u64;
             self.health.space_health = avg.min(100);
             if avg < 10 {
                 self.stats.space_warnings += 1;
             }
         }
-        self.health.overall = (self.health.space_health + self.health.inode_health + self.health.integrity_score) / 3;
+        self.health.overall =
+            (self.health.space_health + self.health.inode_health + self.health.integrity_score) / 3;
         &self.health
     }
 

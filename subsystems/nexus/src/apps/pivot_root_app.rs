@@ -28,13 +28,26 @@ pub struct PivotRootOp {
 
 impl PivotRootOp {
     pub fn new(id: u64, pid: u64, new_root: u64, put_old: u64, now: u64) -> Self {
-        Self { id, pid, new_root_hash: new_root, put_old_hash: put_old, state: PivotState::Pending, timestamp: now, duration_ns: 0 }
+        Self {
+            id,
+            pid,
+            new_root_hash: new_root,
+            put_old_hash: put_old,
+            state: PivotState::Pending,
+            timestamp: now,
+            duration_ns: 0,
+        }
     }
 
     #[inline(always)]
-    pub fn complete(&mut self, dur: u64) { self.state = PivotState::Completed; self.duration_ns = dur; }
+    pub fn complete(&mut self, dur: u64) {
+        self.state = PivotState::Completed;
+        self.duration_ns = dur;
+    }
     #[inline(always)]
-    pub fn fail(&mut self) { self.state = PivotState::Failed; }
+    pub fn fail(&mut self) {
+        self.state = PivotState::Failed;
+    }
 }
 
 /// Stats
@@ -54,21 +67,50 @@ pub struct AppPivotRoot {
 }
 
 impl AppPivotRoot {
-    pub fn new() -> Self { Self { ops: Vec::new(), next_id: 1 } }
+    pub fn new() -> Self {
+        Self {
+            ops: Vec::new(),
+            next_id: 1,
+        }
+    }
 
     #[inline]
     pub fn pivot_root(&mut self, pid: u64, new_root: u64, put_old: u64, now: u64) -> u64 {
-        let id = self.next_id; self.next_id += 1;
-        self.ops.push(PivotRootOp::new(id, pid, new_root, put_old, now));
+        let id = self.next_id;
+        self.next_id += 1;
+        self.ops
+            .push(PivotRootOp::new(id, pid, new_root, put_old, now));
         id
     }
 
     #[inline]
     pub fn stats(&self) -> PivotRootAppStats {
-        let completed = self.ops.iter().filter(|o| o.state == PivotState::Completed).count() as u32;
-        let failed = self.ops.iter().filter(|o| o.state == PivotState::Failed).count() as u32;
-        let durs: Vec<u64> = self.ops.iter().filter(|o| o.state == PivotState::Completed).map(|o| o.duration_ns).collect();
-        let avg = if durs.is_empty() { 0 } else { durs.iter().sum::<u64>() / durs.len() as u64 };
-        PivotRootAppStats { total_ops: self.ops.len() as u32, completed, failed, avg_duration_ns: avg }
+        let completed = self
+            .ops
+            .iter()
+            .filter(|o| o.state == PivotState::Completed)
+            .count() as u32;
+        let failed = self
+            .ops
+            .iter()
+            .filter(|o| o.state == PivotState::Failed)
+            .count() as u32;
+        let durs: Vec<u64> = self
+            .ops
+            .iter()
+            .filter(|o| o.state == PivotState::Completed)
+            .map(|o| o.duration_ns)
+            .collect();
+        let avg = if durs.is_empty() {
+            0
+        } else {
+            durs.iter().sum::<u64>() / durs.len() as u64
+        };
+        PivotRootAppStats {
+            total_ops: self.ops.len() as u32,
+            completed,
+            failed,
+            avg_duration_ns: avg,
+        }
     }
 }

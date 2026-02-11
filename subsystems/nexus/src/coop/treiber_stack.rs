@@ -21,7 +21,11 @@ pub struct TreiberNode {
 
 impl TreiberNode {
     pub fn new(value: u64) -> Self {
-        Self { value, next: None, tag: 0 }
+        Self {
+            value,
+            next: None,
+            tag: 0,
+        }
     }
 }
 
@@ -40,9 +44,12 @@ pub struct TreiberStackState {
 impl TreiberStackState {
     pub fn new() -> Self {
         Self {
-            head_tag: 0, size: 0,
-            push_count: 0, pop_count: 0,
-            cas_failures: 0, aba_detections: 0,
+            head_tag: 0,
+            size: 0,
+            push_count: 0,
+            pop_count: 0,
+            cas_failures: 0,
+            aba_detections: 0,
             max_size: 0,
         }
     }
@@ -52,12 +59,16 @@ impl TreiberStackState {
         self.size += 1;
         self.push_count += 1;
         self.head_tag += 1;
-        if self.size > self.max_size { self.max_size = self.size; }
+        if self.size > self.max_size {
+            self.max_size = self.size;
+        }
     }
 
     #[inline]
     pub fn pop(&mut self) -> bool {
-        if self.size == 0 { return false; }
+        if self.size == 0 {
+            return false;
+        }
         self.size -= 1;
         self.pop_count += 1;
         self.head_tag += 1;
@@ -65,12 +76,18 @@ impl TreiberStackState {
     }
 
     #[inline(always)]
-    pub fn record_cas_fail(&mut self) { self.cas_failures += 1; }
+    pub fn record_cas_fail(&mut self) {
+        self.cas_failures += 1;
+    }
 
     #[inline(always)]
     pub fn contention_rate(&self) -> u64 {
         let total = self.push_count + self.pop_count;
-        if total == 0 { 0 } else { (self.cas_failures * 100) / total }
+        if total == 0 {
+            0
+        } else {
+            (self.cas_failures * 100) / total
+        }
     }
 }
 
@@ -94,8 +111,10 @@ impl CoopTreiberStack {
         Self {
             stacks: Vec::new(),
             stats: TreiberStackStats {
-                total_stacks: 0, total_pushes: 0,
-                total_pops: 0, total_cas_failures: 0,
+                total_stacks: 0,
+                total_pushes: 0,
+                total_pops: 0,
+                total_cas_failures: 0,
                 total_empty_pops: 0,
             },
         }
@@ -127,9 +146,13 @@ impl CoopTreiberStack {
                 self.stats.total_empty_pops += 1;
                 TreiberOpResult::Empty
             }
-        } else { TreiberOpResult::Empty }
+        } else {
+            TreiberOpResult::Empty
+        }
     }
 
     #[inline(always)]
-    pub fn stats(&self) -> &TreiberStackStats { &self.stats }
+    pub fn stats(&self) -> &TreiberStackStats {
+        &self.stats
+    }
 }

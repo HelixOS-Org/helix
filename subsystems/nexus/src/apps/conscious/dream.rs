@@ -25,7 +25,8 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-use crate::fast::math::{F32Ext};
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -224,7 +225,11 @@ impl AppsDreamEngine {
             total_cycles: 0,
             total_replays: 0,
             tick: 0,
-            rng_state: if seed == 0 { 0xD2EA_CAFE_1234_5678 } else { seed },
+            rng_state: if seed == 0 {
+                0xD2EA_CAFE_1234_5678
+            } else {
+                seed
+            },
         }
     }
 
@@ -420,8 +425,7 @@ impl AppsDreamEngine {
                                     dim_a.apps_in_category.push(app);
                                 }
                             }
-                            dim_a.coherence =
-                                (dim_a.coherence + dim_b.coherence) / 2.0;
+                            dim_a.coherence = (dim_a.coherence + dim_b.coherence) / 2.0;
                             dim_a.last_consolidated_tick = self.tick;
                             merged += 1;
                         }

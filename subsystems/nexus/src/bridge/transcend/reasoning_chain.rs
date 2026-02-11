@@ -13,8 +13,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -157,7 +156,11 @@ struct InferenceTracker {
 
 impl InferenceTracker {
     fn new() -> Self {
-        Self { counts: BTreeMap::new(), total: 0, diversity_ema: 0.0 }
+        Self {
+            counts: BTreeMap::new(),
+            total: 0,
+            diversity_ema: 0.0,
+        }
     }
 
     #[inline]
@@ -183,7 +186,11 @@ impl InferenceTracker {
             entropy -= p * log2_approx(p);
         }
         let max_entropy = log2_approx(8.0); // 8 inference kinds
-        if max_entropy > 0.0 { entropy / max_entropy } else { 0.0 }
+        if max_entropy > 0.0 {
+            entropy / max_entropy
+        } else {
+            0.0
+        }
     }
 }
 
@@ -255,7 +262,11 @@ impl BridgeReasoningChain {
 
         for (i, (premise, inference, kind, strength, conf)) in premises.iter().enumerate() {
             let step_id = chain_id.wrapping_add(i as u64);
-            let clamped = if *conf < MIN_CONFIDENCE { MIN_CONFIDENCE } else { *conf };
+            let clamped = if *conf < MIN_CONFIDENCE {
+                MIN_CONFIDENCE
+            } else {
+                *conf
+            };
             total_conf *= clamped;
 
             self.inference_tracker.record(*kind);
@@ -287,8 +298,7 @@ impl BridgeReasoningChain {
             tick: self.tick,
         };
 
-        self.confidence_ema =
-            EMA_ALPHA * total_conf + (1.0 - EMA_ALPHA) * self.confidence_ema;
+        self.confidence_ema = EMA_ALPHA * total_conf + (1.0 - EMA_ALPHA) * self.confidence_ema;
 
         if self.chains.len() >= MAX_CHAINS_STORED {
             if let Some((&oldest_key, _)) = self.chains.iter().next() {
@@ -430,7 +440,11 @@ impl BridgeReasoningChain {
             }
         }
 
-        if sampled > 0 { total_quality / sampled as f32 } else { 0.0 }
+        if sampled > 0 {
+            total_quality / sampled as f32
+        } else {
+            0.0
+        }
     }
 
     /// Return whether a chain's conclusion is strongly supported.
@@ -444,7 +458,9 @@ impl BridgeReasoningChain {
     /// Number of alternatives recorded for a chain.
     #[inline(always)]
     pub fn alternatives_count(&self, chain_id: u64) -> usize {
-        self.chains.get(&chain_id).map_or(0, |c| c.alternatives.len())
+        self.chains
+            .get(&chain_id)
+            .map_or(0, |c| c.alternatives.len())
     }
 
     /// Aggregate statistics.

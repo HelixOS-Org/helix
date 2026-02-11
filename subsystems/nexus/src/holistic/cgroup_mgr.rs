@@ -11,8 +11,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Cgroup controller type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,17 +30,17 @@ pub enum CgroupController {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PsiLevel {
     None,
-    Some10,  // some avg10 > threshold
-    Some60,  // sustained pressure
-    Full10,  // full stall
-    Full60,  // sustained full stall
+    Some10, // some avg10 > threshold
+    Some60, // sustained pressure
+    Full10, // full stall
+    Full60, // sustained full stall
 }
 
 /// CPU cgroup limits
 #[derive(Debug, Clone)]
 pub struct CpuCgroupLimits {
-    pub weight: u32,        // 1-10000,
-    pub max_us: u64,        // quota per period,
+    pub weight: u32, // 1-10000,
+    pub max_us: u64, // quota per period,
     pub period_us: u64,
     pub burst_us: u64,
     pub usage_us: u64,
@@ -63,14 +63,18 @@ impl CpuCgroupLimits {
 
     #[inline(always)]
     pub fn utilization(&self) -> f64 {
-        if self.max_us == 0 { return 0.0; }
+        if self.max_us == 0 {
+            return 0.0;
+        }
         self.usage_us as f64 / self.max_us as f64
     }
 
     #[inline]
     pub fn throttle_ratio(&self) -> f64 {
         let total = self.usage_us + self.throttled_us;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.throttled_us as f64 / total as f64
     }
 }
@@ -106,7 +110,9 @@ impl MemCgroupLimits {
 
     #[inline(always)]
     pub fn usage_ratio(&self) -> f64 {
-        if self.max_bytes == 0 { return 0.0; }
+        if self.max_bytes == 0 {
+            return 0.0;
+        }
         self.usage_bytes as f64 / self.max_bytes as f64
     }
 
@@ -165,21 +171,27 @@ pub struct PsiInfo {
 impl PsiInfo {
     pub fn new() -> Self {
         Self {
-            cpu_some_avg10: 0.0, cpu_some_avg60: 0.0,
-            cpu_full_avg10: 0.0, cpu_full_avg60: 0.0,
-            mem_some_avg10: 0.0, mem_some_avg60: 0.0,
-            mem_full_avg10: 0.0, mem_full_avg60: 0.0,
-            io_some_avg10: 0.0, io_some_avg60: 0.0,
-            io_full_avg10: 0.0, io_full_avg60: 0.0,
+            cpu_some_avg10: 0.0,
+            cpu_some_avg60: 0.0,
+            cpu_full_avg10: 0.0,
+            cpu_full_avg60: 0.0,
+            mem_some_avg10: 0.0,
+            mem_some_avg60: 0.0,
+            mem_full_avg10: 0.0,
+            mem_full_avg60: 0.0,
+            io_some_avg10: 0.0,
+            io_some_avg60: 0.0,
+            io_full_avg10: 0.0,
+            io_full_avg60: 0.0,
         }
     }
 
     #[inline]
     pub fn worst_pressure(&self) -> f64 {
-        let vals = [
-            self.cpu_full_avg10, self.mem_full_avg10, self.io_full_avg10,
-        ];
-        vals.iter().copied().fold(0.0f64, |a, b| if b > a { b } else { a })
+        let vals = [self.cpu_full_avg10, self.mem_full_avg10, self.io_full_avg10];
+        vals.iter()
+            .copied()
+            .fold(0.0f64, |a, b| if b > a { b } else { a })
     }
 }
 
@@ -287,7 +299,8 @@ impl HolisticCgroupMgr {
     /// Find cgroups that need resource adjustment
     #[inline]
     pub fn pressured_cgroups(&self) -> Vec<u64> {
-        self.cgroups.values()
+        self.cgroups
+            .values()
             .filter(|cg| cg.is_under_cpu_pressure() || cg.is_under_mem_pressure())
             .map(|cg| cg.cgroup_id)
             .collect()
@@ -300,24 +313,37 @@ impl HolisticCgroupMgr {
             let mem_score = (cg.memory.usage_ratio() * 1000.0) as i32;
             let adj = cg.memory.oom_score_adj as i32;
             (mem_score + adj).max(0).min(1000)
-        } else { 0 }
+        } else {
+            0
+        }
     }
 
     pub fn recompute(&mut self) {
         self.stats.total_cgroups = self.cgroups.len();
-        self.stats.cpu_throttled = self.cgroups.values()
-            .filter(|cg| cg.cpu.throttle_ratio() > 0.1).count();
-        self.stats.mem_pressured = self.cgroups.values()
-            .filter(|cg| cg.memory.is_under_pressure()).count();
-        self.stats.total_oom_kills = self.cgroups.values()
-            .map(|cg| cg.memory.oom_kills).sum();
-        self.stats.max_psi = self.cgroups.values()
+        self.stats.cpu_throttled = self
+            .cgroups
+            .values()
+            .filter(|cg| cg.cpu.throttle_ratio() > 0.1)
+            .count();
+        self.stats.mem_pressured = self
+            .cgroups
+            .values()
+            .filter(|cg| cg.memory.is_under_pressure())
+            .count();
+        self.stats.total_oom_kills = self.cgroups.values().map(|cg| cg.memory.oom_kills).sum();
+        self.stats.max_psi = self
+            .cgroups
+            .values()
             .map(|cg| cg.psi.worst_pressure())
             .fold(0.0f64, |a, b| if b > a { b } else { a });
     }
 
     #[inline(always)]
-    pub fn cgroup(&self, id: u64) -> Option<&CgroupNode> { self.cgroups.get(&id) }
+    pub fn cgroup(&self, id: u64) -> Option<&CgroupNode> {
+        self.cgroups.get(&id)
+    }
     #[inline(always)]
-    pub fn stats(&self) -> &HolisticCgroupStats { &self.stats }
+    pub fn stats(&self) -> &HolisticCgroupStats {
+        &self.stats
+    }
 }

@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-
 /// CFS task state
 use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,25 +33,49 @@ pub struct CfsEntity {
 impl CfsEntity {
     pub fn new(pid: u64, nice: i8) -> Self {
         let weight = Self::nice_to_weight(nice);
-        Self { pid, state: CfsState::Runnable, nice, weight, vruntime: 0, exec_start: 0, sum_exec_runtime: 0, nr_switches: 0, prev_sum_exec: 0, last_update: 0, load_avg: 0 }
+        Self {
+            pid,
+            state: CfsState::Runnable,
+            nice,
+            weight,
+            vruntime: 0,
+            exec_start: 0,
+            sum_exec_runtime: 0,
+            nr_switches: 0,
+            prev_sum_exec: 0,
+            last_update: 0,
+            load_avg: 0,
+        }
     }
 
     fn nice_to_weight(nice: i8) -> u32 {
         let base = 1024u32;
-        if nice == 0 { return base; }
-        if nice > 0 { base / (1 + nice as u32) } else { base * (1 + (-nice) as u32) }
+        if nice == 0 {
+            return base;
+        }
+        if nice > 0 {
+            base / (1 + nice as u32)
+        } else {
+            base * (1 + (-nice) as u32)
+        }
     }
 
     #[inline]
     pub fn update_vruntime(&mut self, delta_exec: u64, min_granularity: u64) {
-        let ideal_runtime = if self.weight == 0 { delta_exec } else { delta_exec * 1024 / self.weight as u64 };
+        let ideal_runtime = if self.weight == 0 {
+            delta_exec
+        } else {
+            delta_exec * 1024 / self.weight as u64
+        };
         self.vruntime += ideal_runtime.max(min_granularity);
         self.sum_exec_runtime += delta_exec;
     }
 
     #[inline(always)]
     pub fn slice_ns(&self, total_weight: u32, period_ns: u64) -> u64 {
-        if total_weight == 0 { return period_ns; }
+        if total_weight == 0 {
+            return period_ns;
+        }
         (period_ns * self.weight as u64) / total_weight as u64
     }
 }
@@ -74,7 +97,17 @@ pub struct CfsRunQueue {
 
 impl CfsRunQueue {
     pub fn new(cpu: u32) -> Self {
-        Self { cpu, entities: BTreeMap::new(), min_vruntime: 0, nr_running: 0, total_weight: 0, clock: 0, period_ns: 6_000_000, min_granularity_ns: 750_000, nr_switches: 0 }
+        Self {
+            cpu,
+            entities: BTreeMap::new(),
+            min_vruntime: 0,
+            nr_running: 0,
+            total_weight: 0,
+            clock: 0,
+            period_ns: 6_000_000,
+            min_granularity_ns: 750_000,
+            nr_switches: 0,
+        }
     }
 
     #[inline]
@@ -94,13 +127,22 @@ impl CfsRunQueue {
 
     #[inline(always)]
     pub fn pick_next(&self) -> Option<u64> {
-        self.entities.values().filter(|e| e.state == CfsState::Runnable).min_by_key(|e| e.vruntime).map(|e| e.pid)
+        self.entities
+            .values()
+            .filter(|e| e.state == CfsState::Runnable)
+            .min_by_key(|e| e.vruntime)
+            .map(|e| e.pid)
     }
 
     #[inline(always)]
     pub fn tick(&mut self, now: u64) {
         self.clock = now;
-        self.min_vruntime = self.entities.values().map(|e| e.vruntime).min().unwrap_or(0);
+        self.min_vruntime = self
+            .entities
+            .values()
+            .map(|e| e.vruntime)
+            .min()
+            .unwrap_or(0);
     }
 }
 
@@ -120,21 +162,42 @@ pub struct HolisticCfsSched {
 }
 
 impl HolisticCfsSched {
-    pub fn new() -> Self { Self { run_queues: BTreeMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            run_queues: BTreeMap::new(),
+        }
+    }
     #[inline(always)]
-    pub fn add_cpu(&mut self, cpu: u32) { self.run_queues.insert(cpu, CfsRunQueue::new(cpu)); }
+    pub fn add_cpu(&mut self, cpu: u32) {
+        self.run_queues.insert(cpu, CfsRunQueue::new(cpu));
+    }
 
     #[inline(always)]
     pub fn enqueue(&mut self, cpu: u32, pid: u64, nice: i8) {
-        if let Some(rq) = self.run_queues.get_mut(&cpu) { rq.enqueue(CfsEntity::new(pid, nice)); }
+        if let Some(rq) = self.run_queues.get_mut(&cpu) {
+            rq.enqueue(CfsEntity::new(pid, nice));
+        }
     }
 
     #[inline]
     pub fn stats(&self) -> CfsSchedStats {
         let tasks: u32 = self.run_queues.values().map(|rq| rq.nr_running).sum();
         let switches: u64 = self.run_queues.values().map(|rq| rq.nr_switches).sum();
-        let loads: Vec<f64> = self.run_queues.values().map(|rq| rq.nr_running as f64).collect();
-        let avg = if loads.is_empty() { 0.0 } else { loads.iter().sum::<f64>() / loads.len() as f64 };
-        CfsSchedStats { total_cpus: self.run_queues.len() as u32, total_tasks: tasks, total_switches: switches, avg_load: avg }
+        let loads: Vec<f64> = self
+            .run_queues
+            .values()
+            .map(|rq| rq.nr_running as f64)
+            .collect();
+        let avg = if loads.is_empty() {
+            0.0
+        } else {
+            loads.iter().sum::<f64>() / loads.len() as f64
+        };
+        CfsSchedStats {
+            total_cpus: self.run_queues.len() as u32,
+            total_tasks: tasks,
+            total_switches: switches,
+            avg_load: avg,
+        }
     }
 }

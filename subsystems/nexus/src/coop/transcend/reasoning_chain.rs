@@ -9,10 +9,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -57,7 +58,13 @@ fn ema_update(prev: u64, sample: u64) -> u64 {
 }
 
 fn clamp(val: u64, lo: u64, hi: u64) -> u64 {
-    if val < lo { lo } else if val > hi { hi } else { val }
+    if val < lo {
+        lo
+    } else if val > hi {
+        hi
+    } else {
+        val
+    }
 }
 
 fn abs_diff(a: u64, b: u64) -> u64 {
@@ -243,7 +250,8 @@ impl CoopReasoningChain {
         };
 
         self.chain_validity_index.insert(chain_id, validity);
-        self.justification_strengths.insert(chain_id, cumulative_confidence);
+        self.justification_strengths
+            .insert(chain_id, cumulative_confidence);
 
         if self.chains.len() >= MAX_CHAINS {
             self.evict_weakest_chain();
@@ -253,7 +261,10 @@ impl CoopReasoningChain {
         self.stats.total_chains_built += 1;
         self.stats.avg_chain_length = ema_update(
             self.stats.avg_chain_length,
-            self.chains.values().map(|c| c.steps.len() as u64).sum::<u64>()
+            self.chains
+                .values()
+                .map(|c| c.steps.len() as u64)
+                .sum::<u64>()
                 / core::cmp::max(self.chains.len() as u64, 1),
         );
         self.stats.avg_validity = ema_update(self.stats.avg_validity, validity);
@@ -317,7 +328,11 @@ impl CoopReasoningChain {
         let policy_hash = fnv1a(policy_tag.as_bytes());
         let eid = policy_hash ^ gini ^ self.current_tick;
 
-        let equitability = if gini < 50 { 100 - gini } else { clamp(150 - gini, 0, 100) };
+        let equitability = if gini < 50 {
+            100 - gini
+        } else {
+            clamp(150 - gini, 0, 100)
+        };
 
         let explanation = FairnessExplanation {
             explanation_id: eid,
@@ -416,8 +431,7 @@ impl CoopReasoningChain {
         let mut weakest_score: u64 = u64::MAX;
 
         for (cid, strength) in &self.justification_strengths {
-            let decayed =
-                (strength * JUSTIFICATION_DECAY_NUM) / JUSTIFICATION_DECAY_DEN;
+            let decayed = (strength * JUSTIFICATION_DECAY_NUM) / JUSTIFICATION_DECAY_DEN;
             if decayed < weakest_score {
                 weakest_score = decayed;
                 weakest_id = cid;

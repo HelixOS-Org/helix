@@ -44,7 +44,13 @@ pub struct SigactionRecord {
 
 impl SigactionRecord {
     pub fn new(op: SigactionOp, signal_nr: u32) -> Self {
-        Self { op, signal_nr, handler: SigactionHandler::Default, flags: 0, pid: 0 }
+        Self {
+            op,
+            signal_nr,
+            handler: SigactionHandler::Default,
+            flags: 0,
+            pid: 0,
+        }
     }
 }
 
@@ -66,7 +72,14 @@ pub struct BridgeSigaction {
 
 impl BridgeSigaction {
     pub fn new() -> Self {
-        Self { stats: SigactionBridgeStats { total_ops: 0, handlers_set: 0, handlers_reset: 0, custom_handlers: 0 } }
+        Self {
+            stats: SigactionBridgeStats {
+                total_ops: 0,
+                handlers_set: 0,
+                handlers_reset: 0,
+                custom_handlers: 0,
+            },
+        }
     }
 
     pub fn record(&mut self, rec: &SigactionRecord) {
@@ -74,12 +87,14 @@ impl BridgeSigaction {
         match rec.op {
             SigactionOp::Set => {
                 self.stats.handlers_set += 1;
-                if rec.handler == SigactionHandler::Custom || rec.handler == SigactionHandler::SigInfo {
+                if rec.handler == SigactionHandler::Custom
+                    || rec.handler == SigactionHandler::SigInfo
+                {
                     self.stats.custom_handlers += 1;
                 }
-            }
+            },
             SigactionOp::Reset => self.stats.handlers_reset += 1,
-            _ => {}
+            _ => {},
         }
     }
 }

@@ -10,8 +10,7 @@
 
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -96,8 +95,7 @@ impl CausalLink {
     #[inline]
     fn update(&mut self, observed_delay: u64) {
         self.observations += 1;
-        self.delay_ema = self.delay_ema * (1.0 - EMA_ALPHA)
-            + observed_delay as f32 * EMA_ALPHA;
+        self.delay_ema = self.delay_ema * (1.0 - EMA_ALPHA) + observed_delay as f32 * EMA_ALPHA;
         self.delay_ticks = self.delay_ema as u64;
 
         // Strength: P(effect | cause) approximated via observation ratio
@@ -272,7 +270,10 @@ impl BridgeCausalForecast {
             }
             let delay = tick.saturating_sub(cause_tick);
             let key = (cause_hash, event_hash);
-            let link = self.links.entry(key).or_insert_with(|| CausalLink::new(cause_hash, event_hash));
+            let link = self
+                .links
+                .entry(key)
+                .or_insert_with(|| CausalLink::new(cause_hash, event_hash));
             link.update(delay);
 
             // Update adjacency lists
@@ -346,7 +347,11 @@ impl BridgeCausalForecast {
         };
 
         effects.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
-        CausalPrediction { cause: cause_event, effects, confidence }
+        CausalPrediction {
+            cause: cause_event,
+            effects,
+            confidence,
+        }
     }
 
     /// Identify the root cause(s) of a given effect event.
@@ -391,14 +396,14 @@ impl BridgeCausalForecast {
                     }
                     visited.push(effect);
                     current = effect;
-                }
+                },
                 None => break,
             }
         }
 
         let chain_len = events.len() as f32;
-        self.stats.avg_chain_length = self.stats.avg_chain_length * (1.0 - EMA_ALPHA)
-            + chain_len * EMA_ALPHA;
+        self.stats.avg_chain_length =
+            self.stats.avg_chain_length * (1.0 - EMA_ALPHA) + chain_len * EMA_ALPHA;
 
         CausalChain {
             events,
@@ -420,8 +425,10 @@ impl BridgeCausalForecast {
                 let score = link.causal_score();
                 if score > MIN_CONFIDENCE {
                     match &best {
-                        Some((_, bs, _, _)) if score <= *bs => {}
-                        _ => best = Some((effect, link.strength, link.delay_ticks, link.confidence)),
+                        Some((_, bs, _, _)) if score <= *bs => {},
+                        _ => {
+                            best = Some((effect, link.strength, link.delay_ticks, link.confidence))
+                        },
                     }
                 }
             }
@@ -455,7 +462,9 @@ impl BridgeCausalForecast {
             }
         }
         downstream_effects.sort_by(|a, b| {
-            b.1.abs().partial_cmp(&a.1.abs()).unwrap_or(core::cmp::Ordering::Equal)
+            b.1.abs()
+                .partial_cmp(&a.1.abs())
+                .unwrap_or(core::cmp::Ordering::Equal)
         });
         downstream_effects
     }
@@ -505,7 +514,10 @@ impl BridgeCausalForecast {
     #[inline(always)]
     pub fn causal_strength(&self, cause: u64, effect: u64) -> f32 {
         let key = (cause, effect);
-        self.links.get(&key).map(|l| l.causal_score()).unwrap_or(0.0)
+        self.links
+            .get(&key)
+            .map(|l| l.causal_score())
+            .unwrap_or(0.0)
     }
 
     /// Get all links sorted by causal score descending.
@@ -539,9 +551,9 @@ impl BridgeCausalForecast {
             strength_sum += link.strength;
             conf_sum += link.confidence;
         }
-        self.stats.avg_link_strength = self.stats.avg_link_strength * (1.0 - EMA_ALPHA)
-            + (strength_sum / count) * EMA_ALPHA;
-        self.stats.avg_confidence = self.stats.avg_confidence * (1.0 - EMA_ALPHA)
-            + (conf_sum / count) * EMA_ALPHA;
+        self.stats.avg_link_strength =
+            self.stats.avg_link_strength * (1.0 - EMA_ALPHA) + (strength_sum / count) * EMA_ALPHA;
+        self.stats.avg_confidence =
+            self.stats.avg_confidence * (1.0 - EMA_ALPHA) + (conf_sum / count) * EMA_ALPHA;
     }
 }
