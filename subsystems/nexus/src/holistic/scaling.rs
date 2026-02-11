@@ -199,9 +199,9 @@ impl ScalingPolicy {
     #[inline]
     pub fn clamp(&self, dimension: ScalingDimension, value: u64) -> u64 {
         let key = dimension as u8;
-        let min = self.min_scale.get(&key).copied().unwrap_or(0);
-        let max = self.max_scale.get(&key).copied().unwrap_or(u64::MAX);
-        value.max(min).min(max)
+        let min = self.min_scale.get(&key).unwrap_or(&0);
+        let max = self.max_scale.get(&key).unwrap_or(&u64::MAX);
+        value.max(*min).min(*max)
     }
 }
 
@@ -428,10 +428,15 @@ impl HolisticScalingManager {
 
         // Evaluate policies
         let mut decisions = Vec::new();
+        let current = self.current_levels.get(&key).copied().unwrap_or(0);
         for policy in self.policies.values_mut() {
             if !policy.enabled || policy.target != target || policy.in_cooldown(now) {
                 continue;
             }
+
+            let dim_key = dimension as u8;
+            let dim_min = policy.min_scale.get(&dim_key).copied().unwrap_or(0);
+            let dim_max = policy.max_scale.get(&dim_key).copied().unwrap_or(u64::MAX);
 
             for threshold in &mut policy.thresholds {
                 if threshold.dimension != dimension {
@@ -443,15 +448,14 @@ impl HolisticScalingManager {
                     continue;
                 }
 
-                let current = self.current_levels.get(&key).copied().unwrap_or(0);
                 let proposed = match direction {
-                    ScalingDirection::Up => {
-                        policy.clamp(dimension, current + threshold.scale_up_amount)
-                    },
-                    ScalingDirection::Down => policy.clamp(
-                        dimension,
-                        current.saturating_sub(threshold.scale_down_amount),
-                    ),
+                    ScalingDirection::Up => (current + threshold.scale_up_amount)
+                        .max(dim_min)
+                        .min(dim_max),
+                    ScalingDirection::Down => current
+                        .saturating_sub(threshold.scale_down_amount)
+                        .max(dim_min)
+                        .min(dim_max),
                     ScalingDirection::None => continue,
                 };
 
@@ -511,7 +515,7 @@ impl HolisticScalingManager {
             self.history.push_back(d.clone());
         }
         while self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.stats.pending_decisions = 0;
         decisions
