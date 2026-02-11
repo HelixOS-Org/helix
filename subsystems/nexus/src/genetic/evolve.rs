@@ -547,7 +547,7 @@ impl EvolutionController {
 
         // Limit archive size
         while self.novelty_archive.len() > 500 {
-            self.novelty_archive.pop_front();
+            self.novelty_archive.remove(0);
         }
 
         self.evolve_generational(population, fitness_fn)
