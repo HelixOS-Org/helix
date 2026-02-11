@@ -2,7 +2,6 @@
 //! Holistic keyring — cross-layer key management health analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Keyring holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
