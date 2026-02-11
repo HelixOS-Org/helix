@@ -479,11 +479,11 @@ impl MetaCognitiveEngine {
                 .map(|v| *v = (*v).min(1.0));
         }
 
-        self.self_model.accuracy_history.push(1.0 - error);
+        self.self_model.accuracy_history.push_back(1.0 - error);
 
         // Limit history
         if self.self_model.accuracy_history.len() > self.config.history_size {
-            self.self_model.accuracy_history.pop_front().unwrap();
+            self.self_model.accuracy_history.remove(0).unwrap();
         }
     }
 
@@ -505,7 +505,7 @@ impl MetaCognitiveEngine {
         self.state_history.push_back(self.current_state.clone());
 
         if self.state_history.len() > self.config.history_size {
-            self.state_history.pop_front();
+            self.state_history.remove(0);
         }
     }
 
