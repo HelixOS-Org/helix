@@ -10,18 +10,21 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // THERMAL ZONES
 // ============================================================================
 
 /// Thermal zone type
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ThermalZoneType {
+    /// CPU (generic)
+    #[default]
+    Cpu,
     /// CPU package
     CpuPackage,
     /// Individual CPU core
@@ -40,6 +43,8 @@ pub enum ThermalZoneType {
     Battery,
     /// Ambient
     Ambient,
+    /// Skin temperature
+    Skin,
     /// Custom
     Custom,
 }
@@ -69,7 +74,7 @@ pub struct TripPoint {
 }
 
 /// Thermal zone
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ThermalZone {
     /// Zone ID
     pub id: u32,
@@ -89,6 +94,16 @@ pub struct ThermalZone {
     max_history: usize,
     /// Is throttling active?
     pub throttling: bool,
+
+    pub current_temp_mc: i64,
+    pub power_mw: u32,
+    pub slope_mc_per_sec: i64,
+    pub temp_history: alloc::vec::Vec<i64>,
+    pub trip_active_mc: i64,
+    pub trip_critical_mc: i64,
+    pub trip_hot_mc: i64,
+    pub trip_passive_mc: i64,
+    pub zone_id: u32,
 }
 
 impl ThermalZone {
@@ -130,6 +145,7 @@ impl ThermalZone {
             history: VecDeque::new(),
             max_history: 60,
             throttling: false,
+            ..Default::default()
         }
     }
 
@@ -149,7 +165,7 @@ impl ThermalZone {
         // Record history
         self.history.push_back(temperature);
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
@@ -165,10 +181,7 @@ impl ThermalZone {
     /// Highest exceeded trip type
     #[inline]
     pub fn highest_trip(&self) -> Option<TripType> {
-        self.exceeded_trips()
-            .iter()
-            .map(|t| t.trip_type)
-            .max()
+        self.exceeded_trips().iter().map(|t| t.trip_type).max()
     }
 
     /// Temperature in degrees Celsius (float)
@@ -192,6 +205,33 @@ impl ThermalZone {
     pub fn predict_temperature(&self, ms_ahead: u64) -> i32 {
         self.temperature + (self.trend as i64 * ms_ahead as i64 / 1000) as i32
     }
+
+    /// Update temperature in millidegrees Celsius (V2 API)
+    #[inline]
+    pub fn update_temp(&mut self, temp_mc: i32) {
+        self.current_temp_mc = temp_mc as i64;
+        self.temperature = temp_mc;
+        self.temp_history.push(temp_mc as i64);
+        if self.temp_history.len() > 60 {
+            self.temp_history.remove(0);
+        }
+    }
+
+    /// Get current trip point type based on temperature (V2 API)
+    pub fn current_trip(&self) -> Option<TripPointType> {
+        let temp = self.current_temp_mc;
+        if self.trip_critical_mc > 0 && temp >= self.trip_critical_mc {
+            Some(TripPointType::Critical)
+        } else if self.trip_hot_mc > 0 && temp >= self.trip_hot_mc {
+            Some(TripPointType::Hot)
+        } else if self.trip_passive_mc > 0 && temp >= self.trip_passive_mc {
+            Some(TripPointType::Passive)
+        } else if self.trip_active_mc > 0 && temp >= self.trip_active_mc {
+            Some(TripPointType::Active)
+        } else {
+            None
+        }
+    }
 }
 
 // ============================================================================
@@ -199,9 +239,10 @@ impl ThermalZone {
 // ============================================================================
 
 /// Cooling device type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoolingType {
     /// Fan
+    #[default]
     Fan,
     /// Processor frequency reduction
     CpuFreqReduction,
@@ -214,7 +255,7 @@ pub enum CoolingType {
 }
 
 /// Cooling device
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct CoolingDevice {
     /// Device ID
     pub id: u32,
@@ -226,6 +267,10 @@ pub struct CoolingDevice {
     pub max_state: u32,
     /// Associated thermal zone
     pub zone_id: u32,
+
+    pub device_id: u32,
+    pub effectiveness: f64,
+    pub linked_zones: alloc::vec::Vec<u32>,
 }
 
 impl CoolingDevice {
@@ -236,6 +281,7 @@ impl CoolingDevice {
             current_state: 0,
             max_state,
             zone_id,
+            ..Default::default()
         }
     }
 
@@ -259,6 +305,18 @@ impl CoolingDevice {
             return 0.0;
         }
         self.current_state as f64 / self.max_state as f64
+    }
+
+    /// Whether the cooling device can increase its state (V2 API)
+    #[inline(always)]
+    pub fn can_increase(&self) -> bool {
+        self.current_state < self.max_state
+    }
+
+    /// Set cooling state directly (V2 API)
+    #[inline]
+    pub fn set_state(&mut self, state: u32) {
+        self.current_state = state.min(self.max_state);
     }
 }
 
@@ -394,7 +452,7 @@ impl ThermalManager {
                     timestamp,
                 });
                 if self.events.len() > self.max_events {
-                    self.events.pop_front();
+                    self.events.remove(0);
                 }
                 self.total_events += 1;
 
@@ -414,8 +472,7 @@ impl ThermalManager {
         }
 
         // Determine system throttle level
-        self.throttle_level = worst_trip
-            .map_or(ThrottleLevel::None, ThrottleLevel::from_trip);
+        self.throttle_level = worst_trip.map_or(ThrottleLevel::None, ThrottleLevel::from_trip);
 
         // Update zone throttling state
         for zone in self.zones.values_mut() {
@@ -450,7 +507,11 @@ impl ThermalManager {
     /// Max temperature across all zones (millidegrees)
     #[inline(always)]
     pub fn max_temperature(&self) -> i32 {
-        self.zones.values().map(|z| z.temperature).max().unwrap_or(0)
+        self.zones
+            .values()
+            .map(|z| z.temperature)
+            .max()
+            .unwrap_or(0)
     }
 
     /// Zone count
@@ -470,17 +531,6 @@ impl ThermalManager {
 // Merged from thermal_v2
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ThermalZoneType {
-    Cpu,
-    Gpu,
-    Memory,
-    Ssd,
-    Battery,
-    Skin,
-    Ambient,
-}
-
 /// Trip point type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TripPointType {
@@ -494,151 +544,11 @@ pub enum TripPointType {
     Critical,
 }
 
-/// Cooling device type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CoolingType {
-    Fan,
-    CpuFreqThrottle,
-    GpuFreqThrottle,
-    PowerCap,
-    DeviceThrottle,
-}
-
-/// Thermal zone
-#[derive(Debug, Clone)]
-pub struct ThermalZone {
-    pub zone_id: u32,
-    pub zone_type: ThermalZoneType,
-    pub current_temp_mc: i32,  // milli-Celsius
-    pub trip_active_mc: i32,
-    pub trip_passive_mc: i32,
-    pub trip_hot_mc: i32,
-    pub trip_critical_mc: i32,
-    pub temp_history: VecDeque<i32>,
-    pub max_history: usize,
-    pub slope_mc_per_sec: f64,
-    pub power_mw: u32,
-}
-
-impl ThermalZone {
-    pub fn new(zone_id: u32, zone_type: ThermalZoneType) -> Self {
-        Self {
-            zone_id,
-            zone_type,
-            current_temp_mc: 25_000,
-            trip_active_mc: 60_000,
-            trip_passive_mc: 80_000,
-            trip_hot_mc: 95_000,
-            trip_critical_mc: 105_000,
-            temp_history: VecDeque::new(),
-            max_history: 64,
-            slope_mc_per_sec: 0.0,
-            power_mw: 0,
-        }
-    }
-
-    pub fn update_temp(&mut self, temp_mc: i32) {
-        let old = self.current_temp_mc;
-        self.current_temp_mc = temp_mc;
-
-        if self.temp_history.len() >= self.max_history {
-            self.temp_history.pop_front().unwrap();
-        }
-        self.temp_history.push_back(temp_mc);
-
-        // Compute slope from last few samples
-        if self.temp_history.len() >= 2 {
-            let n = self.temp_history.len();
-            let recent = &self.temp_history[n.saturating_sub(4)..n];
-            if recent.len() >= 2 {
-                let delta = recent[recent.len() - 1] as f64 - recent[0] as f64;
-                self.slope_mc_per_sec = delta / recent.len() as f64;
-            }
-        }
-    }
-
-    /// Current trip state
-    pub fn current_trip(&self) -> Option<TripPointType> {
-        if self.current_temp_mc >= self.trip_critical_mc {
-            Some(TripPointType::Critical)
-        } else if self.current_temp_mc >= self.trip_hot_mc {
-            Some(TripPointType::Hot)
-        } else if self.current_temp_mc >= self.trip_passive_mc {
-            Some(TripPointType::Passive)
-        } else if self.current_temp_mc >= self.trip_active_mc {
-            Some(TripPointType::Active)
-        } else {
-            None
-        }
-    }
-
-    /// Predicted time to reach trip point (seconds, <0 if cooling)
-    #[inline]
-    pub fn time_to_trip(&self, trip_mc: i32) -> f64 {
-        if self.slope_mc_per_sec <= 0.0 { return f64::MAX; }
-        let delta = trip_mc - self.current_temp_mc;
-        if delta <= 0 { return 0.0; }
-        delta as f64 / self.slope_mc_per_sec
-    }
-
-    /// Temperature as Celsius
-    #[inline(always)]
-    pub fn temp_c(&self) -> f64 {
-        self.current_temp_mc as f64 / 1000.0
-    }
-
-    /// Headroom to passive (mC)
-    #[inline(always)]
-    pub fn headroom_passive_mc(&self) -> i32 {
-        self.trip_passive_mc - self.current_temp_mc
-    }
-}
-
-/// Cooling device
-#[derive(Debug, Clone)]
-pub struct CoolingDevice {
-    pub device_id: u32,
-    pub cooling_type: CoolingType,
-    pub max_state: u32,
-    pub current_state: u32,
-    pub linked_zones: Vec<u32>,
-    pub effectiveness: f64, // mC reduction per state level
-}
-
-impl CoolingDevice {
-    pub fn new(device_id: u32, cooling_type: CoolingType, max_state: u32) -> Self {
-        Self {
-            device_id,
-            cooling_type,
-            max_state,
-            current_state: 0,
-            linked_zones: Vec::new(),
-            effectiveness: 500.0, // 500mC per state
-        }
-    }
-
-    #[inline(always)]
-    pub fn utilization(&self) -> f64 {
-        if self.max_state == 0 { return 0.0; }
-        self.current_state as f64 / self.max_state as f64
-    }
-
-    #[inline(always)]
-    pub fn set_state(&mut self, state: u32) {
-        self.current_state = state.min(self.max_state);
-    }
-
-    #[inline(always)]
-    pub fn can_increase(&self) -> bool {
-        self.current_state < self.max_state
-    }
-}
-
 /// Thermal budget allocation
 #[derive(Debug, Clone)]
 pub struct ThermalBudget {
     pub total_power_mw: u32,
-    pub allocations: ArrayMap<u32, 32>, // zone_id → power_mw
+    pub allocations: ArrayMap<u32, 32>, // zone_id → power_mw,
     pub remaining_mw: u32,
 }
 
@@ -663,7 +573,7 @@ impl ThermalBudget {
 
     #[inline]
     pub fn release(&mut self, zone_id: u32, power_mw: u32) {
-        if let Some(alloc) = self.allocations.get_mut(&zone_id) {
+        if let Some(alloc) = self.allocations.get_mut(zone_id) {
             let released = power_mw.min(*alloc);
             *alloc -= released;
             self.remaining_mw += released;
@@ -748,7 +658,9 @@ impl HolisticThermalV2 {
 
         for zone in self.zones.values() {
             let trip = zone.current_trip();
-            if trip.is_none() { continue; }
+            if trip.is_none() {
+                continue;
+            }
 
             let urgency = match trip.unwrap() {
                 TripPointType::Active => 0.3,
@@ -761,7 +673,8 @@ impl HolisticThermalV2 {
             for device in self.cooling_devices.values() {
                 if device.linked_zones.contains(&zone.zone_id) && device.can_increase() {
                     // Scale target state by urgency
-                    let target = ((device.max_state as f64 * urgency) as u32).max(device.current_state + 1);
+                    let target =
+                        ((device.max_state as f64 * urgency) as u32).max(device.current_state + 1);
                     self.cooling_actions.push(CoolingAction {
                         device_id: device.device_id,
                         target_state: target.min(device.max_state),
@@ -773,8 +686,11 @@ impl HolisticThermalV2 {
         }
 
         // Sort by urgency
-        self.cooling_actions.sort_by(|a, b|
-            b.urgency.partial_cmp(&a.urgency).unwrap_or(core::cmp::Ordering::Equal));
+        self.cooling_actions.sort_by(|a, b| {
+            b.urgency
+                .partial_cmp(&a.urgency)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
 
         self.recompute();
     }
@@ -782,12 +698,16 @@ impl HolisticThermalV2 {
     /// Apply a cooling action
     #[inline]
     pub fn apply_action(&mut self, idx: usize) -> bool {
-        if idx >= self.cooling_actions.len() { return false; }
+        if idx >= self.cooling_actions.len() {
+            return false;
+        }
         let action = self.cooling_actions[idx].clone();
         if let Some(device) = self.cooling_devices.get_mut(&action.device_id) {
             device.set_state(action.target_state);
             true
-        } else { false }
+        } else {
+            false
+        }
     }
 
     /// Predict skin temperature from zone temps
@@ -802,14 +722,16 @@ impl HolisticThermalV2 {
                 ThermalZoneType::Gpu => 0.3,
                 ThermalZoneType::Memory => 0.2,
                 ThermalZoneType::Ambient => 0.1,
-                ThermalZoneType::Skin => return zone.current_temp_mc,
+                ThermalZoneType::Skin => return zone.current_temp_mc as i32,
                 _ => 0.05,
             };
             weighted_sum += zone.current_temp_mc as f64 * w;
             weight_total += w;
         }
 
-        if weight_total < 0.01 { return 25_000; }
+        if weight_total < 0.01 {
+            return 25_000;
+        }
         (weighted_sum / weight_total) as i32
     }
 
@@ -820,7 +742,12 @@ impl HolisticThermalV2 {
     }
 
     fn recompute(&mut self) {
-        let max_temp = self.zones.values().map(|z| z.current_temp_mc).max().unwrap_or(0);
+        let max_temp = self
+            .zones
+            .values()
+            .map(|z| z.current_temp_mc)
+            .max()
+            .unwrap_or(0);
         let total_power: u32 = self.zones.values().map(|z| z.power_mw).sum();
 
         let mut at_active = 0;
@@ -834,14 +761,14 @@ impl HolisticThermalV2 {
                 Some(TripPointType::Passive) => at_passive += 1,
                 Some(TripPointType::Hot) => at_hot += 1,
                 Some(TripPointType::Critical) => at_critical += 1,
-                None => {}
+                None => {},
             }
         }
 
         self.stats = HolisticThermalV2Stats {
             thermal_zones: self.zones.len(),
             cooling_devices: self.cooling_devices.len(),
-            max_temp_mc: max_temp,
+            max_temp_mc: max_temp as i32,
             zones_at_active: at_active,
             zones_at_passive: at_passive,
             zones_at_hot: at_hot,
