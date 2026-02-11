@@ -218,7 +218,7 @@ impl EntropyPool {
     /// Top consumers
     #[inline]
     pub fn top_consumers(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut sorted: Vec<(u64, u64)> = self.consumers.iter().map(|(&k, &v)| (k, v)).collect();
+        let mut sorted: Vec<(u64, u64)> = self.consumers.iter().map(|(k, v)| (k, v)).collect();
         sorted.sort_by(|a, b| b.1.cmp(&a.1));
         sorted.truncate(n);
         sorted
