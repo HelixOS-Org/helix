@@ -253,7 +253,7 @@ impl HolisticWatchdogMgr {
             self.events.push_back(evt.clone());
         }
         while self.events.len() > self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
 
         self.recompute();
@@ -276,7 +276,7 @@ impl HolisticWatchdogMgr {
     pub fn report_rcu_stall(&mut self, stall: RcuStallRecord) {
         self.rcu_stalls.push_back(stall);
         if self.rcu_stalls.len() > 256 {
-            self.rcu_stalls.pop_front();
+            self.rcu_stalls.remove(0);
         }
     }
 
