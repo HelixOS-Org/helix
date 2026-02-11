@@ -185,7 +185,7 @@ impl FutexBucket {
 /// Priority inheritance chain
 #[derive(Debug, Clone)]
 pub struct PiChain {
-    pub chain: Vec<(u64, u64)>, // (task_id, futex_addr) pairs
+    pub chain: Vec<(u64, u64)>, // (task_id, futex_addr) pairs,
     pub boosted_priority: i32,
     pub depth: u32,
     pub has_cycle: bool,
@@ -305,7 +305,7 @@ impl HolisticFutexTracker {
             src_addr: src, dst_addr: dst, nr_wake, nr_requeue,
             actual_woken: woken, actual_requeued: requeued, timestamp: ts,
         });
-        if self.requeue_history.len() > self.max_history { self.requeue_history.pop_front(); }
+        if self.requeue_history.len() > self.max_history { self.requeue_history.remove(0); }
 
         (woken, requeued)
     }
@@ -337,15 +337,15 @@ impl HolisticFutexTracker {
             // Find futex where this task is waiting
             let mut found = false;
             for (addr, bucket) in &self.buckets {
-                if bucket.pi_enabled {
-                    if bucket.waiters.iter().any(|w| w.task_id == current_task && w.state == WaiterState::Waiting) {
-                        chain.add_link(current_task, *addr);
-                        if let Some(owner) = bucket.owner_task {
-                            current_task = owner;
-                            found = true;
-                        }
-                        break;
+                if bucket.pi_enabled
+                    && bucket.waiters.iter().any(|w| w.task_id == current_task && w.state == WaiterState::Waiting)
+                {
+                    chain.add_link(current_task, *addr);
+                    if let Some(owner) = bucket.owner_task {
+                        current_task = owner;
+                        found = true;
                     }
+                    break;
                 }
             }
             if !found { break; }
