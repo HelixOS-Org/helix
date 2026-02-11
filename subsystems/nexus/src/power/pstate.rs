@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 
@@ -38,7 +37,7 @@ pub enum GovernorAlgorithm {
 #[repr(align(64))]
 pub struct PStateStats {
     /// Time in each state
-    pub time_in_state: ArrayMap<u64, 32>, // freq -> nanoseconds
+    pub time_in_state: ArrayMap<u64, 32>, // freq -> nanoseconds,
     /// State transitions
     pub transitions: u64,
     /// Energy saved estimate
