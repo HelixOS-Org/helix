@@ -6,7 +6,6 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -99,7 +98,7 @@ pub struct Method {
     /// Precondition (state condition for this method)
     pub precondition: Option<Box<dyn Fn(&WorldState) -> bool + Send + Sync>>,
     /// Subtasks (ordered)
-    pub subtasks: VecDeque<TaskId>,
+    pub subtasks: Vec<TaskId>,
     /// Cost multiplier
     pub cost_factor: f64,
 }
@@ -125,7 +124,7 @@ impl Method {
             name,
             task,
             precondition: None,
-            subtasks: VecDeque::new(),
+            subtasks: Vec::new(),
             cost_factor: 1.0,
         }
     }
@@ -139,7 +138,7 @@ impl Method {
 
     /// Set subtasks
     #[inline(always)]
-    pub fn with_subtasks(mut self, subtasks: VecDeque<TaskId>) -> Self {
+    pub fn with_subtasks(mut self, subtasks: Vec<TaskId>) -> Self {
         self.subtasks = subtasks;
         self
     }
@@ -174,7 +173,7 @@ impl core::fmt::Debug for Method {
 #[derive(Debug, Clone)]
 pub struct TaskNetwork {
     /// Tasks in network order
-    pub tasks: VecDeque<TaskId>,
+    pub tasks: Vec<TaskId>,
     /// Decomposition history
     pub decompositions: Vec<(TaskId, MethodId)>,
 }
@@ -183,7 +182,7 @@ impl TaskNetwork {
     /// Create empty network
     pub fn new() -> Self {
         Self {
-            tasks: VecDeque::new(),
+            tasks: Vec::new(),
             decompositions: Vec::new(),
         }
     }
@@ -200,7 +199,7 @@ impl TaskNetwork {
     /// Add task
     #[inline(always)]
     pub fn add_task(&mut self, task: TaskId) {
-        self.tasks.push_back(task);
+        self.tasks.push(task);
     }
 
     /// Is empty?
@@ -221,7 +220,7 @@ impl TaskNetwork {
         if self.tasks.is_empty() {
             None
         } else {
-            self.tasks.pop_front()
+            Some(self.tasks.remove(0))
         }
     }
 
@@ -233,9 +232,9 @@ impl TaskNetwork {
 
     /// Replace first task with subtasks
     #[inline]
-    pub fn decompose(&mut self, subtasks: VecDeque<TaskId>, task: TaskId, method: MethodId) {
+    pub fn decompose(&mut self, subtasks: Vec<TaskId>, task: TaskId, method: MethodId) {
         if !self.tasks.is_empty() {
-            self.tasks.pop_front();
+            self.tasks.remove(0);
             // Insert subtasks at beginning
             for (i, subtask) in subtasks.into_iter().enumerate() {
                 self.tasks.insert(i, subtask);
@@ -349,7 +348,7 @@ impl HTNPlanner {
 
     /// Create method
     #[inline]
-    pub fn create_method(&mut self, name: String, task: TaskId, subtasks: VecDeque<TaskId>) -> MethodId {
+    pub fn create_method(&mut self, name: String, task: TaskId, subtasks: Vec<TaskId>) -> MethodId {
         let id = MethodId(self.next_method_id);
         self.next_method_id += 1;
         let method = Method::new(id, name, task).with_subtasks(subtasks);
