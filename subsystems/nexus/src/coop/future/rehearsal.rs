@@ -9,7 +9,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic identifiers.
@@ -438,7 +437,7 @@ impl CoopRehearsal {
 
         let gini = self.compute_gini(&values);
         if self.fairness_history.len() >= self.max_history {
-            self.fairness_history.pop_front();
+            self.fairness_history.remove(0);
         }
         self.fairness_history.push_back(fairness);
         self.stats.avg_fairness = ema_update(self.stats.avg_fairness, fairness, 3, 10);
