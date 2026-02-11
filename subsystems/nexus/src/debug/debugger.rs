@@ -6,7 +6,6 @@ extern crate alloc;
 
 use alloc::format;
 use alloc::string::String;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -41,7 +40,7 @@ pub struct Debugger {
     /// Known bug patterns
     patterns: Vec<BugPattern>,
     /// Diagnosis history
-    history: VecDeque<Diagnosis>,
+    history: Vec<Diagnosis>,
     /// Maximum history
     max_history: usize,
     /// Total diagnoses
@@ -55,7 +54,7 @@ impl Debugger {
     pub fn new() -> Self {
         let mut debugger = Self {
             patterns: Vec::new(),
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 1000,
             total_diagnoses: AtomicU64::new(0),
             successful_diagnoses: AtomicU64::new(0),
@@ -209,9 +208,9 @@ impl Debugger {
 
         // Add to history
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
-        self.history.push_back(diagnosis.clone());
+        self.history.push(diagnosis.clone());
 
         diagnosis
     }
