@@ -11,7 +11,6 @@ extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -462,7 +461,7 @@ impl CoopWisdom {
         }
 
         // Historical outcome wisdom
-        let historical = self.outcome_history.get(ctx_hash).copied().unwrap_or(50);
+        let historical = self.outcome_history.get(ctx_hash).unwrap_or(50);
 
         // Weighted claim analysis
         let total_strength: u64 = party_claims.iter().map(|&(_, s)| s).sum();
@@ -508,9 +507,9 @@ impl CoopWisdom {
         self.current_tick += 1;
 
         // Decay strategy scores
-        let keys: Vec<u64> = self.strategy_scores.keys().copied().collect();
+        let keys: Vec<u64> = self.strategy_scores.keys().collect();
         for k in keys {
-            if let Some(v) = self.strategy_scores.get_mut(&k) {
+            if let Some(v) = self.strategy_scores.get_mut(k) {
                 *v = (*v * 98) / 100;
             }
         }
