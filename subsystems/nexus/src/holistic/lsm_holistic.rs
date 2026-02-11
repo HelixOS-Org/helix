@@ -2,7 +2,6 @@
 //! Holistic LSM — cross-layer LSM stacking analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// LSM holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
