@@ -3,7 +3,6 @@
 //! Analyzes timer jitter and timing precision.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -107,7 +106,7 @@ impl JitterAnalyzer {
         let samples = self.samples.entry(timer_id).or_default();
         samples.push(sample);
         if samples.len() > self.max_samples {
-            samples.pop_front();
+            samples.remove(0);
         }
 
         let stats = self.stats.entry(timer_id).or_insert_with(|| JitterStats {
