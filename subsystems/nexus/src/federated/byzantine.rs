@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 
 use crate::federated::model::FederatedModel;
 use crate::federated::update::ModelUpdate;
+use crate::fast::math::{F64Ext};
 
 /// Byzantine-robust aggregation methods
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
