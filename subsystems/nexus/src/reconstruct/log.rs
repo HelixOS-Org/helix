@@ -1,7 +1,6 @@
 //! State log for event sourcing.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::event::StateEvent;
@@ -12,7 +11,7 @@ use crate::core::{ComponentId, NexusTimestamp};
 #[repr(align(64))]
 pub struct StateLog {
     /// Events
-    events: VecDeque<StateEvent>,
+    events: Vec<StateEvent>,
     /// Maximum events to keep
     max_events: usize,
     /// Snapshots by timestamp
@@ -27,7 +26,7 @@ impl StateLog {
     /// Create a new state log
     pub fn new(max_events: usize) -> Self {
         Self {
-            events: VecDeque::new(),
+            events: Vec::new(),
             max_events,
             snapshots: BTreeMap::new(),
             snapshot_interval: 100,
@@ -46,12 +45,12 @@ impl StateLog {
     #[inline]
     pub fn append(&mut self, mut event: StateEvent) {
         event.calculate_checksum();
-        self.events.push_back(event);
+        self.events.push(event);
         self.events_since_snapshot += 1;
 
         // Enforce max events
         while self.events.len() > self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
     }
 
