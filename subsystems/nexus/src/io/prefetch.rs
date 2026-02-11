@@ -151,7 +151,7 @@ impl PrefetchEngine {
 
             // Limit active prefetches
             while self.active_prefetches.len() > self.config.max_concurrent * 4 {
-                let removed = self.active_prefetches.pop_front().unwrap();
+                let removed = self.active_prefetches.remove(0).unwrap();
                 if removed.hits == 0 {
                     self.stats.misses += 1;
                 }
