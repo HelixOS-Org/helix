@@ -15,7 +15,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -117,7 +116,7 @@ pub struct CoopEquilibrium {
     pub paradigm: ParadigmType,
     pub description: String,
     pub stability_score: f32,
-    pub stability_history: VecDeque<f32>,
+    pub stability_history: Vec<f32>,
     pub payoff_matrix_hash: u64,
     pub player_count: u32,
     pub stable: bool,
@@ -192,8 +191,8 @@ pub struct CoopParadigm {
     assumptions: BTreeMap<u64, CoopAssumption>,
     equilibria: BTreeMap<u64, CoopEquilibrium>,
     game_models: Vec<NewGameModel>,
-    shifts: VecDeque<ParadigmShift>,
-    chronicle: VecDeque<ShiftChronicle>,
+    shifts: Vec<ParadigmShift>,
+    chronicle: Vec<ShiftChronicle>,
     current_paradigm: ParadigmType,
     rng_state: u64,
     tick: u64,
@@ -207,8 +206,8 @@ impl CoopParadigm {
             assumptions: BTreeMap::new(),
             equilibria: BTreeMap::new(),
             game_models: Vec::new(),
-            shifts: VecDeque::new(),
-            chronicle: VecDeque::new(),
+            shifts: Vec::new(),
+            chronicle: Vec::new(),
             current_paradigm: ParadigmType::ClassicalGameTheory,
             rng_state: seed | 1,
             tick: 0,
@@ -250,7 +249,7 @@ impl CoopParadigm {
             paradigm,
             description,
             stability_score: 1.0,
-            stability_history: VecDeque::new(),
+            stability_history: Vec::new(),
             payoff_matrix_hash: payoff_hash,
             player_count,
             stable: true,
@@ -322,9 +321,9 @@ impl CoopParadigm {
         self.stats.paradigm_shifts_detected += 1;
         self.add_shift_chronicle(&shift);
         if self.shifts.len() >= MAX_PARADIGMS {
-            self.shifts.pop_front();
+            self.shifts.remove(0);
         }
-        self.shifts.push_back(shift.clone());
+        self.shifts.push(shift.clone());
         // Begin transition
         self.current_paradigm = new_paradigm;
         self.stats.active_paradigm_count = self.count_active_paradigms();
@@ -392,7 +391,7 @@ impl CoopParadigm {
         };
         eq.stability_history.push(current_stability);
         if eq.stability_history.len() > EQUILIBRIUM_CHECK_WINDOW {
-            eq.stability_history.pop_front().unwrap();
+            eq.stability_history.remove(0);
         }
         eq.stability_score = EMA_ALPHA * current_stability + (1.0 - EMA_ALPHA) * eq.stability_score;
         let prev_stable = eq.stable;
@@ -602,9 +601,9 @@ impl CoopParadigm {
             duration: 0,
         };
         if self.chronicle.len() >= CHRONICLE_MAX {
-            self.chronicle.pop_front();
+            self.chronicle.remove(0);
         }
-        self.chronicle.push_back(entry);
+        self.chronicle.push(entry);
         self.stats.chronicle_size = self.chronicle.len() as u64;
     }
 
