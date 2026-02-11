@@ -158,7 +158,7 @@ impl Ballot {
 
     /// Weight of voter
     fn weight_of(&self, pid: u64) -> u32 {
-        self.weights.get(pid).copied().unwrap_or(1)
+        self.weights.get(pid).unwrap_or(1)
     }
 
     /// Tally votes (binary)
