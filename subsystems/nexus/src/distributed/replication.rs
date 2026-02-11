@@ -233,7 +233,7 @@ impl ReplicaPlacement for LoadBasedPlacement {
     ) -> Vec<NodeId> {
         let mut nodes_with_load: Vec<_> = available_nodes
             .iter()
-            .map(|&n| (n, self.loads.get(&n).copied().unwrap_or(0)))
+            .map(|&n| (n, self.loads.get(&n).unwrap_or(&0)))
             .collect();
 
         // Sort by load (ascending)
