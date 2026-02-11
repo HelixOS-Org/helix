@@ -34,7 +34,7 @@ pub struct Fact {
     /// Truth value
     pub truth: TruthValue,
     /// Confidence
-    pub confidence: u64, // Fixed point, 0-1000 = 0.0-1.0
+    pub confidence: u64, // Fixed point, 0-1000 = 0.0-1.0,
     /// Source
     pub source: FactSource,
 }
