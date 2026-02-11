@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 /// Signal delivery pattern
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,7 +55,7 @@ impl HolisticSignal {
         if rec.pattern == SignalPattern::SignalStorm { self.stats.storms_detected += 1; }
         if rec.target_count > self.stats.peak_burst { self.stats.peak_burst = rec.target_count; }
         self.recent_latencies.push_back(rec.latency_ns);
-        if self.recent_latencies.len() > 256 { self.recent_latencies.pop_front(); }
+        if self.recent_latencies.len() > 256 { self.recent_latencies.remove(0); }
         let sum: u64 = self.recent_latencies.iter().sum();
         self.stats.avg_latency_ns = sum / self.recent_latencies.len() as u64;
     }
