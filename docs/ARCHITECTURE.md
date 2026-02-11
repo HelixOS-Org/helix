@@ -453,7 +453,7 @@ boot/{limine,uefi,multiboot2}
             ├── subsystems/memory     (depends on: hal)
             ├── subsystems/execution  (depends on: hal)
             ├── subsystems/dis        (depends on: execution)
-            ├── subsystems/nexus      (depends on: nexus-types, nexus-core)
+            ├── subsystems/nexus      (self-contained)
             ├── subsystems/init       (depends on: hal, core)
             ├── subsystems/relocation (depends on: hal)
             ├── subsystems/userspace  (depends on: execution, memory)
@@ -461,9 +461,10 @@ boot/{limine,uefi,multiboot2}
             └── fs                    (depends on: hal)
 ```
 
-`nexus-types` and `nexus-core` are leaf crates with no internal dependencies
-beyond `core` and `alloc`. This allows any subsystem to consume NEXUS type
-definitions without pulling in the full 320K-line NEXUS monolith.
+The `nexus` crate is self-contained — all types, core orchestrator logic,
+cognition pipeline, and evolution modules live under a single unified crate.
+Internal modules are re-exported so other subsystems can depend on `nexus`
+directly without pulling unnecessary code thanks to feature gates.
 
 ---
 
