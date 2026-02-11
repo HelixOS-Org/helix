@@ -100,7 +100,7 @@ impl DevicePowerManager {
     /// Get device power state
     #[inline(always)]
     pub fn get_state(&self, id: DeviceId) -> Option<PowerState> {
-        self.device_states.get(&id).copied()
+        self.device_states.get(&id)
     }
 
     /// Record device activity
@@ -132,7 +132,7 @@ impl DevicePowerManager {
         };
 
         if self.transitions.len() >= self.max_transitions {
-            self.transitions.pop_front();
+            self.transitions.remove(0);
         }
         self.transitions.push_back(transition);
 
@@ -158,7 +158,7 @@ impl DevicePowerManager {
             .get(&id)
             .copied()
             .unwrap_or(self.default_policy);
-        let last_activity = self.idle_times.get(&id).copied().unwrap_or(current_time);
+        let last_activity = self.idle_times.get(&id).unwrap_or(current_time);
         let idle_duration = current_time.saturating_sub(last_activity);
 
         let recommended = match policy {
@@ -192,7 +192,7 @@ impl DevicePowerManager {
     /// Get predicted wake latency
     #[inline(always)]
     pub fn predicted_wake_latency(&self, id: DeviceId) -> Option<u64> {
-        self.wake_predictions.get(&id).copied()
+        self.wake_predictions.get(&id)
     }
 
     /// Get total power saved
