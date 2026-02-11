@@ -777,7 +777,7 @@ pub struct InferenceBenchmark {
     pub avg_time_cycles: f32,
     pub min_time_cycles: u64,
     pub max_time_cycles: u64,
-    pub throughput: f32, // inferences per 1M cycles
+    pub throughput: f32, // inferences per 1M cycles,
 }
 
 /// Run inference benchmark
@@ -826,6 +826,7 @@ mod tests {
     use super::super::activation::ActivationType;
     use super::super::network::NetworkBuilder;
     use super::*;
+use crate::fast::math::{F32Ext};
 
     #[test]
     fn test_inference_engine() {
