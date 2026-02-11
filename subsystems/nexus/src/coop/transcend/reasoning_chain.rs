@@ -415,7 +415,7 @@ impl CoopReasoningChain {
         let mut weakest_id: u64 = 0;
         let mut weakest_score: u64 = u64::MAX;
 
-        for (&cid, &strength) in &self.justification_strengths {
+        for (cid, strength) in &self.justification_strengths {
             let decayed =
                 (strength * JUSTIFICATION_DECAY_NUM) / JUSTIFICATION_DECAY_DEN;
             if decayed < weakest_score {
@@ -440,8 +440,8 @@ impl CoopReasoningChain {
         let victim = self
             .chain_validity_index
             .iter()
-            .min_by_key(|(_, &v)| v)
-            .map(|(&k, _)| k);
+            .min_by_key(|(_, v)| *v)
+            .map(|(k, _)| k);
         if let Some(k) = victim {
             self.chains.remove(&k);
             self.chain_validity_index.remove(k);
@@ -457,9 +457,9 @@ impl CoopReasoningChain {
         self.current_tick += 1;
 
         // Decay justification strengths
-        let keys: Vec<u64> = self.justification_strengths.keys().copied().collect();
+        let keys: Vec<u64> = self.justification_strengths.keys().collect();
         for k in keys {
-            if let Some(s) = self.justification_strengths.get_mut(&k) {
+            if let Some(s) = self.justification_strengths.get_mut(k) {
                 *s = (*s * JUSTIFICATION_DECAY_NUM) / JUSTIFICATION_DECAY_DEN;
             }
         }
@@ -470,8 +470,8 @@ impl CoopReasoningChain {
             let weak: Vec<u64> = self
                 .chain_validity_index
                 .iter()
-                .filter(|(_, &v)| v < MIN_VALIDITY_SCORE / 2)
-                .map(|(&k, _)| k)
+                .filter(|(_, v)| *v < MIN_VALIDITY_SCORE / 2)
+                .map(|(k, _)| k)
                 .collect();
             for k in weak {
                 self.chains.remove(&k);
