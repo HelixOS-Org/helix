@@ -1,7 +1,6 @@
 //! Driver resource tracking.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::DriverId;
@@ -130,7 +129,7 @@ impl DriverResourceTracker {
         let snapshots = self.snapshots.entry(driver_id).or_default();
         snapshots.push(snapshot);
         if snapshots.len() > self.max_snapshots {
-            snapshots.pop_front();
+            snapshots.remove(0);
         }
 
         // Check violations
