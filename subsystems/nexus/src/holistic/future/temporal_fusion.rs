@@ -22,6 +22,8 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::fast::math::F32Ext;
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -312,7 +314,10 @@ impl HolisticTemporalFusion {
             weight: 1.0,
         };
         let key = horizon.to_us();
-        self.signals.entry(key).or_insert_with(Vec::new).push(signal);
+        self.signals
+            .entry(key)
+            .or_insert_with(Vec::new)
+            .push(signal);
         id
     }
 
@@ -322,18 +327,23 @@ impl HolisticTemporalFusion {
         self.generation += 1;
 
         let all_horizons = [
-            TemporalHorizon::Microseconds100, TemporalHorizon::Millisecond1,
-            TemporalHorizon::Milliseconds10, TemporalHorizon::Milliseconds100,
-            TemporalHorizon::Second1, TemporalHorizon::Seconds10,
-            TemporalHorizon::Minute1, TemporalHorizon::Minutes10,
-            TemporalHorizon::Hour1, TemporalHorizon::Hours6,
+            TemporalHorizon::Microseconds100,
+            TemporalHorizon::Millisecond1,
+            TemporalHorizon::Milliseconds10,
+            TemporalHorizon::Milliseconds100,
+            TemporalHorizon::Second1,
+            TemporalHorizon::Seconds10,
+            TemporalHorizon::Minute1,
+            TemporalHorizon::Minutes10,
+            TemporalHorizon::Hour1,
+            TemporalHorizon::Hours6,
             TemporalHorizon::Day1,
         ];
 
         let mut fused_horizons: Vec<FusedHorizonPrediction> = Vec::new();
         let mut total_signals = 0_usize;
         let mut total_coherence = 0.0_f32;
-        let mut total_uncertainty = 0.0_f32;
+        let mut _total_uncertainty = 0.0_f32;
         let mut active = 0_usize;
 
         for &h in &all_horizons {
@@ -400,16 +410,16 @@ impl HolisticTemporalFusion {
             .map(|f| f.fused_uncertainty)
             .sum::<f32>()
             / active.max(1) as f32;
-        total_uncertainty = overall_unc;
+        _total_uncertainty = overall_unc;
 
         self.stats.avg_coherence = ema_update(self.stats.avg_coherence, overall_coherence);
-        self.stats.avg_uncertainty = ema_update(self.stats.avg_uncertainty, total_uncertainty);
+        self.stats.avg_uncertainty = ema_update(self.stats.avg_uncertainty, _total_uncertainty);
         self.stats.avg_signal_count = ema_update(self.stats.avg_signal_count, total_signals as f32);
 
         let result = SystemTemporalFusion {
             horizons: fused_horizons,
             overall_coherence,
-            overall_uncertainty: total_uncertainty,
+            overall_uncertainty: _total_uncertainty,
             active_horizons: active,
             total_signals,
             timestamp_us,
@@ -430,10 +440,22 @@ impl HolisticTemporalFusion {
         let micro_key = micro.to_us();
         let macro_key = macro_h.to_us();
 
-        let micro_pred = self.fused_cache.get(&micro_key).map(|f| f.fused_value).unwrap_or(0.5);
-        let macro_pred = self.fused_cache.get(&macro_key).map(|f| f.fused_value).unwrap_or(0.5);
+        let micro_pred = self
+            .fused_cache
+            .get(&micro_key)
+            .map(|f| f.fused_value)
+            .unwrap_or(0.5);
+        let macro_pred = self
+            .fused_cache
+            .get(&macro_key)
+            .map(|f| f.fused_value)
+            .unwrap_or(0.5);
 
-        let bridging = if macro_pred.abs() > 0.001 { micro_pred / macro_pred } else { 1.0 };
+        let bridging = if macro_pred.abs() > 0.001 {
+            micro_pred / macro_pred
+        } else {
+            1.0
+        };
         let consistency = 1.0 - (micro_pred - macro_pred).abs();
         let levels_apart = (macro_h.level() as i32 - micro.level() as i32).unsigned_abs() as f32;
         let extrap_conf = (1.0 - levels_apart * 0.08).max(0.1);
@@ -453,11 +475,16 @@ impl HolisticTemporalFusion {
     pub fn horizon_hierarchy(&mut self) -> Vec<HorizonNode> {
         self.stats.hierarchy_builds += 1;
         let all_horizons = [
-            TemporalHorizon::Microseconds100, TemporalHorizon::Millisecond1,
-            TemporalHorizon::Milliseconds10, TemporalHorizon::Milliseconds100,
-            TemporalHorizon::Second1, TemporalHorizon::Seconds10,
-            TemporalHorizon::Minute1, TemporalHorizon::Minutes10,
-            TemporalHorizon::Hour1, TemporalHorizon::Hours6,
+            TemporalHorizon::Microseconds100,
+            TemporalHorizon::Millisecond1,
+            TemporalHorizon::Milliseconds10,
+            TemporalHorizon::Milliseconds100,
+            TemporalHorizon::Second1,
+            TemporalHorizon::Seconds10,
+            TemporalHorizon::Minute1,
+            TemporalHorizon::Minutes10,
+            TemporalHorizon::Hour1,
+            TemporalHorizon::Hours6,
             TemporalHorizon::Day1,
         ];
 
@@ -474,7 +501,11 @@ impl HolisticTemporalFusion {
             } else {
                 Vec::new()
             };
-            let parent = if i > 0 { Some(all_horizons[i - 1]) } else { None };
+            let parent = if i > 0 {
+                Some(all_horizons[i - 1])
+            } else {
+                None
+            };
 
             nodes.push(HorizonNode {
                 horizon: h,
@@ -498,8 +529,16 @@ impl HolisticTemporalFusion {
         self.stats.consistency_checks += 1;
         let key_a = a.to_us();
         let key_b = b.to_us();
-        let pred_a = self.fused_cache.get(&key_a).map(|f| f.fused_value).unwrap_or(0.5);
-        let pred_b = self.fused_cache.get(&key_b).map(|f| f.fused_value).unwrap_or(0.5);
+        let pred_a = self
+            .fused_cache
+            .get(&key_a)
+            .map(|f| f.fused_value)
+            .unwrap_or(0.5);
+        let pred_b = self
+            .fused_cache
+            .get(&key_b)
+            .map(|f| f.fused_value)
+            .unwrap_or(0.5);
         let deviation = (pred_a - pred_b).abs();
         let within = deviation <= COHERENCE_TOLERANCE;
 
@@ -530,8 +569,16 @@ impl HolisticTemporalFusion {
     pub fn long_range_forecast(&mut self, target: TemporalHorizon) -> LongRangeForecast {
         self.stats.long_range_forecasts += 1;
         let key = target.to_us();
-        let base_pred = self.fused_cache.get(&key).map(|f| f.fused_value).unwrap_or(0.5);
-        let base_unc = self.fused_cache.get(&key).map(|f| f.fused_uncertainty).unwrap_or(0.2);
+        let base_pred = self
+            .fused_cache
+            .get(&key)
+            .map(|f| f.fused_value)
+            .unwrap_or(0.5);
+        let base_unc = self
+            .fused_cache
+            .get(&key)
+            .map(|f| f.fused_uncertainty)
+            .unwrap_or(0.2);
 
         let mut envelope: Vec<(u64, f32, f32)> = Vec::new();
         let target_us = target.to_us();
@@ -572,19 +619,28 @@ impl HolisticTemporalFusion {
         let mut conf_sum = 0.0_f32;
 
         let all_horizons = [
-            TemporalHorizon::Microseconds100, TemporalHorizon::Millisecond1,
-            TemporalHorizon::Milliseconds10, TemporalHorizon::Milliseconds100,
-            TemporalHorizon::Second1, TemporalHorizon::Seconds10,
-            TemporalHorizon::Minute1, TemporalHorizon::Minutes10,
-            TemporalHorizon::Hour1, TemporalHorizon::Hours6,
+            TemporalHorizon::Microseconds100,
+            TemporalHorizon::Millisecond1,
+            TemporalHorizon::Milliseconds10,
+            TemporalHorizon::Milliseconds100,
+            TemporalHorizon::Second1,
+            TemporalHorizon::Seconds10,
+            TemporalHorizon::Minute1,
+            TemporalHorizon::Minutes10,
+            TemporalHorizon::Hour1,
+            TemporalHorizon::Hours6,
             TemporalHorizon::Day1,
         ];
 
         let mut prev_pred = 0.0_f32;
         for (i, &h) in all_horizons.iter().enumerate() {
             let key = h.to_us();
-            if key < min_us { min_us = key; }
-            if key > max_us { max_us = key; }
+            if key < min_us {
+                min_us = key;
+            }
+            if key > max_us {
+                max_us = key;
+            }
 
             let cached = self.fused_cache.get(&key);
             let pred = cached.map(|c| c.fused_value).unwrap_or(0.5);
