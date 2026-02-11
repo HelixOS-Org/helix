@@ -132,33 +132,51 @@ pub enum ModificationType {
     /// Bug fix
     BugFix,
     /// Performance optimization
-    Optimization,
+    PerformanceOptimization,
     /// New feature
-    Feature,
+    NewFeature,
     /// Security patch
     SecurityPatch,
     /// Refactoring
-    Refactor,
+    Refactoring,
     /// Configuration change
-    Configuration,
+    ConfigurationChange,
     /// Algorithm improvement
     AlgorithmImprovement,
     /// Resource tuning
     ResourceTuning,
+    /// Optimization (short form)
+    Optimization,
+    /// Refactor (short form)
+    Refactor,
+    /// Feature (short form)
+    Feature,
+    /// Configuration (short form)
+    Configuration,
 }
 
 /// Risk level
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RiskLevel {
     /// Minimal risk
-    Minimal,
+    MinimalRisk,
     /// Low risk
-    Low,
+    LowRisk,
     /// Medium risk
-    Medium,
+    MediumRisk,
     /// High risk
-    High,
+    HighRisk,
     /// Critical risk
+    CriticalRisk,
+    /// Minimal (short form)
+    Minimal,
+    /// Low (short form)
+    Low,
+    /// Medium (short form)
+    Medium,
+    /// High (short form)
+    High,
+    /// Critical (short form)
     Critical,
 }
 
@@ -235,14 +253,18 @@ pub enum EngineState {
     /// Idle
     Idle,
     /// Processing modifications
-    Processing,
+    ProcessingModifications,
     /// Deploying changes
-    Deploying,
+    DeployingChanges,
     /// Rolling back
     RollingBack,
     /// Locked (no modifications allowed)
     Locked,
     /// Emergency mode
+    EmergencyMode,
+    /// Deploying (short form)
+    Deploying,
+    /// Emergency (short form)
     Emergency,
 }
 
@@ -686,9 +708,9 @@ struct PatchResult {
 #[derive(Debug)]
 pub enum SelfModError {
     /// Engine is locked
-    EngineLocked,
+    EngineIsLocked,
     /// Emergency mode active
-    EmergencyMode,
+    EmergencyModeActive,
     /// Modification not found
     NotFound(ModificationId),
     /// Version not found
@@ -703,6 +725,10 @@ pub enum SelfModError {
     HotpatchError(String),
     /// Rollback error
     RollbackError(String),
+    /// Engine locked (short form)
+    EngineLocked,
+    /// Emergency mode (short form)
+    EmergencyMode,
 }
 
 impl From<hotpatch::PatchError> for SelfModError {
