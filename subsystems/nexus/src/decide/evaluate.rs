@@ -456,7 +456,7 @@ impl DecisionEvaluator {
 
                 for criterion in criteria {
                     let key = (option.id, criterion.id);
-                    let value = normalized.get(&key).copied().unwrap_or(0.0);
+                    let value = normalized.get(&key).unwrap_or(0.0);
                     let weighted = value * criterion.weight;
 
                     by_criterion.insert(criterion.id, weighted);
@@ -486,8 +486,8 @@ impl DecisionEvaluator {
         let normalized = self.normalize_values(options, criteria);
 
         // Find ideal and anti-ideal
-        let mut ideal: LinearMap<f64, 64> = BTreeMap::new();
-        let mut anti_ideal: LinearMap<f64, 64> = BTreeMap::new();
+        let mut ideal: LinearMap<f64, 64> = LinearMap::new();
+        let mut anti_ideal: LinearMap<f64, 64> = LinearMap::new();
 
         for criterion in criteria {
             let values: Vec<f64> = options
@@ -526,8 +526,8 @@ impl DecisionEvaluator {
                         .get(&(option.id, criterion.id))
                         .copied()
                         .unwrap_or(0.0);
-                    let ideal_val = ideal.get(&criterion.id).copied().unwrap_or(0.0);
-                    let anti_val = anti_ideal.get(&criterion.id).copied().unwrap_or(0.0);
+                    let ideal_val = ideal.get(criterion.id).unwrap_or(0.0);
+                    let anti_val = anti_ideal.get(criterion.id).unwrap_or(0.0);
 
                     let weighted = value * criterion.weight;
                     dist_ideal += (weighted - ideal_val * criterion.weight).powi(2);
@@ -700,6 +700,7 @@ impl Default for DecisionEvaluator {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_create_context() {
