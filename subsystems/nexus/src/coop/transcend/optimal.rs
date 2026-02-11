@@ -10,7 +10,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -223,7 +222,7 @@ impl CoopOptimal {
         convergence
     }
 
-    fn redistribute_pools(&mut self, agent_ids: &[u64], pool_ids: &[u64]) {
+    fn redistribute_pools(&mut self, _agent_ids: &[u64], pool_ids: &[u64]) {
         let total_alloc: u64 = self.agents.values().map(|a| a.allocation).sum();
         let n_pools = pool_ids.len() as u64;
         if n_pools == 0 {
@@ -367,7 +366,7 @@ impl CoopOptimal {
 
         self.welfare_history.push_back(avg_welfare);
         if self.welfare_history.len() > 256 {
-            self.welfare_history.pop_front();
+            self.welfare_history.remove(0);
         }
 
         let social = (avg_welfare + fairness + waste_score) / 3;
