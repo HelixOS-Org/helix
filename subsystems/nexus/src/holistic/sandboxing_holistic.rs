@@ -2,7 +2,6 @@
 //! Holistic sandboxing — cross-layer sandbox confinement analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Sandboxing holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
