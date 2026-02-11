@@ -119,8 +119,8 @@ impl ZoneCompactState {
         }
         // Count pages available at target_order or higher
         let mut available_at_order = 0u64;
-        for (&order, &count) in &self.free_blocks {
-            if order >= target_order {
+        for (order, count) in self.free_blocks.iter() {
+            if order >= target_order as usize {
                 available_at_order += count * (1u64 << order);
             }
         }
