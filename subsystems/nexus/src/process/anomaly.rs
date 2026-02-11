@@ -177,7 +177,7 @@ impl ProcessAnomalyDetector {
 
         self.anomalies.push_back(anomaly.clone());
         if self.anomalies.len() > self.max_anomalies {
-            self.anomalies.pop_front();
+            self.anomalies.remove(0);
         }
 
         anomaly
