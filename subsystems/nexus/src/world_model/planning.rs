@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 
 use crate::world_model::utils::{box_muller, lcg_next};
 use crate::world_model::world::WorldModel;
+use crate::fast::math::{F64Ext};
 
 /// Action sequence for planning
 #[derive(Debug, Clone)]
