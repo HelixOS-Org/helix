@@ -26,7 +26,79 @@
 //! let v = counters[3];   // ~1ns, no bounds check needed
 //! ```
 
-use core::ops::{Index, IndexMut};
+use core::ops::{Index, IndexMut, Range, RangeFrom, RangeTo, RangeFull};
+
+/// Helper trait so ArrayMap methods accept `usize`, `&usize`, `u32`, `&u32`, etc.
+pub trait AsUsize {
+    fn as_usize(self) -> usize;
+}
+impl AsUsize for usize {
+    #[inline(always)]
+    fn as_usize(self) -> usize { self }
+}
+impl AsUsize for &usize {
+    #[inline(always)]
+    fn as_usize(self) -> usize { *self }
+}
+impl AsUsize for u32 {
+    #[inline(always)]
+    fn as_usize(self) -> usize { self as usize }
+}
+impl AsUsize for &u32 {
+    #[inline(always)]
+    fn as_usize(self) -> usize { *self as usize }
+}
+impl AsUsize for u64 {
+    #[inline(always)]
+    fn as_usize(self) -> usize { self as usize }
+}
+impl AsUsize for &u64 {
+    #[inline(always)]
+    fn as_usize(self) -> usize { *self as usize }
+}
+impl AsUsize for i32 {
+    #[inline(always)]
+    fn as_usize(self) -> usize { self as usize }
+}
+impl AsUsize for &i32 {
+    #[inline(always)]
+    fn as_usize(self) -> usize { *self as usize }
+}
+impl AsUsize for i64 {
+    #[inline(always)]
+    fn as_usize(self) -> usize { self as usize }
+}
+
+/// Entry API for ArrayMap — provides BTreeMap-compatible entry pattern.
+pub enum ArrayMapEntry<'a, V: Copy, const N: usize> {
+    /// Entry exists (always, since ArrayMap has fixed slots).
+    Occupied(&'a mut V),
+}
+
+impl<'a, V: Copy, const N: usize> ArrayMapEntry<'a, V, N> {
+    /// Return mutable reference (always occupied for ArrayMap).
+    #[inline(always)]
+    pub fn or_insert(self, _default: V) -> &'a mut V {
+        match self { ArrayMapEntry::Occupied(r) => r }
+    }
+    /// Return mutable reference with closure (always occupied for ArrayMap).
+    #[inline(always)]
+    pub fn or_insert_with<F: FnOnce() -> V>(self, _f: F) -> &'a mut V {
+        match self { ArrayMapEntry::Occupied(r) => r }
+    }
+    /// Return mutable reference (always occupied for ArrayMap).
+    #[inline(always)]
+    pub fn or_default(self) -> &'a mut V {
+        match self { ArrayMapEntry::Occupied(r) => r }
+    }
+    /// Apply modification and return self.
+    #[inline(always)]
+    pub fn and_modify<F: FnOnce(&mut V)>(self, f: F) -> Self {
+        match self {
+            ArrayMapEntry::Occupied(r) => { f(r); ArrayMapEntry::Occupied(r) }
+        }
+    }
+}
 
 /// Fixed-size array map indexed by `usize` keys in range `0..N`.
 ///
@@ -50,13 +122,15 @@ impl<V: Copy, const N: usize> ArrayMap<V, N> {
 
     /// Get value at index. Panics if `idx >= N`.
     #[inline(always)]
-    pub fn get(&self, idx: usize) -> V {
+    pub fn get(&self, idx: impl AsUsize) -> V {
+        let idx = idx.as_usize();
         self.data[idx]
     }
 
     /// Get value at index, or `None` if out of bounds.
     #[inline(always)]
-    pub fn try_get(&self, idx: usize) -> Option<V> {
+    pub fn try_get(&self, idx: impl AsUsize) -> Option<V> {
+        let idx = idx.as_usize();
         if idx < N {
             Some(self.data[idx])
         } else {
@@ -64,9 +138,18 @@ impl<V: Copy, const N: usize> ArrayMap<V, N> {
         }
     }
 
+    /// BTreeMap-compatible entry API. Always returns Occupied since ArrayMap has fixed slots.
+    #[inline(always)]
+    pub fn entry(&mut self, idx: impl AsUsize) -> ArrayMapEntry<'_, V, N> {
+        let idx = idx.as_usize();
+        assert!(idx < N, "ArrayMap entry out of bounds");
+        ArrayMapEntry::Occupied(&mut self.data[idx])
+    }
+
     /// Set value at index.
     #[inline(always)]
-    pub fn set(&mut self, idx: usize, val: V) {
+    pub fn set(&mut self, idx: impl AsUsize, val: V) {
+        let idx = idx.as_usize();
         if idx < N {
             self.data[idx] = val;
         }
@@ -101,13 +184,126 @@ impl<V: Copy, const N: usize> ArrayMap<V, N> {
     pub fn iter(&self) -> impl Iterator<Item = (usize, V)> + '_ {
         self.data.iter().copied().enumerate()
     }
+
+    /// Number of slots (always N, the compile-time size).
+    /// BTreeMap-compatible API.
+    #[inline(always)]
+    pub const fn len(&self) -> usize {
+        N
+    }
+
+    /// Always false for ArrayMap (it always has N slots).
+    /// BTreeMap-compatible API.
+    #[inline(always)]
+    pub const fn is_empty(&self) -> bool {
+        N == 0
+    }
+
+    /// Iterate over all values.
+    /// BTreeMap-compatible API.
+    #[inline]
+    pub fn values(&self) -> impl Iterator<Item = V> + '_ {
+        self.data.iter().copied()
+    }
+
+    /// Iterate over all keys (indices 0..N).
+    /// BTreeMap-compatible API.
+    #[inline]
+    pub fn keys(&self) -> impl Iterator<Item = usize> + '_ {
+        0..N
+    }
+
+    /// Insert a value at index (set). Returns the old value.
+    /// BTreeMap-compatible API.
+    #[inline(always)]
+    pub fn insert(&mut self, idx: impl AsUsize, val: V) -> Option<V> {
+        let idx = idx.as_usize();
+        if idx < N {
+            let old = self.data[idx];
+            self.data[idx] = val;
+            Some(old)
+        } else {
+            None
+        }
+    }
+
+    /// Remove (reset to default). Not truly removing since ArrayMap is fixed-size.
+    /// Returns the old value if in bounds.
+    /// BTreeMap-compatible API.
+    #[inline(always)]
+    pub fn remove(&mut self, idx: impl AsUsize) -> Option<V>
+    where
+        V: Default,
+    {
+        let idx = idx.as_usize();
+        if idx < N {
+            let old = self.data[idx];
+            self.data[idx] = V::default();
+            Some(old)
+        } else {
+            None
+        }
+    }
+
+    /// Check if an index is within bounds.
+    /// BTreeMap-compatible API.
+    #[inline(always)]
+    pub fn contains_key(&self, idx: impl AsUsize) -> bool {
+        let idx = idx.as_usize();
+        idx < N
+    }
+
+    /// Reset all values to their default.
+    /// BTreeMap-compatible API.
+    #[inline]
+    pub fn clear(&mut self)
+    where
+        V: Default,
+    {
+        let mut i = 0;
+        while i < N {
+            self.data[i] = V::default();
+            i += 1;
+        }
+    }
+
+    /// Get a mutable reference to a value at index.
+    /// BTreeMap-compatible API.
+    #[inline(always)]
+    pub fn get_mut(&mut self, idx: impl AsUsize) -> Option<&mut V> {
+        let idx = idx.as_usize();
+        if idx < N {
+            Some(&mut self.data[idx])
+        } else {
+            None
+        }
+    }
+
+    /// Iterate over mutable references to values.
+    #[inline]
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut V> {
+        self.data.iter_mut()
+    }
+
+    /// BTreeMap-compatible entry API (simplified).
+    /// Returns a mutable reference to the value, initializing with default if needed.
+    #[inline(always)]
+    pub fn entry_or_default(&mut self, idx: impl AsUsize) -> Option<&mut V> {
+        let idx = idx.as_usize();
+        if idx < N {
+            Some(&mut self.data[idx])
+        } else {
+            None
+        }
+    }
 }
 
 // Specialization for u64 counters — the most common case.
 impl<const N: usize> ArrayMap<u64, N> {
     /// Increment counter at `idx` by 1. O(1), ~1ns.
     #[inline(always)]
-    pub fn inc(&mut self, idx: usize) {
+    pub fn inc(&mut self, idx: impl AsUsize) {
+        let idx = idx.as_usize();
         if idx < N {
             self.data[idx] += 1;
         }
@@ -115,7 +311,8 @@ impl<const N: usize> ArrayMap<u64, N> {
 
     /// Add `amount` to counter at `idx`. O(1), ~1ns.
     #[inline(always)]
-    pub fn add(&mut self, idx: usize, amount: u64) {
+    pub fn add(&mut self, idx: impl AsUsize, amount: u64) {
+        let idx = idx.as_usize();
         if idx < N {
             self.data[idx] += amount;
         }
@@ -123,7 +320,8 @@ impl<const N: usize> ArrayMap<u64, N> {
 
     /// Saturating increment (won't overflow).
     #[inline(always)]
-    pub fn inc_saturating(&mut self, idx: usize) {
+    pub fn inc_saturating(&mut self, idx: impl AsUsize) {
+        let idx = idx.as_usize();
         if idx < N {
             self.data[idx] = self.data[idx].saturating_add(1);
         }
@@ -179,6 +377,48 @@ impl<const N: usize> ArrayMap<u64, N> {
     }
 }
 
+// Specialization for u32 counters.
+impl<const N: usize> ArrayMap<u32, N> {
+    /// Increment counter at `idx` by 1.
+    #[inline(always)]
+    pub fn inc(&mut self, idx: impl AsUsize) {
+        let idx = idx.as_usize();
+        if idx < N {
+            self.data[idx] += 1;
+        }
+    }
+
+    /// Add `amount` to counter at `idx`.
+    #[inline(always)]
+    pub fn add(&mut self, idx: impl AsUsize, amount: u32) {
+        let idx = idx.as_usize();
+        if idx < N {
+            self.data[idx] += amount;
+        }
+    }
+
+    /// Saturating increment (won't overflow).
+    #[inline(always)]
+    pub fn inc_saturating(&mut self, idx: impl AsUsize) {
+        let idx = idx.as_usize();
+        if idx < N {
+            self.data[idx] = self.data[idx].saturating_add(1);
+        }
+    }
+
+    /// Sum of all counters.
+    #[inline]
+    pub fn total(&self) -> u32 {
+        let mut sum = 0u32;
+        let mut i = 0;
+        while i < N {
+            sum += self.data[i];
+            i += 1;
+        }
+        sum
+    }
+}
+
 // Specialization for f32 metrics.
 impl<const N: usize> ArrayMap<f32, N> {
     /// Exponential moving average update for slot `idx`.
@@ -217,6 +457,93 @@ impl<V: Copy, const N: usize> IndexMut<usize> for ArrayMap<V, N> {
         &mut self.data[idx]
     }
 }
+
+impl<V: Copy, const N: usize> Index<Range<usize>> for ArrayMap<V, N> {
+    type Output = [V];
+
+    #[inline(always)]
+    fn index(&self, range: Range<usize>) -> &[V] {
+        &self.data[range]
+    }
+}
+
+impl<V: Copy, const N: usize> Index<RangeFrom<usize>> for ArrayMap<V, N> {
+    type Output = [V];
+
+    #[inline(always)]
+    fn index(&self, range: RangeFrom<usize>) -> &[V] {
+        &self.data[range]
+    }
+}
+
+impl<V: Copy, const N: usize> Index<RangeTo<usize>> for ArrayMap<V, N> {
+    type Output = [V];
+
+    #[inline(always)]
+    fn index(&self, range: RangeTo<usize>) -> &[V] {
+        &self.data[range]
+    }
+}
+
+impl<V: Copy, const N: usize> Index<RangeFull> for ArrayMap<V, N> {
+    type Output = [V];
+
+    #[inline(always)]
+    fn index(&self, _: RangeFull) -> &[V] {
+        &self.data[..]
+    }
+}
+
+impl<V: Copy + Default, const N: usize> Default for ArrayMap<V, N> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            data: [V::default(); N],
+        }
+    }
+}
+
+impl<'a, V: Copy, const N: usize> IntoIterator for &'a ArrayMap<V, N> {
+    type Item = (usize, V);
+    type IntoIter = ArrayMapIter<'a, V, N>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        ArrayMapIter {
+            map: self,
+            pos: 0,
+        }
+    }
+}
+
+/// Iterator over ArrayMap entries.
+pub struct ArrayMapIter<'a, V: Copy, const N: usize> {
+    map: &'a ArrayMap<V, N>,
+    pos: usize,
+}
+
+impl<'a, V: Copy, const N: usize> Iterator for ArrayMapIter<'a, V, N> {
+    type Item = (usize, V);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos < N {
+            let idx = self.pos;
+            self.pos += 1;
+            Some((idx, self.map.data[idx]))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let rem = N - self.pos;
+        (rem, Some(rem))
+    }
+}
+
+impl<'a, V: Copy, const N: usize> ExactSizeIterator for ArrayMapIter<'a, V, N> {}
 
 // ============================================================================
 // TESTS
