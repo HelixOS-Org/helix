@@ -655,7 +655,7 @@ impl TreeEncoding {
     pub fn evaluate(&self, tree: &TreeNode, inputs: &[f64]) -> f64 {
         match tree.node_type {
             TreeNodeType::Constant => tree.value.unwrap_or(0.0),
-            TreeNodeType::Variable(i) => inputs.get(i).copied().unwrap_or(0.0),
+            TreeNodeType::Variable(i) => inputs.get(i).unwrap_or(0.0),
             TreeNodeType::Add => {
                 let a = self.evaluate(&tree.children[0], inputs);
                 let b = self.evaluate(&tree.children[1], inputs);
@@ -828,6 +828,7 @@ impl Encoding for TreeEncoding {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_binary_encoding() {
