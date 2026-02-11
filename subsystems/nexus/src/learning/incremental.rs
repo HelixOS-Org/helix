@@ -10,7 +10,6 @@
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
@@ -397,11 +396,11 @@ impl IncrementalEngine {
 
             for (i, &f) in example.features.iter().enumerate() {
                 let key = format!("w{}", i);
-                let w = model.parameters.get(&key).copied().unwrap_or(0.0);
+                let w = model.parameters.get(&key).unwrap_or(&0.0);
                 model.parameters.insert(key, w + lr * target * f);
             }
 
-            let bias = model.parameters.get("bias").copied().unwrap_or(0.0);
+            let bias = model.parameters.get("bias").unwrap_or(&0.0);
             model.parameters.insert("bias".into(), bias + lr * target);
         }
 
@@ -424,7 +423,7 @@ impl IncrementalEngine {
             buffer.push(example);
 
             if buffer.len() > self.config.buffer_size {
-                buffer.pop_front();
+                buffer.remove(0);
             }
         }
 
@@ -488,11 +487,11 @@ impl IncrementalEngine {
 
         for (i, &f) in example.features.iter().enumerate() {
             let key = format!("w{}", i);
-            let w = model.parameters.get(&key).copied().unwrap_or(0.0);
+            let w = model.parameters.get(&key).unwrap_or(&0.0);
             model.parameters.insert(key, w - lr * grad * f);
         }
 
-        let bias = model.parameters.get("bias").copied().unwrap_or(0.0);
+        let bias = model.parameters.get("bias").unwrap_or(&0.0);
         model.parameters.insert("bias".into(), bias - lr * grad);
 
         UpdateResult {
@@ -527,7 +526,7 @@ impl IncrementalEngine {
             return None;
         }
 
-        let mut probs = BTreeMap::new();
+        let mut probs = LinearMap::new();
         let mut max_class = 0;
         let mut max_prob = f64::NEG_INFINITY;
 
@@ -554,16 +553,19 @@ impl IncrementalEngine {
         }
 
         // Normalize probabilities
-        let max_val = probs.values().cloned().fold(f64::NEG_INFINITY, f64::max);
-        let sum: f64 = probs.values().map(|&p| (p - max_val).exp()).sum();
+        let max_val = probs.values().fold(f64::NEG_INFINITY, f64::max);
+        let sum: f64 = probs.values().map(|p| (p - max_val).exp()).sum();
 
-        for (_, prob) in probs.iter_mut() {
-            *prob = (*prob - max_val).exp() / sum;
+        let keys: Vec<u64> = probs.keys().collect();
+        for k in keys {
+            if let Some(p) = probs.get(k) {
+                probs.insert(k, (p - max_val).exp() / sum);
+            }
         }
 
         Some(Prediction {
             label: Label::Class(max_class),
-            confidence: probs.get(&max_class).copied().unwrap_or(0.0),
+            confidence: probs.get(max_class).unwrap_or(0.0),
             probabilities: probs,
         })
     }
@@ -610,7 +612,7 @@ impl IncrementalEngine {
 
         distances.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(core::cmp::Ordering::Equal));
 
-        let mut votes: LinearMap<u64, 64> = BTreeMap::new();
+        let mut votes: LinearMap<u64, 64> = LinearMap::new();
 
         for (_, label) in distances.iter().take(k) {
             if let Label::Class(c) = label {
@@ -618,11 +620,11 @@ impl IncrementalEngine {
             }
         }
 
-        let (best_class, best_count) = votes.iter().max_by_key(|&(_, &count)| count)?;
+        let (best_class, best_count) = votes.iter().max_by_key(|&(_, count)| count)?;
 
         Some(Prediction {
-            label: Label::Class(*best_class),
-            confidence: *best_count as f64 / k as f64,
+            label: Label::Class(best_class),
+            confidence: best_count as f64 / k as f64,
             probabilities: LinearMap::new(),
         })
     }
@@ -638,7 +640,7 @@ impl IncrementalEngine {
         let prob = 1.0 / (1.0 + (-z).exp());
         let class = if prob > 0.5 { 1 } else { 0 };
 
-        let mut probs = BTreeMap::new();
+        let mut probs = LinearMap::new();
         probs.insert(0, 1.0 - prob);
         probs.insert(1, prob);
 
@@ -675,6 +677,7 @@ impl Default for IncrementalEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn make_example(features: Vec<f64>, class: u64) -> Example {
         Example {
