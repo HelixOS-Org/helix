@@ -87,7 +87,7 @@ pub struct DomainObservation {
     pub last_sample_tick: u64,
     pub sample_count: u64,
     pub ema_latency_ns: u64,
-    pub completeness_bps: u64, // basis points 0..10_000
+    pub completeness_bps: u64, // basis points 0..10_000,
     pub blind_spots: u64,
     pub state_signature: u64,
 }
@@ -216,7 +216,7 @@ impl HolisticOmniscient {
 
     fn record_query(&mut self, hash: u64, size: u64, lat: u64, ok: bool) {
         if self.query_log.len() >= MAX_QUERY_LOG {
-            self.query_log.pop_front();
+            self.query_log.remove(0);
         }
         self.query_log.push_back(QueryEntry {
             query_hash: hash,
