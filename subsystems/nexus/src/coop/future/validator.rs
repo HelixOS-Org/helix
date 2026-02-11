@@ -9,7 +9,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key generation.
@@ -207,7 +206,7 @@ impl CoopPredictionValidator {
         let key = fnv1a_hash(&partner_id.to_le_bytes());
         let pairs = self.trust_pairs.entry(key).or_insert_with(Vec::new);
         if pairs.len() >= self.max_history {
-            pairs.pop_front();
+            pairs.remove(0);
         }
         pairs.push(PredictionPair {
             predicted,
@@ -251,7 +250,7 @@ impl CoopPredictionValidator {
         let key = fnv1a_hash(&resource_id.to_le_bytes());
         let pairs = self.contention_pairs.entry(key).or_insert_with(Vec::new);
         if pairs.len() >= self.max_history {
-            pairs.pop_front();
+            pairs.remove(0);
         }
         pairs.push(PredictionPair {
             predicted,
@@ -496,9 +495,9 @@ impl CoopPredictionValidator {
         };
 
         if cal.error_history.len() >= self.max_history {
-            cal.error_history.pop_front().unwrap();
+            cal.error_history.remove(0).unwrap();
         }
-        cal.error_history.push(error);
+        cal.error_history.push_back(error);
 
         let signed_error = predicted as i64 - actual as i64;
         cal.bias = (cal.bias * 9 + signed_error) / 10;
@@ -519,9 +518,9 @@ impl CoopPredictionValidator {
 
         let signed_error = predicted as i64 - actual as i64;
         if tracker.error_trend.len() >= self.max_history {
-            tracker.error_trend.pop_front().unwrap();
+            tracker.error_trend.remove(0).unwrap();
         }
-        tracker.error_trend.push(signed_error);
+        tracker.error_trend.push_back(signed_error);
 
         tracker.ema_drift = (tracker.ema_drift * 7 + signed_error * 3) / 10;
     }
