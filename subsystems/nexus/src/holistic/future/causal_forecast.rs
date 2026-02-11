@@ -18,10 +18,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -298,15 +299,9 @@ impl HolisticCausalForecast {
     }
 
     /// Add a causal edge between two events
-    pub fn add_causal_link(
-        &mut self,
-        from: u64,
-        to: u64,
-        strength: f32,
-        latency_us: u64,
-    ) {
-        let cross = self.nodes.get(&from).map(|n| n.domain)
-            != self.nodes.get(&to).map(|n| n.domain);
+    pub fn add_causal_link(&mut self, from: u64, to: u64, strength: f32, latency_us: u64) {
+        let cross =
+            self.nodes.get(&from).map(|n| n.domain) != self.nodes.get(&to).map(|n| n.domain);
         if self.edges.len() < MAX_CAUSAL_EDGES {
             self.edges.push(CausalEdge {
                 from_node: from,
@@ -318,7 +313,10 @@ impl HolisticCausalForecast {
                 cross_subsystem: cross,
             });
             self.adjacency.entry(from).or_insert_with(Vec::new).push(to);
-            self.reverse_adjacency.entry(to).or_insert_with(Vec::new).push(from);
+            self.reverse_adjacency
+                .entry(to)
+                .or_insert_with(Vec::new)
+                .push(from);
         }
     }
 
@@ -337,14 +335,18 @@ impl HolisticCausalForecast {
         let mut current = symptom_id;
         let mut total_strength = 1.0_f32;
         let mut total_latency = 0_u64;
-        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = LinearMap::new();
         let mut cross_count = 0_usize;
 
         chain.push(current);
         visited.insert(current, true);
 
         while chain.len() < MAX_ROOT_CAUSE_CHAIN {
-            let parents = self.reverse_adjacency.get(&current).cloned().unwrap_or_default();
+            let parents = self
+                .reverse_adjacency
+                .get(&current)
+                .cloned()
+                .unwrap_or_default();
             let strongest = parents
                 .iter()
                 .filter(|p| !visited.contains_key(p))
@@ -367,14 +369,13 @@ impl HolisticCausalForecast {
                     visited.insert(parent_id, true);
                     chain.push(parent_id);
                     current = parent_id;
-                }
+                },
                 None => break,
             }
         }
 
         let root = *chain.last().unwrap_or(&symptom_id);
-        self.stats.avg_chain_length =
-            ema_update(self.stats.avg_chain_length, chain.len() as f32);
+        self.stats.avg_chain_length = ema_update(self.stats.avg_chain_length, chain.len() as f32);
 
         RootCauseChain {
             symptom_node: symptom_id,
@@ -390,10 +391,14 @@ impl HolisticCausalForecast {
     /// Simulate a full causal cascade from a trigger event
     pub fn causal_cascade(&mut self, trigger_id: u64, max_depth: usize) -> CausalCascade {
         self.stats.cascades_simulated += 1;
-        let depth = if max_depth > MAX_CASCADE_DEPTH { MAX_CASCADE_DEPTH } else { max_depth };
+        let depth = if max_depth > MAX_CASCADE_DEPTH {
+            MAX_CASCADE_DEPTH
+        } else {
+            max_depth
+        };
         let mut affected: Vec<u64> = Vec::new();
         let mut frontier: Vec<u64> = Vec::new();
-        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = LinearMap::new();
         let mut total_impact = 0.0_f32;
         let mut subsystems: BTreeMap<u8, SubsystemDomain> = BTreeMap::new();
         let mut total_latency = 0_u64;
@@ -406,7 +411,7 @@ impl HolisticCausalForecast {
             for &node_id in &frontier {
                 let children = self.adjacency.get(&node_id).cloned().unwrap_or_default();
                 for &child in &children {
-                    if visited.contains_key(&child) {
+                    if visited.contains_key(child) {
                         continue;
                     }
                     let strength = self.edge_strength(node_id, child);
@@ -415,8 +420,8 @@ impl HolisticCausalForecast {
                     }
                     visited.insert(child, true);
                     affected.push(child);
-                    total_impact += strength
-                        * self.nodes.get(&child).map(|n| n.severity).unwrap_or(0.0);
+                    total_impact +=
+                        strength * self.nodes.get(&child).map(|n| n.severity).unwrap_or(0.0);
                     total_latency += self.edge_latency(node_id, child);
                     if let Some(n) = self.nodes.get(&child) {
                         subsystems.insert(n.domain as u8, n.domain);
@@ -479,7 +484,11 @@ impl HolisticCausalForecast {
                 plans.push(plan);
             }
         }
-        plans.sort_by(|a, b| b.priority.partial_cmp(&a.priority).unwrap_or(core::cmp::Ordering::Equal));
+        plans.sort_by(|a, b| {
+            b.priority
+                .partial_cmp(&a.priority)
+                .unwrap_or(core::cmp::Ordering::Equal)
+        });
         for p in &plans {
             if self.intervention_log.len() < MAX_INTERVENTION_PLANS {
                 self.intervention_log.push(p.clone());
@@ -505,7 +514,11 @@ impl HolisticCausalForecast {
                 !self.adjacency.contains_key(id) && !self.reverse_adjacency.contains_key(id)
             })
             .count();
-        let max_edges = if total_nodes > 1 { total_nodes * (total_nodes - 1) } else { 1 };
+        let max_edges = if total_nodes > 1 {
+            total_nodes * (total_nodes - 1)
+        } else {
+            1
+        };
         let edge_coverage = total_edges as f32 / max_edges as f32;
         let completeness = (domains_covered as f32 / domains_total as f32) * 0.4
             + edge_coverage.min(1.0) * 0.3
