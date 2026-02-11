@@ -118,12 +118,12 @@ impl LockOrderOptimizer {
         lock: LockId,
         held_locks: &[LockId],
     ) -> Option<OrderViolation> {
-        let lock_level = self.levels.get(&lock).copied().unwrap_or(u32::MAX);
+        let lock_level = self.levels.get(&lock).unwrap_or(&u32::MAX);
 
         let violations: Vec<_> = held_locks
             .iter()
             .filter(|&&held| {
-                let held_level = self.levels.get(&held).copied().unwrap_or(0);
+                let held_level = self.levels.get(&held).unwrap_or(&0);
                 held_level > lock_level
             })
             .copied()
