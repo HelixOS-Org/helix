@@ -376,18 +376,18 @@ impl MemoryOrganizer {
 
         let mut visited = BTreeSet::new();
         let mut queue = VecDeque::new();
-        let mut parents: LinearMap<u64, 64> = BTreeMap::new();
+        let mut parents: LinearMap<u64, 64> = LinearMap::new();
 
         queue.push_back(start);
         visited.insert(start);
 
-        while let Some(current) = queue.pop_front() {
+        while let Some(current) = queue.remove(0) {
             if current == end {
                 // Reconstruct path
                 let mut path = vec![end];
                 let mut node = end;
 
-                while let Some(&parent) = parents.get(&node) {
+                while let Some(&parent) = parents.get(node) {
                     path.push(parent);
                     node = parent;
                 }
