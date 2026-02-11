@@ -9,7 +9,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -36,7 +35,7 @@ pub struct InterruptIntelligence {
     /// Total interrupts
     total_interrupts: AtomicU64,
     /// Recent records
-    recent: VecDeque<InterruptRecord>,
+    recent: Vec<InterruptRecord>,
     /// Max recent
     max_recent: usize,
 }
@@ -51,7 +50,7 @@ impl InterruptIntelligence {
             affinity: AffinityOptimizer::default(),
             coalescing: CoalescingOptimizer::default(),
             total_interrupts: AtomicU64::new(0),
-            recent: VecDeque::new(),
+            recent: Vec::new(),
             max_recent: 1000,
         }
     }
@@ -71,9 +70,9 @@ impl InterruptIntelligence {
         let storm_event = self.storm.record(record.irq, record.cpu);
 
         // Store recent
-        self.recent.push_back(record);
+        self.recent.push(record);
         if self.recent.len() > self.max_recent {
-            self.recent.pop_front();
+            self.recent.remove(0);
         }
 
         storm_event
