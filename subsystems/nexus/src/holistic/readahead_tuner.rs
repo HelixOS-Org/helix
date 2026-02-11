@@ -155,7 +155,7 @@ impl InterleavedStream {
     pub fn record_file_access(&mut self, file_id: u64) {
         self.access_sequence.push_back(file_id);
         if self.access_sequence.len() > self.max_sequence {
-            self.access_sequence.pop_front();
+            self.access_sequence.remove(0);
         }
         if !self.file_ids.contains(&file_id) {
             self.file_ids.push(file_id);
