@@ -12,7 +12,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 
 // ============================================================================
 // NETWORK TOPOLOGY
@@ -295,15 +294,15 @@ impl CongestionDetector {
     pub fn record(&mut self, queue_depth: u64, drop_rate: f64, rtt_us: u64) {
         self.queue_samples.push_back(queue_depth);
         if self.queue_samples.len() > self.max_samples {
-            self.queue_samples.pop_front();
+            self.queue_samples.remove(0);
         }
         self.drop_samples.push_back(drop_rate);
         if self.drop_samples.len() > self.max_samples {
-            self.drop_samples.pop_front();
+            self.drop_samples.remove(0);
         }
         self.rtt_samples.push_back(rtt_us);
         if self.rtt_samples.len() > self.max_samples {
-            self.rtt_samples.pop_front();
+            self.rtt_samples.remove(0);
         }
         self.evaluate();
     }
