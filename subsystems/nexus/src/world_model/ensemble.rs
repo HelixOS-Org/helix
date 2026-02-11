@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use crate::world_model::latent::LatentState;
 use crate::world_model::types::ENSEMBLE_SIZE;
 use crate::world_model::world::WorldModel;
+use crate::fast::math::{F64Ext};
 
 /// An ensemble of world models for uncertainty estimation
 pub struct EnsembleWorldModel {
