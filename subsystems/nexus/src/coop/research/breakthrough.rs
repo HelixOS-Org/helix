@@ -14,8 +14,6 @@
 extern crate alloc;
 
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -152,10 +150,10 @@ pub struct BreakthroughStats {
 #[derive(Debug)]
 pub struct CoopBreakthroughDetector {
     candidates: Vec<BreakthroughCandidate>,
-    confirmed: VecDeque<ConfirmedBreakthrough>,
-    chronicle: VecDeque<ChronicleEntry>,
+    confirmed: Vec<ConfirmedBreakthrough>,
+    chronicle: Vec<ChronicleEntry>,
     domain_baselines: LinearMap<f32, 64>,
-    recent_evaluations: VecDeque<bool>,
+    recent_evaluations: Vec<bool>,
     rng_state: u64,
     tick: u64,
     stats: BreakthroughStats,
@@ -166,10 +164,10 @@ impl CoopBreakthroughDetector {
     pub fn new(seed: u64) -> Self {
         Self {
             candidates: Vec::new(),
-            confirmed: VecDeque::new(),
-            chronicle: VecDeque::new(),
+            confirmed: Vec::new(),
+            chronicle: Vec::new(),
             domain_baselines: LinearMap::new(),
-            recent_evaluations: VecDeque::new(),
+            recent_evaluations: Vec::new(),
             rng_state: seed | 1,
             tick: 0,
             stats: BreakthroughStats::default(),
@@ -191,7 +189,7 @@ impl CoopBreakthroughDetector {
         evidence_count: usize,
     ) -> Option<BreakthroughCandidate> {
         self.tick += 1;
-        let baseline = self.domain_baselines.get(&(domain as u64)).copied().unwrap_or(0.5);
+        let baseline = self.domain_baselines.get(domain as u64).unwrap_or(0.5);
         let improvement = if baseline > 0.001 {
             (new_performance - baseline) / baseline
         } else {
@@ -273,9 +271,9 @@ impl CoopBreakthroughDetector {
         }
         self.add_chronicle_entry(&breakthrough);
         if self.confirmed.len() >= MAX_BREAKTHROUGHS {
-            self.confirmed.pop_front();
+            self.confirmed.remove(0);
         }
-        self.confirmed.push_back(breakthrough.clone());
+        self.confirmed.push(breakthrough.clone());
         self.update_baseline(BreakthroughDomain::FairnessAlgorithm, new_fairness);
         Some(breakthrough)
     }
@@ -315,9 +313,9 @@ impl CoopBreakthroughDetector {
         }
         self.add_chronicle_entry(&breakthrough);
         if self.confirmed.len() >= MAX_BREAKTHROUGHS {
-            self.confirmed.pop_front();
+            self.confirmed.remove(0);
         }
-        self.confirmed.push_back(breakthrough.clone());
+        self.confirmed.push(breakthrough.clone());
         self.update_baseline(BreakthroughDomain::TrustModel, new_convergence);
         Some(breakthrough)
     }
@@ -357,9 +355,9 @@ impl CoopBreakthroughDetector {
         }
         self.add_chronicle_entry(&breakthrough);
         if self.confirmed.len() >= MAX_BREAKTHROUGHS {
-            self.confirmed.pop_front();
+            self.confirmed.remove(0);
         }
-        self.confirmed.push_back(breakthrough.clone());
+        self.confirmed.push(breakthrough.clone());
         Some(breakthrough)
     }
 
@@ -436,6 +434,8 @@ impl CoopBreakthroughDetector {
             parameters: Vec::new(),
             replicated: false,
         };
+        let candidate_domain = candidate.domain;
+        let candidate_new_performance = candidate.new_performance;
         self.stats.confirmed_breakthroughs += 1;
         if confirmed.improvement_magnitude > self.stats.largest_improvement_ever {
             self.stats.largest_improvement_ever = confirmed.improvement_magnitude;
@@ -444,17 +444,17 @@ impl CoopBreakthroughDetector {
             + (1.0 - EMA_ALPHA) * self.stats.avg_improvement_ema;
         self.add_chronicle_entry(&confirmed);
         if self.confirmed.len() >= MAX_BREAKTHROUGHS {
-            self.confirmed.pop_front();
+            self.confirmed.remove(0);
         }
-        self.confirmed.push_back(confirmed);
-        self.recent_evaluations.push_back(true);
+        self.confirmed.push(confirmed);
+        self.recent_evaluations.push(true);
         if self.recent_evaluations.len() > BREAKTHROUGH_RATE_WINDOW {
-            self.recent_evaluations.pop_front();
+            self.recent_evaluations.remove(0);
         }
         let rate = self.breakthrough_rate();
         self.stats.breakthrough_rate_ema =
             EMA_ALPHA * rate + (1.0 - EMA_ALPHA) * self.stats.breakthrough_rate_ema;
-        self.update_baseline(candidate.domain, candidate.new_performance);
+        self.update_baseline(candidate_domain, candidate_new_performance);
     }
 
     fn add_chronicle_entry(&mut self, breakthrough: &ConfirmedBreakthrough) {
@@ -473,15 +473,15 @@ impl CoopBreakthroughDetector {
             still_relevant: true,
         };
         if self.chronicle.len() >= CHRONICLE_MAX {
-            self.chronicle.pop_front();
+            self.chronicle.remove(0);
         }
-        self.chronicle.push_back(entry);
+        self.chronicle.push(entry);
         self.stats.chronicle_size = self.chronicle.len() as u64;
     }
 
     fn update_baseline(&mut self, domain: BreakthroughDomain, new_value: f32) {
         let key = domain as u64;
-        let current = self.domain_baselines.get(key).copied().unwrap_or(0.0);
+        let current = self.domain_baselines.get(key).unwrap_or(0.0);
         if new_value > current {
             self.domain_baselines.insert(key, new_value);
         }
