@@ -9,7 +9,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// NUMA memory placement policy mode.
@@ -148,13 +147,13 @@ impl WeightedInterleave {
         let idx = (self.interleave_index % self.total_weight as u64) as u32;
         self.interleave_index += 1;
         let mut cumulative = 0u32;
-        for (&node, &weight) in &self.node_weights {
+        for (node, weight) in self.node_weights.iter() {
             cumulative += weight;
             if idx < cumulative {
-                return Some(node);
+                return Some(node as u32);
             }
         }
-        self.node_weights.keys().next().copied()
+        self.node_weights.keys().next().map(|k| k as u32)
     }
 }
 
@@ -266,7 +265,7 @@ pub struct MempolicyStats {
 /// Main holistic memory policy manager.
 pub struct HolisticMempolicy {
     pub policies: BTreeMap<u64, MempolicyInstance>,
-    pub process_policies: LinearMap<u64, 64>, // pid → policy_id
+    pub process_policies: LinearMap<u64, 64>, // pid → policy_id,
     pub max_numa_nodes: u32,
     pub next_policy_id: u64,
     pub stats: MempolicyStats,
@@ -320,7 +319,7 @@ impl HolisticMempolicy {
     }
 
     pub fn allocate_for_process(&mut self, pid: u64) -> Option<u32> {
-        let policy_id = self.process_policies.get(pid).copied()?;
+        let policy_id = self.process_policies.get(pid)?;
         let policy = self.policies.get_mut(&policy_id)?;
         let node = policy.select_node();
         self.stats.total_allocations += 1;
