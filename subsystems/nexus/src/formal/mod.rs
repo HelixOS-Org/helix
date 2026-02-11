@@ -463,14 +463,30 @@ impl IntervalDomain {
 /// Sign abstract domain
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SignDomain {
-    Negative,
-    Zero,
-    Positive,
-    NonNegative,
-    NonPositive,
-    NonZero,
+    /// Top element (unknown sign)
     Top,
+    /// Bottom element (unreachable)
     Bottom,
+    /// Strictly positive
+    Positive,
+    /// Strictly negative
+    Negative,
+    /// Zero
+    Zero,
+    /// Non-negative (zero or positive)
+    NonNegative,
+    /// Non-positive (zero or negative)
+    NonPositive,
+    /// Non-zero (positive or negative)
+    NonZero,
+    /// Low magnitude
+    Low,
+    /// Medium magnitude
+    Medium,
+    /// High magnitude
+    High,
+    /// No sign information
+    None,
 }
 
 impl SignDomain {
