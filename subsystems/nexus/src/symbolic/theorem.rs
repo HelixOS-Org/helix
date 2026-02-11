@@ -23,7 +23,6 @@ extern crate alloc;
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::{String, ToString};
 use alloc::vec;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -735,13 +734,13 @@ impl TheoremProver {
 
     /// Set of support resolution strategy
     fn set_of_support_resolution(&mut self, support_start: usize) -> ProofResult {
-        let mut support_set: VecDeque<usize> = vec![support_start];
+        let mut support_set: Vec<usize> = vec![support_start];
         let mut used_set: BTreeSet<usize> = BTreeSet::new();
         let mut all_clauses = self.clauses.clone();
         let mut max_depth = 0;
 
         while !support_set.is_empty() && self.steps < self.timeout {
-            let current_id = support_set.pop_front().unwrap();
+            let current_id = support_set.remove(0);
             used_set.insert(current_id);
 
             let current = match all_clauses.iter().find(|c| c.id == current_id).cloned() {
