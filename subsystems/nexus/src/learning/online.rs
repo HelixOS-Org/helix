@@ -260,7 +260,7 @@ impl OnlineLearner {
 
         // Track error
         if self.recent_errors.len() >= self.config.window_size {
-            self.recent_errors.pop_front();
+            self.recent_errors.remove(0);
         }
         self.recent_errors.push_back(error.abs());
 
@@ -533,7 +533,7 @@ impl AdwinDetector {
                 self.drift = true;
                 // Remove old window
                 for _ in 0..cut {
-                    self.window.pop_front();
+                    self.window.remove(0);
                 }
                 break;
             } else if diff > epsilon * 0.7 {
@@ -546,7 +546,7 @@ impl AdwinDetector {
 impl DriftDetector for AdwinDetector {
     fn update(&mut self, value: f64) {
         if self.window.len() >= self.max_size {
-            self.window.pop_front();
+            self.window.remove(0);
         }
         self.window.push_back(value);
         self.check_drift();
@@ -669,7 +669,7 @@ impl ConceptDriftDetector {
 
         if self.drift_detected() {
             if self.drift_history.len() >= self.max_history {
-                self.drift_history.pop_front();
+                self.drift_history.remove(0);
             }
 
             let detector = if self.adwin.drift_detected() && self.page_hinkley.drift_detected() {
@@ -761,7 +761,7 @@ impl AdaptiveLearner {
     pub fn update(&mut self, sample: &StreamingSample) {
         // Store recent sample
         if self.recent_samples.len() >= self.window_size {
-            self.recent_samples.pop_front();
+            self.recent_samples.remove(0);
         }
         self.recent_samples.push_back(sample.clone());
 
@@ -849,6 +849,7 @@ pub struct DriftStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_online_stats() {
