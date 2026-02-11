@@ -264,8 +264,11 @@ impl HolisticGoalTracker {
             } else {
                 GoalStatus::AtRisk
             };
+        }
 
-            self.propagate_to_root(sub.parent_id);
+        let parent_id = self.subgoals.get(&subgoal_id).map(|s| s.parent_id);
+        if let Some(pid) = parent_id {
+            self.propagate_to_root(pid);
         }
     }
 
