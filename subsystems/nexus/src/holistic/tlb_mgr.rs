@@ -14,6 +14,8 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// TLB flush reason
+use core::sync::atomic::AtomicU64;
+use core::sync::atomic::Ordering;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TlbFlushReason {
     PageTableChange,
@@ -544,9 +546,9 @@ impl HolisticTlbMgrV2 {
     ) -> u64 {
         let id = self.next_batch_id;
         self.next_batch_id += 1;
-        let gen = self.global_generation.fetch_add(1, Ordering::SeqCst) + 1;
+        let gen_val = self.global_generation.fetch_add(1, Ordering::SeqCst) + 1;
         let mut batch = TlbV2ShootdownBatch::new(id, scope, start_addr, end_addr);
-        batch.generation = gen;
+        batch.generation = gen_val;
         self.pending_batches.push(batch);
         self.stats.total_shootdowns += 1;
         id
