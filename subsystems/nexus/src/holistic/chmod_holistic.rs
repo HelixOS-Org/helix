@@ -2,8 +2,6 @@
 //! Holistic chmod — permission change analysis with security impact assessment
 
 extern crate alloc;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Holistic chmod risk level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
