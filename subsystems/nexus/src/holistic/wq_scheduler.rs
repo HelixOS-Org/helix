@@ -191,7 +191,7 @@ impl Workqueue {
     }
 
     #[inline]
-    pub fn dispatch(&mut self, now: u64) -> Option<(u32, u64)> {
+    pub fn dispatch(&mut self, _now: u64) -> Option<(u32, u64)> {
         let worker_id = self.workers.iter().position(|w| !w.active)?;
         let item = self.pending.pop()?;
         let work_id = item.id;
