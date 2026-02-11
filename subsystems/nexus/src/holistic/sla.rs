@@ -167,16 +167,14 @@ impl SlaTarget {
             } else {
                 SlaStatus::Violated
             }
+        } else if value <= self.target {
+            SlaStatus::Met
+        } else if value <= self.warning {
+            SlaStatus::Warning
+        } else if value <= self.critical {
+            SlaStatus::Critical
         } else {
-            if value <= self.target {
-                SlaStatus::Met
-            } else if value <= self.warning {
-                SlaStatus::Warning
-            } else if value <= self.critical {
-                SlaStatus::Critical
-            } else {
-                SlaStatus::Violated
-            }
+            SlaStatus::Violated
         }
     }
 }
@@ -271,7 +269,7 @@ pub struct MetricEvaluation {
     pub target: f64,
     pub actual: f64,
     pub status: SlaStatus,
-    pub score: f64, // 0.0 = violated, 1.0 = perfect
+    pub score: f64, // 0.0 = violated, 1.0 = perfect,
 }
 
 /// Complete SLA evaluation result
@@ -478,10 +476,10 @@ impl SystemSlaManager {
 
         for target in &sla.targets {
             let metric_key = target.metric as u8;
-            let value = metrics.get(&metric_key).copied().unwrap_or(0.0);
-            let status = target.severity(value);
+            let value = metrics.get(&metric_key).unwrap_or(&0.0);
+            let status = target.severity(*value);
 
-            let score = if target.meets_target(value) {
+            let score = if target.meets_target(*value) {
                 1.0
             } else if target.higher_is_better {
                 if target.target > 0.0 {
@@ -489,15 +487,13 @@ impl SystemSlaManager {
                 } else {
                     0.0
                 }
+            } else if value > &0.0 {
+                (target.target / value).min(1.0)
             } else {
-                if value > 0.0 {
-                    (target.target / value).min(1.0)
-                } else {
-                    1.0
-                }
+                1.0
             };
 
-            let weight = sla.weights.get(&metric_key).copied().unwrap_or(1.0);
+            let weight = sla.weights.get(&metric_key).unwrap_or(&1.0);
 
             total_score += score * weight;
             total_weight += weight;
@@ -509,7 +505,7 @@ impl SystemSlaManager {
             evaluations.push(MetricEvaluation {
                 metric: target.metric,
                 target: target.target,
-                actual: value,
+                actual: *value,
                 status,
                 score,
             });
@@ -551,7 +547,7 @@ impl SystemSlaManager {
         self.total_violations += 1;
         self.violations.push_back(violation);
         if self.violations.len() > self.max_violations {
-            self.violations.pop_front();
+            self.violations.remove(0);
         }
     }
 
@@ -580,6 +576,6 @@ impl SystemSlaManager {
     #[inline(always)]
     pub fn process_tier(&self, pid: u64) -> Option<SlaTier> {
         let sla_id = self.process_sla.get(pid)?;
-        self.slas.get(sla_id).map(|s| s.tier)
+        self.slas.get(&sla_id).map(|s| s.tier)
     }
 }
