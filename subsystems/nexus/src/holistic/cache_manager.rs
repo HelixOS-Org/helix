@@ -299,7 +299,7 @@ impl HolisticCacheManager {
         }
 
         let mut remaining = self.total_ways;
-        let n = self.partitions.len() as u32;
+        let _n = self.partitions.len() as u32;
         let min_ways = 1u32;
 
         let keys: Vec<u64> = self.partitions.keys().cloned().collect();
