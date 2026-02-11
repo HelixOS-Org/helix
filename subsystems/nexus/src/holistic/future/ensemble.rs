@@ -22,6 +22,7 @@ use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -341,14 +342,14 @@ impl HolisticEnsemble {
             1.0
         };
 
-        let mut contributions: LinearMap<f32, 64> = BTreeMap::new();
+        let mut contributions: LinearMap<f32, 64> = LinearMap::new();
         for (id, _, w, _) in &active_members {
             let contrib = if total_weight > 0.0 { w / total_weight } else { 0.0 };
             contributions.insert(*id, contrib);
         }
 
         let diversity = self.compute_diversity(&active_members);
-        let confidence = (1.0 - variance.sqrt().min(1.0)) * 0.8 + diversity * 0.2;
+        let confidence = (1.0 - F32Ext::sqrt(variance).min(1.0)) * 0.8 + diversity * 0.2;
 
         self.stats.avg_ensemble_size =
             ema_update(self.stats.avg_ensemble_size, active_members.len() as f32);
@@ -590,7 +591,7 @@ impl HolisticEnsemble {
         let mut recent_error = 0.0_f32;
         let mut recent_count = 0_usize;
 
-        for (pred_val, actual, source_key) in &self.accuracy_log {
+        for (source_key, pred_val, actual) in &self.accuracy_log {
             let err = (pred_val - actual).abs();
             total_error += err;
             count += 1;
@@ -600,7 +601,7 @@ impl HolisticEnsemble {
         }
 
         let recent_window = self.accuracy_log.len().saturating_sub(100);
-        for (pred_val, actual, _) in self.accuracy_log.iter().skip(recent_window) {
+        for (_, pred_val, actual) in self.accuracy_log.iter().skip(recent_window) {
             recent_error += (pred_val - actual).abs();
             recent_count += 1;
         }
@@ -612,7 +613,7 @@ impl HolisticEnsemble {
             0.5
         };
 
-        let mut accuracy_by_source: LinearMap<f32, 64> = BTreeMap::new();
+        let mut accuracy_by_source: LinearMap<f32, 64> = LinearMap::new();
         for (k, (err, cnt)) in &source_errors {
             let acc = if *cnt > 0 { 1.0 - (err / *cnt as f32).min(1.0) } else { 0.5 };
             accuracy_by_source.insert(*k, acc);
@@ -643,7 +644,7 @@ impl HolisticEnsemble {
     pub fn record_outcome(&mut self, prediction: f32, actual: f32, source: EnsembleSource) {
         let key = fnv1a_hash(&[source as u8]);
         if self.accuracy_log.len() < MAX_FUSION_HISTORY {
-            self.accuracy_log.push((prediction, actual, key));
+            self.accuracy_log.push((key, prediction, actual));
         }
     }
 
@@ -678,7 +679,7 @@ impl HolisticEnsemble {
             .map(|(_, p, _, _)| (p - mean_pred) * (p - mean_pred))
             .sum::<f32>()
             / members.len() as f32;
-        variance.sqrt().min(1.0)
+        F32Ext::sqrt(variance).min(1.0)
     }
 
     fn compute_weight_entropy(&self, total_weight: f32) -> f32 {
@@ -689,7 +690,7 @@ impl HolisticEnsemble {
         for m in self.members.values().filter(|m| m.active) {
             let p = m.weight / total_weight;
             if p > 0.0 {
-                entropy -= p * p.ln();
+                entropy -= p * F32Ext::ln(p);
             }
         }
         entropy.max(0.0)
