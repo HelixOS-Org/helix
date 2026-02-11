@@ -215,16 +215,6 @@ pub enum PciBarType {
     Io,
 }
 
-/// PCI BAR
-#[derive(Debug)]
-pub struct PciBar {
-    pub index: u8,
-    pub bar_type: PciBarType,
-    pub base_addr: u64,
-    pub size: u64,
-    pub prefetchable: bool,
-}
-
 /// PCI device v2
 #[derive(Debug)]
 pub struct PciDeviceV2 {
