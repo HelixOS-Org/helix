@@ -77,7 +77,7 @@ impl FeatureVector {
     #[inline]
     pub fn get(&self, index: usize) -> f64 {
         if let Some(ref dense) = self.dense {
-            dense.get(index).copied().unwrap_or(0.0)
+            *dense.get(index).unwrap_or(&0.0)
         } else {
             self.features
                 .iter()
