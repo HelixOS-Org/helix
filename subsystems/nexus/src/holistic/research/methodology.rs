@@ -21,7 +21,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -207,7 +206,7 @@ pub struct MethodologyStats {
 /// Master methodology framework for the entire NEXUS kernel
 pub struct HolisticMethodology {
     standards: BTreeMap<u64, MethodologyStandard>,
-    audits: VecDeque<MethodologyAudit>,
+    audits: Vec<MethodologyAudit>,
     violations: Vec<MethodologyViolation>,
     practices: BTreeMap<u64, BestPractice>,
     certifications: BTreeMap<u64, QualityCertification>,
@@ -222,7 +221,7 @@ impl HolisticMethodology {
     pub fn new(seed: u64) -> Self {
         Self {
             standards: BTreeMap::new(),
-            audits: VecDeque::new(),
+            audits: Vec::new(),
             violations: Vec::new(),
             practices: BTreeMap::new(),
             certifications: BTreeMap::new(),
@@ -319,8 +318,8 @@ impl HolisticMethodology {
             standards_failed: failed, quality_score: quality,
             status, tick: self.tick,
         };
-        if self.audits.len() >= MAX_AUDITS { self.audits.pop_front(); }
-        self.audits.push_back(audit.clone());
+        if self.audits.len() >= MAX_AUDITS { self.audits.remove(0); }
+        self.audits.push(audit.clone());
         self.stats.total_audits += 1;
         let is_pass = if status == AuditStatus::Passed { 1.0 } else { 0.0 };
         self.stats.pass_rate_ema = self.stats.pass_rate_ema
@@ -341,7 +340,7 @@ impl HolisticMethodology {
 
     /// Enforce methodology — block experiments below threshold
     #[inline]
-    pub fn methodology_enforcement(&mut self, experiment_hash: u64,
+    pub fn methodology_enforcement(&mut self, _experiment_hash: u64,
                                     quality_score: f32) -> bool {
         let allowed = quality_score >= QUALITY_THRESHOLD;
         let enforce_signal = if allowed { 1.0 } else { 0.0 };
@@ -422,7 +421,7 @@ impl HolisticMethodology {
 
     /// Issue quality certifications for subsystems
     pub fn quality_guarantee(&mut self, subsystem: MethodologySubsystem) -> QualityCertification {
-        let recent_audits: VecDeque<&MethodologyAudit> = self.audits.iter()
+        let recent_audits: Vec<&MethodologyAudit> = self.audits.iter()
             .filter(|a| a.subsystem == subsystem).collect();
         let (met, total, avg_quality) = if recent_audits.is_empty() {
             (0u64, self.standards.len() as u64, 0.0f32)
