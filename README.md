@@ -266,12 +266,7 @@ See [CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for full guidelines.
 
 ## License
 
-Licensed under either of:
-
 - [MIT License](LICENSE)
-- [Apache License, Version 2.0](LICENSE)
-
-at your option.
 
 ---
 
