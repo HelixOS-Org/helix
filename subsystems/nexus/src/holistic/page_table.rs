@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// Page table level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -118,10 +117,8 @@ impl AddressSpace {
     pub fn translate(&self, vaddr: u64) -> Option<u64> {
         // Walk: find containing entry
         for (base, entry) in &self.entries {
-            if vaddr >= *base && vaddr < *base + entry.page_size() {
-                if entry.flags.is_present() {
-                    return Some(entry.paddr + (vaddr - base));
-                }
+            if vaddr >= *base && vaddr < *base + entry.page_size() && entry.flags.is_present() {
+                return Some(entry.paddr + (vaddr - base));
             }
         }
         None
