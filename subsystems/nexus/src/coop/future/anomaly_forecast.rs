@@ -10,7 +10,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
@@ -217,7 +216,7 @@ impl CoopAnomalyForecast {
             pattern_library: BTreeMap::new(),
             intervention_history: Vec::new(),
             stats: AnomalyForecastStats::new(),
-            rng_state: seed ^ 0xA707_A1Y0_F0CA_5700,
+            rng_state: seed ^ 0xA707_A100_F0CA_5700,
             current_tick: 0,
             deadlock_threshold: 3,
             livelock_frequency_threshold: 50,
@@ -270,13 +269,13 @@ impl CoopAnomalyForecast {
             resources_attempted: Vec::new(),
             wait_cycles: 0,
         });
-        ws.state_changes.push(self.current_tick);
+        ws.state_changes.push_back(self.current_tick);
         ws.wait_cycles = ws.wait_cycles.saturating_add(1);
         if !ws.resources_attempted.contains(&resource_id) {
             ws.resources_attempted.push(resource_id);
         }
         if ws.state_changes.len() > 64 {
-            ws.state_changes.pop_front().unwrap();
+            ws.state_changes.remove(0).unwrap();
         }
 
         let priority = self.priorities.entry(process_id).or_insert_with(|| PriorityRecord {
@@ -386,6 +385,7 @@ impl CoopAnomalyForecast {
     /// Detect livelock precursors.
     pub fn livelock_precursor(&mut self) -> Vec<LivelockPrecursor> {
         let mut precursors: Vec<LivelockPrecursor> = Vec::new();
+        let mut patterns_to_catalog: Vec<(AnomalyType, u64, u64)> = Vec::new();
 
         for (_, ws) in &self.wait_states {
             if ws.state_changes.len() < 4 {
@@ -433,8 +433,12 @@ impl CoopAnomalyForecast {
                     detection_confidence: 700,
                 });
 
-                self.catalog_pattern(AnomalyType::Livelock, pid, probability);
+                patterns_to_catalog.push((AnomalyType::Livelock, pid, probability));
             }
+        }
+
+        for (atype, pid, probability) in patterns_to_catalog {
+            self.catalog_pattern(atype, pid, probability);
         }
 
         self.stats.livelocks_detected = self.stats.livelocks_detected
@@ -623,11 +627,11 @@ impl CoopAnomalyForecast {
 
     fn detect_wait_cycle(&self, start: u64) -> Vec<u64> {
         let mut path: Vec<u64> = Vec::new();
-        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = LinearMap::new();
         let mut current = start;
 
         for _ in 0..32 {
-            if visited.contains_key(&current) {
+            if visited.contains_key(current) {
                 if current == start && path.len() >= 2 {
                     return path;
                 }
@@ -654,10 +658,10 @@ impl CoopAnomalyForecast {
     fn compute_inversion_depth(&self, blocker: u64) -> u32 {
         let mut depth: u32 = 0;
         let mut current = blocker;
-        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = LinearMap::new();
 
         for _ in 0..16 {
-            if visited.contains_key(&current) {
+            if visited.contains_key(current) {
                 break;
             }
             visited.insert(current, true);
