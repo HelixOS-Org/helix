@@ -25,6 +25,128 @@
 //! Beyond 128 entries, BTreeMap starts winning. Use `FlatMap` for
 //! bounded key ranges (0..512) or stick with BTreeMap for large maps.
 
+/// Entry API for LinearMap — provides BTreeMap-compatible entry pattern.
+pub enum LinearMapEntry<'a, V: Copy + Default, const N: usize> {
+    /// Entry exists.
+    Occupied(OccupiedLinearEntry<'a, V, N>),
+    /// Entry does not exist.
+    Vacant(VacantLinearEntry<'a, V, N>),
+}
+
+/// Occupied entry in a LinearMap.
+pub struct OccupiedLinearEntry<'a, V: Copy + Default, const N: usize> {
+    map: &'a mut LinearMap<V, N>,
+    idx: usize,
+}
+
+/// Vacant entry in a LinearMap.
+pub struct VacantLinearEntry<'a, V: Copy + Default, const N: usize> {
+    map: &'a mut LinearMap<V, N>,
+    key: u64,
+}
+
+impl<'a, V: Copy + Default, const N: usize> LinearMapEntry<'a, V, N> {
+    /// Insert default value if vacant, return mutable reference.
+    #[inline]
+    pub fn or_insert(self, default: V) -> &'a mut V {
+        match self {
+            LinearMapEntry::Occupied(e) => &mut e.map.vals[e.idx],
+            LinearMapEntry::Vacant(e) => {
+                e.map.insert(e.key, default);
+                // Find the just-inserted entry
+                let mut i = 0;
+                while i < e.map.len {
+                    if e.map.keys[i] == e.key {
+                        return &mut e.map.vals[i];
+                    }
+                    i += 1;
+                }
+                // Fallback (should not happen if insert succeeded)
+                &mut e.map.vals[0]
+            }
+        }
+    }
+
+    /// Insert with closure if vacant, return mutable reference.
+    #[inline]
+    pub fn or_insert_with<F: FnOnce() -> V>(self, f: F) -> &'a mut V {
+        match self {
+            LinearMapEntry::Occupied(e) => &mut e.map.vals[e.idx],
+            LinearMapEntry::Vacant(e) => {
+                let val = f();
+                e.map.insert(e.key, val);
+                let mut i = 0;
+                while i < e.map.len {
+                    if e.map.keys[i] == e.key {
+                        return &mut e.map.vals[i];
+                    }
+                    i += 1;
+                }
+                &mut e.map.vals[0]
+            }
+        }
+    }
+
+    /// Insert default if vacant, return mutable reference.
+    #[inline]
+    pub fn or_default(self) -> &'a mut V {
+        self.or_insert(V::default())
+    }
+
+    /// Apply a function to an occupied entry before returning.
+    #[inline]
+    pub fn and_modify<F: FnOnce(&mut V)>(self, f: F) -> Self {
+        match self {
+            LinearMapEntry::Occupied(e) => {
+                f(&mut e.map.vals[e.idx]);
+                LinearMapEntry::Occupied(e)
+            }
+            LinearMapEntry::Vacant(e) => LinearMapEntry::Vacant(e),
+        }
+    }
+}
+
+/// Helper trait so LinearMap methods accept both `u64` and `&u64`.
+pub trait AsU64 {
+    fn as_u64(self) -> u64;
+}
+impl AsU64 for u64 {
+    #[inline(always)]
+    fn as_u64(self) -> u64 { self }
+}
+impl AsU64 for &u64 {
+    #[inline(always)]
+    fn as_u64(self) -> u64 { *self }
+}
+impl AsU64 for &&u64 {
+    #[inline(always)]
+    fn as_u64(self) -> u64 { **self }
+}
+impl AsU64 for u32 {
+    #[inline(always)]
+    fn as_u64(self) -> u64 { self as u64 }
+}
+impl AsU64 for &u32 {
+    #[inline(always)]
+    fn as_u64(self) -> u64 { *self as u64 }
+}
+impl AsU64 for usize {
+    #[inline(always)]
+    fn as_u64(self) -> u64 { self as u64 }
+}
+impl AsU64 for &usize {
+    #[inline(always)]
+    fn as_u64(self) -> u64 { *self as u64 }
+}
+impl AsU64 for i32 {
+    #[inline(always)]
+    fn as_u64(self) -> u64 { self as u64 }
+}
+impl AsU64 for i64 {
+    #[inline(always)]
+    fn as_u64(self) -> u64 { self as u64 }
+}
+
 /// Stack-allocated map with linear probing.
 ///
 /// - Keys: `u64` (0 is reserved as "empty" sentinel)
@@ -32,7 +154,7 @@
 /// - Max capacity: `N` (compile-time)
 /// - O(n) worst-case, O(1) amortized for small N
 /// - Zero heap allocation
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct LinearMap<V: Copy + Default, const N: usize> {
     keys: [u64; N],
     vals: [V; N],
@@ -74,10 +196,26 @@ impl<V: Copy + Default, const N: usize> LinearMap<V, N> {
         N
     }
 
+    /// BTreeMap-compatible entry API.
+    #[inline]
+    pub fn entry(&mut self, key: impl AsU64) -> LinearMapEntry<'_, V, N> {
+        let key = key.as_u64();
+        let mut i = 0;
+        while i < self.len {
+            if self.keys[i] == key {
+                return LinearMapEntry::Occupied(OccupiedLinearEntry { map: self, idx: i });
+            }
+            i += 1;
+        }
+        LinearMapEntry::Vacant(VacantLinearEntry { map: self, key })
+    }
+
     /// Get a value by key. O(n) scan, but cache-friendly.
     /// Returns `None` if not found.
+    /// Accepts `u64`, `&u64`, `&&u64`, `u32`, `usize`, etc.
     #[inline]
-    pub fn get(&self, key: u64) -> Option<V> {
+    pub fn get(&self, key: impl AsU64) -> Option<V> {
+        let key = key.as_u64();
         if key == 0 {
             return None; // 0 is sentinel
         }
@@ -93,7 +231,8 @@ impl<V: Copy + Default, const N: usize> LinearMap<V, N> {
 
     /// Get a mutable reference to a value by key.
     #[inline]
-    pub fn get_mut(&mut self, key: u64) -> Option<&mut V> {
+    pub fn get_mut(&mut self, key: impl AsU64) -> Option<&mut V> {
+        let key = key.as_u64();
         if key == 0 {
             return None;
         }
@@ -110,7 +249,8 @@ impl<V: Copy + Default, const N: usize> LinearMap<V, N> {
     /// Insert or update. Returns `true` if inserted, `false` if updated
     /// or if full (silent drop on full).
     #[inline]
-    pub fn insert(&mut self, key: u64, val: V) -> bool {
+    pub fn insert(&mut self, key: impl AsU64, val: V) -> bool {
+        let key = key.as_u64();
         if key == 0 {
             return false;
         }
@@ -137,7 +277,8 @@ impl<V: Copy + Default, const N: usize> LinearMap<V, N> {
     /// Remove by key. O(n) scan + swap-remove (O(1) remove).
     /// Returns the removed value, or `None`.
     #[inline]
-    pub fn remove(&mut self, key: u64) -> Option<V> {
+    pub fn remove(&mut self, key: impl AsU64) -> Option<V> {
+        let key = key.as_u64();
         if key == 0 {
             return None;
         }
@@ -161,7 +302,8 @@ impl<V: Copy + Default, const N: usize> LinearMap<V, N> {
 
     /// Check if key exists.
     #[inline]
-    pub fn contains_key(&self, key: u64) -> bool {
+    pub fn contains_key(&self, key: impl AsU64) -> bool {
+        let key = key.as_u64();
         if key == 0 {
             return false;
         }
@@ -177,7 +319,8 @@ impl<V: Copy + Default, const N: usize> LinearMap<V, N> {
 
     /// Get or insert default. Returns mutable reference.
     #[inline]
-    pub fn entry_or_default(&mut self, key: u64) -> Option<&mut V> {
+    pub fn entry_or_default(&mut self, key: impl AsU64) -> Option<&mut V> {
+        let key = key.as_u64();
         if key == 0 {
             return None;
         }
@@ -222,6 +365,40 @@ impl<V: Copy + Default, const N: usize> LinearMap<V, N> {
     pub fn values_mut(&mut self) -> impl Iterator<Item = &mut V> {
         self.vals[..self.len].iter_mut()
     }
+
+    /// Iterate over values (copied).
+    /// BTreeMap-compatible API.
+    #[inline]
+    pub fn values(&self) -> impl Iterator<Item = V> + '_ {
+        self.vals[..self.len].iter().copied()
+    }
+
+    /// Iterate over keys.
+    /// BTreeMap-compatible API.
+    #[inline]
+    pub fn keys(&self) -> impl Iterator<Item = u64> + '_ {
+        self.keys[..self.len].iter().copied()
+    }
+
+    /// Retain only entries where the predicate returns true.
+    /// BTreeMap-compatible API.
+    #[inline]
+    pub fn retain<F: FnMut(u64, &V) -> bool>(&mut self, mut f: F) {
+        let mut i = 0;
+        while i < self.len {
+            if !f(self.keys[i], &self.vals[i]) {
+                // Swap-remove
+                self.len -= 1;
+                if i < self.len {
+                    self.keys[i] = self.keys[self.len];
+                    self.vals[i] = self.vals[self.len];
+                }
+                self.keys[self.len] = 0;
+            } else {
+                i += 1;
+            }
+        }
+    }
 }
 
 // Special methods for u64 values (counters).
@@ -239,6 +416,29 @@ impl<const N: usize> LinearMap<u64, N> {
     /// Add amount to counter for key. Creates entry if missing.
     #[inline]
     pub fn add(&mut self, key: u64, amount: u64) {
+        if let Some(v) = self.get_mut(key) {
+            *v += amount;
+        } else {
+            self.insert(key, amount);
+        }
+    }
+}
+
+// Special methods for u32 values (counters).
+impl<const N: usize> LinearMap<u32, N> {
+    /// Increment counter for key. Creates entry with 1 if missing.
+    #[inline]
+    pub fn inc(&mut self, key: u64) {
+        if let Some(v) = self.get_mut(key) {
+            *v += 1;
+        } else {
+            self.insert(key, 1);
+        }
+    }
+
+    /// Add amount to counter for key. Creates entry if missing.
+    #[inline]
+    pub fn add(&mut self, key: u64, amount: u32) {
         if let Some(v) = self.get_mut(key) {
             *v += amount;
         } else {
@@ -275,6 +475,42 @@ impl<'a, V: Copy + Default, const N: usize> Iterator for LinearMapIter<'a, V, N>
 }
 
 impl<'a, V: Copy + Default, const N: usize> ExactSizeIterator for LinearMapIter<'a, V, N> {}
+
+impl<V: Copy + Default, const N: usize> Default for LinearMap<V, N> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<V: Copy + Default + core::fmt::Debug, const N: usize> core::fmt::Debug for LinearMap<V, N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_map()
+            .entries(self.iter().map(|(k, v)| (k, v)))
+            .finish()
+    }
+}
+
+impl<'a, V: Copy + Default, const N: usize> IntoIterator for &'a LinearMap<V, N> {
+    type Item = (u64, V);
+    type IntoIter = LinearMapIter<'a, V, N>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<V: Copy + Default, const N: usize> FromIterator<(u64, V)> for LinearMap<V, N> {
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = (u64, V)>>(iter: I) -> Self {
+        let mut map = Self::new();
+        for (k, v) in iter {
+            map.insert(k, v);
+        }
+        map
+    }
+}
 
 // Provide a Default trait bound that works in const context.
 // This is needed because V::default() isn't const.
