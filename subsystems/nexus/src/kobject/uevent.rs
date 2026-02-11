@@ -141,7 +141,7 @@ impl UeventHandler {
 
         for event in &events {
             if self.history.len() >= self.max_history {
-                self.history.pop_front();
+                self.history.remove(0);
             }
             self.history.push_back(event.clone());
             self.total_sent.fetch_add(1, Ordering::Relaxed);
@@ -177,7 +177,7 @@ impl UeventHandler {
     /// Get subsystem count
     #[inline(always)]
     pub fn subsystem_count(&self, subsystem: &str) -> u64 {
-        self.subsystem_counts.get(subsystem).copied().unwrap_or(0)
+        self.subsystem_counts.get(subsystem).unwrap_or(0)
     }
 
     /// Get recent uevents
