@@ -277,7 +277,7 @@ impl Calibrator {
     pub fn record_prediction(&mut self, prediction: PredictionRecord) {
         self.predictions.push_back(prediction);
         if self.predictions.len() > self.max_records {
-            self.predictions.pop_front();
+            self.predictions.remove(0);
         }
     }
 
@@ -303,7 +303,7 @@ impl Calibrator {
     pub fn record_decision(&mut self, decision: DecisionRecord) {
         self.decisions.push_back(decision);
         if self.decisions.len() > self.max_records {
-            self.decisions.pop_front();
+            self.decisions.remove(0);
         }
     }
 
