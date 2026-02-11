@@ -71,7 +71,7 @@ impl ModuleSlot {
         if self.fallbacks.is_empty() {
             None
         } else {
-            self.fallbacks.pop_front()
+            self.fallbacks.remove(0)
         }
     }
 
