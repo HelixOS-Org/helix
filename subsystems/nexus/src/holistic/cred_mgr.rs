@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Capability (Linux-style)
@@ -234,14 +233,14 @@ pub struct CredManagerStats {
 /// Holistic credential manager
 pub struct HolisticCredManager {
     creds: BTreeMap<u64, ProcessCred>,
-    events: VecDeque<CredEvent>,
+    events: Vec<CredEvent>,
     max_events: usize,
     stats: CredManagerStats,
 }
 
 impl HolisticCredManager {
     pub fn new() -> Self {
-        Self { creds: BTreeMap::new(), events: VecDeque::new(), max_events: 2048, stats: CredManagerStats::default() }
+        Self { creds: BTreeMap::new(), events: Vec::new(), max_events: 2048, stats: CredManagerStats::default() }
     }
 
     #[inline]
@@ -266,27 +265,31 @@ impl HolisticCredManager {
     }
 
     pub fn grant_cap(&mut self, pid: u64, cap: Capability, ts: u64) -> bool {
-        if let Some(c) = self.creds.get_mut(&pid) {
+        let euid = if let Some(c) = self.creds.get_mut(&pid) {
             if c.cap_bounding.has(cap) {
                 c.cap_effective.set(cap);
                 c.cap_permitted.set(cap);
-                let mut gained = CapSet::empty();
-                gained.set(cap);
-                self.record_event(pid, CredEventType::CapGrant, c.euid, c.euid, gained, CapSet::empty(), ts);
-                true
-            } else { false }
-        } else { false }
+                c.euid
+            } else { return false }
+        } else { return false };
+        let mut gained = CapSet::empty();
+        gained.set(cap);
+        self.record_event(pid, CredEventType::CapGrant, euid, euid, gained, CapSet::empty(), ts);
+        true
     }
 
     #[inline]
     pub fn revoke_cap(&mut self, pid: u64, cap: Capability, ts: u64) {
-        if let Some(c) = self.creds.get_mut(&pid) {
+        let euid = if let Some(c) = self.creds.get_mut(&pid) {
             c.cap_effective.clear(cap);
             c.cap_permitted.clear(cap);
-            let mut lost = CapSet::empty();
-            lost.set(cap);
-            self.record_event(pid, CredEventType::CapRevoke, c.euid, c.euid, CapSet::empty(), lost, ts);
-        }
+            c.euid
+        } else {
+            return;
+        };
+        let mut lost = CapSet::empty();
+        lost.set(cap);
+        self.record_event(pid, CredEventType::CapRevoke, euid, euid, CapSet::empty(), lost, ts);
     }
 
     #[inline(always)]
@@ -315,8 +318,8 @@ impl HolisticCredManager {
     }
 
     fn record_event(&mut self, pid: u64, etype: CredEventType, old_uid: u32, new_uid: u32, gained: CapSet, lost: CapSet, ts: u64) {
-        self.events.push_back(CredEvent { pid, event_type: etype, timestamp: ts, old_uid, new_uid, caps_gained: gained, caps_lost: lost });
-        if self.events.len() > self.max_events { self.events.pop_front(); }
+        self.events.push(CredEvent { pid, event_type: etype, timestamp: ts, old_uid, new_uid, caps_gained: gained, caps_lost: lost });
+        if self.events.len() > self.max_events { self.events.remove(0); }
     }
 
     #[inline]
