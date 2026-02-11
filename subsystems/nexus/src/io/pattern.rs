@@ -89,7 +89,7 @@ impl IoPatternAnalyzer {
 
         // Evict old entries
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         // Update pattern detection
