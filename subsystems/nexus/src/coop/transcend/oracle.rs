@@ -9,8 +9,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -107,7 +105,7 @@ pub struct TrustTrajectory {
     pub current_trust: u64,
     pub velocity: i64,
     pub predicted_trust: u64,
-    pub history: VecDeque<u64>,
+    pub history: Vec<u64>,
 }
 
 // ---------------------------------------------------------------------------
@@ -190,7 +188,7 @@ impl CoopOracle {
         let history = self.demand_history.entry(agent_id).or_insert_with(Vec::new);
         history.push(value);
         if history.len() > HISTORY_WINDOW {
-            history.pop_front();
+            history.remove(0);
         }
     }
 
@@ -397,7 +395,7 @@ impl CoopOracle {
             let velocity = current_trust as i64 - prev as i64;
             traj.history.push(current_trust);
             if traj.history.len() > HISTORY_WINDOW {
-                traj.history.pop_front().unwrap();
+                traj.history.remove(0);
             }
             traj.current_trust = current_trust;
             traj.velocity = velocity;
@@ -414,7 +412,7 @@ impl CoopOracle {
                 current_trust,
                 velocity: 0,
                 predicted_trust: current_trust,
-                history: VecDeque::new(),
+                history: Vec::new(),
             };
         }
 
