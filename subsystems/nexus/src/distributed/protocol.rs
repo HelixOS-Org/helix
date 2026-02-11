@@ -691,7 +691,7 @@ impl MessageSerializer {
             message_type: MessageType::Heartbeat, // Simplified
             payload: MessagePayload::Empty,
             timestamp: 0,
-            ttl: bytes.get(offset).copied().unwrap_or(10),
+            ttl: *bytes.get(offset).unwrap_or(&10),
             signature: 0,
         })
     }
