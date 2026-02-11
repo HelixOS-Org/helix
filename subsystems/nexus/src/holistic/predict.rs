@@ -55,7 +55,7 @@ impl MetricTrend {
             self.ema = self.ema_alpha * value + (1.0 - self.ema_alpha) * self.ema;
         }
         if self.samples.len() >= self.max_samples {
-            self.samples.pop_front();
+            self.samples.remove(0);
         }
         self.samples.push_back(TrendSample { timestamp, value });
     }
