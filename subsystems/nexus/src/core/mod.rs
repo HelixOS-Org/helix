@@ -22,6 +22,8 @@ pub use decision::{DecisionKind, DecisionOutcome, NexusDecision};
 pub use level::NexusLevel;
 // Re-export main nexus struct
 pub use nexus::Nexus;
+// Re-export core config (distinct from crate::config::NexusConfig)
+pub use nexus::NexusConfig as CoreNexusConfig;
 // Re-export state
 pub use state::NexusState;
 // Re-export subsystem trait
