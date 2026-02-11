@@ -174,7 +174,7 @@ impl SecurityEnforcer {
         };
 
         if self.violations.len() >= self.max_violations {
-            self.violations.pop_front();
+            self.violations.remove(0);
         }
         self.violations.push_back(violation);
     }
