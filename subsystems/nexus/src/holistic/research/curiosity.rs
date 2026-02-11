@@ -21,7 +21,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -193,7 +192,7 @@ pub struct HolisticCuriosityEngine {
     dimensions: BTreeMap<u64, CuriosityDimension>,
     frontiers: Vec<Frontier>,
     allocations: BTreeMap<u64, CuriosityAllocation>,
-    exploration_log: VecDeque<ExplorationEvent>,
+    exploration_log: Vec<ExplorationEvent>,
     strategy: GrandStrategy,
     rng_state: u64,
     tick: u64,
@@ -207,7 +206,7 @@ impl HolisticCuriosityEngine {
             dimensions: BTreeMap::new(),
             frontiers: Vec::new(),
             allocations: BTreeMap::new(),
-            exploration_log: VecDeque::new(),
+            exploration_log: Vec::new(),
             strategy: GrandStrategy {
                 breadth_weight: 0.6,
                 depth_weight: 0.4,
@@ -465,9 +464,9 @@ impl HolisticCuriosityEngine {
             knowledge_delta: knowledge, cost, tick: self.tick,
         };
         if self.exploration_log.len() >= MAX_EXPLORATION_LOG {
-            self.exploration_log.pop_front();
+            self.exploration_log.remove(0);
         }
-        self.exploration_log.push_back(event);
+        self.exploration_log.push(event);
         if let Some(dim) = self.dimensions.values_mut()
             .find(|d| d.domain == domain) {
             dim.times_explored += 1;
