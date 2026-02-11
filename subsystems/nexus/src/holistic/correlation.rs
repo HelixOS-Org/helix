@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -61,9 +60,9 @@ pub struct CorrelationSeries {
     /// Metric source
     pub source: CorrelationMetricSource,
     /// Values
-    values: VecDeque<f64>,
+    values: Vec<f64>,
     /// Timestamps
-    timestamps: VecDeque<u64>,
+    timestamps: Vec<u64>,
     /// Max length
     max_len: usize,
 }
@@ -72,8 +71,8 @@ impl CorrelationSeries {
     pub fn new(source: CorrelationMetricSource, max_len: usize) -> Self {
         Self {
             source,
-            values: VecDeque::new(),
-            timestamps: VecDeque::new(),
+            values: Vec::new(),
+            timestamps: Vec::new(),
             max_len,
         }
     }
@@ -81,11 +80,11 @@ impl CorrelationSeries {
     /// Add sample
     #[inline]
     pub fn add(&mut self, value: f64, timestamp: u64) {
-        self.values.push_back(value);
-        self.timestamps.push_back(timestamp);
+        self.values.push(value);
+        self.timestamps.push(timestamp);
         if self.values.len() > self.max_len {
-            self.values.pop_front();
-            self.timestamps.pop_front();
+            self.values.remove(0);
+            self.timestamps.remove(0);
         }
     }
 
