@@ -9,8 +9,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -167,7 +165,7 @@ impl CoopBeyond {
         let history = self.demand_history.entry(agent_id).or_insert_with(Vec::new);
         history.push(demand);
         if history.len() > 128 {
-            history.pop_front();
+            history.remove(0);
         }
     }
 
@@ -437,15 +435,15 @@ impl CoopBeyond {
                     proto.genome[idx] = mutation;
                 }
                 let old_fitness = proto.fitness;
-                let new_fitness = {
-                    let g = proto.genome.clone();
-                    self.evaluate_protocol_fitness(&g)
-                };
-                proto.fitness = new_fitness;
-                proto.generation += 1;
-                if new_fitness > old_fitness {
-                    total_improvement += new_fitness - old_fitness;
-                    proto.adoption_count += 1;
+                let g = proto.genome.clone();
+                let new_fitness = self.evaluate_protocol_fitness(&g);
+                if let Some(proto) = self.protocols.get_mut(pid) {
+                    proto.fitness = new_fitness;
+                    proto.generation += 1;
+                    if new_fitness > old_fitness {
+                        total_improvement += new_fitness - old_fitness;
+                        proto.adoption_count += 1;
+                    }
                 }
             }
         }
