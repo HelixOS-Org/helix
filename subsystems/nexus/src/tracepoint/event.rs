@@ -56,7 +56,7 @@ impl EventData {
     /// Read u8 at offset
     #[inline(always)]
     pub fn read_u8(&self, offset: usize) -> Option<u8> {
-        self.data.get(offset).copied()
+        self.data.get(offset)
     }
 
     /// Read u16 at offset
