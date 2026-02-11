@@ -60,7 +60,7 @@ impl TraceBuffer {
     #[inline]
     pub fn write(&mut self, event: TraceEvent) {
         self.total_events += 1;
-        if self.events.len() >= self.capacity { self.events.pop_front(); self.overruns += 1; }
+        if self.events.len() >= self.capacity { self.events.remove(0); self.overruns += 1; }
         self.events.push_back(event);
     }
 
