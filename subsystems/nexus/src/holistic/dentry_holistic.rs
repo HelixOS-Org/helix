@@ -236,7 +236,7 @@ impl HolisticDentryV2Manager {
         self.samples.push_back(sample);
         self.stats.samples += 1;
         if self.samples.len() > self.window_size {
-            self.samples.pop_front();
+            self.samples.remove(0);
         }
     }
 
