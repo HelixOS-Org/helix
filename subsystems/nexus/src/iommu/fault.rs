@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -102,7 +101,7 @@ impl IommuFault {
 /// IOMMU fault tracker
 pub struct FaultTracker {
     /// Faults
-    faults: VecDeque<IommuFault>,
+    faults: Vec<IommuFault>,
     /// Max faults
     max_faults: usize,
     /// Fault count by device
@@ -119,7 +118,7 @@ impl FaultTracker {
     /// Create new tracker
     pub fn new(max_faults: usize) -> Self {
         Self {
-            faults: VecDeque::new(),
+            faults: Vec::new(),
             max_faults,
             by_device: BTreeMap::new(),
             by_type: BTreeMap::new(),
@@ -150,9 +149,9 @@ impl FaultTracker {
         }
 
         if self.faults.len() >= self.max_faults {
-            self.faults.pop_front();
+            self.faults.remove(0);
         }
-        self.faults.push_back(fault);
+        self.faults.push(fault);
     }
 
     /// Get recent faults
