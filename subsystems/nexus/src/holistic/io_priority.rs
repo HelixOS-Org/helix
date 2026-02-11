@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 /// IO priority class
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -50,7 +49,7 @@ pub struct IoRequest {
 #[derive(Debug, Clone)]
 pub struct ProcessIoWeight {
     pub process_id: u64,
-    pub weight: u32, // 100-1000
+    pub weight: u32, // 100-1000,
     pub priority: IoPriorityClass,
     pub bytes_read: u64,
     pub bytes_written: u64,
