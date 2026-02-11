@@ -183,7 +183,7 @@ impl UsbManager {
         self.total_transfers.fetch_add(1, Ordering::Relaxed);
 
         if self.transfers.len() >= self.max_transfers {
-            self.transfers.pop_front();
+            self.transfers.remove(0);
         }
         self.transfers.push_back(transfer);
     }
