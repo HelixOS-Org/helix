@@ -387,7 +387,7 @@ impl AdaptationEngine {
     /// Get parameter
     #[inline(always)]
     pub fn get_parameter(&self, name: &str) -> Option<f64> {
-        self.parameters.get(name).copied()
+        self.parameters.get(name)
     }
 
     /// Set feature
@@ -687,6 +687,7 @@ impl AdaptiveParameter {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_metric_buffer() {
