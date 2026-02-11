@@ -66,7 +66,7 @@ impl ConnectionPredictor {
 
         self.recent_connections.push_back(record);
         if self.recent_connections.len() > self.max_history {
-            self.recent_connections.pop_front();
+            self.recent_connections.remove(0);
         }
 
         // Update pattern
@@ -94,7 +94,7 @@ impl ConnectionPredictor {
 
         // Get top destinations
         let mut destinations: Vec<_> = pattern.common_destinations.iter().collect();
-        destinations.sort_by(|a, b| b.1.cmp(a.1));
+        destinations.sort_by(|a, b| b.1.cmp(&a.1));
 
         // Get top ports
         let mut ports: Vec<_> = pattern.common_ports.iter().collect();
@@ -102,9 +102,9 @@ impl ConnectionPredictor {
 
         // Combine top destinations with top ports
         let mut predictions = Vec::new();
-        for &(&dst, _) in destinations.iter().take(n) {
+        for (dst, _) in destinations.iter().take(n) {
             for &(&port, _) in ports.iter().take(2) {
-                predictions.push((dst, port));
+                predictions.push((*dst as u32, port));
                 if predictions.len() >= n {
                     break;
                 }
@@ -148,8 +148,8 @@ impl ConnectionPredictor {
         };
 
         // Check if destination is common
-        let dst_count = pattern.common_destinations.get(&dst_ip).unwrap_or(&0);
-        let dst_ratio = *dst_count as f64 / pattern.total as f64;
+        let dst_count = pattern.common_destinations.get(dst_ip);
+        let dst_ratio = dst_count as f64 / pattern.total as f64;
 
         // Check if port is common
         let port_count = pattern.common_ports.get(&dst_port).unwrap_or(&0);
