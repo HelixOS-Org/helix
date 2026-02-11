@@ -99,7 +99,7 @@ pub struct Insight {
     /// Description
     pub description: String,
     /// Evidence
-    pub evidence: Vec<u64>, // Observation IDs
+    pub evidence: Vec<u64>, // Observation IDs,
     /// Confidence
     pub confidence: f64,
     /// Actionable
@@ -309,7 +309,7 @@ impl ReflectionEngine {
 
         // Trim history
         while self.performance.len() > self.config.history_size {
-            self.performance.pop_front();
+            self.performance.remove(0);
         }
     }
 
