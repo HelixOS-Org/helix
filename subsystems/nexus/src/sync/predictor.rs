@@ -63,7 +63,7 @@ impl WaitTimePredictor {
         let samples = self.samples.entry(lock_id).or_default();
         samples.push_back(sample);
         if samples.len() > self.max_samples {
-            samples.pop_front();
+            samples.remove(0);
         }
 
         self.update_model(lock_id);
