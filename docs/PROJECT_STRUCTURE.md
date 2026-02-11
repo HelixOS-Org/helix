@@ -1,6 +1,6 @@
-# Helix OS Framework - Structure du Projet
+# Helix OS Framework - Project Structure
 
-## Arborescence Complète
+## Complete Directory Tree
 
 ```
 helix/
@@ -9,12 +9,12 @@ helix/
 ├── .cargo/
 │   └── config.toml                     # Cargo configuration (target, linker)
 │
-├── docs/                               # Documentation du framework
-│   ├── ARCHITECTURE.md                 # Architecture conceptuelle
-│   ├── PROJECT_STRUCTURE.md            # Ce fichier
-│   ├── MODULE_GUIDE.md                 # Guide de création de modules
-│   ├── OS_BUILDER_GUIDE.md             # Guide de création d'OS
-│   └── API_REFERENCE.md                # Référence API
+├── docs/                               # Framework documentation
+│   ├── ARCHITECTURE.md                 # Conceptual architecture
+│   ├── PROJECT_STRUCTURE.md            # This file
+│   ├── MODULE_GUIDE.md                 # Module creation guide
+│   ├── OS_BUILDER_GUIDE.md             # OS creation guide
+│   └── API_REFERENCE.md               # API reference
 │
 ├── boot/                               # ═══ LAYER 1: BOOT ═══
 │   ├── Cargo.toml
@@ -573,23 +573,23 @@ helix/
         └── ...
 ```
 
-## Justification de la Structure
+## Structure Justification
 
-### Pourquoi cette hiérarchie ?
+### Why This Hierarchy?
 
-1. **Séparation par couche** : Chaque couche de l'architecture est un dossier distinct
-2. **Séparation framework/implémentation** : `subsystems/` contient les frameworks, `modules_impl/` les implémentations
-3. **Profiles vs Modules** : Les profiles composent des modules, ils ne les définissent pas
-4. **SDK distinct** : Le SDK est une crate séparée pour faciliter le développement externe
+1. **Separation by layer**: Each architectural layer is a distinct directory
+2. **Framework/implementation separation**: `subsystems/` contains the frameworks, `modules_impl/` the implementations
+3. **Profiles vs Modules**: Profiles compose modules, they do not define them
+4. **Separate SDK**: The SDK is a separate crate to facilitate external development
 
 ### Conventions
 
-- Un dossier = une crate Cargo (sauf organisation)
-- `mod.rs` pour les modules avec sous-modules
-- `lib.rs` pour les bibliothèques
-- `traits.rs` pour les définitions de traits
+- One directory = one Cargo crate (except for organizational grouping)
+- `mod.rs` for modules with sub-modules
+- `lib.rs` for libraries
+- `traits.rs` for trait definitions
 
-### Dépendances entre crates
+### Inter-Crate Dependencies
 
 ```
                     profiles/
