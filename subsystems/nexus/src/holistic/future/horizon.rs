@@ -17,6 +17,7 @@ use crate::fast::fast_hash::FastHasher;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -387,7 +388,7 @@ impl HolisticHorizonPredictor {
                     HorizonScale::OneHour => CONFIDENCE_DECAY.powi(3),
                 };
 
-                let key = FastHasher::new().feed_u64(dim as u64).feed_str("-").feed_u64(h as u64).finish();
+                let key = FastHasher::new().feed_str(dim).feed_str("-").feed_u64(h as u64).finish();
                 let entry = ConfidenceEntry {
                     dimension: String::from(*dim),
                     horizon: h,
