@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -67,7 +66,7 @@ impl FileAccessTracker {
         });
 
         if history.len() > self.max_history {
-            history.pop_front();
+            history.remove(0);
         }
 
         // Update pattern detection
