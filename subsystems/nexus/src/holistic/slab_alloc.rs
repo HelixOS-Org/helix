@@ -7,6 +7,8 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Slab state
+use core::sync::atomic::AtomicU64;
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SlabState {
     Full,
