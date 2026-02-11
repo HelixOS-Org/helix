@@ -5,7 +5,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -70,7 +69,7 @@ pub struct QuarantineSystem {
     /// Quarantined components
     entries: BTreeMap<u64, QuarantineEntry>,
     /// Quarantine history
-    history: VecDeque<QuarantineHistoryEntry>,
+    history: Vec<QuarantineHistoryEntry>,
     /// Maximum history entries
     max_history: usize,
     /// Default release timeout (cycles)
@@ -88,7 +87,7 @@ impl QuarantineSystem {
     pub fn new() -> Self {
         Self {
             entries: BTreeMap::new(),
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 1000,
             default_timeout: 60 * 1_000_000_000, // 60 seconds
             dependencies: BTreeMap::new(),
@@ -176,9 +175,9 @@ impl QuarantineSystem {
             };
 
             if self.history.len() >= self.max_history {
-                self.history.pop_front();
+                self.history.remove(0);
             }
-            self.history.push_back(history_entry);
+            self.history.push(history_entry);
 
             self.total_releases.fetch_add(1, Ordering::Relaxed);
 
@@ -304,7 +303,7 @@ impl QuarantineSystem {
                 reason: entry.reason.description(),
                 success: false, // Forced release
             };
-            self.history.push_back(history_entry);
+            self.history.push(history_entry);
         }
     }
 }
