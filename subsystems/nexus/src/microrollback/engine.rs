@@ -1,7 +1,6 @@
 //! Micro-rollback engine.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -16,7 +15,7 @@ pub struct MicroRollbackEngine {
     /// Rollback points by component
     pub(crate) points: BTreeMap<u64, Vec<RollbackPoint>>,
     /// Rollback history
-    history: VecDeque<RollbackEntry>,
+    history: Vec<RollbackEntry>,
     /// Maximum history entries
     max_history: usize,
     /// Policy
@@ -32,7 +31,7 @@ impl MicroRollbackEngine {
     pub fn new(policy: RollbackPolicy) -> Self {
         Self {
             points: BTreeMap::new(),
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 1000,
             policy,
             total_rollbacks: AtomicU64::new(0),
@@ -58,7 +57,7 @@ impl MicroRollbackEngine {
 
         // Enforce max points
         while points.len() > self.policy.max_points {
-            points.pop_front();
+            points.remove(0);
         }
 
         point_id
@@ -82,7 +81,7 @@ impl MicroRollbackEngine {
         points.push(point);
 
         while points.len() > self.policy.max_points {
-            points.pop_front();
+            points.remove(0);
         }
 
         point_id
@@ -172,9 +171,9 @@ impl MicroRollbackEngine {
 
         // Add to history
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
-        self.history.push_back(entry.clone());
+        self.history.push(entry.clone());
 
         // Cleanup points after this one
         if let Some(points) = self.points.get_mut(&component.raw()) {
