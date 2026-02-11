@@ -199,7 +199,7 @@ language.
 ### Quick start
 
 ```bash
-git clone https://github.com/helix-os/helix.git
+https://github.com/HelixOS-Org/helix.git
 cd helix
 
 # Build the kernel (release, x86_64-unknown-none)
