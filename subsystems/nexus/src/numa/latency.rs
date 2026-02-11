@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::NodeId;
@@ -76,7 +75,7 @@ impl LatencyPredictor {
         let samples = self.samples.entry(node).or_default();
         samples.push(sample);
         if samples.len() > 1000 {
-            samples.pop_front();
+            samples.remove(0);
         }
 
         // Update model
