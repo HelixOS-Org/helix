@@ -279,11 +279,11 @@ impl IntentQueue {
     #[inline]
     pub fn dequeue(&mut self) -> Option<Intent> {
         if !self.high.is_empty() {
-            self.high.pop_front()
+            self.high.remove(0)
         } else if !self.normal.is_empty() {
-            self.normal.pop_front()
+            self.normal.remove(0)
         } else if !self.low.is_empty() {
-            self.low.pop_front()
+            self.low.remove(0)
         } else {
             None
         }
