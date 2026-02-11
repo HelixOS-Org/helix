@@ -75,12 +75,12 @@ impl WorkerQueue {
     #[inline(always)]
     pub fn push(&mut self, task: WsTask) { self.tasks.push_back(task); }
     #[inline(always)]
-    pub fn pop(&mut self) -> Option<WsTask> { self.tasks.pop() }
+    pub fn pop(&mut self) -> Option<WsTask> { self.tasks.pop_back() }
     #[inline]
     pub fn steal(&mut self) -> Option<WsTask> {
         if self.tasks.is_empty() { return None; }
         self.total_stolen_from += 1;
-        self.tasks.pop_front()
+        self.tasks.remove(0)
     }
 
     #[inline(always)]
@@ -201,13 +201,13 @@ impl WorkerDeque {
     pub fn push(&mut self, task: StealTask) { self.total_pushed += 1; self.tasks.push_back(task); }
 
     #[inline(always)]
-    pub fn pop(&mut self) -> Option<StealTask> { self.total_popped += 1; self.tasks.pop() }
+    pub fn pop(&mut self) -> Option<StealTask> { self.total_popped += 1; self.tasks.pop_back() }
 
     #[inline]
     pub fn steal(&mut self) -> Option<StealTask> {
         if self.tasks.is_empty() { return None; }
         self.total_stolen_from += 1;
-        let mut task = self.tasks.pop_front().unwrap();
+        let mut task = self.tasks.remove(0).unwrap();
         task.stolen = true;
         task.steal_count += 1;
         Some(task)
@@ -252,7 +252,7 @@ impl CoopWorkStealingV2 {
     pub fn try_steal(&mut self, thief: u64) -> Option<StealTask> {
         let victim = {
             self.workers.iter()
-                .filter(|(&id, _)| id != thief)
+                .filter(|&(&id, _)| id != thief)
                 .max_by_key(|(_, w)| w.tasks.len())
                 .map(|(&id, _)| id)
         };
