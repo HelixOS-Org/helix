@@ -9,7 +9,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -174,7 +173,10 @@ impl CoopOmniscient {
             edge.trust_score = ema_update(edge.trust_score, clamped);
             edge.interaction_count += 1;
             edge.last_update_tick = self.tick;
-            edge.reciprocity = self.compute_reciprocity(source, target);
+            let reciprocity = self.compute_reciprocity(source, target);
+            if let Some(edge) = self.trust_edges.get_mut(&key) {
+                edge.reciprocity = reciprocity;
+            }
         } else {
             let reciprocity = self.compute_reciprocity(source, target);
             self.trust_edges.insert(key, TrustEdge {
