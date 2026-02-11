@@ -9,7 +9,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -145,9 +144,9 @@ impl TemporalFusionStats {
 #[derive(Clone, Debug)]
 struct ShortTermSignal {
     resource_id: u64,
-    pressure_history: VecDeque<u64>,
+    pressure_history: Vec<u64>,
     ema_pressure: u64,
-    event_intervals: VecDeque<u64>,
+    event_intervals: Vec<u64>,
     last_event_tick: u64,
 }
 
@@ -155,19 +154,19 @@ struct ShortTermSignal {
 #[derive(Clone, Debug)]
 struct MediumTermState {
     partner_id: u64,
-    trust_history: VecDeque<u64>,
+    trust_history: Vec<u64>,
     ema_trust: u64,
     ema_trend: i64,
-    inflection_candidates: VecDeque<u64>,
+    inflection_candidates: Vec<u64>,
 }
 
 /// Internal long-term equilibrium tracker.
 #[derive(Clone, Debug)]
 struct LongTermTracker {
-    coop_history: VecDeque<u64>,
+    coop_history: Vec<u64>,
     ema_cooperation: u64,
     convergence_ema: u64,
-    stability_window: VecDeque<u64>,
+    stability_window: Vec<u64>,
 }
 
 /// Internal horizon prediction record.
@@ -186,7 +185,7 @@ pub struct CoopTemporalFusion {
     short_signals: BTreeMap<u64, ShortTermSignal>,
     medium_states: BTreeMap<u64, MediumTermState>,
     long_tracker: LongTermTracker,
-    history: VecDeque<HorizonRecord>,
+    history: Vec<HorizonRecord>,
     horizon_weights: (u64, u64, u64),
     stats: TemporalFusionStats,
     rng_state: u64,
@@ -201,27 +200,27 @@ impl CoopTemporalFusion {
             short_signals: BTreeMap::new(),
             medium_states: BTreeMap::new(),
             long_tracker: LongTermTracker {
-                coop_history: VecDeque::new(),
+                coop_history: Vec::new(),
                 ema_cooperation: 500,
                 convergence_ema: 500,
-                stability_window: VecDeque::new(),
+                stability_window: Vec::new(),
             },
-            history: VecDeque::new(),
+            history: Vec::new(),
             horizon_weights: (400, 350, 250),
             stats: TemporalFusionStats::new(),
-            rng_state: seed ^ 0x7E7F_FU51_0000_C00P,
+            rng_state: seed ^ 0x7E7F_F051_0000_C00F,
             current_tick: 0,
             max_history: 256,
         }
     }
 
     /// Record a resource contention signal (short-term).
-    pub fn record_contention_signal(&mut self, resource_id: u64, pressure: u64, processes: &[u64]) {
+    pub fn record_contention_signal(&mut self, resource_id: u64, pressure: u64, _processes: &[u64]) {
         let signal = self.short_signals.entry(resource_id).or_insert_with(|| ShortTermSignal {
             resource_id,
-            pressure_history: VecDeque::new(),
+            pressure_history: Vec::new(),
             ema_pressure: pressure,
-            event_intervals: VecDeque::new(),
+            event_intervals: Vec::new(),
             last_event_tick: self.current_tick,
         });
 
@@ -233,12 +232,12 @@ impl CoopTemporalFusion {
             signal.event_intervals.push(interval);
             signal.last_event_tick = self.current_tick;
             if signal.event_intervals.len() > 64 {
-                signal.event_intervals.pop_front().unwrap();
+                signal.event_intervals.remove(0);
             }
         }
 
         if signal.pressure_history.len() > self.max_history {
-            signal.pressure_history.pop_front().unwrap();
+            signal.pressure_history.remove(0);
         }
     }
 
@@ -246,10 +245,10 @@ impl CoopTemporalFusion {
     pub fn record_trust_signal(&mut self, partner_id: u64, trust_value: u64) {
         let state = self.medium_states.entry(partner_id).or_insert_with(|| MediumTermState {
             partner_id,
-            trust_history: VecDeque::new(),
+            trust_history: Vec::new(),
             ema_trust: trust_value,
             ema_trend: 0,
-            inflection_candidates: VecDeque::new(),
+            inflection_candidates: Vec::new(),
         });
 
         let prev = state.ema_trust;
@@ -263,12 +262,12 @@ impl CoopTemporalFusion {
         if (old_trend > 0 && state.ema_trend <= 0) || (old_trend < 0 && state.ema_trend >= 0) {
             state.inflection_candidates.push(self.current_tick);
             if state.inflection_candidates.len() > 16 {
-                state.inflection_candidates.pop_front().unwrap();
+                state.inflection_candidates.remove(0);
             }
         }
 
         if state.trust_history.len() > self.max_history {
-            state.trust_history.pop_front().unwrap();
+            state.trust_history.remove(0);
         }
     }
 
@@ -284,7 +283,7 @@ impl CoopTemporalFusion {
 
         self.long_tracker.stability_window.push(level);
         if self.long_tracker.stability_window.len() > 32 {
-            self.long_tracker.stability_window.pop_front().unwrap();
+            self.long_tracker.stability_window.remove(0);
         }
 
         let variance = self.compute_window_variance(&self.long_tracker.stability_window);
@@ -296,7 +295,7 @@ impl CoopTemporalFusion {
         );
 
         if self.long_tracker.coop_history.len() > self.max_history {
-            self.long_tracker.coop_history.pop_front().unwrap();
+            self.long_tracker.coop_history.remove(0);
         }
     }
 
@@ -317,7 +316,7 @@ impl CoopTemporalFusion {
 
         let confidence = coherence.saturating_mul(800) / 1000;
 
-        self.history.push_back(HorizonRecord {
+        self.history.push(HorizonRecord {
             target_id,
             short_pred: short,
             medium_pred: medium,
@@ -326,7 +325,7 @@ impl CoopTemporalFusion {
             tick: self.current_tick,
         });
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         self.stats.fusions_performed = self.stats.fusions_performed.saturating_add(1);
