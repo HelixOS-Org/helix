@@ -2,7 +2,6 @@
 //!
 //! Predicts network bandwidth needs.
 
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -21,7 +20,7 @@ struct BandwidthSample {
 /// Predicts network bandwidth needs
 pub struct BandwidthPredictor {
     /// Historical bandwidth samples
-    history: VecDeque<BandwidthSample>,
+    history: Vec<BandwidthSample>,
     /// Maximum history size
     max_history: usize,
     /// Prediction model weights
@@ -36,7 +35,7 @@ impl BandwidthPredictor {
     /// Create new predictor
     pub fn new() -> Self {
         Self {
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 1000,
             weights: [0.4, 0.3, 0.15, 0.08, 0.04, 0.02, 0.01, 0.0],
             alpha: 0.3,
@@ -52,9 +51,9 @@ impl BandwidthPredictor {
             connections,
         };
 
-        self.history.push_back(sample);
+        self.history.push(sample);
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         // Update prediction
