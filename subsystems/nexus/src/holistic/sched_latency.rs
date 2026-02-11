@@ -76,7 +76,7 @@ pub struct LatencySample {
 pub struct TaskLatencyState {
     pub task_id: u64,
     pub priority: i32,
-    pub samples: VecDeque<u64>, // wakeup-to-run latencies
+    pub samples: VecDeque<u64>, // wakeup-to-run latencies,
     pub max_samples: usize,
     pub total_wakeups: u64,
     pub total_latency_ns: u64,
@@ -99,7 +99,7 @@ impl TaskLatencyState {
     #[inline]
     pub fn record(&mut self, latency_ns: u64) {
         self.samples.push_back(latency_ns);
-        if self.samples.len() > self.max_samples { self.samples.pop_front(); }
+        if self.samples.len() > self.max_samples { self.samples.remove(0); }
         self.total_wakeups += 1;
         self.total_latency_ns += latency_ns;
         if latency_ns < self.min_latency_ns { self.min_latency_ns = latency_ns; }
@@ -123,7 +123,7 @@ impl TaskLatencyState {
     fn percentile(&self, pct: u32) -> u64 {
         if self.samples.is_empty() { return 0; }
         let mut sorted = self.samples.clone();
-        sorted.sort_unstable();
+        sorted.make_contiguous().sort_unstable();
         let idx = ((pct as usize * sorted.len()) / 100).min(sorted.len() - 1);
         sorted[idx]
     }
@@ -147,7 +147,7 @@ pub struct CpuSchedState {
     pub avg_switch_overhead_ns: f64,
     pub total_idle_ns: u64,
     pub total_busy_ns: u64,
-    pub histogram: ArrayMap<u64, 32>, // bucket_us -> count
+    pub histogram: ArrayMap<u64, 32>, // bucket_us -> count,
 }
 
 impl CpuSchedState {
@@ -243,14 +243,14 @@ impl HolisticSchedLatency {
         if let Some(t) = self.tasks.get_mut(&task) { t.record(latency_ns); }
         if let Some(c) = self.cpus.get_mut(&cpu) { c.record_latency(latency_ns); }
         self.all_samples.push_back(latency_ns);
-        if self.all_samples.len() > self.max_global_samples { self.all_samples.pop_front().unwrap(); }
+        if self.all_samples.len() > self.max_global_samples { self.all_samples.remove(0).unwrap(); }
     }
 
     #[inline]
     pub fn record_switch(&mut self, info: ContextSwitchInfo) {
         if let Some(c) = self.cpus.get_mut(&info.cpu_id) { c.total_switches += 1; }
         self.recent_switches.push_back(info);
-        if self.recent_switches.len() > self.max_switch_history { self.recent_switches.pop_front(); }
+        if self.recent_switches.len() > self.max_switch_history { self.recent_switches.remove(0); }
     }
 
     #[inline(always)]
@@ -273,7 +273,7 @@ impl HolisticSchedLatency {
         if !self.all_samples.is_empty() {
             self.stats.avg_latency_ns = self.all_samples.iter().sum::<u64>() as f64 / self.all_samples.len() as f64;
             let mut sorted = self.all_samples.clone();
-            sorted.sort_unstable();
+            sorted.make_contiguous().sort_unstable();
             let n = sorted.len();
             self.stats.p50_latency_ns = sorted[n / 2];
             self.stats.p99_latency_ns = sorted[(n * 99) / 100];
