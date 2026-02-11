@@ -310,7 +310,7 @@ impl HolisticLockContention {
     pub fn record_inversion(&mut self, inv: PriorityInversionHolistic) {
         self.inversions.push_back(inv);
         while self.inversions.len() > self.max_inversions {
-            self.inversions.pop_front();
+            self.inversions.remove(0);
         }
     }
 
