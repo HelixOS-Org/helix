@@ -15,6 +15,9 @@
 //! | Memory (256)    | 256 bytes | 32 bytes    | ×8      |
 //! | Memory (1024)   | 1024 B    | 128 bytes   | ×8      |
 
+/// Maximum number of u64 words in the bitmap. Supports up to MAX_BITMAP_WORDS * 64 bits.
+const MAX_BITMAP_WORDS: usize = 16;
+
 /// Fixed-size bitset stored as an array of u64 words.
 ///
 /// - `N` = number of bits (rounded up to multiple of 64 internally).
@@ -22,24 +25,24 @@
 #[derive(Clone, Copy)]
 #[repr(C)]
 pub struct BitSet<const N: usize>
-where
-    [(); (N + 63) / 64]: Sized,
 {
-    words: [u64; (N + 63) / 64],
+    words: [u64; MAX_BITMAP_WORDS],
 }
 
 impl<const N: usize> BitSet<N>
-where
-    [(); (N + 63) / 64]: Sized,
 {
     /// Number of u64 words needed.
-    const WORDS: usize = (N + 63) / 64;
+    /// Number of u64 words actually used (runtime, but const-evaluable in practice).
+    #[inline(always)]
+    fn words() -> usize {
+        (N + 63) / 64
+    }
 
     /// Create an empty bitset (all zeros).
     #[inline(always)]
     pub const fn new() -> Self {
         Self {
-            words: [0u64; (N + 63) / 64],
+            words: [0u64; MAX_BITMAP_WORDS],
         }
     }
 
@@ -77,7 +80,7 @@ where
     pub fn count_ones(&self) -> usize {
         let mut total = 0usize;
         let mut i = 0;
-        while i < Self::WORDS {
+        while i < Self::words() {
             total += self.words[i].count_ones() as usize;
             i += 1;
         }
@@ -95,7 +98,7 @@ where
     #[inline]
     pub fn first_set(&self) -> Option<usize> {
         let mut i = 0;
-        while i < Self::WORDS {
+        while i < Self::words() {
             if self.words[i] != 0 {
                 let bit = self.words[i].trailing_zeros() as usize;
                 let idx = i * 64 + bit;
@@ -112,7 +115,7 @@ where
     #[inline]
     pub fn first_clear(&self) -> Option<usize> {
         let mut i = 0;
-        while i < Self::WORDS {
+        while i < Self::words() {
             let inv = !self.words[i];
             if inv != 0 {
                 let bit = inv.trailing_zeros() as usize;
@@ -136,7 +139,7 @@ where
     #[inline]
     pub fn none(&self) -> bool {
         let mut i = 0;
-        while i < Self::WORDS {
+        while i < Self::words() {
             if self.words[i] != 0 {
                 return false;
             }
@@ -154,17 +157,17 @@ where
     /// Clear all bits.
     #[inline]
     pub fn clear_all(&mut self) {
-        self.words = [0u64; (N + 63) / 64];
+        self.words = [0u64; MAX_BITMAP_WORDS];
     }
 
     /// Set all bits.
     #[inline]
     pub fn set_all(&mut self) {
-        self.words = [u64::MAX; (N + 63) / 64];
+        self.words = [u64::MAX; MAX_BITMAP_WORDS];
         // Mask off excess bits in last word
         let excess = N % 64;
-        if excess > 0 && Self::WORDS > 0 {
-            self.words[Self::WORDS - 1] = (1u64 << excess) - 1;
+        if excess > 0 && Self::words() > 0 {
+            self.words[Self::words() - 1] = (1u64 << excess) - 1;
         }
     }
 
@@ -172,7 +175,7 @@ where
     #[inline]
     pub fn union(&mut self, other: &Self) {
         let mut i = 0;
-        while i < Self::WORDS {
+        while i < Self::words() {
             self.words[i] |= other.words[i];
             i += 1;
         }
@@ -182,7 +185,7 @@ where
     #[inline]
     pub fn intersect(&mut self, other: &Self) {
         let mut i = 0;
-        while i < Self::WORDS {
+        while i < Self::words() {
             self.words[i] &= other.words[i];
             i += 1;
         }
@@ -192,7 +195,7 @@ where
     #[inline]
     pub fn symmetric_diff(&mut self, other: &Self) {
         let mut i = 0;
-        while i < Self::WORDS {
+        while i < Self::words() {
             self.words[i] ^= other.words[i];
             i += 1;
         }
@@ -216,8 +219,6 @@ where
 }
 
 impl<const N: usize> Default for BitSet<N>
-where
-    [(); (N + 63) / 64]: Sized,
 {
     #[inline(always)]
     fn default() -> Self {
@@ -226,8 +227,6 @@ where
 }
 
 impl<const N: usize> core::fmt::Debug for BitSet<N>
-where
-    [(); (N + 63) / 64]: Sized,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("BitSet")
@@ -239,8 +238,6 @@ where
 
 /// Iterator over set bit indices.
 pub struct BitSetIter<'a, const N: usize>
-where
-    [(); (N + 63) / 64]: Sized,
 {
     bitset: &'a BitSet<N>,
     word_idx: usize,
@@ -248,8 +245,6 @@ where
 }
 
 impl<'a, const N: usize> Iterator for BitSetIter<'a, N>
-where
-    [(); (N + 63) / 64]: Sized,
 {
     type Item = usize;
 
@@ -265,7 +260,7 @@ where
                 }
             }
             self.word_idx += 1;
-            if self.word_idx >= BitSet::<N>::WORDS {
+            if self.word_idx >= BitSet::<N>::words() {
                 return None;
             }
             self.remaining = self.bitset.words[self.word_idx];
