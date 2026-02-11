@@ -111,7 +111,7 @@ impl DenialTracker {
             .or_insert(0) += 1;
 
         if self.denials.len() >= self.max_denials {
-            self.denials.pop_front();
+            self.denials.remove(0);
         }
         self.denials.push_back(denial);
     }
