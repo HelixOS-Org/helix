@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -83,7 +82,7 @@ pub struct CapacityDataPoint {
 #[derive(Debug)]
 pub struct CapacityTimeSeries {
     /// Data points
-    points: VecDeque<CapacityDataPoint>,
+    points: Vec<CapacityDataPoint>,
     /// Max points
     max_points: usize,
 }
@@ -91,7 +90,7 @@ pub struct CapacityTimeSeries {
 impl CapacityTimeSeries {
     pub fn new(max_points: usize) -> Self {
         Self {
-            points: VecDeque::new(),
+            points: Vec::new(),
             max_points,
         }
     }
@@ -100,17 +99,24 @@ impl CapacityTimeSeries {
     #[inline]
     pub fn add(&mut self, point: CapacityDataPoint) {
         if self.points.len() >= self.max_points {
-            self.points.pop_front();
+            self.points.remove(0);
         }
-        self.points.push_back(point);
+        self.points.push(point);
     }
 
     /// Current utilization
     #[inline]
     pub fn current_utilization(&self) -> f64 {
-        self.points.back().map(|p| {
-            if p.capacity <= 0.0 { 0.0 } else { p.usage / p.capacity }
-        }).unwrap_or(0.0)
+        self.points
+            .last()
+            .map(|p| {
+                if p.capacity <= 0.0 {
+                    0.0
+                } else {
+                    p.usage / p.capacity
+                }
+            })
+            .unwrap_or(0.0)
     }
 
     /// Average utilization over last N points
@@ -121,9 +127,16 @@ impl CapacityTimeSeries {
         if recent.is_empty() {
             return 0.0;
         }
-        let sum: f64 = recent.iter().map(|p| {
-            if p.capacity <= 0.0 { 0.0 } else { p.usage / p.capacity }
-        }).sum();
+        let sum: f64 = recent
+            .iter()
+            .map(|p| {
+                if p.capacity <= 0.0 {
+                    0.0
+                } else {
+                    p.usage / p.capacity
+                }
+            })
+            .sum();
         sum / recent.len() as f64
     }
 
@@ -133,7 +146,7 @@ impl CapacityTimeSeries {
             return 0.0;
         }
         let first = &self.points[0];
-        let last = self.points.back().unwrap();
+        let last = self.points.last().unwrap();
         let time_delta = (last.timestamp - first.timestamp) as f64;
         if time_delta <= 0.0 {
             return 0.0;
@@ -166,7 +179,7 @@ impl CapacityTimeSeries {
         if rate <= 0.0 {
             return None; // not growing
         }
-        let last = self.points.back()?;
+        let last = self.points.last()?;
         let headroom = last.capacity - last.usage;
         if headroom <= 0.0 {
             return Some(0); // already exhausted
@@ -271,7 +284,8 @@ impl HolisticCapacityEngine {
     /// Register resource
     #[inline]
     pub fn register_resource(&mut self, resource: CapacityResource, capacity: f64) {
-        self.series.insert(resource as u8, CapacityTimeSeries::new(1440)); // 24h at 1min intervals
+        self.series
+            .insert(resource as u8, CapacityTimeSeries::new(1440)); // 24h at 1min intervals
         self.capacities.insert(resource as u8, capacity);
         self.update_stats();
     }
@@ -279,12 +293,12 @@ impl HolisticCapacityEngine {
     /// Record usage
     pub fn record_usage(&mut self, resource: CapacityResource, usage: f64, now: u64) {
         let key = resource as u8;
-        let capacity = self.capacities.get(&key).copied().unwrap_or(0.0);
+        let capacity = self.capacities.get(&key).unwrap_or(&0.0);
         if let Some(ts) = self.series.get_mut(&key) {
             ts.add(CapacityDataPoint {
                 timestamp: now,
                 usage,
-                capacity,
+                capacity: *capacity,
             });
         }
         self.update_stats();
@@ -293,7 +307,9 @@ impl HolisticCapacityEngine {
     /// Get capacity health for resource
     pub fn health(&self, resource: CapacityResource) -> CapacityHealth {
         let key = resource as u8;
-        let util = self.series.get(&key)
+        let util = self
+            .series
+            .get(&key)
             .map(|ts| ts.current_utilization())
             .unwrap_or(0.0);
         if util >= 1.0 {
@@ -313,7 +329,8 @@ impl HolisticCapacityEngine {
     #[inline]
     pub fn trend(&self, resource: CapacityResource) -> CapacityTrend {
         let key = resource as u8;
-        self.series.get(&key)
+        self.series
+            .get(&key)
             .map(|ts| ts.trend())
             .unwrap_or(CapacityTrend::Stable)
     }
@@ -330,7 +347,7 @@ impl HolisticCapacityEngine {
         let mut recs = Vec::new();
         for (&key, ts) in &self.series {
             let util = ts.current_utilization();
-            let capacity = self.capacities.get(&key).copied().unwrap_or(0.0);
+            let capacity = self.capacities.get(&key).unwrap_or(&0.0);
             let resource = match key {
                 0 => CapacityResource::CpuCores,
                 1 => CapacityResource::CpuTime,
@@ -343,15 +360,15 @@ impl HolisticCapacityEngine {
             if util > 0.8 {
                 recs.push(SizingRecommendation {
                     resource,
-                    current: capacity,
+                    current: *capacity,
                     recommended: capacity * 1.5,
                     confidence: if ts.len() > 100 { 0.8 } else { 0.5 },
                     reason: alloc::string::String::from("High utilization, consider scaling up"),
                 });
-            } else if util < 0.2 && capacity > 0.0 {
+            } else if util < 0.2 && capacity > &0.0 {
                 recs.push(SizingRecommendation {
                     resource,
-                    current: capacity,
+                    current: *capacity,
                     recommended: capacity * 0.6,
                     confidence: if ts.len() > 100 { 0.7 } else { 0.4 },
                     reason: alloc::string::String::from("Low utilization, consider scaling down"),
@@ -364,8 +381,8 @@ impl HolisticCapacityEngine {
     /// Evaluate scenario
     pub fn evaluate_scenario(&self, scenario: &mut CapacityScenario) {
         for (&key, ts) in &self.series {
-            let base_capacity = self.capacities.get(&key).copied().unwrap_or(0.0);
-            let multiplier = scenario.changes.get(&key).copied().unwrap_or(1.0);
+            let base_capacity = self.capacities.get(&key).unwrap_or(&0.0);
+            let multiplier = scenario.changes.get(&key).unwrap_or(&1.0);
             let new_capacity = base_capacity * multiplier;
             let usage = ts.points.last().map(|p| p.usage).unwrap_or(0.0);
             let headroom = if new_capacity > 0.0 {
@@ -394,11 +411,11 @@ impl HolisticCapacityEngine {
                 match self.stats.shortest_runway_ns {
                     Some(current) if tte < current => {
                         self.stats.shortest_runway_ns = Some(tte);
-                    }
+                    },
                     None => {
                         self.stats.shortest_runway_ns = Some(tte);
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
             let _ = key;
