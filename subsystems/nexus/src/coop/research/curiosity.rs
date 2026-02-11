@@ -264,11 +264,11 @@ impl CoopCuriosityEngine {
         self.stats.avg_novelty_ema = EMA_ALPHA * novelty + (1.0 - EMA_ALPHA) * self.stats.avg_novelty_ema;
         self.stats.avg_reward_ema = EMA_ALPHA * reward + (1.0 - EMA_ALPHA) * self.stats.avg_reward_ema;
         if self.strategies.len() >= MAX_STRATEGIES {
-            self.strategies.pop_front();
+            self.strategies.remove(0);
         }
         self.strategies.push_back(strategy);
         if self.explorations.len() >= MAX_EXPLORATIONS {
-            self.explorations.pop_front();
+            self.explorations.remove(0);
         }
         self.explorations.push_back(record.clone());
         self.update_budget_allocation(dimension, cost, reward);
@@ -302,7 +302,7 @@ impl CoopCuriosityEngine {
         };
         self.update_territory(variant_params, CuriosityDimension::FairnessAlgorithm, reward);
         if self.strategies.len() >= MAX_STRATEGIES {
-            self.strategies.pop_front();
+            self.strategies.remove(0);
         }
         self.strategies.push_back(strategy.clone());
         Some(strategy)
@@ -331,7 +331,7 @@ impl CoopCuriosityEngine {
         };
         self.update_territory(share_params, CuriosityDimension::SharingStrategy, reward);
         if self.strategies.len() >= MAX_STRATEGIES {
-            self.strategies.pop_front();
+            self.strategies.remove(0);
         }
         self.strategies.push_back(strategy.clone());
         Some(strategy)
@@ -462,17 +462,15 @@ impl CoopCuriosityEngine {
                 cell.best_reward = reward;
             }
             cell.last_visit_tick = self.tick;
-        } else {
-            if self.territory_map.len() < MAX_TERRITORY_MAP {
-                self.territory_map.insert(cell_hash, TerritoryCell {
-                    hash: cell_hash,
-                    visit_count: 1,
-                    best_reward: reward,
-                    last_visit_tick: self.tick,
-                    dimension,
-                    center: params.to_vec(),
-                });
-            }
+        } else if self.territory_map.len() < MAX_TERRITORY_MAP {
+            self.territory_map.insert(cell_hash, TerritoryCell {
+                hash: cell_hash,
+                visit_count: 1,
+                best_reward: reward,
+                last_visit_tick: self.tick,
+                dimension,
+                center: params.to_vec(),
+            });
         }
         let visited = self.territory_map.len() as f32;
         let total = MAX_TERRITORY_MAP as f32;
