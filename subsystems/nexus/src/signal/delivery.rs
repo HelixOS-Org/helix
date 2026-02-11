@@ -88,7 +88,7 @@ impl DeliveryOptimizer {
     /// Check if thread is available
     #[inline(always)]
     pub fn is_available(&self, tid: ThreadId) -> bool {
-        self.thread_available.get(&tid).copied().unwrap_or(true)
+        self.thread_available.get(&tid).unwrap_or(true)
     }
 
     /// Record delivery latency
@@ -103,7 +103,7 @@ impl DeliveryOptimizer {
     /// Get thread latency
     #[inline(always)]
     pub fn get_latency(&self, tid: ThreadId) -> u64 {
-        self.thread_latency.get(&tid).copied().unwrap_or(0)
+        self.thread_latency.get(&tid).unwrap_or(0)
     }
 
     /// Find best thread for signal delivery
@@ -126,7 +126,7 @@ impl DeliveryOptimizer {
         for tid in threads {
             if let Some(affinities) = self.thread_affinity.get(tid) {
                 if affinities.contains(&signo) {
-                    if self.thread_available.get(tid).copied().unwrap_or(true) {
+                    if self.thread_available.get(tid).unwrap_or(true) {
                         return DeliveryRecommendation {
                             target_thread: Some(*tid),
                             priority: 8,
@@ -144,12 +144,12 @@ impl DeliveryOptimizer {
         let mut best_latency = u64::MAX;
 
         for tid in threads {
-            let available = self.thread_available.get(tid).copied().unwrap_or(true);
+            let available = self.thread_available.get(tid).unwrap_or(true);
             if !available {
                 continue;
             }
 
-            let latency = self.thread_latency.get(tid).copied().unwrap_or(0);
+            let latency = self.thread_latency.get(tid).unwrap_or(0);
             if latency < best_latency {
                 best_latency = latency;
                 best_thread = *tid;
