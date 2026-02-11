@@ -299,7 +299,7 @@ impl HolisticPerfEvents {
     pub fn record_sample(&mut self, sample: PerfSample) {
         self.stats.total_samples += 1;
         if self.samples.len() >= self.max_samples {
-            self.samples.pop_front();
+            self.samples.remove(0);
         }
         self.samples.push_back(sample);
     }
@@ -314,7 +314,7 @@ impl HolisticPerfEvents {
 
     #[inline]
     pub fn hottest_ips(&self, n: usize) -> Vec<(u64, u64)> {
-        let mut ip_counts: LinearMap<u64, 64> = BTreeMap::new();
+        let mut ip_counts: LinearMap<u64, 64> = LinearMap::new();
         for s in &self.samples {
             *ip_counts.entry(s.ip).or_insert(0) += 1;
         }
