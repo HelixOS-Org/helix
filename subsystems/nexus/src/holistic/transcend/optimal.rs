@@ -219,7 +219,7 @@ impl HolisticOptimal {
         let dh = fnv1a(&obj.to_le_bytes()) ^ fnv1a(&self.tick.to_le_bytes());
         let regret = OPTIMALITY_THRESHOLD_BPS.saturating_sub(opt_bps);
         if self.decisions.len() >= MAX_DECISION_LOG {
-            self.decisions.pop_front();
+            self.decisions.remove(0);
         }
         self.decisions.push_back(Decision {
             decision_hash: dh,
