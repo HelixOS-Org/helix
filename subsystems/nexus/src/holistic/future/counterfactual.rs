@@ -18,10 +18,11 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // CONSTANTS
@@ -335,11 +336,19 @@ impl HolisticCounterfactual {
             .collect();
 
         for &sub_id in subsequent.iter().take(MAX_RIPPLE_EFFECTS) {
-            let sub_domain = self.decisions.get(&sub_id).map(|d| d.domain).unwrap_or(domain);
+            let sub_domain = self
+                .decisions
+                .get(&sub_id)
+                .map(|d| d.domain)
+                .unwrap_or(domain);
             let mag_noise = (xorshift64(&mut self.rng_state) % 100) as f32 / 1000.0;
             let magnitude = (improvement.abs() * REGRET_DECAY * mag_noise).min(1.0);
             let direction = if magnitude > 0.05 {
-                if improvement > 0.0 { RippleDirection::Positive } else { RippleDirection::Negative }
+                if improvement > 0.0 {
+                    RippleDirection::Positive
+                } else {
+                    RippleDirection::Negative
+                }
             } else {
                 RippleDirection::Neutral
             };
@@ -375,7 +384,7 @@ impl HolisticCounterfactual {
     pub fn global_regret(&mut self, window_us: u64) -> GlobalRegret {
         self.stats.regret_computations += 1;
         let mut total_regret = 0.0_f32;
-        let mut domain_regret: LinearMap<f32, 64> = BTreeMap::new();
+        let mut domain_regret: LinearMap<f32, 64> = LinearMap::new();
         let mut worst_id = 0_u64;
         let mut worst_regret = 0.0_f32;
         let mut count = 0_usize;
@@ -425,7 +434,8 @@ impl HolisticCounterfactual {
                 total_improvement += improvement;
 
                 let alt = if !decision.alternatives.is_empty() {
-                    let idx = (xorshift64(&mut self.rng_state) as usize) % decision.alternatives.len();
+                    let idx =
+                        (xorshift64(&mut self.rng_state) as usize) % decision.alternatives.len();
                     decision.alternatives[idx].clone()
                 } else {
                     String::from("none")
@@ -445,11 +455,18 @@ impl HolisticCounterfactual {
         let feasibility = if optimal_decisions.is_empty() {
             0.0
         } else {
-            let achievable = optimal_decisions.iter().filter(|d| d.improvement < 0.3).count();
+            let achievable = optimal_decisions
+                .iter()
+                .filter(|d| d.improvement < 0.3)
+                .count();
             achievable as f32 / optimal_decisions.len() as f32
         };
 
-        let hindsight_score = if total_improvement > 0.0 { feasibility * 0.6 + 0.4 } else { 0.5 };
+        let hindsight_score = if total_improvement > 0.0 {
+            feasibility * 0.6 + 0.4
+        } else {
+            0.5
+        };
 
         OptimalHistory {
             decisions: optimal_decisions,
@@ -462,7 +479,11 @@ impl HolisticCounterfactual {
     /// Simulate counterfactual cascade from a single changed decision
     pub fn counterfactual_cascade(&mut self, decision_id: u64) -> CounterfactualCascade {
         self.stats.cascades_analyzed += 1;
-        let domain = self.decisions.get(&decision_id).map(|d| d.domain).unwrap_or(DecisionDomain::Scheduling);
+        let domain = self
+            .decisions
+            .get(&decision_id)
+            .map(|d| d.domain)
+            .unwrap_or(DecisionDomain::Scheduling);
         let mut ripples: Vec<RippleEffect> = Vec::new();
         let mut total_impact = 0.0_f32;
         let mut domains_touched: BTreeMap<u8, DecisionDomain> = BTreeMap::new();
@@ -484,15 +505,23 @@ impl HolisticCounterfactual {
                 break;
             }
             cascade_depth += 1;
-            let sub_domain = self.decisions.get(&sub_id).map(|d| d.domain).unwrap_or(domain);
+            let sub_domain = self
+                .decisions
+                .get(&sub_id)
+                .map(|d| d.domain)
+                .unwrap_or(domain);
             let noise = (xorshift64(&mut self.rng_state) % 100) as f32 / 500.0;
             let mag = current_magnitude * noise;
             total_impact += mag;
             domains_touched.insert(sub_domain as u8, sub_domain);
 
-            let dir = if mag > 0.05 { RippleDirection::Positive }
-            else if mag < -0.05 { RippleDirection::Negative }
-            else { RippleDirection::Neutral };
+            let dir = if mag > 0.05 {
+                RippleDirection::Positive
+            } else if mag < -0.05 {
+                RippleDirection::Negative
+            } else {
+                RippleDirection::Neutral
+            };
 
             ripples.push(RippleEffect {
                 affected_decision_id: sub_id,
@@ -503,7 +532,8 @@ impl HolisticCounterfactual {
             });
         }
 
-        self.stats.avg_cascade_depth = ema_update(self.stats.avg_cascade_depth, cascade_depth as f32);
+        self.stats.avg_cascade_depth =
+            ema_update(self.stats.avg_cascade_depth, cascade_depth as f32);
 
         CounterfactualCascade {
             trigger_decision_id: decision_id,
@@ -522,8 +552,8 @@ impl HolisticCounterfactual {
         window_end_us: u64,
     ) -> DecisionQualityReport {
         self.stats.quality_reports += 1;
-        let mut domain_scores: LinearMap<f32, 64> = BTreeMap::new();
-        let mut domain_counts: LinearMap<u64, 64> = BTreeMap::new();
+        let mut domain_scores: LinearMap<f32, 64> = LinearMap::new();
+        let mut domain_counts: LinearMap<u64, 64> = LinearMap::new();
         let mut total_quality = 0.0_f32;
         let mut count = 0_usize;
 
@@ -539,12 +569,19 @@ impl HolisticCounterfactual {
             }
         }
 
-        for (k, v) in &mut domain_scores {
-            let c = domain_counts.get(k).copied().unwrap_or(1);
-            *v /= c as f32;
+        let ds_keys: Vec<u64> = domain_scores.keys().collect();
+        for k in ds_keys {
+            let c = domain_counts.get(k).unwrap_or(1);
+            if let Some(v) = domain_scores.get_mut(k) {
+                *v /= c as f32;
+            }
         }
 
-        let avg_quality = if count > 0 { total_quality / count as f32 } else { 0.5 };
+        let avg_quality = if count > 0 {
+            total_quality / count as f32
+        } else {
+            0.5
+        };
         self.stats.avg_quality = ema_update(self.stats.avg_quality, avg_quality);
 
         DecisionQualityReport {
@@ -569,7 +606,7 @@ impl HolisticCounterfactual {
         let tid = self.next_timeline_id;
         self.next_timeline_id += 1;
 
-        let mut projected: LinearMap<f32, 64> = BTreeMap::new();
+        let mut projected: LinearMap<f32, 64> = LinearMap::new();
         let mut overall = 0.0_f32;
         let mut proj_count = 0_usize;
 
@@ -583,7 +620,11 @@ impl HolisticCounterfactual {
             }
         }
 
-        let quality = if proj_count > 0 { overall / proj_count as f32 } else { 0.5 };
+        let quality = if proj_count > 0 {
+            overall / proj_count as f32
+        } else {
+            0.5
+        };
 
         let timeline = AlternativeTimeline {
             timeline_id: tid,
