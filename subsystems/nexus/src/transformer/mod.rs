@@ -94,7 +94,7 @@ pub enum Activation {
     /// GELU
     Gelu,
     /// SiLU / Swish
-    Silu,
+    SiluSwish,
     /// Tanh
     Tanh,
     /// Sigmoid
@@ -437,11 +437,11 @@ pub enum PosEncodingType {
     /// Sinusoidal (original transformer)
     Sinusoidal,
     /// Learned embeddings
-    Learned,
+    LearnedEmbeddings,
     /// Rotary (RoPE)
     Rotary,
     /// ALiBi (Attention with Linear Biases)
-    ALiBi,
+    Alibi,
 }
 
 /// Sinusoidal positional encoding
@@ -1310,6 +1310,7 @@ fn lcg_next(state: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn create_test_input(seq_len: usize, d_model: usize, seed: u64) -> Vec<Vec<f64>> {
         let mut rng = seed;
