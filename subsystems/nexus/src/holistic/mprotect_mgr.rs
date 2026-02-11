@@ -111,7 +111,7 @@ pub struct ProtectionKey {
     pub pkey: u16,
     pub access_disable: bool,
     pub write_disable: bool,
-    pub allocated_to: u32, // pid
+    pub allocated_to: u32, // pid,
     pub regions_using: u32,
 }
 
@@ -158,7 +158,7 @@ pub enum WxPolicy {
 #[repr(align(64))]
 pub struct ProcessProtState {
     pub pid: u32,
-    pub regions: Vec<u64>, // region start addrs
+    pub regions: Vec<u64>, // region start addrs,
     pub pkeys_allocated: Vec<u16>,
     pub violations: u64,
     pub wx_violations: u64,
@@ -244,7 +244,7 @@ impl HolisticMprotectMgr {
                     violation_id: vid, pid, addr, attempted: access,
                     region_flags: region.flags, timestamp_ns: ts, instruction_ptr: ip,
                 });
-                if self.violations.len() > self.max_violations { self.violations.pop_front(); }
+                if self.violations.len() > self.max_violations { self.violations.remove(0); }
                 if let Some(proc) = self.processes.get_mut(&pid) { proc.violations += 1; }
                 return false;
             }
