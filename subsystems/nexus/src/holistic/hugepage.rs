@@ -312,7 +312,7 @@ impl HolisticHugePageV3 {
 
     #[inline]
     pub fn create_pool(&mut self, node_id: u32, page_size: HugePageV3Size, count: u64) -> u64 {
-        let key = (node_id as u64) << 32 | (page_size.bytes() & 0xFFFFFFFF);
+        let key = ((node_id as u64) << 32) | (page_size.bytes() & 0xFFFFFFFF);
         let mut pool = NumaHugePagePool::new(node_id, page_size);
         pool.total_pages = count;
         pool.free_pages = count;
