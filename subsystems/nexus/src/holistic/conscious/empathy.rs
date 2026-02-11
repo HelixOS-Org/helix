@@ -29,6 +29,8 @@
 
 extern crate alloc;
 
+use crate::fast::math::F32Ext;
+
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
@@ -482,7 +484,7 @@ impl HolisticEmpathyEngine {
 
     #[inline]
     fn recompute_map(&mut self) {
-        let mut per_sub = BTreeMap::new();
+        let mut per_sub = LinearMap::new();
         let mut total_composite = 0.0f32;
         let count = self.subsystems.len().max(1);
         for (id, sub) in &self.subsystems {
@@ -520,6 +522,7 @@ impl HolisticEmpathyEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F32Ext, F64Ext};
 
     #[test]
     fn test_subsystem_empathy_state() {
