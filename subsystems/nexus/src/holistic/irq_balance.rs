@@ -147,7 +147,7 @@ pub enum IrqMigrationReason {
 #[derive(Debug, Clone)]
 pub struct MsiXAssignment {
     pub device_id: u32,
-    pub vectors: Vec<(u32, u32)>, // (vector_idx, cpu_id)
+    pub vectors: Vec<(u32, u32)>, // (vector_idx, cpu_id),
     pub max_vectors: u32,
 }
 
