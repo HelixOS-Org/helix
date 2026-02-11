@@ -14,8 +14,9 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// C-state level
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum CStateLevel {
+    #[default]
     C0,
     C1,
     C1e,
@@ -67,8 +68,9 @@ impl CStateLevel {
 }
 
 /// Idle governor type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum IdleGovernor {
+    #[default]
     Menu,
     Ladder,
     Teo,
@@ -76,7 +78,7 @@ pub enum IdleGovernor {
 }
 
 /// Wake-up source
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WakeSource {
     Timer,
     Interrupt,
@@ -84,12 +86,14 @@ pub enum WakeSource {
     IoCompletion,
     NetworkRx,
     UserInput,
+    #[default]
     Unknown,
 }
 
 /// Per-CPU idle state
 #[derive(Debug, Clone)]
 #[repr(align(64))]
+#[derive(Default)]
 pub struct CpuIdleState {
     pub cpu_id: u32,
     pub current_state: CStateLevel,
@@ -105,6 +109,15 @@ pub struct CpuIdleState {
     pub disable_mask: u16,
     pub prediction_history: Vec<u64>,
     history_idx: usize,
+
+    pub actual_idle_ns: u64,
+    pub current_cstate: u32,
+    pub last_idle_enter: u64,
+    pub mispredictions: u64,
+    pub predicted_idle_ns: u64,
+    pub residency_ns: u64,
+    pub total_active_ns: u64,
+    pub total_idle_ns: u64,
 }
 
 impl CpuIdleState {
@@ -116,6 +129,7 @@ impl CpuIdleState {
             total_idle_us: 0, total_active_us: 0,
             deepest_allowed: CStateLevel::C10, disable_mask: 0,
             prediction_history: alloc::vec![0u64; 8], history_idx: 0,
+            ..Default::default()
         }
     }
 
@@ -165,6 +179,13 @@ impl CpuIdleState {
     pub fn disable_state(&mut self, state: CStateLevel) { self.disable_mask |= 1 << state.depth(); }
     #[inline(always)]
     pub fn enable_state(&mut self, state: CStateLevel) { self.disable_mask &= !(1 << state.depth()); }
+
+    /// Idle ratio (0.0 to 1.0) using V2 nanosecond fields
+    #[inline(always)]
+    pub fn idle_ratio(&self) -> f64 {
+        let total = self.total_idle_ns + self.total_active_ns;
+        if total == 0 { 0.0 } else { self.total_idle_ns as f64 / total as f64 }
+    }
 
     #[inline]
     pub fn select_state(&self) -> CStateLevel {
@@ -304,78 +325,7 @@ pub enum CState {
     C10, // Package C10
 }
 
-/// Idle governor type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum IdleGovernor {
-    Menu,
-    Ladder,
-    Teo,
-    Haltpoll,
-}
 
-/// Per-CPU idle state
-#[derive(Debug)]
-#[repr(align(64))]
-pub struct CpuIdleState {
-    pub cpu_id: u32,
-    pub current_cstate: CState,
-    pub governor: IdleGovernor,
-    pub residency_ns: BTreeMap<u8, u64>,
-    pub entry_count: BTreeMap<u8, u64>,
-    pub total_idle_ns: u64,
-    pub total_active_ns: u64,
-    pub last_idle_enter: u64,
-    pub predicted_idle_ns: u64,
-    pub actual_idle_ns: u64,
-    pub mispredictions: u64,
-}
-
-impl CpuIdleState {
-    pub fn new(cpu_id: u32, governor: IdleGovernor) -> Self {
-        Self {
-            cpu_id, current_cstate: CState::C0, governor,
-            residency_ns: BTreeMap::new(), entry_count: BTreeMap::new(),
-            total_idle_ns: 0, total_active_ns: 0, last_idle_enter: 0,
-            predicted_idle_ns: 0, actual_idle_ns: 0, mispredictions: 0,
-        }
-    }
-
-    #[inline]
-    pub fn enter_idle(&mut self, target: CState, predicted_ns: u64, now: u64) {
-        self.current_cstate = target;
-        self.last_idle_enter = now;
-        self.predicted_idle_ns = predicted_ns;
-        let key = target as u8;
-        *self.entry_count.entry(key).or_insert(0) += 1;
-    }
-
-    #[inline]
-    pub fn exit_idle(&mut self, now: u64) {
-        let duration = now.saturating_sub(self.last_idle_enter);
-        let key = self.current_cstate as u8;
-        *self.residency_ns.entry(key).or_insert(0) += duration;
-        self.total_idle_ns += duration;
-        self.actual_idle_ns = duration;
-        if duration < self.predicted_idle_ns / 2 || duration > self.predicted_idle_ns * 2 {
-            self.mispredictions += 1;
-        }
-        self.current_cstate = CState::C0;
-    }
-
-    #[inline]
-    pub fn idle_ratio(&self) -> f64 {
-        let total = self.total_idle_ns + self.total_active_ns;
-        if total == 0 { return 0.0; }
-        self.total_idle_ns as f64 / total as f64
-    }
-
-    #[inline]
-    pub fn prediction_accuracy(&self) -> f64 {
-        let total_entries: u64 = self.entry_count.values().sum();
-        if total_entries == 0 { return 1.0; }
-        1.0 - (self.mispredictions as f64 / total_entries as f64)
-    }
-}
 
 /// C-state latency table
 #[derive(Debug, Clone)]
@@ -420,21 +370,23 @@ impl HolisticCpuIdleV2 {
 
     #[inline(always)]
     pub fn register_cpu(&mut self, cpu_id: u32, governor: IdleGovernor) {
-        self.cpus.insert(cpu_id, CpuIdleState::new(cpu_id, governor));
+        let mut state = CpuIdleState::new(cpu_id);
+        state.governor = governor;
+        self.cpus.insert(cpu_id, state);
     }
 
     #[inline(always)]
-    pub fn enter_idle(&mut self, cpu_id: u32, target: CState, predicted: u64, now: u64) {
-        if let Some(cpu) = self.cpus.get_mut(&cpu_id) { cpu.enter_idle(target, predicted, now); }
+    pub fn enter_idle(&mut self, cpu_id: u32, _target: CState, predicted: u64, _now: u64) {
+        if let Some(cpu) = self.cpus.get_mut(&cpu_id) { cpu.enter_idle(cpu.select_state(), predicted); }
     }
 
     #[inline(always)]
     pub fn exit_idle(&mut self, cpu_id: u32, now: u64) {
-        if let Some(cpu) = self.cpus.get_mut(&cpu_id) { cpu.exit_idle(now); }
+        if let Some(cpu) = self.cpus.get_mut(&cpu_id) { cpu.exit_idle(now, WakeSource::Unknown); }
     }
 
     pub fn stats(&self) -> CpuIdleV2Stats {
-        let idle = self.cpus.values().filter(|c| c.current_cstate != CState::C0).count() as u32;
+        let idle = self.cpus.values().filter(|c| c.current_state != CStateLevel::C0).count() as u32;
         let ratios: Vec<f64> = self.cpus.values().map(|c| c.idle_ratio()).collect();
         let avg_idle = if ratios.is_empty() { 0.0 } else { ratios.iter().sum::<f64>() / ratios.len() as f64 };
         let accs: Vec<f64> = self.cpus.values().map(|c| c.prediction_accuracy()).collect();
