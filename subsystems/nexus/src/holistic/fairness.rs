@@ -11,9 +11,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 // ============================================================================
 // RESOURCE SHARES
@@ -138,8 +139,8 @@ impl ProcessFairness {
         let mut max_resource = FairnessResource::Cpu;
 
         for (&key, share) in &self.shares {
-            let total_w = total_weights.get(&key).copied().unwrap_or(1024);
-            let ratio = share.allocation_ratio(total_w);
+            let total_w = total_weights.get(&key).unwrap_or(&1024);
+            let ratio = share.allocation_ratio(*total_w);
             if ratio > max_ratio {
                 max_ratio = ratio;
                 max_resource = match key {
@@ -341,12 +342,7 @@ impl FairnessEngine {
 
     /// Update current allocation
     #[inline]
-    pub fn update_allocation(
-        &mut self,
-        pid: u64,
-        resource: FairnessResource,
-        allocation: u64,
-    ) {
+    pub fn update_allocation(&mut self, pid: u64, resource: FairnessResource, allocation: u64) {
         if let Some(pf) = self.processes.get_mut(&pid) {
             if let Some(share) = pf.shares.get_mut(&(resource as u8)) {
                 share.current_allocation = allocation;
@@ -397,16 +393,15 @@ impl FairnessEngine {
                 .collect();
 
             if !allocations.is_empty() {
-                gini.insert(resource_key, FairnessMetrics::gini_coefficient(&allocations));
+                gini.insert(
+                    resource_key,
+                    FairnessMetrics::gini_coefficient(&allocations),
+                );
                 jains.insert(resource_key, FairnessMetrics::jains_index(&allocations));
             }
         }
 
-        let starved_count = self
-            .processes
-            .values()
-            .filter(|p| p.starved)
-            .count() as u32;
+        let starved_count = self.processes.values().filter(|p| p.starved).count() as u32;
 
         let most_over_pid = self
             .processes
@@ -449,7 +444,7 @@ impl FairnessEngine {
             .collect();
 
         for pid in starved_pids {
-            self.boosts.add(pid, self);
+            self.boosts.add(pid, self.starvation_config.boost_amount);
             self.total_boosts += 1;
         }
     }
@@ -457,17 +452,20 @@ impl FairnessEngine {
     /// Get boost for process
     #[inline(always)]
     pub fn get_boost(&self, pid: u64) -> u32 {
-        self.boosts.get(pid).copied().unwrap_or(0)
+        self.boosts.get(pid).unwrap_or(0)
     }
 
     /// Decay boosts
     #[inline]
     pub fn decay_boosts(&mut self) {
         let decay = self.starvation_config.boost_decay;
-        self.boosts.retain(|_, boost| {
-            *boost = boost.saturating_sub(decay);
-            *boost > 0
-        });
+        let keys: alloc::vec::Vec<u64> = self.boosts.keys().collect();
+        for k in keys {
+            if let Some(val) = self.boosts.get_mut(k) {
+                *val = val.saturating_sub(decay);
+            }
+        }
+        self.boosts.retain(|_, boost| *boost > 0);
     }
 
     /// Process count
@@ -480,16 +478,6 @@ impl FairnessEngine {
 // ============================================================================
 // Merged from fairness_v2
 // ============================================================================
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum FairnessResource {
-    Cpu,
-    Memory,
-    IoReadBw,
-    IoWriteBw,
-    NetworkBw,
-    GpuTime,
-}
 
 /// Fairness violation severity
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -731,7 +719,7 @@ impl HolisticFairnessV2 {
         let mut count = 0;
         for (res, &demand) in &envier.demands {
             if demand > 0.001 {
-                let envied_alloc = envied.allocations.get(res).copied().unwrap_or(0.0);
+                let envied_alloc = envied.allocations.get(res).unwrap_or(&0.0);
                 simulated_sat += (envied_alloc / demand).min(1.0);
                 count += 1;
             }
@@ -809,13 +797,13 @@ impl HolisticFairnessV2 {
             let current = self
                 .entities
                 .get(&id)
-                .and_then(|e| e.allocations.get(&resource).copied())
-                .unwrap_or(0.0);
+                .and_then(|e| e.allocations.get(&resource))
+                .unwrap_or(&0.0);
             results.push(MaxMinResult {
                 entity_id: id,
                 resource,
                 maxmin_share: maxmin,
-                current_share: current,
+                current_share: *current,
             });
         }
         results
