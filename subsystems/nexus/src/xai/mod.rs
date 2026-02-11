@@ -49,25 +49,25 @@ pub use natural_explanation::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExplanationType {
     /// Feature importance ranking
-    FeatureImportance,
+    FeatureImportanceRanking,
     /// Local linear approximation (LIME)
-    LocalLinear,
+    LocalLinearApproximation,
     /// SHAP values
-    Shapley,
+    ShapValues,
     /// Attention weights
-    Attention,
+    AttentionWeights,
     /// Counterfactual examples
-    Counterfactual,
+    CounterfactualExamples,
     /// Extracted rules
-    Rules,
+    ExtractedRules,
     /// Concept activations
-    Concepts,
+    ConceptActivations,
     /// Prototype comparison
-    Prototype,
+    PrototypeComparison,
     /// Influence functions
-    Influence,
+    InfluenceFunctions,
     /// Saliency maps
-    Saliency,
+    SaliencyMaps,
 }
 
 /// Feature attribution for a single prediction
@@ -648,7 +648,7 @@ impl AttentionHead {
     pub fn attention_received(&self, pos: usize) -> f64 {
         self.weights
             .iter()
-            .map(|row| row.get(pos).copied().unwrap_or(0.0))
+            .map(|row| row.get(pos).unwrap_or(0.0))
             .sum()
     }
 
@@ -787,7 +787,7 @@ pub struct Counterfactual {
     /// Counterfactual prediction
     pub counterfactual_pred: f64,
     /// Features that changed
-    pub changed_features: Vec<(u32, f64, f64)>, // (index, from, to)
+    pub changed_features: Vec<(u32, f64, f64)>, // (index, from, to),
     /// Distance from original
     pub distance: f64,
     /// Validity (prediction changed sufficiently)
@@ -1020,12 +1020,6 @@ pub struct RuleCondition {
 /// Comparison operators
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ComparisonOp {
-    LessThan,
-    LessEqual,
-    GreaterThan,
-    GreaterEqual,
-    Equal,
-    NotEqual,
 }
 
 impl RuleCondition {
@@ -1333,7 +1327,7 @@ impl DecisionTree {
             }
 
             if let Some(split) = self.get_split(node) {
-                let value = input.get(split.feature).copied().unwrap_or(0.0);
+                let value = input.get(split.feature).unwrap_or(0.0);
                 node = if value < split.threshold {
                     split.left_child
                 } else {
@@ -1536,15 +1530,6 @@ impl CavExplainer {
 /// Types of kernel events to explain
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KernelEventType {
-    ProcessScheduled,
-    ProcessKilled,
-    MemoryAllocated,
-    MemoryDeallocated,
-    InterruptHandled,
-    SyscallCompleted,
-    AnomalyDetected,
-    SecurityBlocked,
-    ResourceLimitHit,
 }
 
 /// An explained kernel decision
@@ -1738,7 +1723,7 @@ impl KernelXaiManager {
         // Store in history
         self.history.push_back(explained.clone());
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         explained
@@ -1837,6 +1822,7 @@ fn lcg_next(state: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_feature_attribution() {
