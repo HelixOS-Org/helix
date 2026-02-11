@@ -305,7 +305,7 @@ impl AdaptationEngine {
 
         // Limit history
         while self.feedback.len() > self.config.max_history {
-            self.feedback.pop_front();
+            self.feedback.remove(0);
         }
 
         // Update failure counter
@@ -409,7 +409,7 @@ impl AdaptationEngine {
         match action {
             AdaptAction::AdjustParameter { param, delta } => {
                 if let Some(strategy) = self.strategies.get_mut(&strategy_id) {
-                    let old_value = strategy.parameters.get(param).copied().unwrap_or(0.0);
+                    let old_value = strategy.parameters.get(param).unwrap_or(0.0);
                     let new_value = old_value + delta;
                     strategy.parameters.insert(param.clone(), new_value);
 
@@ -422,7 +422,7 @@ impl AdaptationEngine {
             }
             AdaptAction::ScaleParameter { param, factor } => {
                 if let Some(strategy) = self.strategies.get_mut(&strategy_id) {
-                    let old_value = strategy.parameters.get(param).copied().unwrap_or(1.0);
+                    let old_value = strategy.parameters.get(param).unwrap_or(1.0);
                     let new_value = old_value * factor;
                     strategy.parameters.insert(param.clone(), new_value);
 
@@ -435,7 +435,7 @@ impl AdaptationEngine {
             }
             AdaptAction::ResetParameter { param, value } => {
                 if let Some(strategy) = self.strategies.get_mut(&strategy_id) {
-                    let old_value = strategy.parameters.get(param).copied().unwrap_or(0.0);
+                    let old_value = strategy.parameters.get(param).unwrap_or(0.0);
                     strategy.parameters.insert(param.clone(), *value);
 
                     return Some(ParameterChange {
