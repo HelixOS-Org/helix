@@ -22,8 +22,8 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -252,7 +252,7 @@ impl HolisticAnalysisEngine {
             variance, sample_size, confidence, tick: self.tick, hash,
         };
         if self.results.len() >= MAX_RESULTS {
-            self.results.pop_front();
+            self.results.remove(0);
         }
         self.results.push_back(result);
         self.stats.total_results_ingested += 1;
