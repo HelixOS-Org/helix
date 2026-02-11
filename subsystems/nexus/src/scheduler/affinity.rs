@@ -97,7 +97,7 @@ impl AffinityPredictor {
             let history = &mut self.core_history[core_id];
             history.utilization.push_back(utilization);
             if history.utilization.len() > 100 {
-                history.utilization.pop_front();
+                history.utilization.remove(0);
             }
         }
     }
@@ -109,7 +109,7 @@ impl AffinityPredictor {
             let history = &mut self.core_history[core_id];
             history.temperature.push_back(temp);
             if history.temperature.len() > 100 {
-                history.temperature.pop_front();
+                history.temperature.remove(0);
             }
         }
     }
@@ -133,7 +133,7 @@ impl AffinityPredictor {
                 }
             }
 
-            if let Some(temp) = self.core_history[core_id].temperature.last() {
+            if let Some(temp) = self.core_history[core_id].temperature.back() {
                 score -= (temp / 100.0) * 10.0;
             }
 
