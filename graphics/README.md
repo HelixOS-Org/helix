@@ -1,27 +1,27 @@
 # Graphics Subsystem - Helix OS
 
-Ce dossier contient la stack graphique de Helix OS, **séparée du driver GPU (MAGMA)**.
+This directory contains the Helix OS graphics stack, **separate from the GPU driver (MAGMA)**.
 
 ## Architecture
 
 ```
 graphics/
-├── lumina-core/      # API graphique bas-niveau (buffers, pipelines, shaders)
-├── lumina-fx/        # Effets et systèmes de rendu haut-niveau
-├── lumina-math/      # Mathématiques graphiques (matrices, vecteurs, quaternions)
-└── lumina-shader/    # Compilation et réflexion de shaders
+├── lumina-core/      # Low-level graphics API (buffers, pipelines, shaders)
+├── lumina-fx/        # High-level effects and rendering systems
+├── lumina-math/      # Graphics mathematics (matrices, vectors, quaternions)
+└── lumina-shader/    # Shader compilation and reflection
 ```
 
-## Séparation des responsabilités
+## Separation of Responsibilities
 
-| Composant | Responsabilité | Dépendances |
-|-----------|----------------|-------------|
-| **MAGMA** (drivers/gpu/) | Communication hardware GPU, GSP | Kernel |
-| **lumina-core** | Abstractions GPU, command buffers | MAGMA |
+| Component | Responsibility | Dependencies |
+|-----------|----------------|--------------|
+| **MAGMA** (drivers/gpu/) | GPU hardware communication, GSP | Kernel |
+| **lumina-core** | GPU abstractions, command buffers | MAGMA |
 | **lumina-fx** | Sky, Water, Terrain, VFX | lumina-core |
-| **lumina-shader** | SPIR-V, compilation, réflexion | lumina-core |
+| **lumina-shader** | SPIR-V, compilation, reflection | lumina-core |
 
-## Stack complète
+## Full Stack
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -34,7 +34,7 @@ graphics/
 │    (Buffers, Pipelines, Descriptors, Commands)      │
 ├─────────────────────────────────────────────────────┤
 │                     MAGMA                            │
-│         (Driver GPU - communication GSP)            │
+│         (GPU Driver - GSP communication)            │
 ├─────────────────────────────────────────────────────┤
 │                  GPU Hardware                        │
 └─────────────────────────────────────────────────────┘
