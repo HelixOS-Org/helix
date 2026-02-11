@@ -200,6 +200,7 @@ impl CoopKnowledgeBase {
     ) -> u64 {
         self.tick += 1;
         let id = fnv1a_hash(title.as_bytes()) ^ fnv1a_hash(&self.tick.to_le_bytes());
+        let validated = provenance.replication_count > 0;
         let entry = KnowledgeEntry {
             id,
             category,
@@ -242,7 +243,7 @@ impl CoopKnowledgeBase {
                         fairness_score: performance_score,
                         throughput_impact: if parameters.len() > 1 { parameters[1] } else { 0.0 },
                         parameters,
-                        validated: provenance.replication_count > 0,
+                        validated,
                     });
                 }
                 self.stats.fairness_entries += 1;
@@ -255,7 +256,7 @@ impl CoopKnowledgeBase {
                         trust_convergence_rate: if !parameters.is_empty() { parameters[0] } else { 0.5 },
                         stability_score: performance_score,
                         decay_factor: if parameters.len() > 2 { parameters[2] } else { 0.01 },
-                        validated: provenance.replication_count > 0,
+                        validated,
                     });
                 }
                 self.stats.trust_entries += 1;
