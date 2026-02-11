@@ -6,8 +6,10 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 
 /// IOMMU domain type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use alloc::vec::Vec;
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IommuDomainType {
+    #[default]
     Dma,
     Identity,
     Blocked,
@@ -15,16 +17,18 @@ pub enum IommuDomainType {
 }
 
 /// IOMMU mapping
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct IommuMapping {
     pub iova: u64,
     pub phys_addr: u64,
     pub size: u64,
     pub prot: u32,
+
+    pub paddr: u64,
 }
 
 /// IOMMU domain
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct IommuDomain {
     pub id: u64,
     pub domain_type: IommuDomainType,
@@ -32,16 +36,21 @@ pub struct IommuDomain {
     pub total_mapped: u64,
     pub total_unmapped: u64,
     pub page_faults: u64,
+
+    pub devices: alloc::vec::Vec<u32>,
+    pub fault_count: u64,
+    pub pt_level: u32,
+    pub total_mapped_bytes: u64,
 }
 
 impl IommuDomain {
     pub fn new(id: u64, dtype: IommuDomainType) -> Self {
-        Self { id, domain_type: dtype, mappings: BTreeMap::new(), total_mapped: 0, total_unmapped: 0, page_faults: 0 }
+        Self { id, domain_type: dtype, mappings: BTreeMap::new(), total_mapped: 0, total_unmapped: 0, page_faults: 0, ..Default::default() }
     }
 
     #[inline(always)]
     pub fn map(&mut self, iova: u64, phys: u64, size: u64, prot: u32) {
-        self.mappings.insert(iova, IommuMapping { iova, phys_addr: phys, size, prot });
+        self.mappings.insert(iova, IommuMapping { iova, phys_addr: phys, size, prot, ..Default::default() });
         self.total_mapped += size;
     }
 
@@ -51,6 +60,12 @@ impl IommuDomain {
             self.total_unmapped += m.size;
             Some(m.size)
         } else { None }
+    }
+
+    /// Attach a device to this domain (V2 API)
+    #[inline]
+    pub fn attach_device(&mut self, bdf: u64) {
+        self.devices.push(bdf as u32);
     }
 }
 
@@ -124,15 +139,6 @@ pub enum IommuType {
     VirtioIommu,
 }
 
-/// Domain type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum IommuDomainType {
-    Identity,
-    DmaApi,
-    Unmanaged,
-    Blocked,
-}
-
 /// Page table level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IoptLevel {
@@ -141,52 +147,7 @@ pub enum IoptLevel {
     Level5,
 }
 
-/// IOMMU domain
-#[derive(Debug)]
-pub struct IommuDomain {
-    pub id: u64,
-    pub domain_type: IommuDomainType,
-    pub pt_level: IoptLevel,
-    pub devices: Vec<u64>,
-    pub mappings: BTreeMap<u64, IoMapping>,
-    pub total_mapped_bytes: u64,
-    pub fault_count: u64,
-}
 
-impl IommuDomain {
-    pub fn new(id: u64, dtype: IommuDomainType, level: IoptLevel) -> Self {
-        Self {
-            id, domain_type: dtype, pt_level: level, devices: Vec::new(),
-            mappings: BTreeMap::new(), total_mapped_bytes: 0, fault_count: 0,
-        }
-    }
-
-    #[inline(always)]
-    pub fn attach_device(&mut self, bdf: u64) {
-        if !self.devices.contains(&bdf) { self.devices.push(bdf); }
-    }
-
-    #[inline(always)]
-    pub fn map(&mut self, iova: u64, paddr: u64, size: u64, flags: u32) {
-        self.mappings.insert(iova, IoMapping { iova, paddr, size, flags });
-        self.total_mapped_bytes += size;
-    }
-
-    #[inline(always)]
-    pub fn unmap(&mut self, iova: u64) -> Option<u64> {
-        self.mappings.remove(&iova).map(|m| { self.total_mapped_bytes -= m.size; m.size })
-    }
-
-    #[inline]
-    pub fn translate(&self, iova: u64) -> Option<u64> {
-        for m in self.mappings.values() {
-            if iova >= m.iova && iova < m.iova + m.size {
-                return Some(m.paddr + (iova - m.iova));
-            }
-        }
-        None
-    }
-}
 
 /// IO mapping
 #[derive(Debug, Clone)]
@@ -244,10 +205,10 @@ impl HolisticIommuV2 {
     }
 
     #[inline]
-    pub fn create_domain(&mut self, dtype: IommuDomainType, level: IoptLevel) -> u64 {
+    pub fn create_domain(&mut self, dtype: IommuDomainType, _level: IoptLevel) -> u64 {
         let id = self.next_domain_id;
         self.next_domain_id += 1;
-        self.domains.insert(id, IommuDomain::new(id, dtype, level));
+        self.domains.insert(id, IommuDomain::new(id, dtype));
         id
     }
 
