@@ -1,7 +1,6 @@
 //! NUMA topology analysis and optimization.
 
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -83,7 +82,7 @@ impl NumaAnalyzer {
     /// Recommend node for task based on memory access patterns
     #[inline(always)]
     pub fn recommend_node(&self, task_id: u64) -> Option<u32> {
-        self.task_home_node.get(task_id).copied()
+        self.task_home_node.get(task_id)
     }
 
     /// Get node with most memory for a task
