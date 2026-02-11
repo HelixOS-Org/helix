@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::NodeId;
@@ -70,11 +69,11 @@ impl BandwidthMonitor {
         let samples = self.samples.entry(key).or_default();
         samples.push(sample);
         if samples.len() > self.max_samples {
-            samples.pop_front();
+            samples.remove(0);
         }
 
         // Update current
-        let prev = self.current.get(&key).copied().unwrap_or(bandwidth);
+        let prev = self.current.get(&key).unwrap_or(&bandwidth);
         let alpha = 0.2;
         let current = alpha * bandwidth + (1.0 - alpha) * prev;
         self.current.insert(key, current);
