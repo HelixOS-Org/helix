@@ -849,6 +849,7 @@ impl SelectionStrategy for ElitistSelection {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn create_population() -> Vec<SelectionCandidate> {
         vec![
