@@ -40,7 +40,7 @@ pub struct NumaPlacement {
     pub segment_id: u64,
     pub current_node: u32,
     pub optimal_node: u32,
-    pub access_from_nodes: ArrayMap<u64, 32>, // node → access_count
+    pub access_from_nodes: ArrayMap<u64, 32>, // node → access_count,
     pub migration_cost: u64,
 }
 
@@ -53,8 +53,8 @@ impl NumaPlacement {
     #[inline]
     pub fn total_remote_accesses(&self) -> u64 {
         self.access_from_nodes.iter()
-            .filter(|(&n, _)| n != self.current_node)
-            .map(|(_, &c)| c)
+            .filter(|(n, _)| *n as u32 != self.current_node)
+            .map(|(_, c)| c)
             .sum()
     }
 }
@@ -157,12 +157,12 @@ impl ShmHolisticManager {
             segment_id, current_node: 0, optimal_node: 0,
             access_from_nodes: ArrayMap::new(0), migration_cost: 0,
         });
-        *placement.access_from_nodes.entry(from_node).or_insert(0) += 1;
+        *placement.access_from_nodes.entry(from_node as usize).or_insert(0) += 1;
         // Recompute optimal: node with most accesses
-        if let Some((&best, _)) = placement.access_from_nodes.iter()
-            .max_by_key(|(_, &c)| c)
+        if let Some((best, _)) = placement.access_from_nodes.iter()
+            .max_by_key(|(_, c)| *c)
         {
-            placement.optimal_node = best;
+            placement.optimal_node = best as u32;
         }
     }
 
