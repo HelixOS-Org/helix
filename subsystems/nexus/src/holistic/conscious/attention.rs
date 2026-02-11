@@ -82,17 +82,17 @@ fn xorshift64(state: &mut u64) -> u64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AttentionPriority {
     /// Background — minimal attention required
-    Background  = 0,
+    Background = 0,
     /// Normal operating level
-    Normal      = 1,
+    Normal     = 1,
     /// Elevated — requires more focus
-    Elevated    = 2,
+    Elevated   = 2,
     /// High — significant issue or opportunity
-    High        = 3,
+    High       = 3,
     /// Critical — immediate attention required
-    Critical    = 4,
+    Critical   = 4,
     /// Emergency — ALL resources redirect here
-    Emergency   = 5,
+    Emergency  = 5,
 }
 
 // ============================================================================
@@ -287,7 +287,7 @@ impl HolisticAttentionEngine {
                 targets_retired: 0,
                 total_budget_distributed: 0.0,
             },
-            rng: seed ^ 0xA77E_471_0000_CAFE,
+            rng: seed ^ 0x0A77_E471_0000_CAFE,
             tick: 0,
         }
     }
@@ -487,11 +487,7 @@ mod tests {
 
     #[test]
     fn test_target_salience() {
-        let mut target = AttentionTarget::new(
-            String::from("memory_gc"),
-            String::from("memory"),
-            1,
-        );
+        let mut target = AttentionTarget::new(String::from("memory_gc"), String::from("memory"), 1);
         target.urgency = 0.9;
         target.importance = 0.8;
         target.recompute_salience();
