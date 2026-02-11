@@ -277,7 +277,7 @@ impl RetrievalEngine {
     }
 
     fn retrieve_by_keywords(&self, keywords: &[String]) -> Vec<RetrievalResult> {
-        let mut scores: LinearMap<f64, 64> = BTreeMap::new();
+        let mut scores: LinearMap<f64, 64> = LinearMap::new();
 
         for keyword in keywords {
             if let Some(ids) = self.keyword_index.get(&keyword.to_lowercase()) {
@@ -363,7 +363,7 @@ impl RetrievalEngine {
     }
 
     fn spread_activation(&self, initial: &[RetrievalResult]) -> Vec<RetrievalResult> {
-        let mut activation: LinearMap<f64, 64> = BTreeMap::new();
+        let mut activation: LinearMap<f64, 64> = LinearMap::new();
 
         // Initialize with direct results
         for result in initial {
