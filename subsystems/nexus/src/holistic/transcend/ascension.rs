@@ -69,7 +69,7 @@ struct Xorshift64 {
 impl Xorshift64 {
     fn new(seed: u64) -> Self {
         Self {
-            state: if seed == 0 { 0x0mega_c0de_f1na } else { seed },
+            state: if seed == 0 { 0x0e6a_c0de_f10a } else { seed },
         }
     }
 
@@ -364,7 +364,7 @@ impl HolisticAscension {
     fn log_event(&mut self, kind: &str, detail: &str) {
         let h = self.gen_hash(kind);
         if self.log.len() >= MAX_LOG_ENTRIES {
-            self.log.pop_front();
+            self.log.remove(0);
         }
         self.log.push_back(LogEntry {
             hash: h,
@@ -396,7 +396,7 @@ impl HolisticAscension {
         // Compute overall score from subsystem scores and optimality
         let mut sub_sum: u64 = 0;
         let sub_count = self.subsystem_scores.len() as u64;
-        for &v in self.subsystem_scores.values() {
+        for v in self.subsystem_scores.values() {
             sub_sum = sub_sum.wrapping_add(v);
         }
         let sub_avg = if sub_count > 0 { sub_sum / sub_count } else { 0 };
@@ -495,7 +495,7 @@ impl HolisticAscension {
         let omega_reached = score >= OMEGA_THRESHOLD;
 
         // Check all subsystems
-        let all_optimal = self.subsystem_scores.values().all(|&v| v >= DIVINE_THRESHOLD);
+        let all_optimal = self.subsystem_scores.values().all(|v| v >= DIVINE_THRESHOLD);
 
         let prediction_acc = 7_000_u64.wrapping_add(self.rng.next() % 3_001);
         let resource_util = 6_000_u64.wrapping_add(self.rng.next() % 4_001);
@@ -626,7 +626,7 @@ impl HolisticAscension {
         let aligned = self
             .subsystem_scores
             .values()
-            .filter(|&&v| v >= target_threshold / 2)
+            .filter(|&v| v >= target_threshold / 2)
             .count() as u64;
         let prereqs_met = aligned >= total_sub * 7 / 10;
 
@@ -722,7 +722,7 @@ impl HolisticAscension {
         let self_sustaining = perfection >= ASCENDED_THRESHOLD;
         let self_improving = self.stats.self_improvement_count > 5;
         let self_aware = perfection >= COGNITIVE_THRESHOLD;
-        let fully_optimal = self.subsystem_scores.values().all(|&v| v >= DIVINE_THRESHOLD);
+        let fully_optimal = self.subsystem_scores.values().all(|v| v >= DIVINE_THRESHOLD);
         let harmony = self_sustaining && self_improving && self_aware;
 
         let omega_conv = if stage == AscensionStage::Omega {
