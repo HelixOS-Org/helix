@@ -827,6 +827,7 @@ pub enum FederatedError {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_fedavg_aggregator() {
