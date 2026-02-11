@@ -422,7 +422,7 @@ impl SemanticStore {
 
     /// Spreading activation
     pub fn spread_activation(&mut self, source_id: u64, initial_activation: f64) -> ActivationResult {
-        let mut activated: LinearMap<f64, 64> = BTreeMap::new();
+        let mut activated: LinearMap<f64, 64> = LinearMap::new();
         activated.insert(source_id, initial_activation);
 
         let mut to_process = vec![(source_id, initial_activation)];
@@ -523,6 +523,7 @@ impl Default for SemanticStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_store_concept() {
@@ -611,7 +612,7 @@ mod tests {
 
         let result = store.spread_activation(a, 1.0);
 
-        assert!(result.activated.contains_key(&a));
-        assert!(result.activated.contains_key(&b));
+        assert!(result.activated.contains_key(a));
+        assert!(result.activated.contains_key(b));
     }
 }
