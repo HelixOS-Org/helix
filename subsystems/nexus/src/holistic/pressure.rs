@@ -381,7 +381,7 @@ impl HolisticPressureEngine {
 
             self.events.push_back(event.clone());
             if self.events.len() > self.max_events {
-                self.events.pop_front();
+                self.events.remove(0);
             }
             self.stats.events_generated += 1;
 
