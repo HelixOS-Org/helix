@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -83,7 +82,7 @@ pub struct ForecastSeries {
     /// Metric
     pub metric: ForecastMetric,
     /// Raw values
-    values: VecDeque<f64>,
+    values: Vec<f64>,
     /// Max length
     max_len: usize,
     /// Smoothed values (exponential smoothing)
@@ -99,7 +98,7 @@ impl ForecastSeries {
     pub fn new(metric: ForecastMetric) -> Self {
         Self {
             metric,
-            values: VecDeque::new(),
+            values: Vec::new(),
             max_len: 1024,
             level: 0.0,
             trend: 0.0,
@@ -120,9 +119,9 @@ impl ForecastSeries {
             self.trend = self.beta * (self.level - prev_level) + (1.0 - self.beta) * self.trend;
         }
 
-        self.values.push_back(value);
+        self.values.push(value);
         if self.values.len() > self.max_len {
-            self.values.pop_front();
+            self.values.remove(0);
         }
     }
 
