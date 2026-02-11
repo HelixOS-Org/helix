@@ -80,11 +80,11 @@ impl HolisticKsmMgr {
             }
         }
         // promote unstable to stable
-        let mut hash_counts: LinearMap<u32, 64> = BTreeMap::new();
+        let mut hash_counts: LinearMap<u32, 64> = LinearMap::new();
         for p in self.pages.iter().filter(|p| p.state == KsmPageState::Unstable) {
             *hash_counts.entry(p.hash).or_insert(0) += 1;
         }
-        for (hash, count) in hash_counts {
+        for (hash, count) in &hash_counts {
             if count >= 2 && !self.stable_tree.contains_key(&hash) {
                 if let Some(base) = self.pages.iter().find(|p| p.hash == hash) {
                     self.stable_tree.insert(hash, StableNode { hash, base_pfn: base.pfn, merged_count: count });
