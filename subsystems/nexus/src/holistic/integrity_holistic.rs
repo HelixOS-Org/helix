@@ -2,7 +2,6 @@
 //! Holistic integrity — cross-layer integrity measurement analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Integrity holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
