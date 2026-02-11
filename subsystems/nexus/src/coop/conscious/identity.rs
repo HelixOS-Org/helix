@@ -384,8 +384,8 @@ impl CoopIdentity {
             ^ philosophy_fp;
 
         // Mix in version and birth tick
-        let version_bits = (self.version.0 as u64) << 32
-            | (self.version.1 as u64) << 16
+        let version_bits = ((self.version.0 as u64) << 32)
+            | ((self.version.1 as u64) << 16)
             | (self.version.2 as u64);
 
         combined ^ version_bits ^ self.birth_tick.wrapping_mul(FNV_PRIME)
