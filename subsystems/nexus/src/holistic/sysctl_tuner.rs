@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -176,7 +175,7 @@ pub struct SysctlTunerStats {
 /// Holistic sysctl tuner
 pub struct HolisticSysctlTuner {
     params: BTreeMap<String, SysctlParam>,
-    history: VecDeque<ParamChange>,
+    history: Vec<ParamChange>,
     max_history: usize,
     recommendations: Vec<TuningRecommendation>,
     current_profile: WorkloadProfile,
@@ -186,7 +185,7 @@ pub struct HolisticSysctlTuner {
 impl HolisticSysctlTuner {
     pub fn new() -> Self {
         Self {
-            params: BTreeMap::new(), history: VecDeque::new(),
+            params: BTreeMap::new(), history: Vec::new(),
             max_history: 1000, recommendations: Vec::new(),
             current_profile: WorkloadProfile::Balanced,
             stats: SysctlTunerStats::default(),
@@ -203,12 +202,12 @@ impl HolisticSysctlTuner {
         if let Some(p) = self.params.get_mut(&name_string) {
             let old = p.current_value;
             if p.set_value(value, ts) {
-                self.history.push_back(ParamChange {
+                self.history.push(ParamChange {
                     param_name: name_string, old_value: old, new_value: p.current_value,
                     timestamp: ts, reason,
                 });
                 if self.history.len() > self.max_history {
-                    self.history.pop_front();
+                    self.history.remove(0);
                 }
                 return true;
             }
@@ -223,7 +222,7 @@ impl HolisticSysctlTuner {
                 p.current_value = change.old_value;
                 p.change_count += 1;
                 p.last_change_ts = ts;
-                self.history.push_back(ParamChange {
+                self.history.push(ParamChange {
                     param_name: name, old_value: change.new_value,
                     new_value: change.old_value, timestamp: ts, reason: ChangeReason::Rollback,
                 });
