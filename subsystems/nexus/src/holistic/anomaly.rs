@@ -57,7 +57,7 @@ pub enum HolisticAnomalySeverity {
 #[derive(Debug)]
 pub struct DriftDetector {
     /// Window of values
-    window: VecDeque<f64>,
+    window: Vec<f64>,
     /// Max window size
     max_window: usize,
     /// Detection threshold (confidence)
@@ -75,7 +75,7 @@ pub struct DriftDetector {
 impl DriftDetector {
     pub fn new(max_window: usize, threshold: f64) -> Self {
         Self {
-            window: VecDeque::new(),
+            window: Vec::new(),
             max_window,
             threshold,
             drift_detected: false,
@@ -88,9 +88,9 @@ impl DriftDetector {
     /// Add value and check for drift
     pub fn add(&mut self, value: f64) -> bool {
         if self.window.len() >= self.max_window {
-            self.window.pop_front();
+            self.window.remove(0);
         }
-        self.window.push_back(value);
+        self.window.push(value);
         self.count += 1;
 
         // Update running stats
@@ -208,7 +208,7 @@ impl MetricAnomalyTracker {
     pub fn add(&mut self, value: f64, now: u64) -> Option<HolisticAnomaly> {
         // Update stats
         if self.values.len() >= self.max_values {
-            self.values.pop_front();
+            self.values.remove(0);
         }
         self.values.push_back(value);
         self.recompute_stats();
@@ -327,7 +327,7 @@ impl HolisticAnomalyV2 {
         let anomaly = tracker.add(value, now);
         if let Some(ref a) = anomaly {
             if self.recent.len() >= 512 {
-                self.recent.pop_front();
+                self.recent.remove(0);
             }
             self.recent.push_back(a.clone());
             self.stats.total_anomalies += 1;
