@@ -2,7 +2,6 @@
 //!
 //! Resource usage metrics and time series.
 
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -62,11 +61,11 @@ impl VirtMetrics {
 #[repr(align(64))]
 pub struct MetricsSeries {
     /// Timestamps
-    timestamps: VecDeque<u64>,
+    timestamps: Vec<u64>,
     /// CPU values
-    cpu: VecDeque<f64>,
+    cpu: Vec<f64>,
     /// Memory values
-    memory: VecDeque<f64>,
+    memory: Vec<f64>,
     /// Max samples
     max_samples: usize,
 }
@@ -87,14 +86,14 @@ impl MetricsSeries {
         let timestamp = NexusTimestamp::now().raw();
 
         if self.timestamps.len() >= self.max_samples {
-            self.timestamps.pop_front();
-            self.cpu.pop_front();
-            self.memory.pop_front();
+            self.timestamps.remove(0);
+            self.cpu.remove(0);
+            self.memory.remove(0);
         }
 
-        self.timestamps.push_back(timestamp);
-        self.cpu.push_back(metrics.cpu_usage);
-        self.memory.push_back(metrics.memory_ratio() * 100.0);
+        self.timestamps.push(timestamp);
+        self.cpu.push(metrics.cpu_usage);
+        self.memory.push(metrics.memory_ratio() * 100.0);
     }
 
     /// Get average CPU
