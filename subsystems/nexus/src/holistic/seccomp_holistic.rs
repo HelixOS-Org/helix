@@ -2,8 +2,6 @@
 //! Holistic seccomp — cross-layer seccomp filter analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
-use alloc::collections::BTreeMap;
 
 /// Seccomp holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
