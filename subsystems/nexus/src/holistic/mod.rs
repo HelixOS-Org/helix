@@ -250,17 +250,17 @@ pub mod tcp_stack;
 pub mod udp_mgr;
 pub mod xdp_mgr;
 // Round 23
-pub mod vfs_holistic;
-pub mod mount_holistic;
-pub mod dentry_holistic;
-pub mod inode_holistic;
-pub mod superblock_holistic;
-pub mod file_lock_holistic;
 pub mod bio_holistic;
 pub mod blkdev_holistic;
-pub mod ioscheduler_holistic;
-pub mod raid_holistic;
+pub mod dentry_holistic;
 pub mod dm_holistic;
+pub mod file_lock_holistic;
+pub mod inode_holistic;
+pub mod ioscheduler_holistic;
+pub mod mount_holistic;
+pub mod raid_holistic;
+pub mod superblock_holistic;
+pub mod vfs_holistic;
 // Round 24
 pub mod acl_holistic;
 pub mod chmod_holistic;
@@ -333,9 +333,22 @@ pub use accounting::{
     AccountableResource, AccountingPeriod, EntityType, HolisticAccountingEngine,
     HolisticAccountingStats, ResourceLedger, UsageEntry,
 };
+pub use acl_holistic::{
+    AclEntryType, AclPerm, HolisticAcl, HolisticAclEntry, HolisticAclStats, InodeAcl,
+};
+// Round 15 re-exports
+pub use acpi_mgr::{
+    AcpiMgrStats, AcpiPowerState, AcpiTableHeader, AcpiTableType, HolisticAcpiMgr, MadtEntry,
+    MadtEntryType, SratMemAffinity,
+};
 pub use adaptive::{
     ControlLoop, ControlLoopState, ControlMode, ControlVariable, HolisticAdaptiveEngine,
     HolisticAdaptiveStats, PidController,
+};
+// Round 13 re-exports
+pub use affinity_mgr::{
+    AffinityBinding, AffinityMgrStats, AffinityPolicy, AffinityScope, CpuMask, HolisticAffinityMgr,
+    MigrationEvent, MigrationReason, NodeMask,
 };
 // Re-exports from expanded modules
 pub use analyzer::{
@@ -348,16 +361,63 @@ pub use anomaly_holistic::{
     HolisticAnomalyStats, HolisticAnomalyType, MetricCorrelation as HolisticMetricCorrelation,
     MetricTracker,
 };
-// Re-exports from Round 6 modules
-    DriftDetector, HolisticAnomaly as AnomalyV2Entry, HolisticAnomalySeverity as AnomalyV2Severity,
-    HolisticAnomalyType as AnomalyV2Type, HolisticAnomalyV2, HolisticAnomalyV2Stats,
-    MetricAnomalyTracker,
+// Round 22 re-exports
+pub use arp_cache::{
+    ArpCacheStats, ArpEntry, ArpOpType, HardwareType, HolisticArpCache, MacAddress, NudState,
 };
+// Re-exports from Round 25 — Security holistic analysis
+pub use audit_holistic::{
+    AuditHolisticFinding, AuditHolisticMetric, AuditHolisticStats, HolisticAudit,
+};
+// Re-exports from Round 6 modules
 pub use balance::*;
+// Round 14 re-exports
+pub use balloon_driver::{
+    BalloonDriverStats, BalloonInstance, BalloonPageType, BalloonState, HolisticBalloonDriver,
+    InflationSource,
+};
+// Round 18 re-exports
+pub use balloon_drv::{
+    BalloonAction, BalloonDrvStats, BalloonInstance as BalloonDrvInstance, BalloonPageRange,
+    BalloonState as BalloonDrvState, HolisticBalloonDrv,
+};
+// Round 27 re-exports — Networking/socket holistic analysis
+pub use bandwidth_holistic::{
+    BandwidthGrade, BandwidthHolisticRecord, BandwidthHolisticStats, HolisticBandwidth,
+};
 // Re-exports from Round 7 modules
 pub use bandwidth_mgr::{
     BwReservation, BwResource, BwShare, CongestionLevel as BwCongestionLevel, DeviceBandwidth,
     HolisticBandwidthMgr, HolisticBandwidthMgrStats, TokenBucket,
+};
+pub use bio_holistic::{
+    BioOp as BioV2Op, BioRequest as BioV2Request, BioState as BioV2State, HolisticBio,
+    HolisticBioStats,
+};
+// Round 21 re-exports
+pub use bio_layer::{
+    BioDeviceQueue, BioFlag, BioLayerStats, BioOp, BioRequest, BioState, HolisticBioLayer,
+};
+// Round 17 re-exports
+pub use blk_mq::{BlkIoOp, BlkMqStats, BlkRequest, HolisticBlkMq, HwQueue};
+// ── Round 12 re-exports ──
+pub use blk_throttle::{
+    BlkThrottleStats, BwLimit, CgroupIoStat, HolisticBlkThrottle, LatencyTarget, ThrottleDevice,
+    ThrottleEvent, ThrottlePolicy, ThrottleReason,
+};
+pub use blkdev_holistic::{
+    BlkPartition, BlkdevInstance, BlkdevState, BlkdevType, HolisticBlkdev, HolisticBlkdevStats,
+};
+pub use block_dev::{
+    BlockDevEntry, BlockDevGeometry, BlockDevPartition, BlockDevScheduler, BlockDevState,
+    BlockDevStats, BlockDevType, HolisticBlockDev,
+};
+pub use btrfs_cow::{
+    BtrfsCowExtent, BtrfsCowExtentState, BtrfsCowExtentType, BtrfsCowSpaceInfo, BtrfsCowStats,
+    BtrfsSnapshot, HolisticBtrfsCow,
+};
+pub use buddy_alloc::{
+    BuddyAllocStats, BuddyState, BuddyZone, FreeBlock, HolisticBuddyAlloc, MAX_ORDER,
 };
 // Re-exports from Round 5 modules
 pub use budget_holistic::{
@@ -368,6 +428,13 @@ pub use cache_manager::{
     CachePartitionEntry, HolisticCacheManager, HolisticCacheManagerStats, PageClassifier, PageTemp,
     PartitionScheme, PrefetchHint,
 };
+pub use cache_partition::{
+    CacheLevel as CatCacheLevel, CacheMonitorData, CachePartitionStats, CdpConfig, ClosEntry,
+    HolisticCachePartition, PartitionType,
+};
+pub use capability_holistic::{
+    CapHolisticFinding, CapHolisticMetric, CapHolisticStats, HolisticCapability,
+};
 pub use capacity::{
     CapacityPlanner, CapacityResource, PlannerConfig, ResourceCapacity, ScalingDirection,
     ScalingRecommendation, Scenario, ScenarioResult, UsageSample,
@@ -377,14 +444,39 @@ pub use capacity_holistic::{
     CapacityScenario, CapacityTimeSeries, CapacityTrend, HolisticCapacityEngine,
     HolisticCapacityStats, SizingRecommendation,
 };
+pub use cfs_bandwidth::{CfsBandwidthStats, CfsBwGroup, CfsBwState, HolisticCfsBandwidth};
+pub use cfs_sched::{CfsEntity, CfsRunQueue, CfsSchedStats, CfsState, HolisticCfsSched};
 pub use cfs_tuner::{
     CfsParameters, CfsTunable, CpuCfsStats, HolisticCfsTuner, HolisticCfsTunerStats,
     LatencyHistogram, TuningDirection, TuningRecommendation,
 };
+pub use cgroup_cpu::{CgroupCpuPolicy, CgroupCpuStats, CpuCgroup, HolisticCgroupCpu};
+// Round 20 re-exports
+pub use cgroup_io::{
+    CgroupIoAccounting, CgroupIoDeviceId, CgroupIoDeviceLimit, CgroupIoInstance, CgroupIoPolicy,
+    CgroupIoStats, HolisticCgroupIo, IoDirection as CgroupIoDirection,
+};
+pub use cgroup_mem::{CgroupMemState, CgroupMemStats, HolisticCgroupMem, MemLimitType};
 // Round 8 re-exports
 pub use cgroup_mgr::{
     CgroupController, CgroupNode, CpuCgroupLimits, HolisticCgroupMgr, HolisticCgroupStats,
     IoCgroupLimits, MemCgroupLimits, PsiInfo, PsiLevel,
+};
+pub use cgroup_orchestrator::{
+    CgroupController as OrchCgroupController, CgroupLimits, CgroupNode as OrchCgroupNode,
+    CgroupOrchStats, CgroupUsage, CgroupVersion, HolisticCgroupOrch, OrchAction,
+};
+pub use chmod_holistic::{ChmodChangeRecord, ChmodRiskLevel, HolisticChmod, HolisticChmodStats};
+pub use chown_holistic::{
+    ChownChangeRecord, ChownChangeType, HolisticChown, HolisticChownStats, PrivilegeDirection,
+};
+pub use clock_source::{
+    ClockFlags, ClockQuality, ClockSource as ClockSrcDesc, ClockSourceStats, ClockSourceType,
+    ClockState as ClockSrcState, ClockWatchdog, HolisticClockSource,
+};
+// Re-exports from Round 29 — Process/thread holistic
+pub use clone_holistic::{
+    HolisticCloneManager, HolisticClonePattern, HolisticCloneRecord, HolisticCloneStats,
 };
 pub use compaction::{
     CompactAction, CompactZone, CompactionUrgency, HolisticCompactionEngine,
@@ -393,6 +485,12 @@ pub use compaction::{
 pub use congestion::{
     BackpressureAction, CongestionLevel, CongestionResource, CongestionWindow, CwndState,
     HolisticCongestionEngine, HolisticCongestionStats, ResourceCongestion,
+};
+pub use congestion_holistic::{
+    CongestionHolisticRecord, CongestionHolisticStats, CongestionPattern, HolisticCongestion,
+};
+pub use connection_holistic::{
+    ConnHealth, ConnectionHolisticRecord, ConnectionHolisticStats, HolisticConnection,
 };
 // Re-exports from Round 3 modules
 pub use correlation::{
@@ -413,6 +511,26 @@ pub use cpu_topology::{
     HolisticCpuTopologyStats, LogicalCpu as TopologyLogicalCpu,
     NumaDistance as TopologyNumaDistance, Package, PlacementHint, TopologyPlacement,
 };
+// Round 16 re-exports
+pub use cpufreq_gov::{
+    CpuFreqGovStats, CpuFreqState as CpuFreqGovState, FreqTransition,
+    GovernorType as CpuFreqGovType, HolisticCpuFreqGov as HolisticCpuFreqGovV2,
+};
+pub use cpuset_ctrl::{
+    CpuDistPolicy, Cpuset, CpusetMigration, CpusetPartition, CpusetStats, CpusetViolation,
+    HolisticCpusetCtrl, MemPlacePolicy, ViolationType,
+};
+// Round 10 re-exports
+pub use cred_mgr::{
+    CapSet, Capability, CredEvent, CredEventType, CredManagerStats, HolisticCredManager,
+    ProcessCred,
+};
+pub use credential_holistic::{
+    CredHolisticFinding, CredHolisticMetric, CredHolisticStats, HolisticCredential,
+};
+pub use crypto_holistic::{
+    CryptoHolisticFinding, CryptoHolisticMetric, CryptoHolisticStats, HolisticCrypto,
+};
 pub use deadline_mgr::{
     AdmissionResult as DeadlineAdmission, DeadlineClass, DeadlineParams, DeadlineTaskState,
     HolisticDeadlineMgr, HolisticDeadlineMgrStats, MissSeverity, SlackInfo,
@@ -421,14 +539,56 @@ pub use dedup_holistic::{
     DedupScanner, DedupState as HolisticDedupState, HolisticDedupEngine, HolisticDedupStats,
     MergeGroup, PageFingerprint, ScanPriority, ScanStats,
 };
+pub use dentry_cache::{
+    DentryCacheEntry, DentryCacheStats, DentryState, DentryType, HolisticDentryCache,
+};
+pub use dentry_holistic::{
+    DentryCacheEntry as DentryV2CacheEntry, DentryFlag, DentryLru, DentryState as DentryV2State,
+    HolisticDentry, HolisticDentryStats,
+};
+pub use devfreq_mgr::{
+    DevFreqGovernor, DevFreqMgrStats, DevFreqProfile, DevPowerState, HolisticDevFreqMgr,
+};
 pub use diagnostic::{
     DiagnosisConfidence, DiagnosisReport, FaultNode, FaultNodeType, FaultTree,
     HolisticDiagnosticEngine, HolisticDiagnosticStats, RootCause, Symptom, SymptomCategory,
     SymptomSeverity,
 };
+// ── Round 11 re-exports ──
+pub use dirty_tracker::{
+    DirtyPage, DirtyState, DirtyTrackerStats, HolisticDirtyTracker, ProcessDirtyState,
+    WritebackBatch, WritebackPriority,
+};
+pub use dirty_writeback::{
+    BdiWriteback, DirtyPageInfo, DirtyWritebackStats, HolisticDirtyWriteback,
+    WritebackState as DirtyWritebackState,
+};
+pub use dm_holistic::{
+    DmDevState, DmDevice, DmTarget, DmTargetType, DmThinPoolStatus, HolisticDm, HolisticDmStats,
+};
+pub use dma_engine::{
+    DmaChannel, DmaChannelState, DmaDirection as DmaEngDirection, DmaEngineStats, DmaPriority,
+    DmaRegion, DmaTransfer as DmaEngTransfer, DmaTransferType, HolisticDmaEngine,
+};
+pub use dma_fence::{
+    DmaFence as DmaFenceEntry, DmaFenceStats, FenceState, FenceType, HolisticDmaFence, SyncFile,
+    TimelineFence,
+};
 pub use dma_mgr::{
     DmaBuffer, DmaCoherency, DmaDirection, DmaStats as HolisticDmaStats, DmaTransfer, DmaZone,
     DmaZoneState, HolisticDmaMgr, IommuMapping, SgEntry, SgList,
+};
+pub use dma_pool::{
+    DmaBuffer as DmaPoolBuffer, DmaBufferState as DmaPoolBufferState, DmaPool, DmaPoolStats,
+    HolisticDmaPool,
+};
+pub use dns_cache::{
+    DnsCacheEntry, DnsCacheState, DnsCacheStats, DnsRcode, DnsRecordType, DnsServerState,
+    HolisticDnsCache,
+};
+pub use ebpf_verifier::{
+    EbpfVerifierStats, HolisticEbpfVerifier, ProgramVerification, RegState, VerifierInsn,
+    VerifyResult,
 };
 pub use emergency::{
     DegradationAction, EmergencyAction, EmergencyActionType, EmergencyEvent, EmergencyLevel,
@@ -444,29 +604,89 @@ pub use entropy::{
     EntropyPool, EntropySource, HolisticEntropyStats, HolisticEntropyTracker, PoolHealth,
     SourceTracker,
 };
+pub use epoll_holistic::{
+    EpollHolisticRecord, EpollHolisticStats, EpollScalability, HolisticEpoll,
+};
 pub use event_holistic::{
     AggregationWindow, CorrelatedGroup, EventPattern, EventSeverity, EventSource,
     HolisticEventEngine, HolisticEventStats, PatternCondition, SystemEvent,
+};
+// Round 26 re-exports — IPC/signal holistic analysis
+pub use eventfd_holistic::{
+    EventfdHolisticRecord, EventfdHolisticStats, EventfdPattern, HolisticEventfd,
+};
+pub use exec_holistic::{
+    HolisticExecManager, HolisticExecPattern, HolisticExecRecord, HolisticExecStats,
+};
+pub use exit_holistic::{
+    HolisticExitManager, HolisticExitPattern, HolisticExitRecord, HolisticExitStats,
+};
+pub use ext4_journal::{
+    Ext4JournalStats, HolisticExt4Journal, JournalMode, JournalSpace, JournalTransaction,
+    JournalTxState,
+};
+pub use extent_holistic::{
+    ExtentRecord, ExtentState, FragmentationAnalysis, HolisticExtent, HolisticExtentStats,
+};
+pub use f2fs_gc::{
+    F2fsGcMode, F2fsGcRound, F2fsGcStats, F2fsSegment, F2fsSegmentState, F2fsSegmentType,
+    F2fsVictimPolicy, HolisticF2fsGc,
 };
 pub use fairness::{
     FairnessEngine, FairnessMetrics, FairnessReport, FairnessResource, ProcessFairness,
     ResourceShare, StarvationConfig,
 };
-    EntityAllocation, EnvyPair, FairnessResource as FairnessV2Resource, FairnessViolation,
-    FairnessViolationSeverity, HolisticFairnessV2, HolisticFairnessV2Stats, MaxMinResult,
-};
 pub use feedback_holistic::{
     CascadeController, ControllerType, FeedbackControllerState, FeedbackLoop, FeedbackVariable,
     GainSchedule, HolisticFeedbackEngine, HolisticFeedbackStats,
+};
+pub use file_lock_holistic::{
+    DeadlockDetector, FileLockRequest, FileLockState, FileLockType, HolisticFileLock,
+    HolisticFileLockStats,
+};
+pub use firmware_mgr::{
+    FirmwareImage, FirmwareMgrStats, FirmwareSecLevel, FirmwareState, FirmwareType,
+    FirmwareUpdateReq, FirmwareVersion, HolisticFirmwareMgr,
+};
+// Round 28 re-exports
+pub use flock_holistic::{
+    HolisticFlockHealth, HolisticFlockManager, HolisticFlockMetric, HolisticFlockStats,
 };
 pub use forecast::{
     CapacityPlan, CapacityRisk, ForecastMetric, ForecastResult, ForecastScenario, ForecastSeries,
     HolisticForecastEngine, HolisticForecastHorizon, HolisticForecastStats, TrendDirection,
 };
+pub use fork_holistic::{
+    HolisticForkEntry, HolisticForkManager, HolisticForkPattern, HolisticForkStats,
+};
+pub use fpu_context::{
+    CpuFpuCaps, FpuContextStats, FpuException, FpuFeature, FpuStrategy, HolisticFpuContext,
+    MxcsrFlags, TaskFpuContext,
+};
 pub use fragmentation::{
     BuddyOrderStats, FragSeverity, FragType, HolisticFragmentationEngine,
     HolisticFragmentationStats, HugePageAvailability, MemoryZone as FragMemoryZone, SlabCacheInfo,
     ZoneFragStats,
+};
+// Round 19 re-exports
+pub use freelist::{FreePageEntry, Freelist, FreelistStats, FreelistType, HolisticFreelist};
+pub use freq_scaling::{
+    EnergyPref, FreqDomain as DvfsDomain, FreqGovernor as DvfsGovernor, FreqScalingStats,
+    HolisticFreqScaling, ScalingState,
+};
+pub use ftrace_mgr::{
+    FtraceMgrStats, HolisticFtraceMgr, TraceBuffer, TraceEvent, TraceEventType, TraceFilter,
+};
+pub use futex_holistic::{
+    FutexHolisticRecord, FutexHolisticStats, FutexQueueHealth, HolisticFutex,
+};
+pub use futex_mgr::{
+    FutexBucket as FutexMgrBucket, FutexMgrStats, FutexOp as FutexMgrOp,
+    FutexWaiter as FutexMgrWaiter, HolisticFutexMgr,
+};
+pub use futex_tracker::{
+    FutexBucket, FutexOp, FutexTrackerStats, FutexWaiter, HolisticFutexTracker, PiChain, RequeueOp,
+    WaiterState as FutexWaiterState,
 };
 pub use global::*;
 pub use governance::{
@@ -482,9 +702,28 @@ pub use hotplug::{
     CpuHotplugState, HolisticHotplugMgr, HolisticHotplugStats, HotplugAction, HotplugEvent,
     HotplugPolicy, HotplugResource, MemorySection,
 };
+pub use hotplug_mgr::{
+    CpuHotplugState as HpMgrCpuState, HolisticHotplugMgr as HolisticHpMgr,
+    HotplugAction as HpMgrAction, HotplugMgrStats, HotplugNotifier, HotplugOperation,
+    HotplugResource as HpMgrResource, HotplugState as HpMgrState, NotifierPriority,
+};
+pub use huge_page_alloc::{
+    HolisticHugePageAlloc, HugePageAllocPool, HugePageAllocSize, HugePageAllocStats, HugePageEntry,
+};
 pub use hugepage_mgr::{
     CompactionRequest, HolisticHugepageMgr, HugeAllocRecord, HugePageSize, HugePageStats,
     NodeHugePool, ThpDefrag, ThpMode, ThpStats,
+};
+pub use hwmon_mgr::{HolisticHwmonMgr, HwmonMgrStats, HwmonSensor, HwmonSensorType, SensorAlarm};
+pub use inode_cache::{
+    HolisticInodeCache, InodeCacheEntry, InodeCacheState as InodeCacheV2State, InodeCacheStats,
+    InodeCacheType, InodeSuperBlockPartition,
+};
+pub use inode_holistic::{
+    HolisticInode, HolisticInodeMgr, HolisticInodeStats, InodeAllocator, InodeState, InodeType,
+};
+pub use integrity_holistic::{
+    HolisticIntegrity, IntegrityHolisticFinding, IntegrityHolisticMetric, IntegrityHolisticStats,
 };
 pub use interrupt_balance::{
     BalanceStrategy as IrqBalanceStrategy, CoalesceSuggestion, CpuIrqLoad, HolisticIrqBalance,
@@ -498,17 +737,79 @@ pub use io_priority::{
     DeviceSaturation, HolisticIoPriority, HolisticIoPriorityStats, IoOpType, IoPriorityClass,
     IoRequest as HolisticIoRequest, ProcessIoWeight, ReadaheadState,
 };
+pub use io_sched::{
+    HolisticIoSched, IoPrioClass as IoSchedPrioClass, IoRequest as IoSchedV2Request, IoSchedPolicy,
+    IoSchedStats, SchedQueue,
+};
 pub use io_scheduler::{
     DeviceQueue, HolisticIoScheduler, HolisticIoSchedulerStats, IoDeviceType, IoDirection,
-    IoPriorityClass, IoRequest as IoSchedRequest, IoSchedAlgo,
+    IoRequest as IoSchedRequest, IoSchedAlgo,
+};
+pub use iommu::{
+    HolisticIommu, IommuDevice, IommuDomain as IommuHolisticDomain,
+    IommuDomainType as IommuHolisticDomainType, IommuMapping as IommuHolisticMapping, IommuStats,
+};
+pub use iommu_alloc::{
+    HolisticIommuAlloc, IommuAllocDomain, IommuAllocStats, IommuMapType,
+    IovaRegion as IommuIovaRegion,
+};
+pub use iommu_mgr::{
+    DmaFault, HolisticIommuMgr, IommuDomain, IommuDomainType, IommuMgrStats, IotlbCache,
+    IotlbEntry, IovaRegion,
+};
+pub use ioscheduler_holistic::{
+    BfqBudget, HolisticIoSchedStats, HolisticIoScheduler as HolisticIoSchedV2,
+    IoPrioClass as IoPrioV2Class, IoReqType, IoSchedQueue, IoSchedType,
+};
+pub use ip_routing::{
+    HolisticIpRouting, IpRoutingStats, PolicyRule as IpPolicyRule, RouteEntry, RouteNextHop,
+    RouteProto, RouteScope, RouteType,
+};
+pub use ipc_holistic::{HolisticIpc, IpcHolisticRecord, IpcHolisticStats, IpcMechanism};
+pub use irq_affinity::{
+    CpuIrqLoad as IrqAffinityCpuLoad, HolisticIrqAffinity, IrqAffinityStats, IrqBalanceMode,
+    IrqDesc as IrqAffinityDesc, IrqSourceType,
 };
 pub use irq_balance::{
-    CoalesceStrategy, CpuIrqLoad, HolisticIrqBalance, HolisticIrqBalanceStats, IrqDeliveryMode,
-    IrqDescriptor, IrqMigration, IrqMigrationReason, IrqType, MsiXAssignment,
+    CoalesceStrategy, IrqDeliveryMode, IrqDescriptor, IrqMigration, IrqMigrationReason, IrqType,
+    MsiXAssignment,
 };
+pub use irq_domain::{
+    HolisticIrqDomain, IrqDelivery, IrqDesc, IrqDomain, IrqDomainStats, IrqState as IrqDomainState,
+    IrqTrigger, IrqType as IrqDomainType,
+};
+pub use irq_thread::{HolisticIrqThread, IrqActionType, IrqThread, IrqThreadState, IrqThreadStats};
 pub use isolation::{
     HolisticIsolationEngine, HolisticIsolationStats, InterferenceDetector, InterferenceEvent,
     InterferenceType, IsolationDomain, IsolationDomainType, IsolationStrength, ResourcePartition,
+};
+pub use journal_holistic::{
+    HolisticJournal, HolisticJournalStats, JournalOp, JournalState,
+    JournalTransaction as JournalTxn,
+};
+pub use kcalloc_pool::{
+    AllocState as KcAllocState, CpuCache as KcCpuCache, EmergencyReserve, HolisticKcallocPool,
+    KcallocPoolStats, LeakSuspect, ObjectHeader, SizeClass as KcSizeClass, SlabPage as KcSlabPage,
+};
+pub use keyring_holistic::{
+    HolisticKeyring, KeyringHolisticFinding, KeyringHolisticMetric, KeyringHolisticStats,
+};
+pub use kprobe_mgr::{
+    HolisticKprobeMgr, KprobeEntry, KprobeMgrStats, ProbeHit, ProbeState, ProbeType,
+};
+pub use kprobes::{
+    HolisticKprobes, KernelProbe, KprobesStats, ProbeState as KprobeState, ProbeType as KprobeType,
+};
+pub use ksm::{
+    HolisticKsm, KsmPage as KsmHolisticPage, KsmPageState as KsmHolisticPageState, KsmScanInfo,
+    KsmStats,
+};
+pub use ksm_dedup::{
+    HolisticKsmDedup, KsmDedupStats, KsmPage, KsmPageState, KsmScanConfig,
+    PageFingerprint as KsmFingerprint, ProcessKsmInfo, StableTreeNode,
+};
+pub use ksm_mgr::{
+    HolisticKsmMgr, KsmMgrStats, KsmPage as KsmMgrPage, KsmPageState as KsmMgrPageState, StableNode,
 };
 pub use kthread_pool::{
     HolisticKthreadPool, KThreadPoolStats, KWorkItem, KWorkPriority, KWorker, KWorkerState,
@@ -517,6 +818,9 @@ pub use kthread_pool::{
 pub use latency::{
     HolisticLatencyAnalyzer, LatencyAnalyzerStats, LatencyBudget, LatencyComponent,
     LatencyPercentiles, LatencySpan, RequestTrace,
+};
+pub use latency_holistic::{
+    HolisticLatency, LatencyBucket, LatencyHolisticRecord, LatencyHolisticStats,
 };
 pub use load_balance::{
     BalanceDomainLevel, BalanceGroup, CpuLoadState, HolisticLoadBalance, HolisticLoadBalanceStats,
@@ -527,13 +831,28 @@ pub use lock_contention::{
     ContentionHotspot, ContentionLevel, HolisticLockContention, HolisticLockContentionStats,
     LockDepGraph, LockInstance, LockOrderEdgeHolistic, PriorityInversionHolistic, SystemLockType,
 };
+pub use lsm_holistic::{HolisticLsm, LsmFinding, LsmHolisticMetric, LsmHolisticStats};
+pub use mac_holistic::{HolisticMac, MacHolisticFinding, MacHolisticMetric, MacHolisticStats};
+pub use mem_watermark::{
+    HolisticMemWatermark, MemZone, OrderWatermark, WatermarkLevel, WatermarkStats,
+    ZoneType as WatermarkZoneType, ZoneWatermarks as WatermarkThresholds,
+};
 pub use memcg_mgr::{
     HolisticMemcgMgr, Memcg, MemcgCounters, MemcgEvent, MemcgEventKind, MemcgLimit, MemcgOomPolicy,
     MemcgPressure, MemcgReclaimInfo, MemcgStats,
 };
+pub use memcg_oom::{HolisticMemcgOom, MemcgOomStats, OomAction, OomEvent, OomVictim};
+pub use memcg_reclaim::{
+    HolisticMemcgReclaim, MemcgLruScan, MemcgLruType, MemcgReclaimCtx, MemcgReclaimStats,
+    MemcgReclaimUrgency, MemcgScanResult,
+};
 pub use memory::{
     HolisticMemoryManager, MemoryPressure, MemoryZone, OomPolicy, OomScore, ReclaimAction,
     ReclaimPolicy, ReclaimTarget, ZoneStats,
+};
+pub use memory_compact::{
+    CompactEvent, CompactMode, CompactResult, CompactStats, HolisticMemoryCompact,
+    MigrationScanner, PageMobility,
 };
 pub use memory_compress::{
     AdmissionDecision as CompressAdmission, CompressAlgorithm, CompressPool, CompressPoolType,
@@ -543,41 +862,156 @@ pub use memory_tiering::{
     HolisticMemoryTiering, HolisticMemoryTieringStats, MemoryTier, PageHotness, PageTierInfo,
     TierInfo, TierMigrationDecision, TierMigrationDir,
 };
+pub use mempolicy::{
+    HolisticMempolicy, MempolicyFlag, MempolicyInstance, MempolicyMode, MempolicyScope,
+    MempolicyStats, NumaNodemask, WeightedInterleave,
+};
+pub use migrate_pages::{
+    HolisticMigratePages, MemoryTier as MigMemoryTier, MigratePageStats,
+    MigrationReason as MigPageReason, MigrationRequest as MigPageRequest, NodeMigrationState,
+    PageHotness as MigPageHotness, TrackedPage,
+};
 pub use migration_holistic::{
     HolisticMigrationEngine, HolisticMigrationReason, HolisticMigrationState,
     HolisticMigrationStats, MigrationCostBenefit, MigrationPriority, MigrationRequest,
     MigrationTarget, ProcessMigrationHistory,
+};
+pub use mmap_advisor::{
+    AddressGap, HolisticMmapAdvisor, MadviseHint, MmapAdvisorStats, ProcessAddressSpace, Vma,
+    VmaPerms, VmaType,
+};
+pub use mount_holistic::{
+    HolisticMount, HolisticMountStats, MountFlag, MountPoint, MountPropagation, MountType,
+};
+pub use mprotect_mgr::{
+    AccessType, HolisticMprotectMgr, MprotectMgrStats, ProcessProtState, ProtFlags, ProtRegion,
+    ProtViolation, ProtectionKey, StackGuard, WxPolicy,
+};
+pub use mqueue_holistic::{
+    HolisticMqueue, MqueueHolisticRecord, MqueueHolisticStats, MqueueLatencyBand,
+};
+pub use msgqueue_holistic::{
+    HolisticMsgqueue, MsgqueueDepthState, MsgqueueHolisticRecord, MsgqueueHolisticStats,
+};
+pub use msi_controller::{
+    HolisticMsiController, MsiControllerStats, MsiDeliveryMode, MsiDevice, MsiIrqDomain, MsiType,
+    MsiVector,
+};
+pub use msi_mgr::{
+    DeviceMsi, HolisticMsiMgr, MsiEntry as MsiAllocEntry, MsiMgrStats, MsiType as MsiAllocType,
+};
+pub use namespace_holistic::{
+    HolisticNamespace, NsHolisticFinding, NsHolisticMetric, NsHolisticStats, NsHolisticType,
+};
+pub use net_classifier::{
+    ClassStats, ClassifyMatch, ClassifyRule, FlowEntry, HolisticNetClassifier, NetClassifierStats,
+    Protocol as NetProtocol, TrafficClass,
+};
+pub use net_device::{
+    HolisticNetDevice, NetDevQueue, NetDevState, NetDevType, NetDevice, NetDeviceStats,
+    OffloadFeature,
+};
+pub use net_ns::{
+    HolisticNetNs, NetNamespace, NetNsCap, NetNsState, NetNsStats, VethPair, VethState,
+};
+pub use netfilter::{
+    ConntrackEntry, ConntrackState, HolisticNetfilter, NatType, NetfilterStats, NfChain, NfHook,
+    NfMatch, NfMatchType, NfRule, NfTableType, NfVerdict,
+};
+pub use netstack_holistic::{
+    HolisticNetstack, NetstackHolisticRecord, NetstackHolisticStats, NetstackLayer,
 };
 pub use network_holistic::{
     BandwidthAllocation, BandwidthClass, CongestionDetector, CongestionState, FlowDirection,
     HolisticInterfaceType, HolisticNetworkAnalyzer, HolisticNetworkStats, HolisticProtocol,
     InterfaceProfile, NetworkFlow,
 };
+pub use nfs_client::{
+    HolisticNfsClient, NfsClientState, NfsClientStats, NfsDelegation, NfsDelegationType,
+    NfsMountInstance, NfsVersion,
+};
+pub use nice_holistic::{
+    HolisticNiceEntry, HolisticNiceFairness, HolisticNiceManager, HolisticNiceStats,
+};
+pub use numa_balance::{
+    HolisticNumaBalance, NumaBalanceStats, NumaBalanceTask, NumaFaultType, NumaNodeInfo,
+};
 pub use numa_balancer::{
     HolisticNumaBalancer, HolisticNumaBalancerStats, NumaDistanceMatrix, NumaMigReason,
     NumaNode as NumaBalancerNode, NumaNodeState, NumaPageMigration,
+};
+pub use numa_mgr::{
+    HolisticNumaMgr, NumaDistance as NumaMgrDistance, NumaMgrStats, NumaNode as NumaMgrNode,
+    NumaPolicy as NumaMgrPolicy,
 };
 pub use numa_place::{
     AccessLocality, HolisticNumaPlace, HolisticNumaPlaceStats, MigrationCandidate,
     NumaDistanceEntry, NumaMigrationDir, NumaNodeMemState, ProcessNumaProfile,
 };
+pub use numa_policy::{
+    HolisticNumaPolicy, MigrationMode, NodeMemInfo, NodeState as NumaNodePolicyState,
+    NumaBalanceEvent, NumaDistance as NumaPolicyDistance, NumaPolicy as NumaPolicyType,
+    NumaPolicyStats, ProcessNumaBinding,
+};
 pub use oom_killer::{
-    CgroupOomState, HolisticOomKiller, KillStage, OomCandidate, OomKillRecord, OomPolicy, OomStats,
-    OomTrigger,
+    CgroupOomState, HolisticOomKiller, KillStage, OomCandidate, OomKillRecord, OomStats, OomTrigger,
+};
+pub use oom_reaper::{
+    CgroupOomState as ReaperCgroupOomState, HolisticOomReaper, MemPressureLevel,
+    OomKillRecord as ReaperOomKillRecord, OomPolicy as ReaperOomPolicy, OomReaperStats, OomReason,
+    OomTaskInfo, VictimState,
 };
 pub use optimization::{
     ConstraintDef, ConstraintType, HolisticOptimizationEngine, HolisticOptimizationStats,
     ObjectiveDef, OptSolution, OptimizationDirection, OptimizationObjective, ParetoFront,
 };
 pub use orchestrate::*;
+pub use page_alloc::{
+    AllocRequest, GfpFlags, HolisticPageAlloc, PageAllocStats, PageZoneType,
+    WatermarkLevel as AllocWatermarkLevel, ZoneAllocState, ZoneWatermarks,
+};
 pub use page_cache::{
     CacheEvictionPolicy, DeviceWritebackState, GlobalCacheStats, HolisticPageCache,
     InodeCacheState, ProcessCacheUsage, WritebackMode, WritebackParams,
+};
+pub use page_cache_holistic::{
+    HolisticPageCacheAnalysisStats, HolisticPageCacheAnalyzer, HolisticPageCacheHealth,
+    HolisticPageCacheMetric,
+};
+pub use page_reclaim::{
+    HolisticPageReclaim, LruListType, PageReclaimStats, ReclaimScanType, ReclaimZone,
+};
+pub use page_table::{
+    AddressSpace, HolisticPageTable, PageFlags, PageTableStats, PtEntry, TlbFlushType,
+};
+pub use pagecache_holistic::{
+    FileCacheProfile, HolisticPageCache as HolisticPageCacheV4, HolisticPageCacheStats,
+    PageCacheList, PageCacheOp,
+};
+pub use pci_enum::{
+    Bdf, HolisticPciEnum, PciBar, PciBus, PciCapability, PciClass, PciDevice, PciEnumStats,
+    PciHeaderType,
+};
+pub use percpu_alloc::{
+    HolisticPercpuAlloc, PercpuAlloc, PercpuAllocStats, PercpuChunk, PercpuChunkState,
 };
 pub use perf_counter::{
     CounterGroup, CounterMode, DerivedMetric, HolisticPerfCounter, HwEvent,
     PerfCounter as HolisticPerfCounterEntry, PerfCounterStats, PerfSample, PmuState,
 };
+pub use perf_events::{
+    CpuPerfState, HolisticPerfEvents, HwEventId, PerfEvent, PerfEventConfig, PerfEventState,
+    PerfEventType, PerfEventsStats, PmuDesc, PmuType, SwEventId,
+};
+pub use pgid_holistic::{
+    HolisticPgidEntry, HolisticPgidHealth, HolisticPgidManager, HolisticPgidStats,
+};
+pub use pgtable_mgr::{
+    HolisticPgtableMgr, PageTablePage, PcidEntry, PgtableMgrStats, ProcessPageTable, PtLevel,
+    PteFlags, ThpCandidate,
+};
+pub use pid_holistic::{HolisticPidEntry, HolisticPidHealth, HolisticPidManager, HolisticPidStats};
+pub use pipe_holistic::{HolisticPipe, PipeHealth, PipeHolisticRecord, PipeHolisticStats};
 pub use placement::{
     HolisticPlacementEngine, HolisticPlacementStats, InterferenceLevel, InterferenceModel,
     InterferencePair, PlacementCandidate as HolisticPlacementCandidate, PlacementConstraint,
@@ -588,9 +1022,21 @@ pub use power::{
     BatteryInfo, BatteryState, CState, PState, PowerBudget, PowerDomain, PowerEstimate,
     PowerManager, PowerProfile,
 };
+pub use power_domain::{
+    HolisticPowerDomain as HolisticPwrDomain, PowerConstraint, PowerDevice,
+    PowerDomain as PwrDomain, PowerDomainStats, PowerDomainType,
+    PowerGovernor as PwrDomainGovernor, PowerState as PwrDomainState,
+};
 pub use power_governor::{
-    CState as GovCState, CpuFreqState, FreqAction, HolisticPowerGovernor,
-    HolisticPowerGovernorStats, PowerDomain as GovPowerDomain, PowerPolicy,
+    CState as GovCState, FreqAction, HolisticPowerGovernor, HolisticPowerGovernorStats,
+    PowerDomain as GovPowerDomain, PowerPolicy,
+};
+pub use power_mgr::{
+    DevicePowerEntry, DevicePowerState, HolisticPowerMgr, PowerDomain as PwrMgrDomain,
+    PowerMgrStats, SystemPowerState,
+};
+pub use prctl_holistic::{
+    HolisticPrctlEntry, HolisticPrctlManager, HolisticPrctlPosture, HolisticPrctlStats,
 };
 pub use predict::*;
 pub use predictor::{
@@ -598,6 +1044,11 @@ pub use predictor::{
     MetricCorrelation as PredictorMetricCorrelation, MetricSample as PredictorMetricSample,
     MetricWindow, Prediction, PredictionMethod, PredictionTarget, SloDefinition, SloPrediction,
     SloState,
+};
+pub use preempt_ctrl::{
+    CpuPreemptState, CriticalSection, DisableReason, HolisticPreemptCtrl,
+    LatencyBudget as PreemptLatencyBudget, PreemptCtrlStats, PreemptDisableEntry, PreemptHotspot,
+    PreemptModel,
 };
 pub use pressure::{
     HolisticPressureEngine, HolisticPressureStats, PressureCategory, PressureEvent,
@@ -608,29 +1059,60 @@ pub use profiler::{
     OptimizationHintType, ProfileDomain, ProfileGranularity, ProfileSample, ProfileSession,
     ProfileSessionState, SampleSource,
 };
+pub use psi_monitor::{
+    CgroupPsi, HolisticPsiMonitor, PsiAlert, PsiMonitorStats, PsiReading, PsiResource, PsiTrigger,
+    PsiType, PsiWindow,
+};
+pub use qdisc::{
+    FqCodelFlow, HolisticQdisc, HtbClass, QdiscState, QdiscStats, QdiscType, TcClassState,
+};
 pub use qos::{
     AdmissionState, HolisticQosManager, HolisticQosStats, QosAdmissionResult, QosClass,
     QosEnforcementMode, QosPolicy, QosResource, ResourceGuarantee,
 };
-    HolisticQosV2, HolisticQosV2Stats, QosClassV2, QosGroupV2, QosResourceV2, QosSloType, QosSloV2,
-    ResourceAllocation, SloViolation,
+pub use quota_holistic::{
+    HolisticQuota, HolisticQuotaEntry, HolisticQuotaStats, HolisticQuotaType, QuotaState,
+};
+pub use raid_holistic::{
+    HolisticRaid, HolisticRaidStats, RaidArray, RaidDisk, RaidDiskState, RaidLevel, RaidState,
+};
+pub use rcu_sync::{
+    GpState as RcuGpState, GracePeriod as RcuGracePeriod, HolisticRcuSync,
+    RcuCallback as RcuSyncCallback, RcuFlavor as RcuSyncFlavor, RcuSyncStats,
 };
 pub use rcu_tracker::{
     GracePeriod, GracePeriodState, HolisticRcuTracker, PerCpuRcuState, RcuCallback, RcuFlavor,
     RcuStall as RcuStallEntry, RcuStats as HolisticRcuStats,
 };
+pub use rcu_tree::{
+    GpState, GracePeriodInfo as RcuTreeGpInfo, HolisticRcuTree, RcuCpuData, RcuNodeState,
+    RcuTreeFlavor, RcuTreeNode, RcuTreeStats,
+};
+pub use readahead_holistic::{
+    HolisticRaWindow, HolisticReadahead, HolisticReadaheadStats, ReadaheadPattern,
+    ReadaheadState as HolisticRaState,
+};
+pub use readahead_tuner::{
+    AccessPattern as ReadaheadAccessPattern, FileReadahead, HolisticReadaheadTuner,
+    InterleavedStream, ReadaheadState as ReadaheadTunerState, ReadaheadStats,
+};
 pub use reclaim::{
-    HolisticReclaimEngine, HolisticReclaimStats, OomCandidate, OomKiller, ProcessReclaimable,
+    HolisticReclaimEngine, HolisticReclaimStats, OomKiller, ProcessReclaimable,
     ReclaimAction as HolisticReclaimAction, ReclaimSource as HolisticReclaimSource, ReclaimUrgency,
     ReclaimZoneType, ZoneState,
-};
-    AgeHistogramBucket, CgroupMemPressure, HolisticReclaimV2, HolisticReclaimV2Stats,
-    PageGeneration, ReclaimEvent, ReclaimSource, ReclaimUrgency, WorkingSetEstimatorV2,
-    ZoneWatermarks,
 };
 pub use resource_pool::{
     FragmentationMetrics, HolisticResourcePoolManager, PartitionMode, PoolPartition,
     PoolResourceType, PoolState, ResourcePool, ResourcePoolStats,
+};
+pub use routing_holistic::{
+    HolisticRouting, RoutingEfficiency, RoutingHolisticRecord, RoutingHolisticStats,
+};
+pub use rss_tracker::{
+    HolisticRssTracker, ProcessRss, RssComponent, RssLimitType, RssTrackerStats, SystemRssSummary,
+};
+pub use sandboxing_holistic::{
+    HolisticSandboxing, SandboxHolisticFinding, SandboxHolisticMetric, SandboxHolisticStats,
 };
 pub use scaling::{
     DemandForecast, DemandPredictor, HolisticScalingManager, HolisticScalingStats, ScalingDecision,
@@ -641,9 +1123,18 @@ pub use sched_domain::{
     DomainBalanceState, HolisticSchedDomain, HolisticSchedDomainStats, MigrationUrgency,
     SchedCpuGroup, SchedDomain as SchedDomainEntry, SchedDomainLevel, SchedMigrationSuggestion,
 };
+pub use sched_domains::{
+    BalanceDecision, BalanceReason, DomainFlags, DomainLevel, GroupType as SdGroupType,
+    HolisticSchedDomains, SchedDomain as SdSchedDomain, SchedDomainsStats,
+    SchedGroup as SdSchedGroup,
+};
 pub use sched_group::{
     BandwidthParams, BandwidthRuntime, GroupSchedPolicy, HolisticSchedGroup,
     HolisticSchedGroupStats, SchedGroup as SchedGroupEntry,
+};
+pub use sched_latency::{
+    ContextSwitchInfo, CpuSchedState, HolisticSchedLatency, LatencyCategory, LatencySample,
+    SchedEventType, SchedLatencyStats, TaskLatencyState,
 };
 pub use scheduler::{
     CoreLoad, GlobalSchedClass, HolisticScheduler, LoadBalancer, NumaAffinity, ProcessSchedParams,
@@ -653,17 +1144,70 @@ pub use scheduling::{
     CpuState, HolisticLoadBalancer, HolisticSchedulingEngine, HolisticSchedulingStats,
     HolisticTaskClass, LoadImbalance, PlacementReason, SchedDomain, SchedTask,
 };
+pub use seccomp_holistic::{
+    HolisticSeccomp, SeccompFinding, SeccompHolisticMetric, SeccompHolisticStats,
+};
+pub use semaphore_holistic::{
+    HolisticSemaphore, SemContentionLevel, SemHolisticRecord, SemHolisticStats,
+};
+pub use session_holistic::{
+    HolisticSessionEntry, HolisticSessionHealth, HolisticSessionManager, HolisticSessionStats,
+};
+pub use shm_holistic::{HolisticShm, ShmHolisticRecord, ShmHolisticStats, ShmUtilization};
+pub use sigaction_holistic::{
+    HolisticSigaction, SigactionHolisticRecord, SigactionHolisticStats, SigactionPattern,
+};
+pub use signal_dispatch::{
+    HolisticSignalDispatch, ProcessSignalState, QueuedSignal, SigAction, SigMask, SignalClass,
+    SignalDispatchStats, SignalDisposition,
+};
+pub use signal_holistic::{
+    HolisticSignal, SignalHolisticRecord, SignalHolisticStats, SignalPattern,
+};
 pub use sla::{
     ErrorBudget, MetricEvaluation, SlaDefinition, SlaEvaluation, SlaMetricType, SlaStatus,
     SlaTarget, SlaTier, SlaViolation, SystemSlaManager, ViolationCause,
 };
+pub use slab_alloc::{CacheFlags, HolisticSlabAlloc, Slab, SlabAllocStats, SlabState};
 pub use slab_optimizer::{
     HolisticSlabOptimizer, HolisticSlabStats, MergeCandidate, ShrinkUrgency, SlabAllocator,
     SlabCache, SlabPage,
 };
+pub use socket_holistic::{
+    HolisticSocket, SocketHolisticRecord, SocketHolisticStats, SocketLifecycle,
+};
+pub use socket_mgr::{
+    HolisticSocketMgr, ManagedSocket, SocketBuffer, SocketDomain, SocketMgrState, SocketMgrStats,
+    SocketShutMode, SocketType as HolisticSocketType,
+};
+pub use softirq::{HolisticSoftirq, SoftirqEntry, SoftirqStats, SoftirqVec};
+pub use softirq_mgr::{
+    BurstDetector, CpuSoftirqState, HolisticSoftirqMgr, SoftIrqType, SoftirqMgrStats, SoftirqState,
+    SoftirqVectorStats,
+};
+pub use stat_holistic::{
+    HolisticStat, HolisticStatCall, HolisticStatFileType, HolisticStatStats, StatCallPattern,
+};
+pub use superblock_holistic::{
+    HolisticSbStats, HolisticSuperblock, HolisticSuperblockMgr, SbFeature, SuperblockState,
+};
 pub use swap_mgr::{
     CompressedSwapState, HolisticSwapMgr, HolisticSwapMgrStats, ProcessSwapUsage,
     SwapAllocStrategy, SwapDevice, SwapDeviceType,
+};
+pub use sysctl_tuner::{
+    ChangeReason, HolisticSysctlTuner, ParamBounds, ParamCategory, ParamChange, ParamType,
+    SysctlParam, SysctlTunerStats, TuningRecommendation as SysctlRecommendation,
+    WorkloadProfile as SysctlWorkloadProfile,
+};
+pub use task_affinity::{
+    CacheDomain as AffinityCacheDomain, CpuSet, HolisticTaskAffinity, MemBindPolicy, MigrationCost,
+    NodeSet, TaskAffinity, TaskAffinityStats,
+};
+pub use tcp_holistic::{HolisticTcp, TcpHealth, TcpHolisticRecord, TcpHolisticStats};
+pub use tcp_stack::{
+    HolisticTcpStack, TcpCongestionAlgo, TcpConnection, TcpCwndState, TcpStackStats, TcpState,
+    TcpTimerKind,
 };
 pub use telemetry_holistic::{
     AggregationMethod, HolisticTelemetryEngine, HolisticTelemetryStats, MetricPoint, MetricSeries,
@@ -673,22 +1217,62 @@ pub use thermal::{
     CoolingDevice, CoolingType, ThermalEvent, ThermalManager, ThermalZone, ThermalZoneType,
     ThrottleLevel, TripPoint, TripType,
 };
-    CoolingAction, CoolingDevice as CoolingDeviceV2, CoolingType as CoolingTypeV2,
-    HolisticThermalV2, HolisticThermalV2Stats, ThermalBudget, ThermalZone as ThermalZoneV2,
-    ThermalZoneType as ThermalZoneTypeV2, TripPointType,
+pub use thermal_mgr::{
+    CoolingDevice as ThermalCoolingDev, HolisticThermalMgr, ThermalMgrStats,
+    ThermalTrip as ThermalMgrTrip, ThermalTripType as ThermalMgrTripType,
+    ThermalZone as ThermalMgrZone,
+};
+pub use thermal_zone::{
+    CoolingDevice as TzCoolingDevice, CoolingType as TzCoolingType, HolisticThermalZone,
+    ThermalEvent as TzThermalEvent, ThermalEventType, ThermalGovernor, ThermalStats,
+    ThermalZone as TzThermalZoneEntry, ThermalZoneKind, TripPoint as TzTripPoint,
+    TripType as TzTripType,
+};
+pub use thread_holistic::{
+    HolisticThreadEntry, HolisticThreadManager, HolisticThreadPattern, HolisticThreadStats,
+};
+pub use tick_mgr::{
+    BroadcastState, CpuTickState, HolisticTickMgr, TickMgrStats, TickMode,
+    TimerEntry as TickTimerEntry, TimerState as TickTimerState, TimerType as TickTimerType,
+};
+pub use timer_wheel::{
+    CoalesceGroup, CpuTimerState, HolisticTimerWheel, TimerEntry as WheelTimerEntry,
+    TimerState as WheelTimerState, TimerType as WheelTimerType, TimerWheelStats, WheelLevel,
+};
+pub use timerfd_holistic::{
+    HolisticTimerfd, TimerPrecision, TimerfdHolisticRecord, TimerfdHolisticStats,
 };
 pub use tlb_mgr::{
     CpuTlbState, HolisticTlbMgr, HolisticTlbMgrStats, HugePageCandidate, PcidSlot, ShootdownBatch,
     ShootdownRequest, TlbFlushReason, TlbPageSize,
+};
+pub use tmpfs_mgr::{
+    HolisticTmpfsMgr, TmpfsHugePolicy, TmpfsMgrStats, TmpfsMountInstance, TmpfsMountState,
 };
 pub use topology::{
     CacheDescriptor, CacheLevel, CpuPackage, InterconnectType, LogicalCpu, NumaDistance, NumaNode,
     NumaPolicy, PhysicalCore, Proximity, ProximityLevel, TopologyDevice, TopologyManager,
     TopologySummary,
 };
+pub use udp_holistic::{HolisticUdp, UdpHolisticRecord, UdpHolisticStats, UdpQuality};
+pub use udp_mgr::{
+    HolisticUdpMgr, UdpChecksumMode, UdpDatagram, UdpMgrStats, UdpMulticastMode, UdpSocket,
+    UdpSocketState,
+};
+// Round 23 re-exports
+pub use vfs_holistic::{
+    HolisticVfs, HolisticVfsStats, PathWalkState, VfsFsType, VfsOpRecord, VfsOpType,
+};
+pub use vma_mgr::{
+    HolisticVmaMgr, ProcessMm, Vma as VmaEntry, VmaFlags, VmaMgrStats, VmaType as VmaMgrType,
+};
+pub use vmalloc::{HolisticVmalloc, VmallocArea, VmallocAreaType, VmallocHole, VmallocStats};
 pub use vmstat_tracker::{
     HolisticVmstatTracker, PageState as VmPageState, ReclaimCounters,
     SwapCounters as VmSwapCounters, VmRateSample, VmStatSummary, VmZone, ZoneCounters, ZoneDesc,
+};
+pub use wait_holistic::{
+    HolisticWaitEntry, HolisticWaitManager, HolisticWaitPattern, HolisticWaitStats,
 };
 pub use watchdog_mgr::{
     CpuWatchdog, HolisticWatchdogMgr, HolisticWatchdogMgrStats, HungTaskEntry, LockupType,
@@ -698,792 +1282,40 @@ pub use workload::{
     HolisticWorkloadAnalyzer, HolisticWorkloadStats, LoadPattern, PhaseDetector, ResourceSnapshot,
     WorkloadClass, WorkloadFingerprint, WorkloadMix, WorkloadPhase,
 };
-pub use writeback_ctrl::{
-    BdiState, DirtyLimits, HolisticWritebackCtrl, InodeWbState, ThrottleInfo, WritebackReason,
-    WritebackState, WritebackStats, WritebackWork,
-};
-pub use zram_mgr::{
-    CompAlgoStats, HolisticZramMgr, ZramCompAlgo, ZramDevice, ZramStats, ZramWritebackReason,
-    ZramWritebackRecord,
-};
-
-// Round 10 re-exports
-pub use cred_mgr::{
-    CapSet, Capability, CredEvent, CredEventType, CredManagerStats, HolisticCredManager,
-    ProcessCred,
-};
-pub use fpu_context::{
-    CpuFpuCaps, FpuContextStats, FpuException, FpuFeature, FpuStrategy, HolisticFpuContext,
-    MxcsrFlags, TaskFpuContext,
-};
-pub use futex_tracker::{
-    FutexBucket, FutexOp, FutexTrackerStats, FutexWaiter, HolisticFutexTracker, PiChain,
-    RequeueOp, WaiterState as FutexWaiterState,
-};
-pub use ksm_dedup::{
-    HolisticKsmDedup, KsmDedupStats, KsmPage, KsmPageState, KsmScanConfig,
-    PageFingerprint as KsmFingerprint, ProcessKsmInfo, StableTreeNode,
-};
-pub use mem_watermark::{
-    HolisticMemWatermark, MemZone, OrderWatermark, WatermarkLevel, WatermarkStats,
-    ZoneType as WatermarkZoneType, ZoneWatermarks as WatermarkThresholds,
-};
-pub use mmap_advisor::{
-    AddressGap, HolisticMmapAdvisor, MadviseHint, MmapAdvisorStats, ProcessAddressSpace, Vma,
-    VmaPerms, VmaType,
-};
-pub use readahead_tuner::{
-    AccessPattern as ReadaheadAccessPattern, FileReadahead, HolisticReadaheadTuner,
-    InterleavedStream, ReadaheadState as ReadaheadTunerState, ReadaheadStats,
-};
-pub use signal_dispatch::{
-    HolisticSignalDispatch, ProcessSignalState, QueuedSignal, SigAction, SigMask, SignalClass,
-    SignalDispatchStats, SignalDisposition,
-};
-pub use sysctl_tuner::{
-    ChangeReason, HolisticSysctlTuner, ParamBounds, ParamCategory, ParamChange, ParamType,
-    SysctlParam, SysctlTunerStats, TuningRecommendation as SysctlRecommendation,
-    WorkloadProfile as SysctlWorkloadProfile,
-};
-pub use task_affinity::{
-    CacheDomain as AffinityCacheDomain, CpuSet, HolisticTaskAffinity, MemBindPolicy,
-    MigrationCost, NodeSet, TaskAffinity, TaskAffinityStats,
-};
-pub use tick_mgr::{
-    BroadcastState, CpuTickState, HolisticTickMgr, TickMgrStats, TickMode,
-    TimerEntry as TickTimerEntry, TimerState as TickTimerState, TimerType as TickTimerType,
+pub use workqueue::{
+    HolisticWorkqueue, WorkItem as WqWorkItemV2, WorkItemState as WqWorkItemStateV2,
+    WorkerPool as WqWorkerPoolV2, WorkqueueStats as WorkqueueV2Stats, WqPriority,
 };
 pub use workqueue_mgr::{
     HolisticWorkqueueMgr, WorkItem as WqWorkItem, WorkItemState as WqWorkItemState,
     WorkerPool as WqWorkerPool, WorkqueueStats, WqDescriptor, WqType,
 };
-
-// ── Round 11 re-exports ──
-pub use dirty_tracker::{
-    DirtyLimits, DirtyPage, DirtyState, DirtyTrackerStats, HolisticDirtyTracker,
-    ProcessDirtyState, WritebackBatch, WritebackPriority,
-};
-pub use iommu_mgr::{
-    DmaFault, HolisticIommuMgr, IommuDomain, IommuDomainType, IommuMgrStats, IotlbCache,
-    IotlbEntry, IovaRegion,
-};
-pub use kcalloc_pool::{
-    AllocState as KcAllocState, CpuCache as KcCpuCache, EmergencyReserve, HolisticKcallocPool,
-    KcallocPoolStats, LeakSuspect, ObjectHeader, SizeClass as KcSizeClass,
-    SlabPage as KcSlabPage,
-};
-pub use migrate_pages::{
-    HolisticMigratePages, MemoryTier as MigMemoryTier, MigratePageStats,
-    MigrationReason as MigPageReason, MigrationRequest as MigPageRequest,
-    NodeMigrationState, PageHotness as MigPageHotness, TrackedPage,
-};
-pub use mprotect_mgr::{
-    AccessType, HolisticMprotectMgr, MprotectMgrStats, ProcessProtState, ProtFlags,
-    ProtRegion, ProtViolation, ProtectionKey, StackGuard, WxPolicy,
-};
-pub use pgtable_mgr::{
-    HolisticPgtableMgr, PageTablePage, PcidEntry, PgtableMgrStats, ProcessPageTable, PtLevel,
-    PteFlags, ThpCandidate,
-};
-pub use preempt_ctrl::{
-    CpuPreemptState, CriticalSection, DisableReason, HolisticPreemptCtrl,
-    LatencyBudget as PreemptLatencyBudget, PreemptCtrlStats, PreemptHotspot, PreemptModel,
-    PreemptDisableEntry,
-};
-pub use rss_tracker::{
-    HolisticRssTracker, ProcessRss, RssComponent, RssLimitType, RssTrackerStats,
-    SystemRssSummary,
-};
-pub use sched_latency::{
-    ContextSwitchInfo, CpuSchedState, HolisticSchedLatency, LatencyCategory,
-    LatencySample, SchedEventType, SchedLatencyStats, TaskLatencyState,
-};
-pub use softirq_mgr::{
-    BurstDetector, CpuSoftirqState, HolisticSoftirqMgr, SoftIrqType, SoftirqMgrStats,
-    SoftirqState, SoftirqVectorStats,
-};
-pub use timer_wheel::{
-    CoalesceGroup, CpuTimerState, HolisticTimerWheel, TimerEntry as WheelTimerEntry,
-    TimerState as WheelTimerState, TimerType as WheelTimerType, TimerWheelStats,
-    WheelLevel,
-};
-
-// ── Round 12 re-exports ──
-pub use blk_throttle::{
-    BlkThrottleStats, BwLimit, CgroupIoStat, HolisticBlkThrottle, IoDirection,
-    LatencyTarget, ThrottleDevice, ThrottleEvent, ThrottlePolicy, ThrottleReason,
-};
-pub use cgroup_orchestrator::{
-    CgroupController as OrchCgroupController, CgroupLimits, CgroupNode as OrchCgroupNode,
-    CgroupOrchStats, CgroupUsage, CgroupVersion, HolisticCgroupOrch, OrchAction,
-};
-pub use cpuset_ctrl::{
-    CpuDistPolicy, Cpuset, CpusetMigration, CpusetPartition, CpusetStats,
-    CpusetViolation, HolisticCpusetCtrl, MemPlacePolicy, ViolationType,
-};
-pub use memory_compact::{
-    CompactEvent, CompactMode, CompactResult, CompactStats, HolisticMemoryCompact,
-    MigrationScanner, PageMobility, ZoneCompactState,
-};
-pub use net_classifier::{
-    ClassStats, ClassifyMatch, ClassifyRule, FlowEntry, HolisticNetClassifier,
-    NetClassifierStats, Protocol as NetProtocol, TrafficClass,
-};
-pub use oom_reaper::{
-    CgroupOomState as ReaperCgroupOomState, HolisticOomReaper, MemPressureLevel,
-    OomKillRecord as ReaperOomKillRecord, OomPolicy as ReaperOomPolicy,
-    OomReason, OomReaperStats, OomTaskInfo, VictimState,
-};
-pub use page_alloc::{
-    AllocRequest, BuddyOrderStats, GfpFlags, HolisticPageAlloc, PageAllocStats,
-    PageZoneType, WatermarkLevel as AllocWatermarkLevel, ZoneAllocState, ZoneWatermarks,
-};
-pub use perf_events::{
-    CpuPerfState, HolisticPerfEvents, HwEventId, PerfEvent, PerfEventConfig,
-    PerfEventState, PerfEventType, PerfEventsStats, PerfSample, PmuDesc, PmuType,
-    SwEventId,
-};
-pub use psi_monitor::{
-    CgroupPsi, HolisticPsiMonitor, PsiAlert, PsiMonitorStats, PsiReading,
-    PsiResource, PsiTrigger, PsiType, PsiWindow,
-};
-pub use sched_domains::{
-    BalanceDecision, BalanceReason, DomainFlags, DomainLevel, GroupType as SdGroupType,
-    HolisticSchedDomains, SchedDomain as SdSchedDomain, SchedDomainsStats,
-    SchedGroup as SdSchedGroup,
-};
-pub use thermal_zone::{
-    CoolingDevice as TzCoolingDevice, CoolingType as TzCoolingType,
-    HolisticThermalZone, ThermalEvent as TzThermalEvent,
-    ThermalEventType, ThermalGovernor, ThermalStats, ThermalZone as TzThermalZoneEntry,
-    ThermalZoneKind, TripPoint as TzTripPoint, TripType as TzTripType,
-};
-
-// Round 13 re-exports
-pub use affinity_mgr::{
-    AffinityBinding, AffinityMgrStats, AffinityPolicy, AffinityScope,
-    CpuMask, HolisticAffinityMgr, MigrationEvent, MigrationReason, NodeMask,
-};
-pub use clock_source::{
-    ClockFlags, ClockQuality, ClockSource as ClockSrcDesc,
-    ClockSourceStats, ClockSourceType, ClockState as ClockSrcState,
-    ClockWatchdog, HolisticClockSource,
-};
-    CacheInfo as TopoV2CacheInfo, CacheLevel as TopoV2CacheLevel,
-    CacheType as TopoV2CacheType, CpuFeatures, CpuTopoV2Stats,
-    HolisticCpuTopoV2, LogicalCpu as TopoV2LogicalCpu,
-    MicroArch, TopologyDistances,
-};
-pub use dma_engine::{
-    DmaChannel, DmaChannelState, DmaDirection as DmaEngDirection,
-    DmaEngineStats, DmaPriority, DmaRegion, DmaTransfer as DmaEngTransfer,
-    DmaTransferType, HolisticDmaEngine, SgEntry,
-};
-pub use firmware_mgr::{
-    FirmwareImage, FirmwareMgrStats, FirmwareSecLevel, FirmwareState,
-    FirmwareType, FirmwareUpdateReq, FirmwareVersion, HolisticFirmwareMgr,
-};
-pub use hotplug_mgr::{
-    HotplugAction as HpMgrAction, HotplugMgrStats,
-    HotplugNotifier, HotplugOperation, HotplugResource as HpMgrResource,
-    HotplugState as HpMgrState, CpuHotplugState as HpMgrCpuState,
-    HolisticHotplugMgr as HolisticHpMgr, NotifierPriority,
-};
-pub use irq_domain::{
-    HolisticIrqDomain, IrqDelivery, IrqDesc,
-    IrqDomain, IrqDomainStats, IrqState as IrqDomainState,
-    IrqTrigger, IrqType as IrqDomainType,
-};
-pub use numa_policy::{
-    HolisticNumaPolicy, MigrationMode, NodeMemInfo, NodeState as NumaNodePolicyState,
-    NumaBalanceEvent, NumaDistance as NumaPolicyDistance,
-    NumaPolicy as NumaPolicyType, NumaPolicyStats, ProcessNumaBinding,
-};
-pub use power_domain::{
-    HolisticPowerDomain as HolisticPwrDomain, PowerConstraint,
-    PowerDevice, PowerDomain as PwrDomain, PowerDomainStats,
-    PowerDomainType, PowerGovernor as PwrDomainGovernor,
-    PowerState as PwrDomainState,
-};
-pub use rcu_tree::{
-    GpState, GracePeriodInfo as RcuTreeGpInfo,
-    HolisticRcuTree, RcuCpuData, RcuNodeState,
-    RcuTreeFlavor, RcuTreeNode, RcuTreeStats,
-};
 pub use wq_scheduler::{
-    HolisticWqScheduler, WqSchedulerStats, WqType as WqSchedType,
-    WqWorker, WorkFlags, WorkItem as WqSchedWorkItem,
-    WorkItemState as WqSchedItemState, WorkPriority as WqSchedPriority,
-    Workqueue as WqSchedQueue,
-};
-
-// Round 14 re-exports
-pub use balloon_driver::{
-    BalloonDriverStats, BalloonInstance, BalloonPageType, BalloonState,
-    HolisticBalloonDriver, InflationSource,
-};
-pub use cache_partition::{
-    CacheLevel as CatCacheLevel, CacheMonitorData, CachePartitionStats,
-    CdpConfig, ClosEntry, HolisticCachePartition, PartitionType,
-};
-    CState, CStateLatency, CpuIdleState, CpuIdleV2Stats,
-    HolisticCpuIdleV2, IdleGovernor,
-};
-pub use dma_fence::{
-    DmaFence as DmaFenceEntry, DmaFenceStats, FenceState, FenceType,
-    HolisticDmaFence, SyncFile, TimelineFence,
-};
-pub use freq_scaling::{
-    EnergyPref, FreqDomain as DvfsDomain, FreqGovernor as DvfsGovernor,
-    FreqScalingStats, HolisticFreqScaling, ScalingState,
-};
-    HolisticIommuV2, IoMapping, IommuDomain as IommuV2Domain,
-    IommuDomainType as IommuV2DomainType, IommuFault, IommuFaultType,
-    IommuType, IommuV2Stats, IoptLevel,
-};
-pub use msi_controller::{
-    HolisticMsiController, MsiControllerStats, MsiDeliveryMode,
-    MsiDevice, MsiIrqDomain, MsiType, MsiVector,
-};
-pub use page_table::{
-    AddressSpace, HolisticPageTable, PageFlags, PageTableStats,
-    PtEntry, PtLevel, TlbFlushType,
-};
-pub use pci_enum::{
-    Bdf, HolisticPciEnum, PciBar, PciBus, PciCapability, PciClass,
-    PciDevice, PciEnumStats, PciHeaderType,
-};
-pub use slab_alloc::{
-    CacheFlags, HolisticSlabAlloc, Slab, SlabAllocStats,
-    SlabCache, SlabState,
-};
-    HolisticTimerWheelV2, TimerEntry as TwV2TimerEntry,
-    TimerState as TwV2TimerState, TimerType as TwV2TimerType,
-    TimerWheelV2Stats, WheelLevel,
-};
-
-// Round 15 re-exports
-pub use acpi_mgr::{
-    AcpiMgrStats, AcpiPowerState, AcpiTableHeader, AcpiTableType,
-    HolisticAcpiMgr, MadtEntry, MadtEntryType, SratMemAffinity,
-};
-pub use buddy_alloc::{
-    BuddyAllocStats, BuddyState, BuddyZone, FreeBlock,
-    HolisticBuddyAlloc, MAX_ORDER,
-};
-pub use cfs_sched::{
-    CfsEntity, CfsRunQueue, CfsSchedStats, CfsState,
-    HolisticCfsSched,
-};
-pub use ftrace_mgr::{
-    FtraceMgrStats, HolisticFtraceMgr, TraceBuffer, TraceEvent,
-    TraceEventType, TraceFilter,
-};
-    HolisticHugePageV2, HugePagePool as HugePagePoolV2,
-    HugePageSize as HugePageSizeV2, HugePageV2Stats, ThpCollapseEvent, ThpPolicy,
-};
-pub use irq_affinity::{
-    CpuIrqLoad as IrqAffinityCpuLoad, HolisticIrqAffinity,
-    IrqAffinityStats, IrqBalanceMode, IrqDesc as IrqAffinityDesc,
-    IrqSourceType,
-};
-pub use kprobe_mgr::{
-    HolisticKprobeMgr, KprobeEntry, KprobeMgrStats,
-    ProbeHit, ProbeState, ProbeType,
-};
-    HolisticOomKillerV2, MemPressure, OomCandidate as OomV2Candidate,
-    OomKillEvent, OomKillerV2Stats, OomPolicy as OomV2Policy,
-};
-    HolisticPerfEventsV2, HwEventType, PerfCounter as PerfV2Counter,
-    PerfEventGroup, PerfEventsV2Stats, PerfSampleV2, SwEventType,
-};
-pub use rcu_sync::{
-    GpState as RcuGpState, GracePeriod as RcuGracePeriod,
-    HolisticRcuSync, RcuCallback as RcuSyncCallback, RcuCpuData,
-    RcuFlavor as RcuSyncFlavor, RcuSyncStats,
-};
-pub use vma_mgr::{
-    HolisticVmaMgr, ProcessMm, Vma as VmaEntry, VmaFlags,
-    VmaMgrStats, VmaType as VmaMgrType,
-};
-
-// Round 16 re-exports
-pub use cpufreq_gov::{
-    CpuFreqGovStats, CpuFreqState as CpuFreqGovState,
-    FreqTransition, GovernorType as CpuFreqGovType,
-    HolisticCpuFreqGov as HolisticCpuFreqGovV2,
-};
-pub use devfreq_mgr::{
-    DevFreqGovernor, DevFreqMgrStats, DevFreqProfile,
-    DevPowerState, HolisticDevFreqMgr,
-};
-pub use dma_pool::{
-    DmaBuffer as DmaPoolBuffer, DmaBufferState as DmaPoolBufferState,
-    DmaPool, DmaPoolStats, HolisticDmaPool,
-};
-pub use hwmon_mgr::{
-    HolisticHwmonMgr, HwmonMgrStats, HwmonSensor,
-    HwmonSensorType, SensorAlarm,
-};
-pub use iommu_alloc::{
-    HolisticIommuAlloc, IommuAllocDomain, IommuAllocStats,
-    IommuMapType, IovaRegion as IommuIovaRegion,
-};
-pub use msi_mgr::{
-    DeviceMsi, HolisticMsiMgr, MsiEntry as MsiAllocEntry,
-    MsiMgrStats, MsiType as MsiAllocType,
-};
-pub use numa_mgr::{
-    HolisticNumaMgr, NumaDistance as NumaMgrDistance,
-    NumaMgrStats, NumaNode as NumaMgrNode,
-    NumaPolicy as NumaMgrPolicy,
-};
-    HolisticPciEnumV2, PciBar as PciEnumBar, PciBarType,
-    PciClassV2, PciDeviceV2, PciEnumV2Stats,
-};
-pub use power_mgr::{
-    DevicePowerEntry, DevicePowerState, HolisticPowerMgr,
-    PowerDomain as PwrMgrDomain, PowerMgrStats, SystemPowerState,
-};
-pub use thermal_mgr::{
-    CoolingDevice as ThermalCoolingDev, HolisticThermalMgr,
-    ThermalMgrStats, ThermalTrip as ThermalMgrTrip,
-    ThermalTripType as ThermalMgrTripType,
-    ThermalZone as ThermalMgrZone,
-};
-    HolisticWatchdogMgrV2, WatchdogV2, WatchdogV2MgrStats,
-    WatchdogV2State, WatchdogV2Type,
-};
-// Round 17 re-exports
-pub use blk_mq::{
-    BlkIoOp, BlkMqStats, BlkRequest, HolisticBlkMq, HwQueue,
-};
-pub use cfs_bandwidth::{
-    CfsBandwidthStats, CfsBwGroup, CfsBwState, HolisticCfsBandwidth,
-};
-pub use cgroup_mem::{
-    CgroupMemState, CgroupMemStats, HolisticCgroupMem, MemLimitType,
-};
-pub use futex_mgr::{
-    FutexBucket as FutexMgrBucket, FutexMgrStats,
-    FutexOp as FutexMgrOp, FutexWaiter as FutexMgrWaiter,
-    HolisticFutexMgr,
-};
-pub use io_sched::{
-    HolisticIoSched, IoPrioClass as IoSchedPrioClass,
-    IoRequest as IoSchedV2Request, IoSchedPolicy, IoSchedStats,
-    SchedQueue,
-};
-pub use ksm_mgr::{
-    HolisticKsmMgr, KsmMgrStats,
-    KsmPage as KsmMgrPage, KsmPageState as KsmMgrPageState,
-    StableNode,
-};
-pub use memcg_oom::{
-    CgroupOomState, HolisticMemcgOom, MemcgOomStats,
-    OomAction, OomEvent, OomVictim,
-};
-    CachedPageV2, HolisticPageCacheV2, PageCacheStateV2,
-    PageCacheV2Stats, PageTreeNode,
-};
-    GpStateV2, GpTrackerV2, HolisticRcuTreeV2,
-    RcuNodeLevel, RcuTreeNode as RcuTreeNodeV2, RcuTreeV2Stats,
-};
-    HolisticSwapMgrV2, SwapAreaType, SwapAreaV2,
-    SwapEntryV2, SwapMgrV2Stats, SwapPriority,
-};
-pub use workqueue::{
-    HolisticWorkqueue, WqPriority,
-    WorkItem as WqWorkItemV2, WorkItemState as WqWorkItemStateV2,
-    WorkerPool as WqWorkerPoolV2,
-    WorkqueueStats as WorkqueueV2Stats,
-};
-// Round 18 re-exports
-pub use balloon_drv::{
-    BalloonAction, BalloonDrvStats, BalloonInstance as BalloonDrvInstance,
-    BalloonPageRange, BalloonState as BalloonDrvState, HolisticBalloonDrv,
-};
-pub use cgroup_cpu::{
-    CgroupCpuPolicy, CgroupCpuStats, CpuCgroup,
-    HolisticCgroupCpu,
-};
-pub use dirty_writeback::{
-    BdiWriteback, DirtyPageInfo, DirtyWritebackStats,
-    HolisticDirtyWriteback, WritebackState as DirtyWritebackState,
-};
-pub use ebpf_verifier::{
-    EbpfVerifierStats, HolisticEbpfVerifier, ProgramVerification,
-    RegState, VerifierInsn, VerifyResult,
-};
-pub use huge_page_alloc::{
-    HolisticHugePageAlloc, HugePageAllocPool, HugePageAllocSize,
-    HugePageAllocStats, HugePageEntry,
-};
-pub use irq_thread::{
-    HolisticIrqThread, IrqActionType, IrqThread,
-    IrqThreadState, IrqThreadStats,
-};
-pub use kprobes::{
-    HolisticKprobes, KernelProbe, KprobesStats,
-    ProbeState as KprobeState, ProbeType as KprobeType,
-};
-pub use percpu_alloc::{
-    HolisticPercpuAlloc, PercpuAlloc, PercpuAllocStats,
-    PercpuChunk, PercpuChunkState,
-};
-    HolisticSlabAllocV2, SlabAllocV2Stats, SlabV2Cache,
-    SlabV2Page, SlabV2State,
-};
-pub use softirq::{
-    HolisticSoftirq, SoftirqEntry, SoftirqStats,
-    SoftirqVec,
-};
-pub use vmalloc::{
-    HolisticVmalloc, VmallocArea, VmallocAreaType,
-    VmallocHole, VmallocStats,
-};
-// Round 19 re-exports
-    BuddyAllocV2Stats, BuddyV2Block, BuddyV2Order,
-    BuddyV2Zone, HolisticBuddyAllocV2,
-};
-    CfsBwV2Group, CfsBwV2State, CfsBwV2Stats,
-    HolisticCfsBandwidthV2,
-};
-    CompactionV2Mode, CompactionV2Result, CompactionV2Stats,
-    CompactionV2Zone, HolisticCompactionV2,
-};
-    DmaPoolV2, DmaPoolV2Stats, DmaV2AllocState,
-    DmaV2Entry, HolisticDmaPoolV2,
-};
-pub use freelist::{
-    FreePageEntry, Freelist, FreelistStats, FreelistType,
-    HolisticFreelist,
-};
-pub use iommu::{
-    HolisticIommu, IommuDevice, IommuDomain as IommuHolisticDomain,
-    IommuDomainType as IommuHolisticDomainType,
-    IommuMapping as IommuHolisticMapping, IommuStats,
-};
-pub use ksm::{
-    HolisticKsm, KsmPage as KsmHolisticPage,
-    KsmPageState as KsmHolisticPageState, KsmScanInfo, KsmStats,
-};
-pub use numa_balance::{
-    HolisticNumaBalance, NumaBalanceStats, NumaBalanceTask,
-    NumaFaultType, NumaNodeInfo,
-};
-    HolisticOomReaperV2, OomReaperV2Stats, OomV2ProcessInfo,
-    OomV2Reason, OomV2Victim,
-};
-pub use page_reclaim::{
-    HolisticPageReclaim, LruListType, PageReclaimStats,
-    ReclaimScanType, ReclaimZone,
-};
-pub use zswap::{
-    HolisticZswap, ZswapCompressor, ZswapEntry,
-    ZswapPool, ZswapStats,
-};
-// Round 20 re-exports
-pub use cgroup_io::{
-    CgroupIoAccounting, CgroupIoDeviceId, CgroupIoDeviceLimit,
-    CgroupIoInstance, CgroupIoPolicy, CgroupIoStats,
-    HolisticCgroupIo, IoDirection as CgroupIoDirection,
-};
-    CmaRegion, CmaRegionState, HolisticHugePageV3, HugePageV3Size,
-    HugePageV3Stats, MigrationCandidate, NumaHugePagePool,
-};
-pub use memcg_reclaim::{
-    HolisticMemcgReclaim, MemcgLruScan, MemcgLruType,
-    MemcgReclaimCtx, MemcgReclaimStats, MemcgReclaimUrgency,
-    MemcgScanResult,
-};
-pub use mempolicy::{
-    HolisticMempolicy, MempolicyFlag, MempolicyInstance,
-    MempolicyMode, MempolicyScope, MempolicyStats,
-    NumaNodemask, WeightedInterleave,
-};
-    HolisticPercpuAllocV2, PercpuAllocV2Stats, PercpuV2Chunk,
-    PercpuV2ChunkState, PercpuV2Group, PercpuV2Strategy,
-};
-    HolisticRcuTreeV3, RcuTreeV3Stats, RcuV3Callback,
-    RcuV3CpuData, RcuV3GpState, RcuV3Node, RcuV3NodeRole,
-};
-    HolisticSlabAllocV3, MagazineState, SlabV3Cache,
-    SlabV3Depot, SlabV3Magazine, SlabV3SizeClass, SlabV3Stats,
-};
-    HolisticSwapMgrV3, SwapMgrV3Stats, SwapV3Area,
-    SwapV3Cluster, SwapV3Compressor, SwapV3DeviceType,
-    SwapV3SlotState, ZswapEntry as ZswapV3Entry,
-};
-    HolisticTlbMgrV2, TlbMgrV2Stats, TlbV2CpuData,
-    TlbV2CpuState, TlbV2EntryType, TlbV2Scope,
-    TlbV2ShootdownBatch,
-};
-    HolisticWorkqueueV2, WorkqueueV2Stats, WqV2Flag,
-    WqV2Instance, WqV2Priority, WqV2Type,
-    WqV2WorkItem, WqV2WorkState, WqV2WorkerPool,
-};
-    HolisticWritebackCtrlV2, WbV2Bandwidth, WbV2BdiEntry,
-    WbV2CgroupCtx, WbV2State, WbV2ThrottleZone,
-    WritebackCtrlV2Stats,
-};
-// Round 21 re-exports
-pub use bio_layer::{
-    BioDeviceQueue, BioFlag, BioLayerStats,
-    BioOp, BioRequest, BioState, HolisticBioLayer,
-};
-pub use block_dev::{
-    BlockDevEntry, BlockDevGeometry, BlockDevPartition,
-    BlockDevScheduler, BlockDevState, BlockDevStats,
-    BlockDevType, HolisticBlockDev,
-};
-pub use btrfs_cow::{
-    BtrfsCowExtent, BtrfsCowExtentState, BtrfsCowExtentType,
-    BtrfsCowSpaceInfo, BtrfsCowStats, BtrfsSnapshot,
-    HolisticBtrfsCow,
-};
-pub use dentry_cache::{
-    DentryCacheEntry, DentryCacheStats, DentryState,
-    DentryType, HolisticDentryCache,
-};
-pub use ext4_journal::{
-    Ext4JournalStats, HolisticExt4Journal, JournalMode,
-    JournalSpace, JournalTransaction, JournalTxState,
-};
-pub use f2fs_gc::{
-    F2fsGcMode, F2fsGcRound, F2fsGcStats,
-    F2fsSegment, F2fsSegmentState, F2fsSegmentType,
-    F2fsVictimPolicy, HolisticF2fsGc,
-};
-pub use inode_cache::{
-    HolisticInodeCache, InodeCacheEntry,
-    InodeCacheState as InodeCacheV2State, InodeCacheStats,
-    InodeCacheType, InodeSuperBlockPartition,
-};
-pub use nfs_client::{
-    HolisticNfsClient, NfsClientState, NfsClientStats,
-    NfsDelegation, NfsDelegationType, NfsMountInstance,
-    NfsVersion,
-};
-    FolioOrder, GenerationStats, HolisticPageCacheV3,
-    PageCacheV3Folio, PageCacheV3Stats,
-    PageGeneration as PageCacheV3Generation,
-};
-pub use tmpfs_mgr::{
-    HolisticTmpfsMgr, TmpfsHugePolicy, TmpfsMgrStats,
-    TmpfsMountInstance, TmpfsMountState,
-};
-pub use xfs_log::{
-    HolisticXfsLog, XfsLogItem, XfsLogItemState,
-    XfsLogItemType, XfsLogReservation, XfsLogStats,
-};
-// Round 22 re-exports
-pub use arp_cache::{
-    ArpCacheStats, ArpEntry, ArpOpType, HardwareType,
-    HolisticArpCache, MacAddress, NudState,
-};
-pub use dns_cache::{
-    DnsCacheEntry, DnsCacheStats, DnsCacheState,
-    DnsRcode, DnsRecordType, DnsServerState,
-    HolisticDnsCache,
-};
-pub use ip_routing::{
-    HolisticIpRouting, IpRoutingStats, PolicyRule as IpPolicyRule,
-    RouteEntry, RouteNextHop, RouteProto, RouteScope, RouteType,
-};
-pub use net_device::{
-    HolisticNetDevice, NetDevQueue, NetDevice, NetDevState,
-    NetDevType, NetDeviceStats, OffloadFeature,
-};
-pub use net_ns::{
-    HolisticNetNs, NetNamespace, NetNsCap, NetNsState,
-    NetNsStats, VethPair, VethState,
-};
-pub use netfilter::{
-    ConntrackEntry, ConntrackState, HolisticNetfilter,
-    NatType, NetfilterStats, NfChain, NfHook, NfMatch,
-    NfMatchType, NfRule, NfTableType, NfVerdict,
-};
-pub use qdisc::{
-    FqCodelFlow, HolisticQdisc, HtbClass, QdiscState,
-    QdiscStats, QdiscType, TcClassState, TokenBucket,
-};
-pub use socket_mgr::{
-    HolisticSocketMgr, ManagedSocket, SocketBuffer,
-    SocketDomain, SocketMgrState, SocketMgrStats,
-    SocketShutMode, SocketType as HolisticSocketType,
-};
-pub use tcp_stack::{
-    HolisticTcpStack, TcpCongestionAlgo, TcpConnection,
-    TcpCwndState, TcpStackStats, TcpState, TcpTimerKind,
-};
-pub use udp_mgr::{
-    HolisticUdpMgr, UdpChecksumMode, UdpDatagram,
-    UdpMgrStats, UdpMulticastMode, UdpSocket, UdpSocketState,
-};
-pub use xdp_mgr::{
-    HolisticXdpMgr, XdpAction, XdpAttachMode, XdpMap,
-    XdpMapType, XdpMgrStats, XdpProgState, XdpProgram,
-};
-// Round 23 re-exports
-pub use vfs_holistic::{
-    HolisticVfs, HolisticVfsStats, PathWalkState,
-    VfsFsType, VfsOpRecord, VfsOpType,
-};
-pub use mount_holistic::{
-    HolisticMount, HolisticMountStats, MountFlag,
-    MountPoint, MountPropagation, MountType,
-};
-pub use dentry_holistic::{
-    DentryCacheEntry as DentryV2CacheEntry, DentryFlag,
-    DentryLru, DentryState as DentryV2State,
-    HolisticDentry, HolisticDentryStats,
-};
-pub use inode_holistic::{
-    HolisticInode, HolisticInodeMgr, HolisticInodeStats,
-    InodeAllocator, InodeState, InodeType,
-};
-pub use superblock_holistic::{
-    HolisticSbStats, HolisticSuperblock, HolisticSuperblockMgr,
-    SbFeature, SuperblockState,
-};
-pub use file_lock_holistic::{
-    DeadlockDetector, FileLockRequest, FileLockState,
-    FileLockType, HolisticFileLock, HolisticFileLockStats,
-};
-pub use bio_holistic::{
-    BioOp as BioV2Op, BioRequest as BioV2Request,
-    BioState as BioV2State, HolisticBio,
-    HolisticBioStats,
-};
-pub use blkdev_holistic::{
-    BlkPartition, BlkdevInstance, BlkdevState,
-    BlkdevType, HolisticBlkdev, HolisticBlkdevStats,
-};
-pub use ioscheduler_holistic::{
-    BfqBudget, HolisticIoScheduler as HolisticIoSchedV2,
-    HolisticIoSchedStats, IoReqType, IoSchedQueue,
-    IoSchedType, IoPrioClass as IoPrioV2Class,
-};
-pub use raid_holistic::{
-    HolisticRaid, HolisticRaidStats, RaidArray,
-    RaidDisk, RaidDiskState, RaidLevel, RaidState,
-};
-pub use dm_holistic::{
-    DmDevice, DmDevState, DmTarget, DmTargetType,
-    DmThinPoolStatus, HolisticDm, HolisticDmStats,
-};
-pub use acl_holistic::{
-    AclEntryType, AclPerm, HolisticAcl, HolisticAclEntry, HolisticAclStats, InodeAcl,
-};
-pub use chmod_holistic::{
-    ChmodChangeRecord, ChmodRiskLevel, HolisticChmod, HolisticChmodStats,
-};
-pub use chown_holistic::{
-    ChownChangeRecord, ChownChangeType, HolisticChown, HolisticChownStats, PrivilegeDirection,
-};
-pub use extent_holistic::{
-    ExtentRecord, ExtentState, FragmentationAnalysis, HolisticExtent, HolisticExtentStats,
-};
-pub use journal_holistic::{
-    HolisticJournal, HolisticJournalStats, JournalOp, JournalState,
-    JournalTransaction as JournalTxn,
-};
-pub use pagecache_holistic::{
-    FileCacheProfile, HolisticPageCache as HolisticPageCacheV4, HolisticPageCacheStats,
-    PageCacheList, PageCacheOp,
-};
-pub use quota_holistic::{
-    HolisticQuota, HolisticQuotaEntry, HolisticQuotaStats, HolisticQuotaType, QuotaState,
-};
-pub use readahead_holistic::{
-    HolisticRaWindow, HolisticReadahead, HolisticReadaheadStats,
-    ReadaheadPattern, ReadaheadState as HolisticRaState,
-};
-pub use stat_holistic::{
-    HolisticStat, HolisticStatCall, HolisticStatFileType, HolisticStatStats, StatCallPattern,
+    HolisticWqScheduler, WorkFlags, WorkItem as WqSchedWorkItem, WorkItemState as WqSchedItemState,
+    WorkPriority as WqSchedPriority, Workqueue as WqSchedQueue, WqSchedulerStats,
+    WqType as WqSchedType, WqWorker,
+};
+pub use writeback_ctrl::{
+    BdiState, DirtyLimits, HolisticWritebackCtrl, InodeWbState, ThrottleInfo, WritebackReason,
+    WritebackState, WritebackStats, WritebackWork,
 };
 pub use writeback_holistic::{
     DeviceWriteback, HolisticWbState, HolisticWriteback, HolisticWritebackStats,
     WritebackReason as WritebackReasonV2,
 };
-pub use xattr_holistic::{
-    HolisticXattr, HolisticXattrNs, HolisticXattrStats, XattrUsagePattern,
+pub use xattr_holistic::{HolisticXattr, HolisticXattrNs, HolisticXattrStats, XattrUsagePattern};
+pub use xdp_mgr::{
+    HolisticXdpMgr, XdpAction, XdpAttachMode, XdpMap, XdpMapType, XdpMgrStats, XdpProgState,
+    XdpProgram,
 };
-// Re-exports from Round 25 — Security holistic analysis
-pub use audit_holistic::{
-    AuditHolisticFinding, AuditHolisticMetric, AuditHolisticStats, HolisticAudit,
+pub use xfs_log::{
+    HolisticXfsLog, XfsLogItem, XfsLogItemState, XfsLogItemType, XfsLogReservation, XfsLogStats,
 };
-pub use capability_holistic::{
-    CapHolisticFinding, CapHolisticMetric, CapHolisticStats, HolisticCapability,
+pub use zram_mgr::{
+    CompAlgoStats, HolisticZramMgr, ZramCompAlgo, ZramDevice, ZramStats, ZramWritebackReason,
+    ZramWritebackRecord,
 };
-pub use credential_holistic::{
-    CredHolisticFinding, CredHolisticMetric, CredHolisticStats, HolisticCredential,
-};
-pub use crypto_holistic::{
-    CryptoHolisticFinding, CryptoHolisticMetric, CryptoHolisticStats, HolisticCrypto,
-};
-pub use integrity_holistic::{
-    HolisticIntegrity, IntegrityHolisticFinding, IntegrityHolisticMetric, IntegrityHolisticStats,
-};
-pub use keyring_holistic::{
-    HolisticKeyring, KeyringHolisticFinding, KeyringHolisticMetric, KeyringHolisticStats,
-};
-pub use lsm_holistic::{HolisticLsm, LsmFinding, LsmHolisticMetric, LsmHolisticStats};
-pub use mac_holistic::{
-    HolisticMac, MacHolisticFinding, MacHolisticMetric, MacHolisticStats,
-};
-pub use namespace_holistic::{
-    HolisticNamespace, NsHolisticFinding, NsHolisticMetric, NsHolisticStats, NsHolisticType,
-};
-pub use sandboxing_holistic::{
-    HolisticSandboxing, SandboxHolisticFinding, SandboxHolisticMetric, SandboxHolisticStats,
-};
-pub use seccomp_holistic::{
-    HolisticSeccomp, SeccompFinding, SeccompHolisticMetric, SeccompHolisticStats,
-};
-
-// Round 26 re-exports — IPC/signal holistic analysis
-pub use eventfd_holistic::{EventfdHolisticRecord, EventfdHolisticStats, EventfdPattern, HolisticEventfd};
-pub use futex_holistic::{FutexHolisticRecord, FutexHolisticStats, FutexQueueHealth, HolisticFutex};
-pub use ipc_holistic::{HolisticIpc, IpcHolisticRecord, IpcHolisticStats, IpcMechanism};
-pub use mqueue_holistic::{HolisticMqueue, MqueueHolisticRecord, MqueueHolisticStats, MqueueLatencyBand};
-pub use msgqueue_holistic::{HolisticMsgqueue, MsgqueueDepthState, MsgqueueHolisticRecord, MsgqueueHolisticStats};
-pub use pipe_holistic::{HolisticPipe, PipeHealth, PipeHolisticRecord, PipeHolisticStats};
-pub use semaphore_holistic::{HolisticSemaphore, SemContentionLevel, SemHolisticRecord, SemHolisticStats};
-pub use shm_holistic::{HolisticShm, ShmHolisticRecord, ShmHolisticStats, ShmUtilization};
-pub use sigaction_holistic::{HolisticSigaction, SigactionHolisticRecord, SigactionHolisticStats, SigactionPattern};
-pub use signal_holistic::{HolisticSignal, SignalHolisticRecord, SignalHolisticStats, SignalPattern};
-pub use timerfd_holistic::{HolisticTimerfd, TimerPrecision, TimerfdHolisticRecord, TimerfdHolisticStats};
-
-// Round 27 re-exports — Networking/socket holistic analysis
-pub use bandwidth_holistic::{BandwidthGrade, BandwidthHolisticRecord, BandwidthHolisticStats, HolisticBandwidth};
-pub use congestion_holistic::{CongestionHolisticRecord, CongestionHolisticStats, CongestionPattern, HolisticCongestion};
-pub use connection_holistic::{ConnHealth, ConnectionHolisticRecord, ConnectionHolisticStats, HolisticConnection};
-pub use epoll_holistic::{EpollHolisticRecord, EpollHolisticStats, EpollScalability, HolisticEpoll};
-pub use latency_holistic::{HolisticLatency, LatencyBucket, LatencyHolisticRecord, LatencyHolisticStats};
-pub use netstack_holistic::{HolisticNetstack, NetstackHolisticRecord, NetstackHolisticStats, NetstackLayer};
-pub use routing_holistic::{HolisticRouting, RoutingEfficiency, RoutingHolisticRecord, RoutingHolisticStats};
-pub use socket_holistic::{HolisticSocket, SocketHolisticRecord, SocketHolisticStats, SocketLifecycle};
-pub use tcp_holistic::{HolisticTcp, TcpHealth, TcpHolisticRecord, TcpHolisticStats};
-pub use udp_holistic::{HolisticUdp, UdpHolisticRecord, UdpHolisticStats, UdpQuality};
-
-// Round 28 re-exports
-pub use flock_holistic::{HolisticFlockHealth, HolisticFlockManager, HolisticFlockMetric, HolisticFlockStats};
-pub use page_cache_holistic::{HolisticPageCacheAnalysisStats, HolisticPageCacheAnalyzer, HolisticPageCacheHealth, HolisticPageCacheMetric};
-
-// Re-exports from Round 29 — Process/thread holistic
-pub use clone_holistic::{HolisticCloneManager, HolisticClonePattern, HolisticCloneRecord, HolisticCloneStats};
-pub use exec_holistic::{HolisticExecManager, HolisticExecPattern, HolisticExecRecord, HolisticExecStats};
-pub use exit_holistic::{HolisticExitManager, HolisticExitPattern, HolisticExitRecord, HolisticExitStats};
-pub use fork_holistic::{HolisticForkEntry, HolisticForkManager, HolisticForkPattern, HolisticForkStats};
-pub use nice_holistic::{HolisticNiceEntry, HolisticNiceFairness, HolisticNiceManager, HolisticNiceStats};
-pub use pgid_holistic::{HolisticPgidEntry, HolisticPgidHealth, HolisticPgidManager, HolisticPgidStats};
-pub use pid_holistic::{HolisticPidEntry, HolisticPidHealth, HolisticPidManager, HolisticPidStats};
-pub use prctl_holistic::{HolisticPrctlEntry, HolisticPrctlManager, HolisticPrctlPosture, HolisticPrctlStats};
-pub use session_holistic::{HolisticSessionEntry, HolisticSessionHealth, HolisticSessionManager, HolisticSessionStats};
-pub use thread_holistic::{HolisticThreadEntry, HolisticThreadManager, HolisticThreadPattern, HolisticThreadStats};
-pub use wait_holistic::{HolisticWaitEntry, HolisticWaitManager, HolisticWaitPattern, HolisticWaitStats};
+pub use zswap::{HolisticZswap, ZswapCompressor, ZswapEntry, ZswapPool, ZswapStats};
 
 #[cfg(test)]
 mod tests {
@@ -1530,17 +1362,17 @@ pub mod anomaly;
 pub mod cpu_topo;
 pub mod hugepage;
 // R30 — Memory Management
+pub mod mlock_holistic;
 pub mod mmap_holistic;
-pub mod shmem_holistic;
 pub mod mprotect_holistic;
 pub mod mremap_holistic;
 pub mod msync_holistic;
 pub mod munmap_holistic;
-pub mod vma_holistic;
-pub mod page_fault_holistic;
 pub mod oom_holistic;
+pub mod page_fault_holistic;
+pub mod shmem_holistic;
 pub mod swap_holistic;
-pub mod mlock_holistic;
+pub mod vma_holistic;
 // Year 5 Expansion — Holistic Future Prediction: The Master Prediction Engine
 pub mod future;
 
