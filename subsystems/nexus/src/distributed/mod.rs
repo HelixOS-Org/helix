@@ -145,7 +145,7 @@ pub enum NodeState {
     /// Initializing
     Initializing,
     /// Joining cluster
-    JoiningCluster,
+    Joining,
     /// Active
     Active,
     /// Syncing
