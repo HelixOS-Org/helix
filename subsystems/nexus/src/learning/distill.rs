@@ -516,9 +516,9 @@ impl DistillationEngine {
             // Simplified gradient descent
             if let Some(weights) = student.parameters.get_mut("weights") {
                 for (i, weight) in weights.iter_mut().enumerate() {
-                    let pred = output.get(i).copied().unwrap_or(0.0);
-                    let tgt = target.get(i).copied().unwrap_or(0.0);
-                    let inp = input.get(i).copied().unwrap_or(0.0);
+                    let pred = output.get(i).unwrap_or(&0.0);
+                    let tgt = target.get(i).unwrap_or(&0.0);
+                    let inp = input.get(i).unwrap_or(&0.0);
 
                     // Gradient approximation
                     let gradient = (pred - tgt) * inp;
@@ -566,6 +566,7 @@ impl Default for DistillationEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_register_teacher() {
