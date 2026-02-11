@@ -255,7 +255,7 @@ impl EnergyBudget {
     /// Allocate power to domain
     #[inline]
     pub fn allocate(&mut self, domain: u64, power_mw: u64) -> bool {
-        let current = self.allocations.get(domain).copied().unwrap_or(0);
+        let current = self.allocations.get(domain).unwrap_or(0);
         let delta = power_mw.saturating_sub(current);
         if self.allocated_mw + delta > self.total_mw {
             return false;
