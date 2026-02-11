@@ -211,7 +211,7 @@ impl AdaptiveConfigurator {
     pub fn apply_recommendation(&mut self, param: RcuConfigParam, value: u64, timestamp_ns: u64) {
         // Save current config to history
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back((timestamp_ns, self.config.clone()));
 
