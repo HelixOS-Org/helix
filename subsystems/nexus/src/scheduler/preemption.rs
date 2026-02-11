@@ -176,7 +176,7 @@ impl PreemptionIntelligence {
         self.cost_model.base_costs.insert(key, new_cost);
 
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 }
