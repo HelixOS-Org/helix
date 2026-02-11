@@ -105,7 +105,7 @@ impl WorkDependencyTracker {
                 return true;
             }
 
-            if visited.get(&current).copied().unwrap_or(false) {
+            if visited.get(&current).unwrap_or(false) {
                 continue;
             }
             visited.insert(current, true);
@@ -157,7 +157,7 @@ impl WorkDependencyTracker {
     /// Check if work is ready to run
     #[inline(always)]
     pub fn is_ready(&self, work_id: WorkId) -> bool {
-        self.blocked_works.get(&work_id).copied().unwrap_or(0) == 0
+        self.blocked_works.get(&work_id).unwrap_or(0) == 0
     }
 
     /// Get pending dependencies for work
