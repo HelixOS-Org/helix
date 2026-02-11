@@ -30,6 +30,8 @@
 
 extern crate alloc;
 
+use crate::fast::math::F32Ext;
+
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -508,6 +510,7 @@ impl HolisticIntuitionEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F32Ext, F64Ext};
 
     #[test]
     fn test_pattern_similarity() {
