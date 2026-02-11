@@ -8,8 +8,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
@@ -100,7 +98,7 @@ impl HorizonStats {
 #[derive(Clone, Debug)]
 struct ContentionRecord {
     resource_id: u64,
-    pressure_history: VecDeque<u64>,
+    pressure_history: Vec<u64>,
     ema_pressure: u64,
     peak_pressure: u64,
     last_tick: u64,
@@ -110,7 +108,7 @@ struct ContentionRecord {
 #[derive(Clone, Debug)]
 struct TrustRecord {
     partner_id: u64,
-    trust_history: VecDeque<u64>,
+    trust_history: Vec<u64>,
     ema_trust: u64,
     decay_factor: u64,
     interaction_count: u64,
@@ -120,7 +118,7 @@ struct TrustRecord {
 #[derive(Clone, Debug)]
 struct DemandRecord {
     service_hash: u64,
-    demand_history: VecDeque<u64>,
+    demand_history: Vec<u64>,
     ema_demand: u64,
     peak_demand: u64,
     growth_ema: u64,
@@ -131,7 +129,7 @@ pub struct CoopHorizonPredictor {
     contention_map: BTreeMap<u64, ContentionRecord>,
     trust_map: BTreeMap<u64, TrustRecord>,
     demand_map: BTreeMap<u64, DemandRecord>,
-    reliability_history: VecDeque<u64>,
+    reliability_history: Vec<u64>,
     stats: HorizonStats,
     rng_state: u64,
     current_tick: u64,
@@ -145,7 +143,7 @@ impl CoopHorizonPredictor {
             contention_map: BTreeMap::new(),
             trust_map: BTreeMap::new(),
             demand_map: BTreeMap::new(),
-            reliability_history: VecDeque::new(),
+            reliability_history: Vec::new(),
             stats: HorizonStats::new(),
             rng_state: seed | 1,
             current_tick: 0,
@@ -167,7 +165,7 @@ impl CoopHorizonPredictor {
             .entry(key)
             .or_insert_with(|| ContentionRecord {
                 resource_id,
-                pressure_history: VecDeque::new(),
+                pressure_history: Vec::new(),
                 ema_pressure: pressure,
                 peak_pressure: pressure,
                 last_tick: self.current_tick,
@@ -177,7 +175,7 @@ impl CoopHorizonPredictor {
             record.peak_pressure = pressure;
         }
         if record.pressure_history.len() >= self.max_history {
-            record.pressure_history.pop_front().unwrap();
+            record.pressure_history.remove(0);
         }
         record.pressure_history.push(pressure);
         record.last_tick = self.current_tick;
@@ -188,7 +186,7 @@ impl CoopHorizonPredictor {
         let key = fnv1a_hash(&partner_id.to_le_bytes());
         let record = self.trust_map.entry(key).or_insert_with(|| TrustRecord {
             partner_id,
-            trust_history: VecDeque::new(),
+            trust_history: Vec::new(),
             ema_trust: trust_level,
             decay_factor: 50,
             interaction_count: 0,
@@ -196,7 +194,7 @@ impl CoopHorizonPredictor {
         record.ema_trust = ema_update(record.ema_trust, trust_level, 2, 10);
         record.interaction_count = record.interaction_count.saturating_add(1);
         if record.trust_history.len() >= self.max_history {
-            record.trust_history.pop_front().unwrap();
+            record.trust_history.remove(0);
         }
         record.trust_history.push(trust_level);
     }
@@ -206,7 +204,7 @@ impl CoopHorizonPredictor {
         let key = fnv1a_hash(service_name.as_bytes());
         let record = self.demand_map.entry(key).or_insert_with(|| DemandRecord {
             service_hash: key,
-            demand_history: VecDeque::new(),
+            demand_history: Vec::new(),
             ema_demand: demand,
             peak_demand: demand,
             growth_ema: 0,
@@ -222,7 +220,7 @@ impl CoopHorizonPredictor {
             record.peak_demand = demand;
         }
         if record.demand_history.len() >= self.max_history {
-            record.demand_history.pop_front().unwrap();
+            record.demand_history.remove(0);
         }
         record.demand_history.push(demand);
     }
@@ -387,9 +385,9 @@ impl CoopHorizonPredictor {
         let max_val = predicted.max(actual).max(1);
         let accuracy = 1000u64.saturating_sub(error.saturating_mul(1000) / max_val);
         if self.reliability_history.len() >= self.max_history {
-            self.reliability_history.pop_front();
+            self.reliability_history.remove(0);
         }
-        self.reliability_history.push_back(accuracy);
+        self.reliability_history.push(accuracy);
     }
 
     /// Get a snapshot of current statistics.
