@@ -8,11 +8,10 @@
 
 extern crate alloc;
 
-use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
-use alloc::string::String;
+use alloc::collections::{BTreeMap, VecDeque};
 use alloc::vec::Vec;
+
+use crate::fast::linear_map::LinearMap;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
 fn fnv1a_hash(data: &[u8]) -> u64 {
@@ -230,21 +229,25 @@ impl CoopPrecognition {
 
     /// Feed a trust observation for a partner.
     pub fn feed_trust(&mut self, partner_id: u64, trust_value: u64) {
-        let tracker = self.trust_trackers.entry(partner_id).or_insert_with(|| TrustTracker {
-            partner_id,
-            trust_history: VecDeque::new(),
-            ema_trust: trust_value,
-            ema_delta: 0,
-            consecutive_drops: 0,
-            last_peak: trust_value,
-        });
+        let tracker = self
+            .trust_trackers
+            .entry(partner_id)
+            .or_insert_with(|| TrustTracker {
+                partner_id,
+                trust_history: VecDeque::new(),
+                ema_trust: trust_value,
+                ema_delta: 0,
+                consecutive_drops: 0,
+                last_peak: trust_value,
+            });
 
         let prev = tracker.ema_trust;
-        tracker.trust_history.push(trust_value);
+        tracker.trust_history.push_back(trust_value);
         tracker.ema_trust = ema_update(tracker.ema_trust, trust_value, 200, 1000);
 
         let delta = tracker.ema_trust as i64 - prev as i64;
-        tracker.ema_delta = (tracker.ema_delta.saturating_mul(800) + delta.saturating_mul(200)) / 1000;
+        tracker.ema_delta =
+            (tracker.ema_delta.saturating_mul(800) + delta.saturating_mul(200)) / 1000;
 
         if delta < 0 {
             tracker.consecutive_drops = tracker.consecutive_drops.saturating_add(1);
@@ -256,36 +259,44 @@ impl CoopPrecognition {
         }
 
         if tracker.trust_history.len() > self.max_history {
-            tracker.trust_history.pop_front().unwrap();
+            tracker.trust_history.remove(0).unwrap();
         }
 
-        self.emit_trust_signal(partner_id, tracker.ema_delta, tracker.consecutive_drops);
+        let ema_delta = tracker.ema_delta;
+        let consecutive_drops = tracker.consecutive_drops;
+        self.emit_trust_signal(partner_id, ema_delta, consecutive_drops);
     }
 
     /// Feed a contention observation for a resource.
     pub fn feed_contention(&mut self, resource_id: u64, pressure: u64, process_id: u64) {
-        let acc = self.contention_accumulators.entry(resource_id).or_insert_with(|| ContentionAccumulator {
-            resource_id,
-            pressure_history: VecDeque::new(),
-            ema_pressure: pressure,
-            ema_acceleration: 0,
-            processes_seen: LinearMap::new(),
-        });
+        let acc = self
+            .contention_accumulators
+            .entry(resource_id)
+            .or_insert_with(|| ContentionAccumulator {
+                resource_id,
+                pressure_history: VecDeque::new(),
+                ema_pressure: pressure,
+                ema_acceleration: 0,
+                processes_seen: LinearMap::new(),
+            });
 
         let prev = acc.ema_pressure;
-        acc.pressure_history.push(pressure);
+        acc.pressure_history.push_back(pressure);
         acc.ema_pressure = ema_update(acc.ema_pressure, pressure, 250, 1000);
 
         let accel = acc.ema_pressure as i64 - prev as i64;
-        acc.ema_acceleration = (acc.ema_acceleration.saturating_mul(700) + accel.saturating_mul(300)) / 1000;
+        acc.ema_acceleration =
+            (acc.ema_acceleration.saturating_mul(700) + accel.saturating_mul(300)) / 1000;
 
         *acc.processes_seen.entry(process_id).or_insert(0) += 1;
 
         if acc.pressure_history.len() > self.max_history {
-            acc.pressure_history.pop_front().unwrap();
+            acc.pressure_history.remove(0).unwrap();
         }
 
-        self.emit_contention_signal(resource_id, acc.ema_pressure, acc.ema_acceleration);
+        let ema_pressure = acc.ema_pressure;
+        let ema_acceleration = acc.ema_acceleration;
+        self.emit_contention_signal(resource_id, ema_pressure, ema_acceleration);
     }
 
     /// Sense a shift in the overall cooperation climate.
@@ -308,15 +319,20 @@ impl CoopPrecognition {
         }
 
         let noise = xorshift64(&mut self.rng_state) % 50;
-        let confidence = (magnitude.min(500).saturating_mul(2)).saturating_sub(noise).min(1000);
+        let confidence = (magnitude.min(500).saturating_mul(2))
+            .saturating_sub(noise)
+            .min(1000);
 
         let trigger_signals: Vec<u64> = self.climate_signals.keys().copied().take(5).collect();
         let duration = 50u64.saturating_add(magnitude / 5);
 
-        let shift_id = fnv1a_hash(&[
-            self.current_tick.to_le_bytes().as_slice(),
-            magnitude.to_le_bytes().as_slice(),
-        ].concat());
+        let shift_id = fnv1a_hash(
+            &[
+                self.current_tick.to_le_bytes().as_slice(),
+                magnitude.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
 
         self.phase_state.current_phase = to_phase.clone();
         self.phase_state.phase_start_tick = self.current_tick;
@@ -344,7 +360,9 @@ impl CoopPrecognition {
 
         let erosion_rate = tracker.ema_delta.unsigned_abs().min(1000);
         let projected = if tracker.ema_delta < 0 {
-            tracker.ema_trust.saturating_sub(erosion_rate.saturating_mul(10))
+            tracker
+                .ema_trust
+                .saturating_sub(erosion_rate.saturating_mul(10))
         } else {
             tracker.ema_trust
         };
@@ -358,22 +376,21 @@ impl CoopPrecognition {
             1000
         };
 
-        let cause_hash = fnv1a_hash(&[
-            partner_id.to_le_bytes().as_slice(),
-            tracker.consecutive_drops.to_le_bytes().as_slice(),
-        ].concat());
+        let cause_hash = fnv1a_hash(
+            &[
+                partner_id.to_le_bytes().as_slice(),
+                tracker.consecutive_drops.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
 
         let confidence = (tracker.consecutive_drops as u64)
             .saturating_mul(200)
             .min(900);
 
         self.stats.erosions_detected = self.stats.erosions_detected.saturating_add(1);
-        self.stats.avg_lead_time = ema_update(
-            self.stats.avg_lead_time,
-            ticks_until_critical,
-            200,
-            1000,
-        );
+        self.stats.avg_lead_time =
+            ema_update(self.stats.avg_lead_time, ticks_until_critical, 200, 1000);
 
         Some(TrustErosionDetection {
             partner_id,
@@ -395,7 +412,8 @@ impl CoopPrecognition {
         }
 
         let buildup_rate = acc.ema_acceleration as u64;
-        let projected_peak = acc.ema_pressure
+        let projected_peak = acc
+            .ema_pressure
             .saturating_add(buildup_rate.saturating_mul(10))
             .min(1000);
 
@@ -405,7 +423,7 @@ impl CoopPrecognition {
             100
         };
 
-        let contributing: Vec<u64> = acc.processes_seen.keys().copied().collect();
+        let contributing: Vec<u64> = acc.processes_seen.keys().collect();
 
         let confidence = if acc.pressure_history.len() > 10 {
             700
@@ -437,23 +455,20 @@ impl CoopPrecognition {
         let emerging = self.determine_phase(combined, magnitude);
 
         if emerging == self.phase_state.current_phase {
-            self.phase_state.phase_stability = ema_update(
-                self.phase_state.phase_stability,
-                800,
-                200,
-                1000,
-            );
+            self.phase_state.phase_stability =
+                ema_update(self.phase_state.phase_stability, 800, 200, 1000);
             return None;
         }
 
-        let phase_age = self.current_tick.saturating_sub(self.phase_state.phase_start_tick);
+        let _phase_age = self
+            .current_tick
+            .saturating_sub(self.phase_state.phase_start_tick);
         let transition_progress = (magnitude.saturating_mul(10)).min(1000);
         let stability = self.phase_state.phase_stability;
         let signals = self.phase_state.transition_signals.len() as u32;
 
-        let confidence = transition_progress.saturating_mul(
-            1000u64.saturating_sub(stability),
-        ) / 1000;
+        let confidence =
+            transition_progress.saturating_mul(1000u64.saturating_sub(stability)) / 1000;
 
         if confidence < 300 {
             return None;
@@ -487,10 +502,13 @@ impl CoopPrecognition {
 
         let actionable = strength > 200 && noise_ratio < 500;
 
-        let sig_id = fnv1a_hash(&[
-            self.current_tick.to_le_bytes().as_slice(),
-            strength.to_le_bytes().as_slice(),
-        ].concat());
+        let sig_id = fnv1a_hash(
+            &[
+                self.current_tick.to_le_bytes().as_slice(),
+                strength.to_le_bytes().as_slice(),
+            ]
+            .concat(),
+        );
 
         let signal = PrecognitionSignal {
             signal_id: sig_id,
@@ -503,16 +521,12 @@ impl CoopPrecognition {
 
         self.signal_history.push_back(signal.clone());
         if self.signal_history.len() > self.max_history {
-            self.signal_history.pop_front();
+            self.signal_history.remove(0);
         }
 
         self.stats.signals_generated = self.stats.signals_generated.saturating_add(1);
-        self.stats.avg_signal_strength = ema_update(
-            self.stats.avg_signal_strength,
-            strength,
-            200,
-            1000,
-        );
+        self.stats.avg_signal_strength =
+            ema_update(self.stats.avg_signal_strength, strength, 200, 1000);
 
         signal
     }
@@ -525,16 +539,15 @@ impl CoopPrecognition {
         for pid in erosion_partners {
             if let Some(erosion) = self.trust_erosion_detection(pid) {
                 if erosion.confidence > 500 {
-                    let aid = fnv1a_hash(&[
-                        pid.to_le_bytes().as_slice(),
-                        b"trust_repair",
-                    ].concat());
+                    let aid = fnv1a_hash(&[pid.to_le_bytes().as_slice(), b"trust_repair"].concat());
                     adaptations.push(EarlyAdaptation {
                         adaptation_id: aid,
                         trigger_signal: erosion.erosion_cause_hash,
                         recommended_action_hash: fnv1a_hash(b"increase_fairness"),
                         urgency: erosion.erosion_rate.min(1000),
-                        expected_benefit: erosion.current_trust.saturating_sub(erosion.projected_trust),
+                        expected_benefit: erosion
+                            .current_trust
+                            .saturating_sub(erosion.projected_trust),
                         risk: 200,
                     });
                 }
@@ -545,23 +558,24 @@ impl CoopPrecognition {
         for rid in buildup_resources {
             if let Some(buildup) = self.contention_buildup(rid) {
                 if buildup.confidence > 500 {
-                    let aid = fnv1a_hash(&[
-                        rid.to_le_bytes().as_slice(),
-                        b"load_balance",
-                    ].concat());
+                    let aid = fnv1a_hash(&[rid.to_le_bytes().as_slice(), b"load_balance"].concat());
                     adaptations.push(EarlyAdaptation {
                         adaptation_id: aid,
                         trigger_signal: rid,
                         recommended_action_hash: fnv1a_hash(b"redistribute_load"),
                         urgency: buildup.buildup_rate.min(1000),
-                        expected_benefit: buildup.projected_peak.saturating_sub(buildup.current_pressure),
+                        expected_benefit: buildup
+                            .projected_peak
+                            .saturating_sub(buildup.current_pressure),
                         risk: 300,
                     });
                 }
             }
         }
 
-        self.stats.adaptations_recommended = self.stats.adaptations_recommended
+        self.stats.adaptations_recommended = self
+            .stats
+            .adaptations_recommended
             .saturating_add(adaptations.len() as u64);
 
         adaptations
@@ -582,18 +596,18 @@ impl CoopPrecognition {
     // ── Private helpers ──────────────────────────────────────────────
 
     fn emit_trust_signal(&mut self, partner_id: u64, delta: i64, consecutive_drops: u32) {
-        let sig_hash = fnv1a_hash(&[
-            b"trust_",
-            partner_id.to_le_bytes().as_slice(),
-        ].concat());
+        let sig_hash = fnv1a_hash(&[b"trust_", partner_id.to_le_bytes().as_slice()].concat());
 
-        let signal = self.climate_signals.entry(sig_hash).or_insert_with(|| ClimateSignal {
-            signal_hash: sig_hash,
-            values: VecDeque::new(),
-            ema_value: 500,
-            ema_trend: 0,
-            activated_at: self.current_tick,
-        });
+        let signal = self
+            .climate_signals
+            .entry(sig_hash)
+            .or_insert_with(|| ClimateSignal {
+                signal_hash: sig_hash,
+                values: VecDeque::new(),
+                ema_value: 500,
+                ema_trend: 0,
+                activated_at: self.current_tick,
+            });
 
         let val = if delta > 0 {
             500u64.saturating_add(delta as u64)
@@ -601,12 +615,13 @@ impl CoopPrecognition {
             500u64.saturating_sub(delta.unsigned_abs())
         };
 
-        signal.values.push(val);
+        signal.values.push_back(val);
         signal.ema_value = ema_update(signal.ema_value, val, 200, 1000);
-        signal.ema_trend = (signal.ema_trend.saturating_mul(800) + delta.saturating_mul(200)) / 1000;
+        signal.ema_trend =
+            (signal.ema_trend.saturating_mul(800) + delta.saturating_mul(200)) / 1000;
 
         if signal.values.len() > 64 {
-            signal.values.pop_front().unwrap();
+            signal.values.remove(0).unwrap();
         }
 
         if consecutive_drops > 2 {
@@ -615,31 +630,33 @@ impl CoopPrecognition {
     }
 
     fn emit_contention_signal(&mut self, resource_id: u64, pressure: u64, acceleration: i64) {
-        let sig_hash = fnv1a_hash(&[
-            b"cont_",
-            resource_id.to_le_bytes().as_slice(),
-        ].concat());
+        let sig_hash = fnv1a_hash(&[b"cont_", resource_id.to_le_bytes().as_slice()].concat());
 
-        let signal = self.climate_signals.entry(sig_hash).or_insert_with(|| ClimateSignal {
-            signal_hash: sig_hash,
-            values: VecDeque::new(),
-            ema_value: 500,
-            ema_trend: 0,
-            activated_at: self.current_tick,
-        });
+        let signal = self
+            .climate_signals
+            .entry(sig_hash)
+            .or_insert_with(|| ClimateSignal {
+                signal_hash: sig_hash,
+                values: VecDeque::new(),
+                ema_value: 500,
+                ema_trend: 0,
+                activated_at: self.current_tick,
+            });
 
-        signal.values.push(pressure);
+        signal.values.push_back(pressure);
         signal.ema_value = ema_update(signal.ema_value, pressure, 200, 1000);
-        signal.ema_trend = (signal.ema_trend.saturating_mul(800)
-            + acceleration.saturating_mul(200)) / 1000;
+        signal.ema_trend =
+            (signal.ema_trend.saturating_mul(800) + acceleration.saturating_mul(200)) / 1000;
 
         if signal.values.len() > 64 {
-            signal.values.pop_front().unwrap();
+            signal.values.remove(0).unwrap();
         }
     }
 
     fn aggregate_trust_signals(&self) -> (u64, u64) {
-        let trust_sigs: Vec<&ClimateSignal> = self.climate_signals.values()
+        let trust_sigs: Vec<&ClimateSignal> = self
+            .climate_signals
+            .values()
             .filter(|s| {
                 let key_bytes = s.signal_hash.to_le_bytes();
                 key_bytes[0] % 2 == 0
@@ -650,14 +667,15 @@ impl CoopPrecognition {
             return (500, 0);
         }
 
-        let avg = trust_sigs.iter().map(|s| s.ema_value).sum::<u64>()
-            / trust_sigs.len() as u64;
+        let avg = trust_sigs.iter().map(|s| s.ema_value).sum::<u64>() / trust_sigs.len() as u64;
         let count = trust_sigs.len() as u64;
         (avg, count)
     }
 
     fn aggregate_contention_signals(&self) -> (u64, u64) {
-        let cont_sigs: Vec<&ClimateSignal> = self.climate_signals.values()
+        let cont_sigs: Vec<&ClimateSignal> = self
+            .climate_signals
+            .values()
             .filter(|s| {
                 let key_bytes = s.signal_hash.to_le_bytes();
                 key_bytes[0] % 2 == 1
@@ -668,8 +686,7 @@ impl CoopPrecognition {
             return (500, 0);
         }
 
-        let avg = cont_sigs.iter().map(|s| s.ema_value).sum::<u64>()
-            / cont_sigs.len() as u64;
+        let avg = cont_sigs.iter().map(|s| s.ema_value).sum::<u64>() / cont_sigs.len() as u64;
         let count = cont_sigs.len() as u64;
         (avg, count)
     }
