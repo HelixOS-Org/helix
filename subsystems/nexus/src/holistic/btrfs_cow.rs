@@ -98,11 +98,11 @@ pub struct BtrfsSnapshot {
 }
 
 impl BtrfsSnapshot {
-    pub fn new(snapshot_id: u64, parent: u64, gen: u64) -> Self {
+    pub fn new(snapshot_id: u64, parent: u64, generation: u64) -> Self {
         Self {
             snapshot_id,
             parent_subvol: parent,
-            generation: gen,
+            generation,
             extent_count: 0,
             shared_bytes: 0,
             exclusive_bytes: 0,
