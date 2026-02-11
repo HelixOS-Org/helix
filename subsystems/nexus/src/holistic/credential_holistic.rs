@@ -2,7 +2,6 @@
 //! Holistic credential — cross-layer credential flow analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Credential holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
