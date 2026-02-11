@@ -312,7 +312,7 @@ impl HolisticIntrospector {
                 let b_avg = avg_slice(origin_outcomes.get(&origins[j]).unwrap_or(&Vec::new()));
                 let alignment = 1.0 - (a_avg - b_avg).abs();
 
-                let pair_key = (origins[i] as u16) << 8 | origins[j] as u16;
+                let pair_key = ((origins[i] as u16) << 8) | origins[j] as u16;
                 let pair = self.coherence_pairs.entry(pair_key).or_insert(CoherencePair {
                     origin_a: int_to_origin(origins[i]),
                     origin_b: int_to_origin(origins[j]),
@@ -390,10 +390,10 @@ impl HolisticIntrospector {
         let mut spots = Vec::new();
 
         for origin_val in 0..8u8 {
-            let (count, score_sum) = domain_counts.get(&origin_val).copied().unwrap_or((0, 0.0));
-            let coverage = count as f32 / total;
-            let avg_quality = if count > 0 {
-                score_sum / count as f32
+            let (count, score_sum) = domain_counts.get(&origin_val).unwrap_or(&(0, 0.0));
+            let coverage = *count as f32 / total;
+            let avg_quality = if *count > 0 {
+                score_sum / *count as f32
             } else {
                 0.0
             };
