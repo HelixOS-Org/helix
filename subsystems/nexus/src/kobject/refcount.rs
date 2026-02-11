@@ -136,7 +136,7 @@ impl RefCountAnalyzer {
         };
 
         if self.operations.len() >= self.max_operations {
-            self.operations.pop_front();
+            self.operations.remove(0);
         }
         self.operations.push_back(op.clone());
 
