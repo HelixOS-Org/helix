@@ -39,8 +39,8 @@ pub enum PsiLevel {
 /// CPU cgroup limits
 #[derive(Debug, Clone)]
 pub struct CpuCgroupLimits {
-    pub weight: u32,        // 1-10000
-    pub max_us: u64,        // quota per period
+    pub weight: u32,        // 1-10000,
+    pub max_us: u64,        // quota per period,
     pub period_us: u64,
     pub burst_us: u64,
     pub usage_us: u64,
