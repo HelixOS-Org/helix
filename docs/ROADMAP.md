@@ -307,10 +307,10 @@ See [NEXUS_EVOLUTION.md](NEXUS_EVOLUTION.md) for the full AI subsystem roadmap.
 - [x] Prediction engine (decision trees, feature tracking, confidence thresholds)
 - [x] Healing engine (checkpoint store, quarantine manager, rollback history)
 - [x] Telemetry, formal verification, policy engine, adaptive learning
-- [x] Shared types (`nexus-types/`, ~3.5K lines)
-- [x] Core orchestrator types (`nexus-core/`, 437 lines, 7-level operational model)
-- [ ] Cognitive layer extraction (`nexus-cognitive/` — scaffolded, empty modules)
-- [ ] Evolution layer extraction (`nexus-evolution/` — scaffolded, sandbox only)
+- [x] Shared types (merged into `nexus/src/types/`)
+- [x] Core orchestrator types (merged into `nexus/src/core/`, 7-level operational model)
+- [x] Cognitive pipeline (unified in `nexus/src/cognition/`, 30K+ lines)
+- [x] Evolution modules (unified in `nexus/src/evolution/`, feature-gated)
 
 ---
 
