@@ -113,7 +113,7 @@ impl TrafficAnalyzer {
         self.bandwidth_history.push_back((now, bytes));
 
         if self.bandwidth_history.len() > self.max_history {
-            self.bandwidth_history.pop_front();
+            self.bandwidth_history.remove(0);
         }
     }
 
