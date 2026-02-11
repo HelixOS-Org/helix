@@ -54,7 +54,7 @@ impl ProcessVmaProfile {
 pub struct WorkloadTemplate {
     pub class_hash: u64,
     pub typical_vma_count: u64,
-    pub typical_layout: Vec<(u64, u64)>, // (relative_offset, size)
+    pub typical_layout: Vec<(u64, u64)>, // (relative_offset, size),
     pub sample_count: u64,
 }
 
