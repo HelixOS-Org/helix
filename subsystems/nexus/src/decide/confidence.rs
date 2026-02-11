@@ -312,7 +312,7 @@ impl ConfidenceEngine {
 
             // Limit history
             while self.calibration.len() > self.config.max_history {
-                self.calibration.pop_front();
+                self.calibration.remove(0);
             }
 
             // Update adjustments based on calibration error
@@ -534,6 +534,7 @@ impl Default for EvidenceBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_assess() {
