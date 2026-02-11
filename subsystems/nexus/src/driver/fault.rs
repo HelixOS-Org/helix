@@ -123,7 +123,7 @@ impl DriverFaultPredictor {
             _ => return,
         };
 
-        let mtbf = self.mtbf_estimates.get(&driver_id).copied();
+        let mtbf = self.mtbf_estimates.get(&driver_id);
 
         // Calculate probability based on time since last fault
         let last_fault = history.last().map(|f| f.timestamp).unwrap_or(0);
