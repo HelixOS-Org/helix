@@ -58,8 +58,8 @@ macro_rules! kprintln {
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-/// Kernel heap size (1MB for benchmarks)
-const HEAP_SIZE: usize = 1024 * 1024; // 1MB heap for benchmarks
+/// Kernel heap size (4MB for full NEXUS integration)
+const HEAP_SIZE: usize = 4 * 1024 * 1024; // 4MB heap for NEXUS
 
 /// Static heap buffer
 #[repr(align(4096))]
@@ -155,7 +155,7 @@ static ALLOCATOR: BumpAllocator = BumpAllocator::new();
 fn init_heap() {
     let heap_start = HEAP_BUFFER.start_addr();
     ALLOCATOR.init(heap_start, HEAP_SIZE);
-    serial_write_str("  Heap: 256KB bump allocator initialized\n");
+    serial_write_str("  Heap: 4MB bump allocator initialized\n");
 }
 
 // Framework components
