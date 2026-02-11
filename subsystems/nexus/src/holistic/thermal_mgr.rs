@@ -7,6 +7,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 
 /// Thermal trip type
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ThermalTripType {
     Active,
