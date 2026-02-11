@@ -22,9 +22,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use crate::fast::math::{F32Ext};
 
 // ============================================================================
 // CONSTANTS
@@ -218,8 +218,8 @@ pub struct ParadigmStats {
 /// System-wide paradigm shift detection and management engine
 pub struct HolisticParadigm {
     paradigms: BTreeMap<u64, Paradigm>,
-    pressures: VecDeque<EvolutionaryPressure>,
-    anomalies: VecDeque<ParadigmAnomaly>,
+    pressures: Vec<EvolutionaryPressure>,
+    anomalies: Vec<ParadigmAnomaly>,
     transitions: BTreeMap<u64, TransitionPlan>,
     history: Vec<ParadigmHistoryEntry>,
     rng_state: u64,
@@ -232,8 +232,8 @@ impl HolisticParadigm {
     pub fn new(seed: u64) -> Self {
         Self {
             paradigms: BTreeMap::new(),
-            pressures: VecDeque::new(),
-            anomalies: VecDeque::new(),
+            pressures: Vec::new(),
+            anomalies: Vec::new(),
             transitions: BTreeMap::new(),
             history: Vec::new(),
             rng_state: seed | 1,
@@ -279,7 +279,7 @@ impl HolisticParadigm {
         let mut results = Vec::new();
         let ids: Vec<u64> = self.paradigms.keys().copied().collect();
         for id in ids {
-            let (health_score, fitness, anomaly_count) = {
+            let (health_score, _fitness, anomaly_count) = {
                 let p = match self.paradigms.get(&id) { Some(p) => p, None => continue };
                 (p.health_score, p.fitness, p.anomaly_count)
             };
@@ -377,10 +377,10 @@ impl HolisticParadigm {
             pressure.last_observed_tick = self.tick;
         } else {
             if self.pressures.len() >= MAX_PRESSURES {
-                self.pressures.pop_front();
+                self.pressures.remove(0);
             }
             let id = self.stats.total_pressures;
-            self.pressures.push_back(EvolutionaryPressure {
+            self.pressures.push(EvolutionaryPressure {
                 id, domain, source_description: description,
                 magnitude, accumulated: magnitude * PRESSURE_ACCUMULATION_RATE,
                 direction, first_detected_tick: self.tick,
@@ -399,11 +399,11 @@ impl HolisticParadigm {
             anomaly.last_seen_tick = self.tick;
         } else {
             if self.anomalies.len() >= MAX_ANOMALIES {
-                self.anomalies.pop_front();
+                self.anomalies.remove(0);
             }
             let id = self.stats.total_anomalies;
             let desc_hash = fnv1a_hash(&[domain as u8, (self.tick & 0xFF) as u8]);
-            self.anomalies.push_back(ParadigmAnomaly {
+            self.anomalies.push(ParadigmAnomaly {
                 id, domain, description_hash: desc_hash,
                 severity, frequency: 1,
                 first_seen_tick: self.tick, last_seen_tick: self.tick,
