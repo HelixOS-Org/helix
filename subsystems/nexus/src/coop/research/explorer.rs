@@ -13,10 +13,11 @@
 
 extern crate alloc;
 
-use crate::fast::array_map::ArrayMap;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::array_map::ArrayMap;
 
 // ============================================================================
 // CONSTANTS
@@ -165,12 +166,7 @@ impl FitnessCurve {
 
     #[inline]
     fn record(&mut self, generation: u32, best: f32, mean: f32) {
-        let prev_best = self
-            .best_per_generation
-            .values()
-            .last()
-            .copied()
-            .unwrap_or(0.0);
+        let prev_best = self.best_per_generation.values().last().unwrap_or(0.0);
         let improvement = if prev_best > 0.0 {
             (best - prev_best) / prev_best
         } else {
@@ -180,7 +176,8 @@ impl FitnessCurve {
         self.best_per_generation.insert(generation, best);
         self.mean_per_generation.insert(generation, mean);
         while self.best_per_generation.len() > MAX_GENERATIONS {
-            if let Some(&first) = self.best_per_generation.keys().next() {
+            let first = self.best_per_generation.keys().next();
+            if let Some(first) = first {
                 self.best_per_generation.remove(&first);
                 self.mean_per_generation.remove(&first);
             }
