@@ -7,6 +7,7 @@ use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 
 /// Governor type
+use alloc::vec::Vec;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GovernorType {
     Performance,
