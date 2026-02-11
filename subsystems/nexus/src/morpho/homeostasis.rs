@@ -42,16 +42,16 @@ impl HomeostasisController {
 
     /// Calculate control signal
     pub fn control(&mut self, morph_type: MorphogenType, current: f64, dt: f64) -> f64 {
-        let target = self.setpoints.get(&morph_type).copied().unwrap_or(1.0);
+        let target = self.setpoints.get(&morph_type).unwrap_or(&1.0);
         let error = target - current;
 
         // Update integral
-        let prev_integral = self.integral.get(&morph_type).copied().unwrap_or(0.0);
+        let prev_integral = self.integral.get(&morph_type).unwrap_or(&0.0);
         let new_integral = prev_integral + error * dt;
         self.integral.insert(morph_type, new_integral);
 
         // Calculate derivative
-        let prev_error = self.prev_error.get(&morph_type).copied().unwrap_or(error);
+        let prev_error = self.prev_error.get(&morph_type).unwrap_or(&error);
         let derivative = (error - prev_error) / dt;
         self.prev_error.insert(morph_type, error);
 
