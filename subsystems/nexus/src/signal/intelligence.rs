@@ -75,7 +75,7 @@ impl SignalIntelligence {
             .record_event(signo, sender, receiver, timestamp);
 
         // Check if signal is masked
-        let mask = self.signal_masks.get(&receiver).copied().unwrap_or(0);
+        let mask = self.signal_masks.get(&receiver).unwrap_or(0);
         if (mask & (1 << signo.raw())) != 0 && signo.can_catch() {
             // Signal is blocked
             let info = SignalInfo::new(signo, sender, timestamp);
@@ -126,7 +126,7 @@ impl SignalIntelligence {
     /// Get signal mask for process
     #[inline(always)]
     pub fn get_signal_mask(&self, pid: ProcessId) -> u64 {
-        self.signal_masks.get(&pid).copied().unwrap_or(0)
+        self.signal_masks.get(&pid).unwrap_or(0)
     }
 
     /// Block signal for process
@@ -147,7 +147,7 @@ impl SignalIntelligence {
     /// Check if signal is blocked
     #[inline(always)]
     pub fn is_blocked(&self, pid: ProcessId, signo: SignalNumber) -> bool {
-        let mask = self.signal_masks.get(&pid).copied().unwrap_or(0);
+        let mask = self.signal_masks.get(&pid).unwrap_or(0);
         (mask & (1 << signo.raw())) != 0
     }
 
