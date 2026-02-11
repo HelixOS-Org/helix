@@ -255,7 +255,7 @@ impl HolisticPageAlloc {
         }
 
         if self.recent_allocs.len() >= self.max_recent {
-            self.recent_allocs.pop_front();
+            self.recent_allocs.remove(0);
         }
         self.recent_allocs.push_back(req);
     }
