@@ -159,20 +159,20 @@ sequenceDiagram
 
     HW->>BL: Power on
     BL->>K: Multiboot2 handoff
-    
+
     K->>K: Init heap (4MB)
     K->>K: Init memory + interrupts
     K->>K: Init scheduler + HelixFS
-    
+
     Note over K: Hot-Reload Demo
     K->>K: Swap scheduler live (0 downtime)
-    
+
     Note over K: Self-Healing Demo
     K->>K: Module crash → auto-recovery ✓
-    
+
     Note over K,N: NEXUS Full Integration
     K->>N: nexus_full_demo()
-    
+
     N->>N: Core lifecycle (init→start→tick→shutdown)
     N->>N: Crash prediction (70% conf, 15s TTF)
     N->>N: Anomaly detection (Z-score + IQR)
@@ -184,17 +184,17 @@ sequenceDiagram
     N->>N: Cognition (neural, RL, symbolic)
     N->>N: Evolution (genetic, quantum, swarm)
     N->>N: Symbiosis (bridge, coop, holistic)
-    
+
     N-->>K: ALL SUBSYSTEMS OPERATIONAL ✓
-    
+
     K->>AI: AI Cortex demo
     AI->>AI: 4 events → 4 decisions (85-95%)
     AI-->>K: Done ✓
-    
+
     K->>SH: Shell demo
     SH->>SH: 16 commands + HelixFS
     SH-->>K: Done ✓
-    
+
     K->>HW: hlt (clean shutdown)
 ```
 
