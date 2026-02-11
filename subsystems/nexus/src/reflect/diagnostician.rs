@@ -4,7 +4,6 @@
 //! and finds patterns to guide system improvement.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::{format, vec};
@@ -242,7 +241,7 @@ impl PatternType {
 /// Diagnostician - diagnoses cognitive failures
 pub struct Diagnostician {
     /// Failure records
-    failures: VecDeque<CognitiveFailure>,
+    failures: Vec<CognitiveFailure>,
     /// Maximum failures
     max_failures: usize,
     /// Diagnoses made
@@ -253,7 +252,7 @@ impl Diagnostician {
     /// Create new diagnostician
     pub fn new(max_failures: usize) -> Self {
         Self {
-            failures: VecDeque::new(),
+            failures: Vec::new(),
             max_failures,
             diagnoses_made: AtomicU64::new(0),
         }
@@ -263,9 +262,9 @@ impl Diagnostician {
     #[inline]
     pub fn record_failure(&mut self, failure: CognitiveFailure) -> FailureId {
         let id = failure.id;
-        self.failures.push_back(failure);
+        self.failures.push(failure);
         if self.failures.len() > self.max_failures {
-            self.failures.pop_front();
+            self.failures.remove(0);
         }
         id
     }
