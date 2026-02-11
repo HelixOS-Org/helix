@@ -266,7 +266,7 @@ impl Normalizer {
                 NormalizedData::Vector(normalized)
             },
             InputData::Map(m) => {
-                let values: Vec<f64> = m.values().copied().collect();
+                let values: Vec<f64> = m.values().collect();
                 let normalized = self.normalize_vector(&values, &input.source, method);
                 NormalizedData::Vector(normalized)
             },
@@ -497,6 +497,7 @@ impl Default for Normalizer {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_submit() {
