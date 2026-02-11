@@ -374,8 +374,12 @@ fn demo_telemetry() {
 
     // Tracing
     use helix_nexus::trace::{Tracer, TracerConfig};
-    let _tracer = Tracer::new(TracerConfig::default());
-    ok("Tracer::new(default config) — ultra-low overhead tracing ready");
+    let config = TracerConfig {
+        buffer_size: 4096, // 4KB (vs 64KB default) to conserve bump-alloc heap
+        ..TracerConfig::default()
+    };
+    let _tracer = Tracer::new(config);
+    ok("Tracer::new(buffer=4KB) — ultra-low overhead tracing ready");
 
     // Causal graph
     use helix_nexus::causal::{
