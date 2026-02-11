@@ -9,7 +9,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -233,7 +232,7 @@ impl HealthChecker {
 
         // Trim history
         if history.len() > self.config.history_size {
-            history.pop_front();
+            history.remove(0);
         }
     }
 
@@ -318,7 +317,7 @@ impl PhiAccrualDetector {
         history.push(timestamp);
 
         if history.len() > self.window_size {
-            history.pop_front();
+            history.remove(0);
         }
     }
 
@@ -707,6 +706,7 @@ pub enum ClusterError {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_add_remove_member() {
