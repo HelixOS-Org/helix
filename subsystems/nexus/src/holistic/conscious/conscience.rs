@@ -303,18 +303,18 @@ impl HolisticConscience {
         let mut count = 0u32;
 
         for (pid, principle) in self.principles.iter_mut() {
-            let score = compliance_scores.get(pid).copied().unwrap_or(1.0);
-            let compliant = score >= COMPLIANCE_GOOD;
+            let score = compliance_scores.get(pid).unwrap_or(&1.0);
+            let compliant = score >= &COMPLIANCE_GOOD;
             principle.record_check(compliant);
             total_compliance += score;
             count += 1;
 
-            if score < COMPLIANCE_WARN {
+            if score < &COMPLIANCE_WARN {
                 violated.push(*pid);
                 if principle.inviolable {
                     inviolable_violated = true;
                 }
-            } else if score < COMPLIANCE_GOOD {
+            } else if score < &COMPLIANCE_GOOD {
                 warned.push(*pid);
             }
         }
