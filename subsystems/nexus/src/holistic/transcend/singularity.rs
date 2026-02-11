@@ -15,7 +15,6 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
-use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -202,7 +201,7 @@ impl HolisticSingularity {
     fn log_event(&mut self, kind: &str, level: u64, delta: u64) {
         let eh = fnv1a(kind.as_bytes()) ^ fnv1a(&self.tick.to_le_bytes());
         if self.events.len() >= MAX_EVENTS {
-            self.events.pop_front();
+            self.events.remove(0);
         }
         self.events.push_back(SingularityEvent {
             event_hash: eh,
