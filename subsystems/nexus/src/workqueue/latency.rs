@@ -131,7 +131,7 @@ impl WorkLatencyAnalyzer {
 
         // Update recent latencies
         if self.recent_latencies.len() >= self.max_recent {
-            self.recent_latencies.pop_front();
+            self.recent_latencies.remove(0);
         }
         self.recent_latencies.push_back(latency_ns);
 
