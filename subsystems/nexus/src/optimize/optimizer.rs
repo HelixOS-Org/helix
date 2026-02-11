@@ -297,7 +297,7 @@ impl Optimizer {
         };
 
         if self.metrics.len() >= self.max_metrics {
-            self.metrics.pop_front();
+            self.metrics.remove(0);
         }
         self.metrics.push_back(metric);
     }
