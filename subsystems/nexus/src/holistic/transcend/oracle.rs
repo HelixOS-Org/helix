@@ -15,7 +15,6 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::string::String;
-use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -274,7 +273,7 @@ impl HolisticOracle {
             uncertainty_bps: uncertainty,
         };
         if self.predictions.len() >= MAX_PREDICTIONS {
-            self.predictions.pop_front();
+            self.predictions.remove(0);
         }
         self.predictions.push_back(pred.clone());
         self.stats.ema_accuracy_bps = ema_update(self.stats.ema_accuracy_bps, confidence);
@@ -373,7 +372,7 @@ impl HolisticOracle {
             uncertainty_bps: 10_000_u64.saturating_sub(confidence),
         };
         if self.predictions.len() >= MAX_PREDICTIONS {
-            self.predictions.pop_front();
+            self.predictions.remove(0);
         }
         self.predictions.push_back(pred.clone());
         pred
