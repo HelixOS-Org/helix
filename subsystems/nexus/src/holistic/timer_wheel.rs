@@ -14,8 +14,9 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Timer state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TimerState {
+    #[default]
     Pending,
     Armed,
     Expired,
@@ -24,8 +25,9 @@ pub enum TimerState {
 }
 
 /// Timer type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TimerType {
+    #[default]
     OneShot,
     Periodic,
     HighResolution,
@@ -36,6 +38,7 @@ pub enum TimerType {
 /// Timer entry
 #[derive(Debug, Clone)]
 #[repr(align(64))]
+#[derive(Default)]
 pub struct TimerEntry {
     pub timer_id: u64,
     pub timer_type: TimerType,
@@ -49,6 +52,12 @@ pub struct TimerEntry {
     pub total_jitter_ns: u64,
     pub max_jitter_ns: u64,
     pub coalesced: bool,
+
+    pub callback_hash: u64,
+    pub expires_at: u64,
+    pub fire_count: u64,
+    pub period_ns: u64,
+    pub slack_ns: u64,
 }
 
 impl TimerEntry {
@@ -58,6 +67,7 @@ impl TimerEntry {
             expires_ns: expires, interval_ns: interval, callback_id: cb,
             cpu_affinity: None, created_ts: ts, fired_count: 0,
             total_jitter_ns: 0, max_jitter_ns: 0, coalesced: false,
+            ..Default::default()
         }
     }
 
@@ -87,16 +97,26 @@ impl TimerEntry {
 
     #[inline(always)]
     pub fn is_deferrable(&self) -> bool { self.timer_type == TimerType::Deferrable }
+
+    /// Cancel this timer (V2 API)
+    #[inline(always)]
+    pub fn cancel(&mut self) {
+        self.state = TimerState::Cancelled;
+    }
 }
 
 /// Timer wheel level
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct WheelLevel {
     pub level: u32,
     pub granularity_ns: u64,
     pub slots: u32,
     pub current_slot: u32,
     pub timer_counts: Vec<u32>,
+
+    pub buckets: alloc::vec::Vec<alloc::vec::Vec<u64>>,
+    pub current_index: usize,
+    pub num_buckets: usize,
 }
 
 impl WheelLevel {
@@ -105,6 +125,7 @@ impl WheelLevel {
             level, granularity_ns: granularity, slots,
             current_slot: 0,
             timer_counts: alloc::vec![0u32; slots as usize],
+            ..Default::default()
         }
     }
 
@@ -121,6 +142,21 @@ impl WheelLevel {
 
     #[inline(always)]
     pub fn total_timers(&self) -> u32 { self.timer_counts.iter().sum() }
+
+    /// Get bucket index for a given tick delta (V2 API)
+    #[inline(always)]
+    pub fn bucket_for(&self, delta: u64) -> usize {
+        if self.granularity_ns == 0 { return 0; }
+        ((delta / self.granularity_ns) as usize) % self.num_buckets.max(1)
+    }
+
+    /// Insert a timer ID into a bucket (V2 API)
+    #[inline]
+    pub fn insert(&mut self, bucket: usize, entry_id: u64) {
+        if bucket < self.buckets.len() {
+            self.buckets[bucket].push(entry_id);
+        }
+    }
 }
 
 /// Coalescing group
@@ -350,108 +386,9 @@ impl HolisticTimerWheel {
 // Merged from timer_wheel_v2
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TimerState {
-    Pending,
-    Expired,
-    Cancelled,
-    Running,
-}
 
-/// Timer type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TimerType {
-    OneShot,
-    Periodic,
-    HiRes,
-    Deferrable,
-    Pinned,
-}
 
-/// Timer entry
-#[derive(Debug, Clone)]
-#[repr(align(64))]
-pub struct TimerEntry {
-    pub id: u64,
-    pub timer_type: TimerType,
-    pub state: TimerState,
-    pub expires_at: u64,
-    pub period_ns: u64,
-    pub callback_hash: u64,
-    pub fire_count: u64,
-    pub slack_ns: u64,
-    pub cpu_affinity: Option<u32>,
-}
 
-impl TimerEntry {
-    pub fn new(id: u64, ttype: TimerType, expires: u64) -> Self {
-        Self {
-            id, timer_type: ttype, state: TimerState::Pending,
-            expires_at: expires, period_ns: 0, callback_hash: 0,
-            fire_count: 0, slack_ns: 0, cpu_affinity: None,
-        }
-    }
-
-    #[inline(always)]
-    pub fn set_periodic(&mut self, period: u64) { self.period_ns = period; }
-
-    #[inline]
-    pub fn fire(&mut self, now: u64) {
-        self.state = TimerState::Running;
-        self.fire_count += 1;
-        if self.timer_type == TimerType::Periodic && self.period_ns > 0 {
-            self.expires_at = now + self.period_ns;
-            self.state = TimerState::Pending;
-        } else {
-            self.state = TimerState::Expired;
-        }
-    }
-
-    #[inline(always)]
-    pub fn cancel(&mut self) { self.state = TimerState::Cancelled; }
-
-    #[inline(always)]
-    pub fn time_until(&self, now: u64) -> i64 {
-        self.expires_at as i64 - now as i64
-    }
-}
-
-/// Wheel level (bucket ring)
-#[derive(Debug)]
-pub struct WheelLevel {
-    pub granularity_ns: u64,
-    pub num_buckets: u32,
-    pub buckets: Vec<Vec<u64>>,
-    pub current_index: u32,
-}
-
-impl WheelLevel {
-    pub fn new(granularity: u64, num_buckets: u32) -> Self {
-        let mut buckets = Vec::with_capacity(num_buckets as usize);
-        for _ in 0..num_buckets { buckets.push(Vec::new()); }
-        Self { granularity_ns: granularity, num_buckets, buckets, current_index: 0 }
-    }
-
-    #[inline(always)]
-    pub fn bucket_for(&self, delta_ns: u64) -> u32 {
-        let ticks = delta_ns / self.granularity_ns;
-        ((self.current_index as u64 + ticks) % self.num_buckets as u64) as u32
-    }
-
-    #[inline]
-    pub fn insert(&mut self, bucket: u32, timer_id: u64) {
-        if (bucket as usize) < self.buckets.len() {
-            self.buckets[bucket as usize].push(timer_id);
-        }
-    }
-
-    #[inline]
-    pub fn advance(&mut self) -> Vec<u64> {
-        let expired = core::mem::take(&mut self.buckets[self.current_index as usize]);
-        self.current_index = (self.current_index + 1) % self.num_buckets;
-        expired
-    }
-}
 
 /// Stats
 #[derive(Debug, Clone)]
@@ -480,10 +417,10 @@ impl HolisticTimerWheelV2 {
     pub fn new() -> Self {
         // 4-level wheel: 1ms, 256ms, ~65s, ~16384s
         let levels = alloc::vec![
-            WheelLevel::new(1_000_000, 256),       // Level 0: 1ms granularity, 256 buckets
-            WheelLevel::new(256_000_000, 256),      // Level 1: 256ms granularity
-            WheelLevel::new(65_536_000_000, 256),   // Level 2: ~65s granularity
-            WheelLevel::new(16_777_216_000_000, 64),// Level 3: ~16384s granularity
+            WheelLevel::new(0, 1_000_000, 256),       // Level 0: 1ms granularity, 256 buckets
+            WheelLevel::new(1, 256_000_000, 256),      // Level 1: 256ms granularity
+            WheelLevel::new(2, 65_536_000_000, 256),   // Level 2: ~65s granularity
+            WheelLevel::new(3, 16_777_216_000_000, 64),// Level 3: ~16384s granularity
         ];
         Self { timers: BTreeMap::new(), levels, next_id: 1, current_ns: 0, total_expired: 0 }
     }
@@ -491,7 +428,7 @@ impl HolisticTimerWheelV2 {
     pub fn add_timer(&mut self, ttype: TimerType, expires_ns: u64) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
-        let timer = TimerEntry::new(id, ttype, expires_ns);
+        let timer = TimerEntry::new(id, ttype, expires_ns, 0, 0, 0);
         let delta = expires_ns.saturating_sub(self.current_ns);
         // Place in appropriate level
         let level_idx = if delta < 256_000_000 { 0 }
@@ -517,7 +454,7 @@ impl HolisticTimerWheelV2 {
         for timer in self.timers.values_mut() {
             if timer.state == TimerState::Pending && timer.expires_at <= now {
                 timer.fire(now);
-                fired.push(timer.id);
+                fired.push(timer.timer_id);
                 self.total_expired += 1;
             }
         }
