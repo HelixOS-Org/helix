@@ -162,7 +162,7 @@ impl ThermalZone {
         self.temperature_mc = temp_mc;
         self.last_update = timestamp;
         if self.temp_history.len() >= self.max_history {
-            self.temp_history.pop_front();
+            self.temp_history.remove(0);
         }
         self.temp_history.push_back(temp_mc);
     }
@@ -296,7 +296,7 @@ impl HolisticThermalZone {
             _ => {}
         }
         if self.events.len() >= self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
         self.events.push_back(event);
     }
