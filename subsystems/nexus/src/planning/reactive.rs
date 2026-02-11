@@ -5,7 +5,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -302,7 +301,7 @@ pub struct ReactivePlanner {
     next_trigger_id: u32,
     next_response_id: u32,
     /// Fired triggers history
-    fire_history: VecDeque<(u64, TriggerId)>,
+    fire_history: Vec<(u64, TriggerId)>,
     /// Max history size
     max_history: usize,
 }
@@ -318,7 +317,7 @@ impl ReactivePlanner {
             current_time: 0,
             next_trigger_id: 0,
             next_response_id: 0,
-            fire_history: VecDeque::new(),
+            fire_history: Vec::new(),
             max_history: 100,
         }
     }
@@ -405,9 +404,9 @@ impl ReactivePlanner {
 
             // Record history
             if self.fire_history.len() >= self.max_history {
-                self.fire_history.pop_front();
+                self.fire_history.remove(0);
             }
-            self.fire_history.push_back((self.current_time, trigger_id));
+            self.fire_history.push((self.current_time, trigger_id));
 
             // Find matching rules
             for rule in &self.rules {
