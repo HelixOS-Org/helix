@@ -2,7 +2,6 @@
 //! Holistic namespace — cross-layer namespace isolation analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Namespace holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
