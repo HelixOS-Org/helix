@@ -415,14 +415,14 @@ impl CounterfactualEngine {
         // Find equations that depend on the changed variable
         for eq in &world.equations {
             if eq.parents.contains(&changed.to_string()) {
-                to_update.push(eq.target.clone());
+                to_update.push_back(eq.target.clone());
             }
         }
 
         // Propagate changes
         let mut depth = 0;
         while !to_update.is_empty() && depth < self.config.max_depth {
-            let current = to_update.pop_front().unwrap();
+            let current = to_update.remove(0).unwrap();
 
             if updated.contains(&current) && !self.config.allow_loops {
                 continue;
@@ -446,7 +446,7 @@ impl CounterfactualEngine {
                     // Find downstream equations
                     for other_eq in &world.equations {
                         if other_eq.parents.contains(&current) && !to_update.contains(&other_eq.target) {
-                            to_update.push(other_eq.target.clone());
+                            to_update.push_back(other_eq.target.clone());
                         }
                     }
                 }
