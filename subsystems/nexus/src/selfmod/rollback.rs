@@ -7,7 +7,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -342,7 +341,7 @@ pub struct RollbackManager {
     /// Active rollbacks
     active: BTreeMap<RollbackId, RollbackOperation>,
     /// Completed rollbacks
-    history: VecDeque<RollbackOperation>,
+    history: Vec<RollbackOperation>,
     /// Snapshot manager
     snapshot_manager: SnapshotManager,
     /// Configuration
@@ -394,7 +393,7 @@ impl RollbackManager {
     pub fn new() -> Self {
         Self {
             active: BTreeMap::new(),
-            history: VecDeque::new(),
+            history: Vec::new(),
             snapshot_manager: SnapshotManager::default(),
             config: RollbackConfig::default(),
             stats: RollbackStats::default(),
@@ -479,7 +478,7 @@ impl RollbackManager {
 
         // Move to history
         if let Some(op) = self.active.remove(&id) {
-            self.history.push_back(op);
+            self.history.push(op);
             self.trim_history();
         }
 
@@ -532,7 +531,7 @@ impl RollbackManager {
         operation.status = RollbackStatus::Cancelled;
 
         if let Some(op) = self.active.remove(&id) {
-            self.history.push_back(op);
+            self.history.push(op);
         }
 
         Ok(())
@@ -562,7 +561,7 @@ impl RollbackManager {
 
     fn trim_history(&mut self) {
         while self.history.len() > self.config.history_size {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
@@ -693,7 +692,7 @@ impl AutoRollbackMonitor {
                     Comparison::GreaterThan => value > config.threshold,
                     Comparison::LessThan => value < config.threshold,
                     Comparison::OutsideRange => {
-                        let baseline = self.baselines.get(name).copied().unwrap_or(0.0);
+                        let baseline = self.baselines.get(name).unwrap_or(&0.0);
                         (value - baseline).abs() > config.threshold
                     },
                 };
