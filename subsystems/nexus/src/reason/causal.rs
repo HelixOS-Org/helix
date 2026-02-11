@@ -411,7 +411,7 @@ impl CausalGraph {
     /// Get topological order
     pub fn topological_order(&self) -> Vec<u64> {
         let mut order = Vec::new();
-        let mut in_degree: LinearMap<usize, 64> = BTreeMap::new();
+        let mut in_degree: LinearMap<usize, 64> = LinearMap::new();
 
         // Calculate in-degrees
         for id in self.variables.keys() {
@@ -432,7 +432,7 @@ impl CausalGraph {
             if let Some(edges) = self.outgoing.get(&node) {
                 for edge_id in edges {
                     if let Some(edge) = self.edges.get(edge_id) {
-                        if let Some(degree) = in_degree.get_mut(&edge.effect) {
+                        if let Some(degree) = in_degree.get_mut(edge.effect) {
                             *degree = degree.saturating_sub(1);
                             if *degree == 0 {
                                 queue.push(edge.effect);
