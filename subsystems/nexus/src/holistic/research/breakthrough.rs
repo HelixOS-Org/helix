@@ -21,7 +21,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -150,7 +149,7 @@ pub struct HistoricalRecord {
 #[derive(Debug, Clone)]
 pub struct DomainMomentum {
     pub domain: BreakthroughDomain,
-    pub recent_effects: VecDeque<f32>,
+    pub recent_effects: Vec<f32>,
     pub momentum_ema: f32,
     pub acceleration: f32,
     pub breakthrough_count: u64,
@@ -184,7 +183,7 @@ pub struct HolisticBreakthroughDetector {
     breakthroughs: BTreeMap<u64, Breakthrough>,
     cascades: Vec<BreakthroughCascade>,
     predictions: Vec<BreakthroughPrediction>,
-    history: VecDeque<HistoricalRecord>,
+    history: Vec<HistoricalRecord>,
     domain_momentum: BTreeMap<u64, DomainMomentum>,
     rng_state: u64,
     tick: u64,
@@ -198,7 +197,7 @@ impl HolisticBreakthroughDetector {
             breakthroughs: BTreeMap::new(),
             cascades: Vec::new(),
             predictions: Vec::new(),
-            history: VecDeque::new(),
+            history: Vec::new(),
             domain_momentum: BTreeMap::new(),
             rng_state: seed | 1,
             tick: 0,
@@ -225,7 +224,7 @@ impl HolisticBreakthroughDetector {
         let key = domain as u64;
         if self.domain_momentum.contains_key(&key) { return; }
         self.domain_momentum.insert(key, DomainMomentum {
-            domain, recent_effects: VecDeque::new(), momentum_ema: 0.0,
+            domain, recent_effects: Vec::new(), momentum_ema: 0.0,
             acceleration: 0.0, breakthrough_count: 0, last_breakthrough_tick: 0,
         });
     }
@@ -235,7 +234,7 @@ impl HolisticBreakthroughDetector {
         let key = domain as u64;
         if let Some(momentum) = self.domain_momentum.get_mut(&key) {
             if momentum.recent_effects.len() >= MOMENTUM_WINDOW {
-                momentum.recent_effects.pop_front().unwrap();
+                momentum.recent_effects.remove(0);
             }
             let old_momentum = momentum.momentum_ema;
             momentum.recent_effects.push(effect);
@@ -277,13 +276,13 @@ impl HolisticBreakthroughDetector {
             if let Some(k) = oldest { self.breakthroughs.remove(&k); }
         }
         self.breakthroughs.insert(id, bt.clone());
-        self.history.push_back(HistoricalRecord {
+        self.history.push(HistoricalRecord {
             breakthrough_id: id, effect_size: effect,
             domains_count: 1, paradigm_impact,
             composite_score: effect * confidence * paradigm_impact,
             tick: self.tick,
         });
-        if self.history.len() > MAX_HISTORY { self.history.pop_front(); }
+        if self.history.len() > MAX_HISTORY { self.history.remove(0); }
         self.stats.total_detected += 1;
         self.stats.avg_effect_size_ema = self.stats.avg_effect_size_ema
             * (1.0 - EMA_ALPHA) + effect * EMA_ALPHA;
@@ -329,7 +328,7 @@ impl HolisticBreakthroughDetector {
         self.breakthroughs.insert(id, bt.clone());
         self.stats.total_detected += 1;
         self.stats.cross_domain_breakthroughs += 1;
-        self.history.push_back(HistoricalRecord {
+        self.history.push(HistoricalRecord {
             breakthrough_id: id, effect_size: adjusted_effect,
             domains_count: domains.len() as u64, paradigm_impact,
             composite_score: adjusted_effect * confidence * paradigm_impact,
