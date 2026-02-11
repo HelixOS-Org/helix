@@ -385,7 +385,7 @@ impl QuboMatrix {
 
         // Linear terms
         for i in 0..self.size {
-            if solution.get(i).copied().unwrap_or(false) {
+            if *solution.get(i).unwrap_or(&false) {
                 energy += self.linear[i];
             }
         }
@@ -393,8 +393,8 @@ impl QuboMatrix {
         // Quadratic terms
         for i in 0..self.size {
             for j in (i + 1)..self.size {
-                if solution.get(i).copied().unwrap_or(false)
-                    && solution.get(j).copied().unwrap_or(false)
+                if *solution.get(i).unwrap_or(&false)
+                    && *solution.get(j).unwrap_or(&false)
                 {
                     energy += self.get_quadratic(i, j);
                 }
@@ -469,13 +469,13 @@ impl IsingModel {
 
         // External field contribution
         for i in 0..self.num_spins {
-            e += self.h[i] * spins.get(i).copied().unwrap_or(0) as f64;
+            e += self.h[i] * *spins.get(i).unwrap_or(&0) as f64;
         }
 
         // Coupling contribution
         for &(i, k, jik) in &self.j {
-            let si = spins.get(i).copied().unwrap_or(0) as f64;
-            let sk = spins.get(k).copied().unwrap_or(0) as f64;
+            let si = *spins.get(i).unwrap_or(&0) as f64;
+            let sk = *spins.get(k).unwrap_or(&0) as f64;
             e += jik * si * sk;
         }
 
@@ -987,7 +987,7 @@ impl QuantumSchedulerOptimizer {
         for (task, slot) in schedule.iter_mut().enumerate().take(self.num_tasks) {
             for cpu in 0..self.num_cpus {
                 let idx = task * self.num_cpus + cpu;
-                if solution.get(idx).copied().unwrap_or(false) {
+                if *solution.get(idx).unwrap_or(&false) {
                     *slot = cpu;
                     break;
                 }
@@ -1088,7 +1088,7 @@ impl QuantumMemoryOptimizer {
         for (block, slot) in layout.iter_mut().enumerate() {
             for pos in 0..n {
                 let idx = block * n + pos;
-                if solution.get(idx).copied().unwrap_or(false) {
+                if *solution.get(idx).unwrap_or(&false) {
                     *slot = pos;
                     break;
                 }
@@ -1155,7 +1155,7 @@ mod tests {
         let a = ComplexAmplitude::new(3.0, 4.0);
         assert!((a.magnitude() - 5.0).abs() < 1e-10);
 
-        let b = ComplexAmplitude::from_polar(1.0, PI / 2.0);
+        let b = ComplexAmplitude::from_polar(1.0, core::f64::consts::PI / 2.0);
         assert!(b.real.abs() < 1e-10);
         assert!((b.imag - 1.0).abs() < 1e-10);
     }
