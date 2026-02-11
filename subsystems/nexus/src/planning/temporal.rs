@@ -336,9 +336,9 @@ impl TemporalPlanner {
             self.action_starts.get(&before),
             self.action_starts.get(&after),
         ) {
-            let duration = self.action_durations.get(&before).copied().unwrap_or(1);
+            let duration = self.action_durations.get(&before).unwrap_or(&1);
             let constraint =
-                TemporalConstraint::before(tp1, tp2).with_distance(duration, TimeValue::MAX);
+                TemporalConstraint::before(tp1, tp2).with_distance(*duration, TimeValue::MAX);
             self.add_constraint(constraint);
         }
     }
@@ -384,12 +384,12 @@ impl TemporalPlanner {
         let n = distances.len();
         for _ in 0..n {
             for &(from, to, weight) in &edges {
-                let dist_from = distances.get(&from).copied().unwrap_or(TimeValue::MAX);
-                let dist_to = distances.get(&to).copied().unwrap_or(TimeValue::MAX);
+                let dist_from = distances.get(&from).unwrap_or(&TimeValue::MAX);
+                let dist_to = distances.get(&to).unwrap_or(&TimeValue::MAX);
 
-                if dist_from != TimeValue::MAX {
+                if *dist_from != TimeValue::MAX {
                     let new_dist = dist_from + weight;
-                    if new_dist > dist_to {
+                    if new_dist > *dist_to {
                         distances.insert(to, new_dist);
                     }
                 }
@@ -398,10 +398,10 @@ impl TemporalPlanner {
 
         // Check for negative cycles
         for &(from, to, weight) in &edges {
-            let dist_from = distances.get(&from).copied().unwrap_or(TimeValue::MAX);
-            let dist_to = distances.get(&to).copied().unwrap_or(TimeValue::MAX);
+            let dist_from = distances.get(&from).unwrap_or(&TimeValue::MAX);
+            let dist_to = distances.get(&to).unwrap_or(&TimeValue::MAX);
 
-            if dist_from != TimeValue::MAX && dist_from + weight > dist_to {
+            if *dist_from != TimeValue::MAX && dist_from + weight > *dist_to {
                 return None; // Negative cycle detected (infeasible)
             }
         }
@@ -410,14 +410,14 @@ impl TemporalPlanner {
         let mut timeline = Timeline::new();
 
         for (&action, &start_tp) in &self.action_starts {
-            let start_time = distances.get(&start_tp).copied().unwrap_or(0);
-            let duration = self.action_durations.get(&action).copied().unwrap_or(1);
+            let start_time = distances.get(&start_tp).unwrap_or(&0);
+            let duration = self.action_durations.get(&action).unwrap_or(&1);
 
-            if start_time > self.config.max_makespan {
+            if start_time > &self.config.max_makespan {
                 return None;
             }
 
-            timeline.schedule(action, start_time, duration);
+            timeline.schedule(action, *start_time, *duration);
         }
 
         Some(timeline)
