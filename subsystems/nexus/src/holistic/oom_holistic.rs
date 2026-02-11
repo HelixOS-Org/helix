@@ -38,7 +38,7 @@ pub enum ReclaimAction { DropDentryCache, DropPageCache, CompressAnon, SwapOut, 
 
 #[derive(Debug, Clone)]
 pub struct ReclaimWaterfall {
-    pub actions: Vec<(ReclaimAction, u64)>, // (action, pages_reclaimable)
+    pub actions: Vec<(ReclaimAction, u64)>, // (action, pages_reclaimable),
     pub total_reclaimable: u64,
     pub estimated_time_ns: u64,
 }
@@ -57,7 +57,7 @@ pub struct RecoveryScore {
     pub kill_count: u32,
     pub pages_recovered: u64,
     pub time_to_stable_ns: u64,
-    pub collateral_damage: f64, // 0-1: how much useful work was lost
+    pub collateral_damage: f64, // 0-1: how much useful work was lost,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -101,7 +101,7 @@ impl OomHolisticManager {
     }
 
     /// Forecast memory pressure
-    pub fn forecast(&self, now: u64) -> PressureForecast {
+    pub fn forecast(&self, _now: u64) -> PressureForecast {
         let current_free = self.free_history.last()
             .map(|&(_, f)| f).unwrap_or(self.total_ram_pages);
         let current_ratio = current_free as f64 / self.total_ram_pages.max(1) as f64;
@@ -147,7 +147,7 @@ impl OomHolisticManager {
     /// Build reclaim waterfall: ordered actions to try before killing
     pub fn build_waterfall(
         &self,
-        cache_pages: u64, buffer_pages: u64,
+        cache_pages: u64, _buffer_pages: u64,
         compressible: u64, swappable: u64,
     ) -> ReclaimWaterfall {
         let mut actions = Vec::new();
