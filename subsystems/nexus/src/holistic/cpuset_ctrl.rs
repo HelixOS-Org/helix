@@ -234,37 +234,42 @@ impl HolisticCpusetCtrl {
     }
 
     pub fn set_cpus(&mut self, cpuset_id: u64, cpus: Vec<u32>) {
-        if let Some(cs) = self.cpusets.get_mut(&cpuset_id) {
+        let parent_id = if let Some(cs) = self.cpusets.get_mut(&cpuset_id) {
             cs.cpus = cpus;
-            // recalculate effective
-            let parent_cpus = cs.parent_id
-                .and_then(|pid| self.cpusets.get(&pid))
-                .map(|p| p.effective_cpus.clone())
-                .unwrap_or_else(|| self.system_cpus.clone());
-            let parent_mems = cs.parent_id
-                .and_then(|pid| self.cpusets.get(&pid))
-                .map(|p| p.effective_mems.clone())
-                .unwrap_or_else(|| self.system_mems.clone());
-            if let Some(cs) = self.cpusets.get_mut(&cpuset_id) {
-                cs.recalculate_effective(&parent_cpus, &parent_mems);
-            }
+            cs.parent_id
+        } else {
+            return;
+        };
+        let parent_cpus = parent_id
+            .and_then(|pid| self.cpusets.get(&pid))
+            .map(|p| p.effective_cpus.clone())
+            .unwrap_or_else(|| self.system_cpus.clone());
+        let parent_mems = parent_id
+            .and_then(|pid| self.cpusets.get(&pid))
+            .map(|p| p.effective_mems.clone())
+            .unwrap_or_else(|| self.system_mems.clone());
+        if let Some(cs) = self.cpusets.get_mut(&cpuset_id) {
+            cs.recalculate_effective(&parent_cpus, &parent_mems);
         }
     }
 
     pub fn set_mems(&mut self, cpuset_id: u64, mems: Vec<u32>) {
-        if let Some(cs) = self.cpusets.get_mut(&cpuset_id) {
+        let parent_id = if let Some(cs) = self.cpusets.get_mut(&cpuset_id) {
             cs.mems = mems;
-            let parent_cpus = cs.parent_id
-                .and_then(|pid| self.cpusets.get(&pid))
-                .map(|p| p.effective_cpus.clone())
-                .unwrap_or_else(|| self.system_cpus.clone());
-            let parent_mems = cs.parent_id
-                .and_then(|pid| self.cpusets.get(&pid))
-                .map(|p| p.effective_mems.clone())
-                .unwrap_or_else(|| self.system_mems.clone());
-            if let Some(cs) = self.cpusets.get_mut(&cpuset_id) {
-                cs.recalculate_effective(&parent_cpus, &parent_mems);
-            }
+            cs.parent_id
+        } else {
+            return;
+        };
+        let parent_cpus = parent_id
+            .and_then(|pid| self.cpusets.get(&pid))
+            .map(|p| p.effective_cpus.clone())
+            .unwrap_or_else(|| self.system_cpus.clone());
+        let parent_mems = parent_id
+            .and_then(|pid| self.cpusets.get(&pid))
+            .map(|p| p.effective_mems.clone())
+            .unwrap_or_else(|| self.system_mems.clone());
+        if let Some(cs) = self.cpusets.get_mut(&cpuset_id) {
+            cs.recalculate_effective(&parent_cpus, &parent_mems);
         }
     }
 
@@ -293,7 +298,7 @@ impl HolisticCpusetCtrl {
     pub fn record_migration(&mut self, mig: CpusetMigration) {
         self.stats.migrations += 1;
         if self.migrations.len() >= self.max_history {
-            self.migrations.pop_front();
+            self.migrations.remove(0);
         }
         self.migrations.push_back(mig);
     }
@@ -302,7 +307,7 @@ impl HolisticCpusetCtrl {
     pub fn record_violation(&mut self, vio: CpusetViolation) {
         self.stats.violations += 1;
         if self.violations.len() >= self.max_history {
-            self.violations.pop_front();
+            self.violations.remove(0);
         }
         self.violations.push_back(vio);
     }
