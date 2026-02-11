@@ -109,7 +109,7 @@ impl PerfManager {
     pub fn record_sample(&mut self, sample: Sample) {
         self.sample_count.fetch_add(1, Ordering::Relaxed);
         if self.samples.len() >= self.max_samples {
-            self.samples.pop_front();
+            self.samples.remove(0);
         }
         self.samples.push_back(sample);
     }
