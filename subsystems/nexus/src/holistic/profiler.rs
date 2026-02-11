@@ -512,7 +512,7 @@ impl HolisticProfiler {
         // Buffer sample
         self.sample_buffer.push_back(sample);
         if self.sample_buffer.len() > self.max_buffer {
-            self.sample_buffer.pop_front();
+            self.sample_buffer.remove(0);
         }
 
         self.stats.total_samples += 1;
