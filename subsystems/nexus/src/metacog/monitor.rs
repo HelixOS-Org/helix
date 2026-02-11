@@ -19,7 +19,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -798,7 +797,7 @@ pub struct MetacognitionMonitor {
     /// Active cognitive processes
     active_processes: BTreeMap<CognitiveProcessId, CognitiveProcess>,
     /// Completed process history
-    history: VecDeque<CognitiveProcess>,
+    history: Vec<CognitiveProcess>,
     /// Domain metrics
     domain_metrics: BTreeMap<CognitiveProcessType, DomainMetrics>,
     /// System metrics
@@ -820,7 +819,7 @@ impl MetacognitionMonitor {
     pub fn new() -> Self {
         Self {
             active_processes: BTreeMap::new(),
-            history: VecDeque::new(),
+            history: Vec::new(),
             domain_metrics: BTreeMap::new(),
             system_metrics: SystemMetrics::default(),
             anomaly_detector: AnomalyDetector::new(),
@@ -975,11 +974,11 @@ impl MetacognitionMonitor {
 
     /// Add process to history
     fn add_to_history(&mut self, process: CognitiveProcess) {
-        self.history.push_back(process);
+        self.history.push(process);
 
         // Trim history if needed
         while self.history.len() > self.history_limit {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
