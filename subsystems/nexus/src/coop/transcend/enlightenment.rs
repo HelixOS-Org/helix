@@ -288,7 +288,7 @@ impl CoopEnlightenment {
         let harmonious = self
             .harmony_index
             .values()
-            .filter(|&&h| h >= HARMONY_THRESHOLD)
+            .filter(|&h| h >= HARMONY_THRESHOLD)
             .count() as u64;
         let harmony_rate = harmonious.wrapping_mul(100) / core::cmp::max(count, 1);
 
@@ -485,9 +485,9 @@ impl CoopEnlightenment {
         self.current_tick += 1;
 
         // Decay harmony scores slowly
-        let keys: Vec<u64> = self.harmony_index.keys().copied().collect();
+        let keys: Vec<u64> = self.harmony_index.keys().collect();
         for k in keys {
-            if let Some(v) = self.harmony_index.get_mut(&k) {
+            if let Some(v) = self.harmony_index.get_mut(k) {
                 *v = (*v * TRANSCENDENCE_DECAY_NUM) / TRANSCENDENCE_DECAY_DEN;
             }
         }
@@ -495,11 +495,12 @@ impl CoopEnlightenment {
         // Contemplation cycle: stochastic harmony boost
         let r = xorshift64(&mut self.rng_state) % 100;
         if r < 5 {
-            if let Some((&sid, harmony)) = self.harmony_index.iter_mut().next() {
+            if let Some((sid, harmony)) = self.harmony_index.iter().next() {
                 let boost = xorshift64(&mut self.rng_state) % 3;
-                *harmony = clamp(*harmony + boost, 0, 100);
+                let new_harmony = clamp(harmony + boost, 0, 100);
+                self.harmony_index.insert(sid, new_harmony);
                 if let Some(state) = self.harmony_states.get_mut(&sid) {
-                    state.harmony_score = *harmony;
+                    state.harmony_score = new_harmony;
                 }
             }
         }
