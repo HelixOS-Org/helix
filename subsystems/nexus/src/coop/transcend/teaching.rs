@@ -468,8 +468,8 @@ impl CoopTeaching {
         let victim = self
             .effectiveness_index
             .iter()
-            .min_by_key(|(_, &v)| v)
-            .map(|(&k, _)| k);
+            .min_by_key(|(_, v)| *v)
+            .map(|(k, _)| k);
         if let Some(k) = victim {
             self.lessons.remove(&k);
             self.effectiveness_index.remove(k);
@@ -481,9 +481,9 @@ impl CoopTeaching {
         self.current_tick += 1;
 
         // Decay effectiveness scores
-        let keys: Vec<u64> = self.effectiveness_index.keys().copied().collect();
+        let keys: Vec<u64> = self.effectiveness_index.keys().collect();
         for k in keys {
-            if let Some(v) = self.effectiveness_index.get_mut(&k) {
+            if let Some(v) = self.effectiveness_index.get_mut(k) {
                 *v = (*v * EFFECTIVENESS_DECAY_NUM) / EFFECTIVENESS_DECAY_DEN;
             }
         }
