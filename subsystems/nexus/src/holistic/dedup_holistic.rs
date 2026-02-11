@@ -291,14 +291,14 @@ impl HolisticDedupEngine {
                 let hash = fp.full_hash;
                 let owner = fp.owner;
 
-                if let Some(&group_id) = self.hash_index.get(hash) {
+                if let Some(group_id) = self.hash_index.get(hash) {
                     new_merges.push((pfn, owner, hash, group_id));
                     merged += 1;
                 }
             }
         }
 
-        for (pfn, owner, hash, group_id) in new_merges {
+        for (pfn, owner, _hash, group_id) in new_merges {
             if let Some(group) = self.groups.get_mut(&group_id) {
                 group.add_member(owner, pfn);
             }
