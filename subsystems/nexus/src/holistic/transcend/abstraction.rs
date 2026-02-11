@@ -301,7 +301,7 @@ impl HolisticAbstraction {
     fn log_event(&mut self, kind: &str, detail: &str) {
         let h = self.gen_hash(kind);
         if self.log.len() >= MAX_LOG_ENTRIES {
-            self.log.pop_front();
+            self.log.remove(0);
         }
         self.log.push_back(LogEntry {
             hash: h,
