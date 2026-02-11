@@ -56,7 +56,7 @@ impl VectorClock {
     /// Get clock for node
     #[inline(always)]
     pub fn get(&self, node: NodeId) -> u64 {
-        self.clocks.get(&node).copied().unwrap_or(0)
+        *self.clocks.get(&node).unwrap_or(&0)
     }
 
     /// Merge with another clock (take max)
