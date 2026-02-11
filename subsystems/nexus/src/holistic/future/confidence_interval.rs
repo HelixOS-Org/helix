@@ -19,8 +19,9 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
+
+use crate::fast::math::F32Ext;
 
 // ============================================================================
 // CONSTANTS
@@ -300,7 +301,10 @@ impl HolisticConfidenceInterval {
     pub fn register_dependency(&mut self, from: ModelSource, to: ModelSource) {
         let fk = fnv1a_hash(&[from as u8]);
         let tk = fnv1a_hash(&[to as u8]);
-        self.dependency_graph.entry(fk).or_insert_with(Vec::new).push(tk);
+        self.dependency_graph
+            .entry(fk)
+            .or_insert_with(Vec::new)
+            .push(tk);
     }
 
     /// Allocate an uncertainty budget for a model source
@@ -323,8 +327,8 @@ impl HolisticConfidenceInterval {
         self.generation += 1;
 
         let sk = fnv1a_hash(&[source as u8]);
-        let base_var = self.source_variances.get(&sk).copied().unwrap_or(sample_variance);
-        let blended_var = ema_update(base_var, sample_variance);
+        let base_var = self.source_variances.get(&sk).unwrap_or(&sample_variance);
+        let blended_var = ema_update(*base_var, sample_variance);
         self.source_variances.insert(sk, blended_var);
 
         let count = self.source_counts.entry(sk).or_insert(0);
@@ -400,7 +404,11 @@ impl HolisticConfidenceInterval {
             entry.1 += 1;
         }
 
-        let mean_width = if count > 0 { total_width / count as f32 } else { 0.0 };
+        let mean_width = if count > 0 {
+            total_width / count as f32
+        } else {
+            0.0
+        };
         if min_width == f32::MAX {
             min_width = 0.0;
         }
@@ -429,7 +437,7 @@ impl HolisticConfidenceInterval {
     pub fn uncertainty_propagation(&mut self, root: ModelSource) -> UncertaintyPropagation {
         self.stats.propagations_run += 1;
         let rk = fnv1a_hash(&[root as u8]);
-        let root_var = self.source_variances.get(&rk).copied().unwrap_or(0.01);
+        let root_var = self.source_variances.get(&rk).unwrap_or(&0.01);
         let root_unc = root_var.sqrt();
 
         let mut propagated: Vec<PropagatedUncertainty> = Vec::new();
@@ -446,7 +454,11 @@ impl HolisticConfidenceInterval {
             if depth >= MAX_PROPAGATION_DEPTH {
                 continue;
             }
-            let dependents = self.dependency_graph.get(&current_key).cloned().unwrap_or_default();
+            let dependents = self
+                .dependency_graph
+                .get(&current_key)
+                .cloned()
+                .unwrap_or_default();
             for &dep_key in &dependents {
                 if visited.contains_key(&dep_key) {
                     continue;
@@ -547,7 +559,11 @@ impl HolisticConfidenceInterval {
         let total = relevant.len();
         let hits = relevant.iter().filter(|p| p.hit == Some(true)).count();
         let misses = total - hits;
-        let hit_rate = if total > 0 { hits as f32 / total as f32 } else { 0.0 };
+        let hit_rate = if total > 0 {
+            hits as f32 / total as f32
+        } else {
+            0.0
+        };
 
         let recent = relevant.iter().rev().take(CALIBRATION_WINDOW);
         let recent_hits = recent.filter(|p| p.hit == Some(true)).count();
@@ -583,18 +599,30 @@ impl HolisticConfidenceInterval {
         let mut over_count = 0_usize;
 
         let sources = [
-            ModelSource::Scheduler, ModelSource::Memory, ModelSource::Io,
-            ModelSource::Network, ModelSource::Thermal, ModelSource::Power,
-            ModelSource::Ipc, ModelSource::FileSystem, ModelSource::Security,
-            ModelSource::Ensemble, ModelSource::MonteCarlo, ModelSource::Causal,
+            ModelSource::Scheduler,
+            ModelSource::Memory,
+            ModelSource::Io,
+            ModelSource::Network,
+            ModelSource::Thermal,
+            ModelSource::Power,
+            ModelSource::Ipc,
+            ModelSource::FileSystem,
+            ModelSource::Security,
+            ModelSource::Ensemble,
+            ModelSource::MonteCarlo,
+            ModelSource::Causal,
         ];
 
         for &src in &sources {
             let key = fnv1a_hash(&[src as u8]);
-            let allocated = self.budget_allocations.get(&key).copied().unwrap_or(0.1);
-            let consumed = self.source_variances.get(&key).copied().unwrap_or(0.0).sqrt();
-            let utilization = if allocated > 0.0 { consumed / allocated } else { 0.0 };
-            let over = consumed > allocated;
+            let allocated = self.budget_allocations.get(&key).unwrap_or(&0.1);
+            let consumed = self.source_variances.get(&key).unwrap_or(&0.0).sqrt();
+            let utilization = if allocated > &0.0 {
+                consumed / allocated
+            } else {
+                0.0
+            };
+            let over = consumed > *allocated;
             if over {
                 over_count += 1;
             }
@@ -603,7 +631,7 @@ impl HolisticConfidenceInterval {
             if entries.len() < MAX_BUDGET_ENTRIES {
                 entries.push(UncertaintyBudgetEntry {
                     source: src,
-                    allocated_uncertainty: allocated,
+                    allocated_uncertainty: *allocated,
                     consumed_uncertainty: consumed,
                     utilization,
                     over_budget: over,
@@ -611,12 +639,16 @@ impl HolisticConfidenceInterval {
             }
         }
 
-        let sys_util = if total_alloc > 0.0 { total_consumed / total_alloc } else { 0.0 };
+        let sys_util = if total_alloc > 0.0 {
+            total_consumed / total_alloc
+        } else {
+            0.0
+        };
 
         UncertaintyBudget {
             entries,
             total_allocated: total_alloc,
-            total_consumed: total_consumed,
+            total_consumed,
             system_utilization: sys_util,
             over_budget_count: over_count,
         }
@@ -649,10 +681,18 @@ impl HolisticConfidenceInterval {
 
     fn key_to_source(&self, key: u64) -> ModelSource {
         let sources = [
-            ModelSource::Scheduler, ModelSource::Memory, ModelSource::Io,
-            ModelSource::Network, ModelSource::Thermal, ModelSource::Power,
-            ModelSource::Ipc, ModelSource::FileSystem, ModelSource::Security,
-            ModelSource::Ensemble, ModelSource::MonteCarlo, ModelSource::Causal,
+            ModelSource::Scheduler,
+            ModelSource::Memory,
+            ModelSource::Io,
+            ModelSource::Network,
+            ModelSource::Thermal,
+            ModelSource::Power,
+            ModelSource::Ipc,
+            ModelSource::FileSystem,
+            ModelSource::Security,
+            ModelSource::Ensemble,
+            ModelSource::MonteCarlo,
+            ModelSource::Causal,
         ];
         for &s in &sources {
             if fnv1a_hash(&[s as u8]) == key {
