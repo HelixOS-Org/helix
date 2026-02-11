@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -253,7 +252,7 @@ impl WorkloadFingerprint {
 #[derive(Debug, Clone)]
 pub struct PhaseDetector {
     /// Window of snapshots
-    window: VecDeque<ResourceSnapshot>,
+    window: Vec<ResourceSnapshot>,
     /// Window size
     window_size: usize,
     /// Current phase
@@ -267,7 +266,7 @@ pub struct PhaseDetector {
 impl PhaseDetector {
     pub fn new(window_size: usize) -> Self {
         Self {
-            window: VecDeque::new(),
+            window: Vec::new(),
             window_size,
             current_phase: WorkloadPhase::Startup,
             phase_duration: 0,
@@ -277,9 +276,9 @@ impl PhaseDetector {
 
     /// Add snapshot and detect phase
     pub fn observe(&mut self, snapshot: ResourceSnapshot) -> WorkloadPhase {
-        self.window.push_back(snapshot);
+        self.window.push(snapshot);
         if self.window.len() > self.window_size {
-            self.window.pop_front();
+            self.window.remove(0);
         }
 
         let new_phase = self.detect();
@@ -405,7 +404,7 @@ impl WorkloadMix {
     pub fn dominant_class(&self) -> Option<WorkloadClass> {
         self.class_distribution
             .iter()
-            .max_by_key(|(_, &c)| c)
+            .max_by_key(|&(_, &c)| c)
             .and_then(|(&k, _)| match k {
                 0 => Some(WorkloadClass::CpuBound),
                 1 => Some(WorkloadClass::MemoryBound),
@@ -447,7 +446,7 @@ pub struct HolisticWorkloadAnalyzer {
     /// Phase detector (system-wide)
     phase_detector: PhaseDetector,
     /// Load pattern history
-    load_history: VecDeque<f64>,
+    load_history: Vec<f64>,
     /// Max history
     max_history: usize,
     /// Next fingerprint ID
@@ -463,7 +462,7 @@ impl HolisticWorkloadAnalyzer {
         Self {
             fingerprints: BTreeMap::new(),
             phase_detector: PhaseDetector::new(30),
-            load_history: VecDeque::new(),
+            load_history: Vec::new(),
             max_history: 1000,
             next_fp_id: 1,
             current_mix: WorkloadMix::new(),
@@ -500,9 +499,9 @@ impl HolisticWorkloadAnalyzer {
     /// Report system-wide snapshot
     pub fn report_system(&mut self, snapshot: ResourceSnapshot) {
         let total_load = snapshot.cpu_util + snapshot.io_util + snapshot.network_util;
-        self.load_history.push_back(total_load);
+        self.load_history.push(total_load);
         if self.load_history.len() > self.max_history {
-            self.load_history.pop_front();
+            self.load_history.remove(0);
         }
 
         let phase = self.phase_detector.observe(snapshot);
@@ -580,7 +579,7 @@ impl HolisticWorkloadAnalyzer {
         let mut similar: Vec<(u64, f64)> = self
             .fingerprints
             .iter()
-            .filter(|(&id, _)| id != entity_id)
+            .filter(|&(&id, _)| id != entity_id)
             .map(|(&id, fp)| (id, target.similarity(fp)))
             .filter(|(_, sim)| *sim >= min_similarity)
             .collect();
