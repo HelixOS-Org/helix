@@ -118,7 +118,7 @@ impl Game {
     #[inline(always)]
     pub fn player_payoff(&self, player: PlayerId, strategies: &[StrategyId]) -> Utility {
         let payoffs = self.payoff(strategies);
-        payoffs.get(player as usize).copied().unwrap_or(0.0)
+        *payoffs.get(player as usize).unwrap_or(&0.0)
     }
 }
 
