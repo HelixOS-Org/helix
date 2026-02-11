@@ -176,7 +176,7 @@ impl IntrusionDetectionSystem {
 
         // Evict old history
         if self.threat_history.len() > self.max_history {
-            self.threat_history.pop_front();
+            self.threat_history.remove(0);
         }
     }
 
