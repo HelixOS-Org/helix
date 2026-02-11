@@ -10,7 +10,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key derivation.
@@ -197,11 +196,9 @@ impl CoopSimulator {
                             .saturating_add(load_increase)
                             .min(node.resource_capacity);
                     }
-                } else {
-                    if let Some(node) = self.nodes.get_mut(&nid) {
-                        let release = node.resource_used / 10;
-                        node.resource_used = node.resource_used.saturating_sub(release);
-                    }
+                } else if let Some(node) = self.nodes.get_mut(&nid) {
+                    let release = node.resource_used / 10;
+                    node.resource_used = node.resource_used.saturating_sub(release);
                 }
 
                 let partner_idx =
@@ -274,7 +271,7 @@ impl CoopSimulator {
                     let delta = self.evolve_trust_pair(a, b, step);
                     if step % 10 == 0 {
                         if let Some(node) = self.nodes.get(&a) {
-                            if let Some(&trust) = node.trust_levels.get(&b) {
+                            if let Some(trust) = node.trust_levels.get(b) {
                                 let snap = TrustSnapshot {
                                     step,
                                     partner_id: b,
@@ -411,7 +408,7 @@ impl CoopSimulator {
             + score_diff.saturating_mul(3) / 10;
 
         if self.divergence_history.len() >= 64 {
-            self.divergence_history.pop_front();
+            self.divergence_history.remove(0);
         }
         self.divergence_history.push_back(divergence);
         self.stats.avg_divergence = ema_update(self.stats.avg_divergence, divergence, 3, 10);
@@ -442,7 +439,7 @@ impl CoopSimulator {
         let delta = (combined_bias as i64 - 500) / 10 + noise / 20;
 
         if let Some(node) = self.nodes.get_mut(&a) {
-            let current = node.trust_levels.get(&b).copied().unwrap_or(500);
+            let current = node.trust_levels.get(b).unwrap_or(500);
             let new_val = if delta >= 0 {
                 current.saturating_add(delta as u64)
             } else {
@@ -451,7 +448,7 @@ impl CoopSimulator {
             node.trust_levels.insert(b, new_val.min(1000));
         }
         if let Some(node) = self.nodes.get_mut(&b) {
-            let current = node.trust_levels.get(&a).copied().unwrap_or(500);
+            let current = node.trust_levels.get(a).unwrap_or(500);
             let half_delta = delta / 2;
             let new_val = if half_delta >= 0 {
                 current.saturating_add(half_delta as u64)
