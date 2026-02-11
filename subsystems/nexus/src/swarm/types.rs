@@ -58,7 +58,7 @@ impl Position {
     /// Get value at index
     #[inline(always)]
     pub fn get(&self, i: usize) -> f64 {
-        self.values.get(i).copied().unwrap_or(0.0)
+        *self.values.get(i).unwrap_or(&0.0)
     }
 
     /// Set value at index
