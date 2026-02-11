@@ -102,7 +102,7 @@ pub struct ProcessNumaProfile {
     pub accesses_per_node: ArrayMap<u64, 32>,
     pub total_remote_accesses: u64,
     pub migration_count: u32,
-    pub affinity_score: f64, // 0.0 = all remote, 1.0 = all local
+    pub affinity_score: f64, // 0.0 = all remote, 1.0 = all local,
 }
 
 impl ProcessNumaProfile {
@@ -122,8 +122,8 @@ impl ProcessNumaProfile {
     #[inline]
     pub fn dominant_node(&self) -> u32 {
         self.pages_per_node.iter()
-            .max_by_key(|(_, &count)| count)
-            .map(|(&node, _)| node)
+            .max_by_key(|(_, count)| *count)
+            .map(|(node, _)| node as u32)
             .unwrap_or(self.preferred_node)
     }
 
@@ -139,13 +139,13 @@ impl ProcessNumaProfile {
             self.affinity_score = 1.0;
             return;
         }
-        let local = self.accesses_per_node.get(&self.running_node).copied().unwrap_or(0);
+        let local = self.accesses_per_node.get(self.running_node);
         self.affinity_score = local as f64 / total as f64;
     }
 
     #[inline(always)]
     pub fn pages_on_node(&self, node: u32) -> u64 {
-        self.pages_per_node.try_get(node as usize).copied().unwrap_or(0)
+        self.pages_per_node.try_get(node as usize).unwrap_or(0)
     }
 }
 
@@ -154,7 +154,7 @@ impl ProcessNumaProfile {
 pub struct NumaDistanceEntry {
     pub from_node: u32,
     pub to_node: u32,
-    pub distance: u32, // lower = closer, 10 = local
+    pub distance: u32, // lower = closer, 10 = local,
 }
 
 /// Page migration candidate
@@ -268,7 +268,8 @@ impl HolisticNumaPlace {
         let target = proc.running_node;
         let mut candidates = Vec::new();
 
-        for (&node, &pages) in &proc.pages_per_node {
+        for (node_idx, pages) in proc.pages_per_node.iter() {
+            let node = node_idx as u32;
             if node == target { continue; }
             let dist = self.distance(node, target);
             let benefit = pages as f64 * dist as f64 / 10.0;
