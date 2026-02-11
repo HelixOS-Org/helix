@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 /// Memory zone
@@ -177,7 +176,7 @@ pub struct HolisticVmstatTracker {
     zones: BTreeMap<u64, ZoneDesc>,
     swap: SwapCounters,
     reclaim: ReclaimCounters,
-    rate_history: VecDeque<VmRateSample>,
+    rate_history: Vec<VmRateSample>,
     summary: VmStatSummary,
     next_zone_key: u64,
     max_history: usize,
@@ -187,7 +186,7 @@ impl HolisticVmstatTracker {
     pub fn new(max_history: usize) -> Self {
         Self {
             zones: BTreeMap::new(), swap: SwapCounters::default(),
-            reclaim: ReclaimCounters::default(), rate_history: VecDeque::new(),
+            reclaim: ReclaimCounters::default(), rate_history: Vec::new(),
             summary: VmStatSummary::default(), next_zone_key: 1,
             max_history,
         }
@@ -229,8 +228,8 @@ impl HolisticVmstatTracker {
 
     #[inline(always)]
     pub fn record_rate(&mut self, sample: VmRateSample) {
-        self.rate_history.push_back(sample);
-        if self.rate_history.len() > self.max_history { self.rate_history.pop_front(); }
+        self.rate_history.push(sample);
+        if self.rate_history.len() > self.max_history { self.rate_history.remove(0); }
     }
 
     #[inline(always)]
