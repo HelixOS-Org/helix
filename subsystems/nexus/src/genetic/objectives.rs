@@ -9,7 +9,6 @@ use alloc::vec;
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -618,7 +617,7 @@ impl ReferencePoints {
             if let Some(members) = niche_counts.get_mut(&ref_idx) {
                 if !members.is_empty() {
                     members.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-                    let (sol_idx, _) = members.pop_front().unwrap();
+                    let (sol_idx, _) = members.remove(0).unwrap();
                     selected.push(sol_idx);
                 }
             }
@@ -771,6 +770,7 @@ impl IndicatorSelection {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_dominance() {
