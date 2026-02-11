@@ -237,7 +237,7 @@ impl HolisticSynthesisEngine {
         };
         let eh = self.gen_hash(kind);
         if self.improvements.len() >= MAX_IMPROVEMENT_LOG {
-            self.improvements.pop_front();
+            self.improvements.remove(0);
         }
         self.improvements.push_back(ImprovementEvent {
             event_hash: eh,
@@ -391,8 +391,8 @@ impl HolisticSynthesisEngine {
     /// The rate of synthesis: novel algorithms per generation.
     #[inline(always)]
     pub fn synthesis_rate(&self) -> u64 {
-        let gen = self.stats.generation.max(1);
-        self.stats.novel_algorithms.saturating_mul(10_000) / gen
+        let gen_val = self.stats.generation.max(1);
+        self.stats.novel_algorithms.saturating_mul(10_000) / gen_val
     }
 
     /// Compounding improvement rate — how fast improvements accumulate.
