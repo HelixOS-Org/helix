@@ -1,7 +1,6 @@
 //! Asynchronous federated learning.
 
 use crate::fast::array_map::ArrayMap;
-use alloc::collections::BTreeMap;
 
 use crate::federated::model::FederatedModel;
 use crate::federated::update::ModelUpdate;
