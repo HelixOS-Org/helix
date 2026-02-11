@@ -2,7 +2,6 @@
 //! Holistic MAC — cross-layer mandatory access control coherence analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// MAC holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
