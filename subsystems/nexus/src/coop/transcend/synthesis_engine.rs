@@ -10,7 +10,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 // ---------------------------------------------------------------------------
@@ -306,9 +305,9 @@ impl CoopSynthesisEngine {
         let mut genes = Vec::with_capacity(GENOME_LENGTH);
         for i in 0..GENOME_LENGTH {
             if i < crosspoint {
-                genes.push(p1.genes.get(i).copied().unwrap_or(0));
+                genes.push(*p1.genes.get(i).unwrap_or(&0));
             } else {
-                genes.push(p2.genes.get(i).copied().unwrap_or(0));
+                genes.push(*p2.genes.get(i).unwrap_or(&0));
             }
         }
 
