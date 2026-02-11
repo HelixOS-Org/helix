@@ -3,7 +3,6 @@
 
 extern crate alloc;
 use crate::fast::linear_map::LinearMap;
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Fork pattern classification
@@ -66,7 +65,7 @@ impl HolisticForkManager {
     }
 
     pub fn analyze_fork(&mut self, parent: u64, child: u64, cow_ratio: f64) -> HolisticForkPattern {
-        let depth = self.tree_depth.get(parent).cloned().unwrap_or(0) + 1;
+        let depth = self.tree_depth.get(parent).unwrap_or(0) + 1;
         self.tree_depth.insert(child, depth);
         let count = self.children_count.entry(parent).or_insert(0);
         *count += 1;
@@ -98,7 +97,7 @@ impl HolisticForkManager {
 
     #[inline(always)]
     pub fn max_depth(&self) -> u32 {
-        self.tree_depth.values().cloned().max().unwrap_or(0)
+        self.tree_depth.values().max().unwrap_or(0)
     }
 
     #[inline(always)]
