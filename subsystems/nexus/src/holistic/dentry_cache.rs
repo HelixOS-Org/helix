@@ -102,7 +102,7 @@ pub struct DentryCacheStats {
 #[repr(align(64))]
 pub struct HolisticDentryCache {
     pub entries: BTreeMap<u64, DentryCacheEntry>,
-    pub hash_index: BTreeMap<u64, Vec<u64>>, // name_hash → [dentry_ids]
+    pub hash_index: BTreeMap<u64, Vec<u64>>, // name_hash → [dentry_ids],
     pub next_id: u64,
     pub max_entries: usize,
     pub stats: DentryCacheStats,
