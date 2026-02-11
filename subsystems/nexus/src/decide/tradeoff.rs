@@ -33,7 +33,7 @@ pub struct TradeoffAnalysis {
     /// Criteria
     pub criteria: Vec<Criterion>,
     /// Scores matrix
-    pub scores: BTreeMap<(u64, u64), f64>, // (alt_id, crit_id) -> score
+    pub scores: BTreeMap<(u64, u64), f64>, // (alt_id, crit_id) -> score,
     /// Created
     pub created: Timestamp,
 }
@@ -299,7 +299,7 @@ impl TradeoffAnalyzer {
 
                 for crit in &analysis.criteria {
                     let raw_score = normalized_scores.get(&(alt.id, crit.id)).copied().unwrap_or(0.0);
-                    let weight = normalized_weights.get(&crit.id).copied().unwrap_or(0.0);
+                    let weight = normalized_weights.get(crit.id).unwrap_or(0.0);
 
                     let weighted = raw_score * weight;
                     total += weighted;
@@ -450,8 +450,8 @@ impl TradeoffAnalyzer {
         let runner_up = &rankings[1];
 
         for crit in &analysis.criteria {
-            let winner_score = winner.criterion_scores.get(&crit.id).copied().unwrap_or(0.0);
-            let runner_score = runner_up.criterion_scores.get(&crit.id).copied().unwrap_or(0.0);
+            let winner_score = winner.criterion_scores.get(crit.id).unwrap_or(0.0);
+            let runner_score = runner_up.criterion_scores.get(crit.id).unwrap_or(0.0);
 
             // How much can the winner's score drop before runner-up wins
             let margin = (winner.score - runner_up.score).abs();
