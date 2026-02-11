@@ -2,7 +2,6 @@
 
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -15,7 +14,7 @@ use super::types::{AccessPattern, AccessRecord};
 /// Detects memory access patterns
 pub struct PatternDetector {
     /// Recent accesses for analysis
-    history: VecDeque<AccessRecord>,
+    history: Vec<AccessRecord>,
     /// Maximum history size
     max_history: usize,
     /// Detected strides
@@ -41,17 +40,17 @@ impl PatternDetector {
     /// Record an access
     pub fn record(&mut self, record: AccessRecord) {
         // Calculate stride from previous access
-        if let Some(prev) = self.history.back() {
+        if let Some(prev) = self.history.last() {
             let stride = record.address as i64 - prev.address as i64;
             *self.strides.entry(stride).or_insert(0) += 1;
         }
 
-        self.history.push_back(record);
+        self.history.push(record);
         self.total_accesses.fetch_add(1, Ordering::Relaxed);
 
         // Evict old entries
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
             // Decay stride counts
             self.strides.retain(|_, count| {
                 *count = (*count * 9) / 10;
@@ -173,7 +172,7 @@ impl PatternDetector {
             return 0.0;
         }
 
-        let mut address_counts: LinearMap<u32, 64> = BTreeMap::new();
+        let mut address_counts: LinearMap<u32, 64> = LinearMap::new();
         for record in &self.history {
             // Page granularity
             let page = record.address / 4096;
@@ -181,7 +180,7 @@ impl PatternDetector {
         }
 
         // Calculate repetition ratio
-        let repeated: u32 = address_counts.values().filter(|&&c| c > 1).sum();
+        let repeated: u32 = address_counts.values().filter(|&c| c > 1).sum();
         repeated as f64 / self.history.len() as f64
     }
 
