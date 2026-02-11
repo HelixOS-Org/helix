@@ -8,7 +8,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -27,7 +26,7 @@ pub struct AffinityOptimizer {
     /// NUMA topology
     numa_nodes: Vec<Vec<CpuId>>,
     /// Optimization history
-    history: VecDeque<AffinityChange>,
+    history: Vec<AffinityChange>,
     /// Max history
     max_history: usize,
 }
@@ -55,7 +54,7 @@ impl AffinityOptimizer {
             cpu_loads: BTreeMap::new(),
             irq_stats: BTreeMap::new(),
             numa_nodes: Vec::new(),
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 1000,
         }
     }
@@ -160,7 +159,7 @@ impl AffinityOptimizer {
 
     /// Record affinity change
     fn record_change(&mut self, irq: Irq, old: Vec<CpuId>, new: Vec<CpuId>, reason: &str) {
-        self.history.push_back(AffinityChange {
+        self.history.push(AffinityChange {
             irq,
             old_cpus: old,
             new_cpus: new.clone(),
@@ -169,7 +168,7 @@ impl AffinityOptimizer {
         });
 
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         self.affinities.insert(irq, new);
