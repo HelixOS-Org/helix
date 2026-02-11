@@ -170,7 +170,7 @@ impl GossipState {
         if !self.seen_messages.contains(&id) {
             self.seen_messages.push_back(id);
             if self.seen_messages.len() > self.max_seen {
-                self.seen_messages.pop_front();
+                self.seen_messages.remove(0);
             }
         }
     }
@@ -298,7 +298,7 @@ impl PeerSelector for WeightedSelector {
         let mut peers_with_time: Vec<_> = peers
             .iter()
             .filter(|&&p| p != from)
-            .map(|&p| (p, self.last_gossip.get(&p).copied().unwrap_or(0)))
+            .map(|&p| (p, self.last_gossip.get(&p).unwrap_or(&0)))
             .collect();
 
         peers_with_time.sort_by_key(|(_, time)| *time);
