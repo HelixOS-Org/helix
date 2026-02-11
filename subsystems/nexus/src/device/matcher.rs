@@ -133,7 +133,7 @@ impl DriverMatcher {
 
         // Apply learned adjustment
         let key = (driver.id, device.vendor_id);
-        let learned_adj = self.score_adjustments.get(&key).copied().unwrap_or(0.0);
+        let learned_adj = self.score_adjustments.get(&key).unwrap_or(0.0);
 
         // Calculate final score
         let mut score = base_score as f32 + priority_adj + learned_adj;
@@ -164,13 +164,13 @@ impl DriverMatcher {
         };
 
         if self.match_history.len() >= self.max_history {
-            self.match_history.pop_front();
+            self.match_history.remove(0);
         }
         self.match_history.push_back(entry);
 
         // Update score adjustment
         let key = (driver_id, device.vendor_id);
-        let current = self.score_adjustments.get(&key).copied().unwrap_or(0.0);
+        let current = self.score_adjustments.get(&key).unwrap_or(0.0);
         let adjustment = if success {
             self.learning_rate
         } else {
