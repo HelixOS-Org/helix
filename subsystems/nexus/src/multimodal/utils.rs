@@ -4,6 +4,7 @@ extern crate alloc;
 
 use alloc::vec;
 use alloc::vec::Vec;
+use crate::fast::math::{F64Ext};
 
 /// LCG random number generator
 #[inline]
