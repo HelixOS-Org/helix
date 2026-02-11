@@ -206,7 +206,7 @@ pub struct ForagingSimulation {
     /// Agents
     pub agents: Vec<StigmergicAgent>,
     /// Food source positions
-    pub food_sources: Vec<(usize, usize, f64)>, // x, y, amount
+    pub food_sources: Vec<(usize, usize, f64)>, // x, y, amount,
     /// Nest position
     pub nest: (usize, usize),
     /// RNG state
@@ -579,6 +579,7 @@ impl ConstructionSimulation {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_multi_channel_stigmergy() {
