@@ -371,8 +371,8 @@ impl Population {
                 let best_val = candidates
                     .iter()
                     .filter_map(|i| i.fitness.as_ref())
-                    .map(|f| f.objectives.get(obj).copied().unwrap_or(0.0))
-                    .fold(f64::NEG_INFINITY, f64::max);
+                    .map(|f| f.objectives.get(obj).unwrap_or(&0.0))
+                    .fold(f64::NEG_INFINITY, |a, &b| a.max(b));
 
                 // Keep only individuals with best value (within tolerance)
                 let tolerance = 0.001;
@@ -524,6 +524,7 @@ mod tests {
     use core::sync::atomic::AtomicU64;
 
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn create_test_individual(id: u64, fitness: f64) -> Individual {
         let counter = AtomicU64::new(1);
