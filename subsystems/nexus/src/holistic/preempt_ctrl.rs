@@ -221,7 +221,7 @@ impl HolisticPreemptCtrl {
                 section_id: sid, cpu_id: cpu, reason, start_ts: ts,
                 end_ts: None, duration_ns: 0, site, depth: state.preempt_count,
             });
-            if self.sections.len() > self.max_sections { self.sections.pop_front(); }
+            if self.sections.len() > self.max_sections { self.sections.remove(0); }
         }
     }
 
