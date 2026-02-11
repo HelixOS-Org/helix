@@ -297,7 +297,7 @@ impl StateVector {
     /// Get amplitude for basis state
     #[inline]
     pub fn get(&self, index: usize) -> Complex {
-        self.amplitudes.get(index).copied().unwrap_or(Complex::ZERO)
+        *self.amplitudes.get(index).unwrap_or(&Complex::ZERO)
     }
 
     /// Set amplitude for basis state
@@ -602,6 +602,7 @@ impl Hamiltonian {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_complex_arithmetic() {
