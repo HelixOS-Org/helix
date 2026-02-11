@@ -78,16 +78,6 @@ const MAX_HISTORY: usize = 1000;
 /// Cognitive subsystem identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum SubsystemId {
-    Scheduler,
-    Memory,
-    Io,
-    Network,
-    Security,
-    Learning,
-    Prediction,
-    Planning,
-    Reasoning,
-    Attention,
     Custom(u32),
 }
 
@@ -169,13 +159,6 @@ pub struct DecisionRecord {
 /// Decision types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DecisionType {
-    Scheduling,
-    MemoryAllocation,
-    IoRouting,
-    Prediction,
-    Classification,
-    Optimization,
-    Recovery,
 }
 
 /// Introspection engine
@@ -231,7 +214,7 @@ impl IntrospectionEngine {
 
         // Add to history
         if self.history.len() >= MAX_HISTORY {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(record);
     }
@@ -819,7 +802,7 @@ impl CognitiveRegulator {
     /// Get learning rate for a subsystem
     #[inline(always)]
     pub fn learning_rate(&self, subsystem: SubsystemId) -> f64 {
-        self.learning_rates.get(&subsystem).copied().unwrap_or(0.01)
+        *self.learning_rates.get(&subsystem).unwrap_or(&0.01)
     }
 
     /// Get exploration rate for a subsystem
@@ -883,11 +866,29 @@ pub struct ReasoningStep {
 /// Step types in reasoning
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StepType {
+    /// Observe the environment
+    Observe,
+    /// Analyze gathered information
+    Analyze,
+    /// Plan next actions
+    Plan,
+    /// Execute a planned action
+    Execute,
+    /// Verify results
+    Verify,
+    /// Adapt strategy based on feedback
+    Adapt,
+    /// Make an observation
     Observation,
+    /// Draw an inference
     Inference,
-    Search,
-    Comparison,
+    /// Make a decision
     Decision,
+    /// Perform a search
+    Search,
+    /// Compare alternatives
+    Comparison,
+    /// Backtrack to previous state
     Backtrack,
 }
 
@@ -976,7 +977,7 @@ impl MetaReasoner {
         }
 
         if self.traces.len() >= 1000 {
-            self.traces.pop_front();
+            self.traces.remove(0);
         }
         self.traces.push_back(trace);
     }
