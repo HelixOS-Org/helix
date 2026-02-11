@@ -184,7 +184,7 @@ impl Orchestrator {
         let count = max.min(self.queue.len());
         let mut actions = Vec::with_capacity(count);
         for _ in 0..count {
-            if let Some(action) = self.queue.pop_front() {
+            if let Some(action) = self.queue.remove(0) {
                 actions.push(action);
             }
         }
