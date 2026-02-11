@@ -1,7 +1,6 @@
 //! Driver health monitoring.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -22,7 +21,7 @@ pub struct DriverHealthMonitor {
     /// Health scores
     scores: BTreeMap<DriverId, f64>,
     /// Health events
-    events: VecDeque<HealthEvent>,
+    events: Vec<HealthEvent>,
     /// Max events
     max_events: usize,
 }
@@ -77,7 +76,7 @@ impl DriverHealthMonitor {
             samples: BTreeMap::new(),
             max_samples: 1000,
             scores: BTreeMap::new(),
-            events: VecDeque::new(),
+            events: Vec::new(),
             max_events: 10000,
         }
     }
@@ -102,7 +101,7 @@ impl DriverHealthMonitor {
         let samples = self.samples.entry(driver_id).or_default();
         samples.push(sample);
         if samples.len() > self.max_samples {
-            samples.pop_front();
+            samples.remove(0);
         }
 
         // Update score
@@ -157,9 +156,9 @@ impl DriverHealthMonitor {
             details,
         };
 
-        self.events.push_back(event.clone());
+        self.events.push(event.clone());
         if self.events.len() > self.max_events {
-            self.events.pop_front();
+            self.events.remove(0);
         }
 
         event
@@ -168,7 +167,7 @@ impl DriverHealthMonitor {
     /// Get current health score
     #[inline(always)]
     pub fn get_score(&self, driver_id: DriverId) -> f64 {
-        self.scores.get(&driver_id).copied().unwrap_or(1.0)
+        *self.scores.get(&driver_id).unwrap_or(&1.0)
     }
 
     /// Get health trend
