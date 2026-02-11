@@ -4,7 +4,6 @@
 //! detecting anomalies and issues in the cognitive system.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -275,7 +274,7 @@ impl Introspector {
         history.push(metrics);
 
         if history.len() > self.max_history {
-            history.pop_front();
+            history.remove(0);
         }
     }
 
