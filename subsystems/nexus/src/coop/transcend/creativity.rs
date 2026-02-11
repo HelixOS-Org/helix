@@ -432,7 +432,7 @@ impl CoopCreativity {
     // innovation_impact — measure the impact of a specific invention
     // -----------------------------------------------------------------------
     pub fn innovation_impact(&mut self, invention_id: u64, observed_benefit: u64) -> u64 {
-        let current_impact = self.impact_scores.get(invention_id).copied().unwrap_or(0);
+        let current_impact = self.impact_scores.get(invention_id).unwrap_or(0);
         let updated = ema_update(current_impact, observed_benefit);
         self.impact_scores.insert(invention_id, updated);
 
@@ -459,7 +459,7 @@ impl CoopCreativity {
             return 100;
         }
         let mut min_dist: u64 = u64::MAX;
-        for &existing_fp in self.novelty_archive.values() {
+        for existing_fp in self.novelty_archive.values() {
             let dist = abs_diff(fingerprint, existing_fp);
             if dist < min_dist {
                 min_dist = dist;
@@ -496,8 +496,8 @@ impl CoopCreativity {
         let victim = self
             .impact_scores
             .iter()
-            .min_by_key(|(_, &v)| v)
-            .map(|(&k, _)| k);
+            .min_by_key(|(_, v)| *v)
+            .map(|(k, _)| k);
         if let Some(k) = victim {
             self.inventions.remove(&k);
             self.novelty_archive.remove(k);
@@ -510,9 +510,9 @@ impl CoopCreativity {
         self.current_tick += 1;
 
         // Decay impact scores
-        let keys: Vec<u64> = self.impact_scores.keys().copied().collect();
+        let keys: Vec<u64> = self.impact_scores.keys().collect();
         for k in keys {
-            if let Some(v) = self.impact_scores.get_mut(&k) {
+            if let Some(v) = self.impact_scores.get_mut(k) {
                 *v = (*v * IMPACT_DECAY_NUM) / IMPACT_DECAY_DEN;
             }
         }
@@ -523,8 +523,8 @@ impl CoopCreativity {
             let low: Vec<u64> = self
                 .novelty_archive
                 .iter()
-                .filter(|(_, &n)| n < NOVELTY_THRESHOLD / 2)
-                .map(|(&k, _)| k)
+                .filter(|(_, n)| *n < NOVELTY_THRESHOLD / 2)
+                .map(|(k, _)| k)
                 .collect();
             for k in low {
                 self.inventions.remove(&k);
