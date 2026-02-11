@@ -195,7 +195,7 @@ impl MetricTracker {
 
         self.values.push_back(value);
         if self.values.len() > self.max_window {
-            let removed = self.values.pop_front().unwrap();
+            let removed = self.values.remove(0).unwrap();
             self.sum -= removed;
             self.sum_sq -= removed * removed;
             self.count -= 1;
@@ -324,7 +324,7 @@ pub struct HolisticAnomalyManager {
     /// Metric trackers
     trackers: BTreeMap<u64, MetricTracker>,
     /// Detected anomalies
-    anomalies: VecDeque<HolisticAnomaly>,
+    anomalies: Vec<HolisticAnomaly>,
     /// Cascade events
     cascades: Vec<CascadeEvent>,
     /// Next anomaly ID
@@ -341,7 +341,7 @@ impl HolisticAnomalyManager {
     pub fn new() -> Self {
         Self {
             trackers: BTreeMap::new(),
-            anomalies: VecDeque::new(),
+            anomalies: Vec::new(),
             cascades: Vec::new(),
             next_id: 1,
             stats: HolisticAnomalyStats::default(),
@@ -377,9 +377,9 @@ impl HolisticAnomalyManager {
         *self.stats.by_source.entry(anomaly.source as u8).or_insert(0) += 1;
         self.stats.total_detected += 1;
 
-        self.anomalies.push_back(anomaly);
+        self.anomalies.push(anomaly);
         if self.anomalies.len() > self.max_anomalies {
-            self.anomalies.pop_front();
+            self.anomalies.remove(0);
         }
 
         self.stats.active = self.anomalies.len();
@@ -387,7 +387,7 @@ impl HolisticAnomalyManager {
     }
 
     /// Check for cascade patterns
-    fn check_cascade(&mut self, new_anomaly: &HolisticAnomaly, now: u64) {
+    fn check_cascade(&mut self, _new_anomaly: &HolisticAnomaly, now: u64) {
         let window = self.cascade_window_ms;
         let recent: Vec<&HolisticAnomaly> = self
             .anomalies
