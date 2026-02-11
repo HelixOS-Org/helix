@@ -9,6 +9,7 @@ use crate::world_model::dynamics::{RewardModel, TransitionModel};
 use crate::world_model::encoder::Encoder;
 use crate::world_model::latent::LatentState;
 use crate::world_model::types::{MAX_ACTION_DIM, MAX_LATENT_DIM, MAX_OBS_DIM};
+use crate::fast::math::{F64Ext};
 
 /// Complete world model
 pub struct WorldModel {
@@ -60,7 +61,7 @@ impl WorldModel {
 
         // Store in history
         if self.state_history.len() >= self.max_history {
-            self.state_history.pop_front();
+            self.state_history.remove(0);
         }
         self.state_history.push_back(state.clone());
 
