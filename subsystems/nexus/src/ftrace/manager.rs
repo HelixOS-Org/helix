@@ -1,7 +1,6 @@
 //! Ftrace buffer and manager.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -21,7 +20,7 @@ use super::types::{CpuId, FuncAddr};
 #[repr(align(64))]
 pub struct TraceBuffer {
     /// Entries
-    entries: VecDeque<TraceEntry>,
+    entries: Vec<TraceEntry>,
     /// Max entries
     max_entries: usize,
     /// Entry count
@@ -34,7 +33,7 @@ impl TraceBuffer {
     /// Create new buffer
     pub fn new(max_entries: usize) -> Self {
         Self {
-            entries: VecDeque::new(),
+            entries: Vec::new(),
             max_entries,
             entry_count: AtomicU64::new(0),
             lost_entries: AtomicU64::new(0),
@@ -47,9 +46,9 @@ impl TraceBuffer {
         self.entry_count.fetch_add(1, Ordering::Relaxed);
         if self.entries.len() >= self.max_entries {
             self.lost_entries.fetch_add(1, Ordering::Relaxed);
-            self.entries.pop_front();
+            self.entries.remove(0);
         }
-        self.entries.push_back(entry);
+        self.entries.push(entry);
     }
 
     /// Get entries
@@ -92,7 +91,7 @@ pub struct FtraceManager {
     /// Function info
     functions: BTreeMap<FuncAddr, FunctionInfo>,
     /// Latency records
-    pub(crate) latency_records: VecDeque<LatencyRecord>,
+    pub(crate) latency_records: Vec<LatencyRecord>,
     /// Max latency records
     max_latency_records: usize,
     /// Call graph
@@ -114,7 +113,7 @@ impl FtraceManager {
             options: TracerOptions::default(),
             buffers: BTreeMap::new(),
             functions: BTreeMap::new(),
-            latency_records: VecDeque::new(),
+            latency_records: Vec::new(),
             max_latency_records: 1000,
             call_graph: CallGraph::new(),
             latency_stats: BTreeMap::new(),
@@ -195,9 +194,9 @@ impl FtraceManager {
 
         // Store record
         if self.latency_records.len() >= self.max_latency_records {
-            self.latency_records.pop_front();
+            self.latency_records.remove(0);
         }
-        self.latency_records.push_back(record);
+        self.latency_records.push(record);
     }
 
     /// Register function
