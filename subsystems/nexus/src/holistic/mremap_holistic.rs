@@ -39,7 +39,7 @@ pub struct CompactionCandidate {
     pub fragmentation: f64,
     pub gap_bytes: u64,
     pub remap_cost: u64,
-    pub benefit: f64, // expected TLB improvement
+    pub benefit: f64, // expected TLB improvement,
 }
 
 #[derive(Debug, Clone)]
