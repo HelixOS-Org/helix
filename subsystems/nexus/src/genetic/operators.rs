@@ -875,6 +875,7 @@ impl Default for OperatorRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     fn create_chromosome() -> Chromosome {
         Chromosome {
