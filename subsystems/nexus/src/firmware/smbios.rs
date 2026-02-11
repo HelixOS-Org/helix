@@ -81,7 +81,7 @@ impl SmbiosStructure {
     /// Get byte at offset
     #[inline(always)]
     pub fn get_byte(&self, offset: usize) -> Option<u8> {
-        self.data.get(offset).copied()
+        self.data.get(offset)
     }
 
     /// Get word at offset
