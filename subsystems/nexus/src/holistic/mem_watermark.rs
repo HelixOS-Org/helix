@@ -44,7 +44,7 @@ pub struct ZoneWatermarks {
 
 impl ZoneWatermarks {
     #[inline]
-    pub fn calculate(total_pages: u64, managed_pages: u64) -> Self {
+    pub fn calculate(_total_pages: u64, managed_pages: u64) -> Self {
         let base = (managed_pages / 256).max(32);
         let min = base;
         let low = min + min / 4;
