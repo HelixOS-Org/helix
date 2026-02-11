@@ -65,7 +65,7 @@ impl KprobeEntry {
     #[inline]
     pub fn hit(&mut self, cpu: u32, pid: u64, now: u64) {
         self.hit_count += 1;
-        if self.recent_hits.len() >= self.max_recent { self.recent_hits.pop_front(); }
+        if self.recent_hits.len() >= self.max_recent { self.recent_hits.remove(0); }
         self.recent_hits.push_back(ProbeHit { cpu, pid, timestamp: now, regs_hash: 0, ret_val: 0 });
     }
 
