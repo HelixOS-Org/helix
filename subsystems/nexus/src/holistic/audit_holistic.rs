@@ -2,7 +2,6 @@
 //! Holistic audit — cross-layer audit trail completeness analysis
 
 extern crate alloc;
-use alloc::vec::Vec;
 
 /// Audit holistic metric
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
