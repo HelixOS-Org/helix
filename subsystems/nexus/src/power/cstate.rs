@@ -38,7 +38,7 @@ impl IdleTimePredictor {
     pub fn record(&mut self, duration_us: u32) {
         self.history.push_back(duration_us);
         if self.history.len() > 100 {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         // Update statistics
