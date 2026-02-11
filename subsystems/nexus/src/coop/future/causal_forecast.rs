@@ -10,7 +10,6 @@ extern crate alloc;
 use crate::fast::linear_map::LinearMap;
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic key hashing in no_std.
@@ -199,7 +198,7 @@ impl CoopCausalForecast {
             variables: BTreeMap::new(),
             observations: BTreeMap::new(),
             stats: CausalForecastStats::new(),
-            rng_state: seed ^ 0xCAU5_A1F0_RECA_5700,
+            rng_state: seed ^ 0xCA05_A1F0_DECA_5700,
             current_tick: 0,
             max_history: 128,
             min_observations: 3,
@@ -218,7 +217,7 @@ impl CoopCausalForecast {
         let records = self.observations.entry(event_id).or_insert_with(Vec::new);
         records.push(obs);
         if records.len() > self.max_history {
-            records.pop_front();
+            records.remove(0);
         }
 
         let var = self.variables.entry(event_id).or_insert_with(|| CausalVariable {
@@ -229,9 +228,9 @@ impl CoopCausalForecast {
             outgoing_edges: Vec::new(),
         });
         var.ema_value = ema_update(var.ema_value, value, 200, 1000);
-        var.history.push(value);
+        var.history.push_back(value);
         if var.history.len() > self.max_history {
-            var.history.pop_front().unwrap();
+            var.history.remove(0).unwrap();
         }
 
         for &pred in preceding {
@@ -267,11 +266,11 @@ impl CoopCausalForecast {
         let mut causal_path: Vec<u64> = Vec::new();
         let mut mechanism_chain: Vec<CausalMechanism> = Vec::new();
         let mut current = contention_var;
-        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = LinearMap::new();
         let mut root_event = contention_var;
 
         for _ in 0..16 {
-            if visited.contains_key(&current) {
+            if visited.contains_key(current) {
                 break;
             }
             visited.insert(current, true);
@@ -390,11 +389,11 @@ impl CoopCausalForecast {
     pub fn causal_explanation(&mut self, outcome_id: u64) -> CausalExplanation {
         let mut chain: Vec<CausalFactor> = Vec::new();
         let mut current = outcome_id;
-        let mut visited: LinearMap<bool, 64> = BTreeMap::new();
+        let mut visited: LinearMap<bool, 64> = LinearMap::new();
         let mut primary_mech = CausalMechanism::DirectResource;
 
         for _ in 0..12 {
-            if visited.contains_key(&current) {
+            if visited.contains_key(current) {
                 break;
             }
             visited.insert(current, true);
