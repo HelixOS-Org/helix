@@ -316,7 +316,7 @@ impl HolisticSchedDomains {
             d.balance_count += 1;
         }
         if self.history.len() >= self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
         self.history.push_back(decision);
     }
@@ -324,7 +324,7 @@ impl HolisticSchedDomains {
     #[inline]
     pub fn domain_chain(&self, cpu: u32) -> Vec<u32> {
         let mut chain = Vec::new();
-        if let Some(&leaf) = self.cpu_to_leaf.try_get(cpu as usize) {
+        if let Some(leaf) = self.cpu_to_leaf.try_get(cpu as usize) {
             let mut cur = Some(leaf);
             while let Some(id) = cur {
                 chain.push(id);
