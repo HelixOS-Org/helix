@@ -300,7 +300,7 @@ impl IntrospectionEngine {
 
         // Limit history
         while self.history.len() > self.config.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
 
         state
