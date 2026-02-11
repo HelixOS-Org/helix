@@ -9,7 +9,6 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 /// FNV-1a hash for deterministic identifier generation.
@@ -272,7 +271,7 @@ impl CoopMonteCarlo {
         };
 
         if self.sample_cache.len() >= self.max_cache {
-            self.sample_cache.pop_front();
+            self.sample_cache.remove(0);
         }
         self.sample_cache.push_back(sample.clone());
         sample
@@ -330,7 +329,7 @@ impl CoopMonteCarlo {
             .entry(strategy_hash)
             .or_insert_with(Vec::new);
         if rewards.len() >= self.max_reward_history {
-            rewards.pop_front();
+            rewards.remove(0);
         }
         rewards.push(success_rate);
 
@@ -491,7 +490,7 @@ impl CoopMonteCarlo {
         } else {
             0
         };
-        let median_risk = risk_values.get(n / 2).copied().unwrap_or(0);
+        let median_risk = risk_values.get(n / 2).unwrap_or(&0);
         let tail_idx = n.saturating_mul(95) / 100;
         let tail_risk = risk_values
             .get(tail_idx.min(n.saturating_sub(1)))
@@ -530,7 +529,7 @@ impl CoopMonteCarlo {
         RiskDistribution {
             buckets,
             mean_risk,
-            median_risk,
+            median_risk: *median_risk,
             tail_risk_5pct: tail_risk,
             value_at_risk: var,
         }
