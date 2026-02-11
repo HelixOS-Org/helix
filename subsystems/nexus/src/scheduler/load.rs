@@ -83,7 +83,7 @@ impl LoadPredictor {
         }
 
         if self.history.len() > 10000 {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
