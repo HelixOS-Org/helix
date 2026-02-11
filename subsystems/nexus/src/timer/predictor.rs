@@ -3,7 +3,6 @@
 //! Predicts timer deadlines and patterns.
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use crate::core::NexusTimestamp;
@@ -84,7 +83,7 @@ impl DeadlinePredictor {
         let samples = self.samples.entry(timer_id).or_default();
         samples.push(sample);
         if samples.len() > self.max_samples {
-            samples.pop_front();
+            samples.remove(0);
         }
 
         self.analyze_pattern(timer_id);
