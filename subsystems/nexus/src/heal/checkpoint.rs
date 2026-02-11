@@ -150,7 +150,7 @@ impl CheckpointStore {
     pub fn latest_for(&self, component: ComponentId) -> Option<&Checkpoint> {
         self.latest
             .get(&component.raw())
-            .and_then(|id| self.get(*id))
+            .and_then(|id| self.get(id))
     }
 
     /// Get checkpoint history for a component
@@ -168,7 +168,7 @@ impl CheckpointStore {
             self.total_size -= cp.size;
 
             // Update latest if needed
-            if self.latest.get(&cp.component.raw()) == Some(&id) {
+            if self.latest.get(cp.component.raw()) == Some(id) {
                 // Find new latest
                 let new_latest = self
                     .checkpoints
@@ -180,7 +180,7 @@ impl CheckpointStore {
                 if let Some(new_id) = new_latest {
                     self.latest.insert(cp.component.raw(), new_id);
                 } else {
-                    self.latest.remove(&cp.component.raw());
+                    self.latest.remove(cp.component.raw());
                 }
             }
 
