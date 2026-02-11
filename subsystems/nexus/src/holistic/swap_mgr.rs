@@ -14,6 +14,7 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// Swap device type
+use alloc::string::String;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SwapDeviceType {
     Partition,
@@ -46,8 +47,8 @@ pub struct SwapDevice {
     pub write_bandwidth_bps: u64,
     pub read_bandwidth_bps: u64,
     pub avg_latency_ns: u64,
-    pub compression_ratio: f64, // for zram/zswap
-    pub wear_level_pct: f64,    // SSD wear
+    pub compression_ratio: f64, // for zram/zswap,
+    pub wear_level_pct: f64,    // SSD wear,
     pub bad_pages: u32,
 }
 
