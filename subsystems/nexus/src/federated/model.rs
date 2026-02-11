@@ -4,6 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::federated::types::lcg_next;
+use crate::fast::math::{F64Ext};
 
 /// A federated model (parameter vector)
 #[derive(Debug, Clone)]
