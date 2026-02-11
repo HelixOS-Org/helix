@@ -291,11 +291,11 @@ impl DecisionOptimizer {
             let mut new_current = current.clone();
 
             for var in &problem.variables {
-                let grad = gradient.get(&var.name).copied().unwrap_or(0.0);
+                let grad = gradient.get(&var.name).unwrap_or(0.0);
 
                 let step = if is_minimize { -step_size * grad } else { step_size * grad };
 
-                let new_val = current.get(&var.name).copied().unwrap_or(0.0) + step;
+                let new_val = current.get(&var.name).unwrap_or(0.0) + step;
                 let bounded = new_val.max(var.bounds.0).min(var.bounds.1);
 
                 new_current.insert(var.name.clone(), bounded);
@@ -461,7 +461,7 @@ impl DecisionOptimizer {
     fn check_feasibility(&self, problem: &OptimizationProblem, values: &BTreeMap<String, f64>) -> bool {
         // Simplified: just check bounds
         for var in &problem.variables {
-            let val = values.get(&var.name).copied().unwrap_or(0.0);
+            let val = values.get(&var.name).unwrap_or(0.0);
 
             if val < var.bounds.0 || val > var.bounds.1 {
                 return false;
@@ -576,6 +576,7 @@ impl<'a> ProblemBuilder<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_create_problem() {
@@ -596,7 +597,7 @@ mod tests {
 
         // Minimize f(x) = x^2
         let result = optimizer.solve_gradient(problem_id, |values| {
-            let x = values.get("x").copied().unwrap_or(0.0);
+            let x = values.get("x").unwrap_or(0.0);
             x * x
         });
 
@@ -604,7 +605,7 @@ mod tests {
 
         let r = result.unwrap();
         let best = r.best.unwrap();
-        let x = best.values.get("x").copied().unwrap_or(100.0);
+        let x = best.values.get("x").unwrap_or(100.0);
 
         // Should be close to 0
         assert!(x.abs() < 0.5);
@@ -621,7 +622,7 @@ mod tests {
 
         // Maximize f(x) = -x^2 + x (max at x=0.5)
         let result = optimizer.solve_random(problem_id, |values| {
-            let x = values.get("x").copied().unwrap_or(0.0);
+            let x = values.get("x").unwrap_or(0.0);
             -x * x + x
         });
 
