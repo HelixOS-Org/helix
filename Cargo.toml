@@ -28,12 +28,6 @@ members = [
     "subsystems/relocation",
     "subsystems/nexus",
 
-    # NEXUS Sub-crates (modular architecture)
-    "subsystems/nexus-types",
-    "subsystems/nexus-core",
-    "subsystems/nexus-cognitive",
-    "subsystems/nexus-evolution",
-
     # Module System
     "modules",
 
