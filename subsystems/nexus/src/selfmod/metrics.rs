@@ -7,7 +7,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -399,7 +398,7 @@ impl MetricsCollector {
 
             // Trim history
             if history.len() > self.config.max_history {
-                history.pop_front();
+                history.remove(0);
             }
         }
 
