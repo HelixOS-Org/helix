@@ -11,7 +11,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 // ============================================================================
@@ -57,7 +56,7 @@ pub struct ResourceCapacity {
     /// Reserved (committed but not yet used)
     pub reserved: u64,
     /// Usage history (for trend analysis)
-    history: VecDeque<UsageSample>,
+    history: Vec<UsageSample>,
     /// Max history entries
     max_history: usize,
 }
@@ -78,7 +77,7 @@ impl ResourceCapacity {
             total,
             used: 0,
             reserved: 0,
-            history: VecDeque::new(),
+            history: Vec::new(),
             max_history: 1440, // 24 hours at 1-minute intervals
         }
     }
@@ -120,12 +119,12 @@ impl ResourceCapacity {
     #[inline]
     pub fn record(&mut self, used: u64, timestamp: u64) {
         self.used = used;
-        self.history.push_back(UsageSample {
+        self.history.push(UsageSample {
             value: used,
             timestamp,
         });
         if self.history.len() > self.max_history {
-            self.history.pop_front();
+            self.history.remove(0);
         }
     }
 
@@ -235,7 +234,7 @@ pub struct ScalingRecommendation {
 #[derive(Debug, Clone)]
 pub struct Scenario {
     /// Scenario name
-    pub name: u32, // Simplified from String
+    pub name: u32, // Simplified from String,
     /// Additional processes
     pub additional_processes: u32,
     /// Additional memory per process (bytes)
