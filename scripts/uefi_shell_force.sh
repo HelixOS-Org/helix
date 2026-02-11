@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Force UEFI Shell Boot - Garantit l'accès au Shell UEFI
+# Force UEFI Shell Boot - Guarantees access to the UEFI Shell
 
 set -euo pipefail
 
