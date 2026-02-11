@@ -47,7 +47,7 @@ impl WaitFreeAnnouncement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct WaitFreeRegister {
     pub id: u32,
     pub value: AtomicU64,
