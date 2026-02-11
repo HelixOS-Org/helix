@@ -142,7 +142,7 @@ pub struct ConceptRelation {
     pub source: ConceptId,
     pub target: ConceptId,
     pub relation_type: ConceptRelationType,
-    pub strength: f32, // 0.0 to 1.0
+    pub strength: f32, // 0.0 to 1.0,
     pub bidirectional: bool,
     pub metadata: BTreeMap<String, String>,
 }
