@@ -7,6 +7,8 @@ use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 /// RCU flavor
+use core::sync::atomic::AtomicU64;
+use core::sync::atomic::Ordering;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RcuTreeFlavor {
     Preemptible,
@@ -17,8 +19,9 @@ pub enum RcuTreeFlavor {
 }
 
 /// RCU node state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RcuNodeState {
+    #[default]
     Idle,
     WaitingQs,
     QuiescentReported,
@@ -80,7 +83,7 @@ impl RcuCpuData {
 }
 
 /// RCU tree node (internal fan-out node)
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct RcuTreeNode {
     pub id: u32,
     pub level: u32,
@@ -288,29 +291,7 @@ pub enum RcuNodeLevel {
     Root,
 }
 
-/// RCU tree node
-#[derive(Debug)]
-pub struct RcuTreeNode {
-    pub id: u32,
-    pub level: RcuNodeLevel,
-    pub qsmask: u64,
-    pub qsmaskinit: u64,
-    pub gp_seq: u64,
-    pub parent_id: Option<u32>,
-    pub children: Vec<u32>,
-}
 
-impl RcuTreeNode {
-    pub fn new(id: u32, level: RcuNodeLevel) -> Self {
-        Self { id, level, qsmask: 0, qsmaskinit: 0, gp_seq: 0, parent_id: None, children: Vec::new() }
-    }
-
-    #[inline(always)]
-    pub fn report_qs(&mut self, cpu_bit: u64) -> bool {
-        self.qsmask &= !cpu_bit;
-        self.qsmask == 0
-    }
-}
 
 /// Grace period state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -362,7 +343,14 @@ impl HolisticRcuTreeV2 {
     pub fn new() -> Self { Self { nodes: BTreeMap::new(), gp: GpTrackerV2::new() } }
 
     #[inline(always)]
-    pub fn add_node(&mut self, id: u32, level: RcuNodeLevel) { self.nodes.insert(id, RcuTreeNode::new(id, level)); }
+    pub fn add_node(&mut self, id: u32, level: RcuNodeLevel) {
+        let level_val = match level {
+            RcuNodeLevel::Leaf => 2,
+            RcuNodeLevel::Interior => 1,
+            RcuNodeLevel::Root => 0,
+        };
+        self.nodes.insert(id, RcuTreeNode::new(id, level_val));
+    }
 
     #[inline(always)]
     pub fn start_gp(&mut self, now: u64) {
@@ -372,12 +360,12 @@ impl HolisticRcuTreeV2 {
 
     #[inline(always)]
     pub fn report_qs(&mut self, node_id: u32, cpu_bit: u64) -> bool {
-        if let Some(n) = self.nodes.get_mut(&node_id) { n.report_qs(cpu_bit) } else { false }
+        if let Some(n) = self.nodes.get_mut(&node_id) { n.report_qs(cpu_bit as u32) } else { false }
     }
 
     #[inline(always)]
     pub fn check_complete(&mut self) -> bool {
-        let root_done = self.nodes.values().filter(|n| n.level == RcuNodeLevel::Root).all(|n| n.qsmask == 0);
+        let root_done = self.nodes.values().filter(|n| n.level == 0).all(|n| n.qsmask == 0);
         if root_done { self.gp.complete(); true } else { false }
     }
 
