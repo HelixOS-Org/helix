@@ -2,7 +2,6 @@
 //!
 //! Fundamental types for packet filtering.
 
-use alloc::string::String;
 
 /// Rule identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
