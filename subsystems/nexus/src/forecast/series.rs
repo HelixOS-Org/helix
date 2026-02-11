@@ -1,7 +1,6 @@
 //! Time series for forecasting.
 
 use alloc::string::String;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::point::TimePoint;
@@ -12,7 +11,7 @@ pub struct TimeSeries {
     /// Name
     pub name: String,
     /// Data points
-    points: VecDeque<TimePoint>,
+    points: Vec<TimePoint>,
     /// Maximum points to keep
     max_points: usize,
 }
@@ -22,7 +21,7 @@ impl TimeSeries {
     pub fn new(name: impl Into<String>, max_points: usize) -> Self {
         Self {
             name: name.into(),
-            points: VecDeque::new(),
+            points: Vec::new(),
             max_points,
         }
     }
@@ -39,7 +38,7 @@ impl TimeSeries {
 
         // Enforce max points
         while self.points.len() > self.max_points {
-            self.points.pop_front();
+            self.points.remove(0);
         }
     }
 
@@ -58,7 +57,7 @@ impl TimeSeries {
     /// Get latest value
     #[inline(always)]
     pub fn latest(&self) -> Option<f64> {
-        self.points.back().map(|p| p.value)
+        self.points.last().map(|p| p.value)
     }
 
     /// Get mean value
