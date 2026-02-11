@@ -42,7 +42,7 @@ pub struct ProbeInfo {
     /// Registered timestamp
     pub registered_at: u64,
     /// Filter (optional)
-    pub filter: Option<u64>, // Filter ID
+    pub filter: Option<u64>, // Filter ID,
 }
 
 impl ProbeInfo {
