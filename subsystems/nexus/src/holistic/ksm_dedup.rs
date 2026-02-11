@@ -247,11 +247,15 @@ impl HolisticKsmDedup {
                         mp.mark_stable(ts);
                         mp.merge_with();
                     }
-                    page.mark_stable(ts);
-                    page.merge_with();
+                    if let Some(page) = self.pages.get_mut(&addr) {
+                        page.mark_stable(ts);
+                        page.merge_with();
+                    }
                     self.unstable_pages.swap_remove(idx);
                 } else {
-                    page.state = KsmPageState::Unstable;
+                    if let Some(page) = self.pages.get_mut(&addr) {
+                        page.state = KsmPageState::Unstable;
+                    }
                     self.unstable_pages.push(addr);
                 }
             }
