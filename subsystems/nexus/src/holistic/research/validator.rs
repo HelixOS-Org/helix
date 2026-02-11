@@ -329,7 +329,7 @@ impl HolisticDiscoveryValidator {
         ];
         for sub in &subsystems {
             let key = fnv1a_hash(sub.as_bytes());
-            let baseline = self.baseline_metrics.get(key).copied().unwrap_or(0.5);
+            let baseline = self.baseline_metrics.get(key).unwrap_or(0.5);
             let current = baseline + (xorshift_f32(&mut self.rng_state) - 0.5) * 0.1;
             let delta_pct = if baseline > 1e-9 {
                 ((current - baseline) / baseline) * 100.0
