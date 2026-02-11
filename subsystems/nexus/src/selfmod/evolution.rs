@@ -756,6 +756,7 @@ pub struct CrossoverOperator {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_genome_distance() {
@@ -790,7 +791,7 @@ mod tests {
         });
 
         let best = engine.evolve(|variant| {
-            let x = variant.genome.parameters.get("x").copied().unwrap_or(0.0);
+            let x = variant.genome.parameters.get("x").unwrap_or(0.0);
             // Maximize: -(x-5)^2 => optimum at x=5
             let score = -(x - 5.0).powi(2);
 
