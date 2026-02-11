@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -51,7 +50,7 @@ pub struct TimeSeries {
     /// Labels
     pub labels: BTreeMap<String, String>,
     /// Data points
-    points: VecDeque<DataPoint>,
+    points: Vec<DataPoint>,
     /// Maximum points to retain
     max_points: usize,
     /// Aggregation interval (for downsampling)
@@ -64,7 +63,7 @@ impl TimeSeries {
         Self {
             name: name.into(),
             labels: BTreeMap::new(),
-            points: VecDeque::new(),
+            points: Vec::new(),
             max_points,
             aggregation_interval: 0,
         }
@@ -80,11 +79,11 @@ impl TimeSeries {
     /// Add data point
     #[inline]
     pub fn add(&mut self, point: DataPoint) {
-        self.points.push_back(point);
+        self.points.push(point);
 
         // Evict old points if over limit
         if self.points.len() > self.max_points {
-            self.points.pop_front();
+            self.points.remove(0);
         }
     }
 
@@ -113,7 +112,7 @@ impl TimeSeries {
     /// Get latest value
     #[inline(always)]
     pub fn latest(&self) -> Option<f64> {
-        self.points.back().map(|p| p.value)
+        self.points.last().map(|p| p.value)
     }
 
     /// Get latest N values
@@ -177,7 +176,7 @@ impl TimeSeries {
         }
 
         let first = &self.points[0];
-        let last = self.points.back().unwrap();
+        let last = self.points.last().unwrap();
 
         let time_diff = (last.timestamp - first.timestamp) as f64;
         if time_diff == 0.0 {
