@@ -2,6 +2,7 @@
 
 use alloc::vec;
 use alloc::vec::Vec;
+use crate::fast::math::{F64Ext};
 
 /// A latent state vector (compressed representation)
 #[derive(Debug, Clone)]
