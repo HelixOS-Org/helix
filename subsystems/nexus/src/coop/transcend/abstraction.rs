@@ -462,10 +462,10 @@ impl CoopAbstraction {
 
         let child_id = self.create_cooperation_abstraction("evolved", child_kind, &child_members);
 
+        let pa_gen = self.abstractions.get(&parent_a_id).map(|r| r.generation).unwrap_or(0);
+        let pb_gen = self.abstractions.get(&parent_b_id).map(|r| r.generation).unwrap_or(0);
+        let max_gen = core::cmp::max(pa_gen, pb_gen);
         if let Some(child) = self.abstractions.get_mut(&child_id) {
-            let pa_gen = self.abstractions.get(&parent_a_id).map(|r| r.generation).unwrap_or(0);
-            let pb_gen = self.abstractions.get(&parent_b_id).map(|r| r.generation).unwrap_or(0);
-            let max_gen = core::cmp::max(pa_gen, pb_gen);
             child.generation = max_gen + 1;
         }
 
@@ -480,8 +480,8 @@ impl CoopAbstraction {
         let victim = self
             .fitness_index
             .iter()
-            .min_by_key(|(_, &f)| f)
-            .map(|(&k, _)| k);
+            .min_by_key(|(_, f)| *f)
+            .map(|(k, _)| k);
         if let Some(k) = victim {
             self.abstractions.remove(&k);
             self.fitness_index.remove(k);
@@ -493,15 +493,15 @@ impl CoopAbstraction {
         self.current_tick += 1;
 
         // Decay all fitness values
-        let keys: Vec<u64> = self.fitness_index.keys().copied().collect();
-        for k in keys {
-            if let Some(f) = self.fitness_index.get_mut(&k) {
+        let keys: Vec<u64> = self.fitness_index.keys().collect();
+        for k in &keys {
+            if let Some(f) = self.fitness_index.get_mut(*k) {
                 *f = (*f * FITNESS_DECAY_NUM) / FITNESS_DECAY_DEN;
                 if *f < MIN_FITNESS {
                     *f = MIN_FITNESS;
                 }
             }
-            if let Some(rec) = self.abstractions.get_mut(&k) {
+            if let Some(rec) = self.abstractions.get_mut(k) {
                 rec.fitness = (rec.fitness * FITNESS_DECAY_NUM) / FITNESS_DECAY_DEN;
                 if rec.fitness < MIN_FITNESS {
                     rec.fitness = MIN_FITNESS;
