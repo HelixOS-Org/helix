@@ -77,7 +77,7 @@ impl WorkerDeque {
 
     #[inline(always)]
     pub fn pop_front(&mut self) -> Option<WorkItem> {
-        self.items.pop_front()
+        self.items.remove(0)
     }
 
     /// Steal half of the deque items (from front)
@@ -85,7 +85,7 @@ impl WorkerDeque {
     pub fn steal_half(&mut self) -> Vec<WorkItem> {
         let n = self.items.len() / 2;
         if n == 0 && !self.items.is_empty() {
-            return alloc::vec![self.items.pop_front().unwrap()];
+            return alloc::vec![self.items.remove(0).unwrap()];
         }
         let stolen: Vec<WorkItem> = self.items.drain(..n).collect();
         stolen
@@ -108,6 +108,12 @@ impl WorkerDeque {
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
+    }
+
+    /// Remove item at index (V2 API)
+    #[inline]
+    pub fn remove(&mut self, index: usize) -> Option<WorkItem> {
+        self.items.remove(index)
     }
 
     #[inline(always)]
@@ -276,7 +282,7 @@ impl CoopWorkStealer {
         let mut candidates: Vec<(u32, usize, u32)> = self
             .workers
             .iter()
-            .filter(|(&wid, _)| wid != thief_id)
+            .filter(|&(&wid, _)| wid != thief_id)
             .filter(|(_, w)| !w.deque.is_empty())
             .map(|(&wid, w)| (wid, w.deque.len(), w.numa_node))
             .collect();
@@ -299,10 +305,15 @@ impl CoopWorkStealer {
         }
 
         let victim_id = candidates[0].0;
+        let thief_load = self
+            .workers
+            .get(&thief_id)
+            .map(|w| w.deque.len())
+            .unwrap_or(0);
         let stolen = if let Some(victim) = self.workers.get_mut(&victim_id) {
             let items = match self.strategy {
                 StealStrategyCoop::One => {
-                    if let Some(item) = victim.deque.pop_front() {
+                    if let Some(item) = victim.deque.remove(0) {
                         alloc::vec![item]
                     } else {
                         Vec::new()
@@ -311,15 +322,10 @@ impl CoopWorkStealer {
                 StealStrategyCoop::Half => victim.deque.steal_half(),
                 StealStrategyCoop::Batch(n) => victim.deque.steal_n(n as usize),
                 StealStrategyCoop::Adaptive => {
-                    let thief_load = self
-                        .workers
-                        .get(&thief_id)
-                        .map(|w| w.deque.len())
-                        .unwrap_or(0);
                     let diff = victim.deque.len().saturating_sub(thief_load);
                     let count = diff / 2;
                     if count == 0 && !victim.deque.is_empty() {
-                        alloc::vec![victim.deque.pop_front().unwrap()]
+                        alloc::vec![victim.deque.remove(0).unwrap()]
                     } else {
                         victim.deque.steal_n(count)
                     }
@@ -498,7 +504,7 @@ impl WorkStealV2Deque {
         if self.tasks.is_empty() {
             return None;
         }
-        let mut task = self.tasks.pop_front().unwrap();
+        let mut task = self.tasks.remove(0).unwrap();
         task.state = WorkStealV2TaskState::Stolen;
         self.total_stolen_from += 1;
         Some(task)
