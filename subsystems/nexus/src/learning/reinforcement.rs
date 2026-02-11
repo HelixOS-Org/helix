@@ -125,7 +125,7 @@ impl ActionSpace {
     /// Get action cost
     #[inline(always)]
     pub fn get_cost(&self, action: ActionId) -> f64 {
-        self.costs.get(&action).copied().unwrap_or(0.0)
+        *self.costs.get(&action).unwrap_or(&0.0)
     }
 
     /// Get all actions
@@ -1101,6 +1101,7 @@ impl Default for KernelRLAgent {
 #[cfg(test)]
 mod tests {
     use super::*;
+use crate::fast::math::{F64Ext};
 
     #[test]
     fn test_action_space() {
