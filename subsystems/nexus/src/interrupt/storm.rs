@@ -9,7 +9,6 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
 use super::types::{CpuId, Irq};
@@ -28,7 +27,7 @@ pub struct StormDetector {
     /// Active storms
     active_storms: BTreeMap<Irq, StormInfo>,
     /// Storm history
-    storm_history: VecDeque<StormEvent>,
+    storm_history: Vec<StormEvent>,
     /// Max history
     max_history: usize,
 }
@@ -81,7 +80,7 @@ impl StormDetector {
             window_ms,
             last_reset: NexusTimestamp::now().raw(),
             active_storms: BTreeMap::new(),
-            storm_history: VecDeque::new(),
+            storm_history: Vec::new(),
             max_history: 1000,
         }
     }
@@ -177,9 +176,9 @@ impl StormDetector {
 
     /// Record event in history
     fn record_event(&mut self, event: StormEvent) {
-        self.storm_history.push_back(event);
+        self.storm_history.push(event);
         if self.storm_history.len() > self.max_history {
-            self.storm_history.pop_front();
+            self.storm_history.remove(0);
         }
     }
 
