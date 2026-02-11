@@ -62,7 +62,7 @@ struct Xorshift64 {
 impl Xorshift64 {
     fn new(seed: u64) -> Self {
         Self {
-            state: if seed == 0 { 0xc0ffee_babe } else { seed },
+            state: if seed == 0 { 0x00c0_ffee_babe } else { seed },
         }
     }
 
@@ -287,7 +287,7 @@ impl HolisticCreativity {
     fn log_event(&mut self, kind: &str, detail: &str) {
         let h = self.gen_hash(kind);
         if self.log.len() >= MAX_LOG_ENTRIES {
-            self.log.pop_front();
+            self.log.remove(0);
         }
         self.log.push_back(LogEntry {
             hash: h,
