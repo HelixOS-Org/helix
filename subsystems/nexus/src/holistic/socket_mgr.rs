@@ -3,8 +3,6 @@
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-use alloc::string::String;
 
 /// Socket domain
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
