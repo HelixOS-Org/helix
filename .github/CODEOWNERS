@@ -1,88 +1,170 @@
-# =============================================================================
-# Helix OS - Code Owners
-# =============================================================================
-# This file defines code ownership for security-sensitive review requirements.
-# Changes to files matching patterns require approval from listed owners.
-#
-# Format: <pattern> @owner1 @owner2
-# =============================================================================
+# ┌──────────────────────────────────────────────────────────────────┐
+# │  HELIX OS — CODEOWNERS                                         │
+# │                                                                 │
+# │  GitHub uses this file to automatically request reviews.        │
+# │  Each line is a glob pattern followed by one or more owners.    │
+# │  The LAST matching pattern takes precedence.                    │
+# │                                                                 │
+# │  Teams:                                                         │
+# │    @HelixOS-Org/core       — kernel core maintainers            │
+# │    @HelixOS-Org/security   — security-sensitive review          │
+# │    @HelixOS-Org/graphics   — Lumina GPU API                     │
+# │    @HelixOS-Org/drivers    — device drivers                     │
+# │    @HelixOS-Org/docs       — documentation                     │
+# │                                                                 │
+# │  Docs: https://docs.github.com/en/repositories/managing-your-  │
+# │        repositorys-settings-and-features/customizing-your-      │
+# │        repository/about-code-owners                             │
+# └──────────────────────────────────────────────────────────────────┘
 
-# =============================================================================
-# DEFAULT OWNER (fallback for all files)
-# =============================================================================
-*                                   @helix-os/maintainers
+# ══════════════════════════════════════════════════════════════════════
+# DEFAULT — Catch-all for anything not matched below
+# ══════════════════════════════════════════════════════════════════════
 
-# =============================================================================
-# SECURITY-CRITICAL COMPONENTS
-# =============================================================================
+*                                       @HelixOS-Org/core
 
-# CI/CD Pipeline - Requires security team review
-/.github/                           @helix-os/security @helix-os/maintainers
-/.github/workflows/                 @helix-os/security @helix-os/maintainers
+# ══════════════════════════════════════════════════════════════════════
+# SECURITY-CRITICAL — Supply chain, CI, toolchain
+# ══════════════════════════════════════════════════════════════════════
 
-# Dependency management - Supply chain security
-**/Cargo.toml                       @helix-os/security @helix-os/maintainers
-**/Cargo.lock                       @helix-os/security @helix-os/maintainers
-deny.toml                           @helix-os/security @helix-os/maintainers
+# CI/CD pipelines
+/.github/                               @HelixOS-Org/security @HelixOS-Org/core
+/.github/workflows/                     @HelixOS-Org/security @HelixOS-Org/core
+/.github/CODEOWNERS                     @HelixOS-Org/security @HelixOS-Org/core
 
-# Toolchain configuration
-rust-toolchain.toml                 @helix-os/maintainers
+# Dependency management — supply chain security
+Cargo.toml                              @HelixOS-Org/security @HelixOS-Org/core
+Cargo.lock                              @HelixOS-Org/security @HelixOS-Org/core
+deny.toml                               @HelixOS-Org/security @HelixOS-Org/core
 
-# =============================================================================
-# BOOT & SECURITY SUBSYSTEMS
-# =============================================================================
+# Toolchain pinning
+rust-toolchain.toml                     @HelixOS-Org/core
 
-# Boot infrastructure - Critical security boundary
-/boot/                              @helix-os/security @helix-os/boot-team
-/boot/uefi/                         @helix-os/security @helix-os/boot-team
-/boot/uefi/src/security/            @helix-os/security
+# ══════════════════════════════════════════════════════════════════════
+# BOOT — Boot protocols (Limine, Multiboot2, UEFI)
+# ══════════════════════════════════════════════════════════════════════
 
-# =============================================================================
-# HARDWARE ABSTRACTION LAYER
-# =============================================================================
+/boot/                                  @HelixOS-Org/security @HelixOS-Org/core
+/boot/src/                              @HelixOS-Org/core
+/boot/limine/                           @HelixOS-Org/core
+/boot/multiboot2/                       @HelixOS-Org/core
+/boot/uefi/                             @HelixOS-Org/security @HelixOS-Org/core
 
-# HAL core
-/hal/                               @helix-os/hal-team
+# ══════════════════════════════════════════════════════════════════════
+# HAL — Hardware Abstraction Layer
+# ══════════════════════════════════════════════════════════════════════
 
-# Architecture-specific code
-/hal/src/arch/x86_64/               @helix-os/hal-team @helix-os/x86-team
-/hal/src/arch/aarch64/              @helix-os/hal-team @helix-os/arm-team
+/hal/                                   @HelixOS-Org/core
 
-# Security-sensitive HAL components
-/hal/src/arch/x86_64/segmentation/  @helix-os/security @helix-os/hal-team
-/hal/src/arch/x86_64/interrupts/    @helix-os/security @helix-os/hal-team
-/hal/src/arch/x86_64/paging*/       @helix-os/security @helix-os/hal-team
+# Security-sensitive HAL: paging, segmentation, interrupts
+/hal/src/arch/x86_64/segmentation/      @HelixOS-Org/security @HelixOS-Org/core
+/hal/src/arch/x86_64/interrupts/        @HelixOS-Org/security @HelixOS-Org/core
+/hal/src/arch/x86_64/paging*/           @HelixOS-Org/security @HelixOS-Org/core
 
-# =============================================================================
-# KERNEL CORE
-# =============================================================================
+# ══════════════════════════════════════════════════════════════════════
+# CORE — Kernel Core (Trusted Computing Base)
+# ══════════════════════════════════════════════════════════════════════
 
-/core/                              @helix-os/kernel-team
+/core/                                  @HelixOS-Org/core
+/core/src/syscall/                      @HelixOS-Org/security @HelixOS-Org/core
+/core/src/interrupts/                   @HelixOS-Org/core
+/core/src/ipc/                          @HelixOS-Org/core
+/core/src/selfheal.rs                   @HelixOS-Org/core
+/core/src/hotreload/                    @HelixOS-Org/core
 
-# Syscall interface - Security boundary
-/core/src/syscall/                  @helix-os/security @helix-os/kernel-team
-
-# =============================================================================
+# ══════════════════════════════════════════════════════════════════════
 # SUBSYSTEMS
-# =============================================================================
+# ══════════════════════════════════════════════════════════════════════
 
-/subsystems/memory/                 @helix-os/memory-team
-/subsystems/execution/              @helix-os/kernel-team
-/subsystems/userspace/              @helix-os/security @helix-os/kernel-team
+/subsystems/memory/                     @HelixOS-Org/core
+/subsystems/execution/                  @HelixOS-Org/core
+/subsystems/init/                       @HelixOS-Org/core
+/subsystems/dis/                        @HelixOS-Org/core
+/subsystems/nexus/                      @HelixOS-Org/core
+/subsystems/relocation/                 @HelixOS-Org/core
+/subsystems/early_boot/                 @HelixOS-Org/core
 
-# =============================================================================
-# FILESYSTEM
-# =============================================================================
+# Userspace — security boundary (syscall handlers, ELF loader)
+/subsystems/userspace/                  @HelixOS-Org/security @HelixOS-Org/core
 
-/fs/                                @helix-os/fs-team
+# ══════════════════════════════════════════════════════════════════════
+# MODULES — Module system & scheduler implementations
+# ══════════════════════════════════════════════════════════════════════
 
-# =============================================================================
+/modules/                               @HelixOS-Org/core
+/modules_impl/                          @HelixOS-Org/core
+
+# ══════════════════════════════════════════════════════════════════════
+# FILESYSTEM — HelixFS
+# ══════════════════════════════════════════════════════════════════════
+
+/fs/                                    @HelixOS-Org/core
+
+# ══════════════════════════════════════════════════════════════════════
+# GRAPHICS — Lumina GPU API (22 sub-crates)
+# ══════════════════════════════════════════════════════════════════════
+
+/graphics/                              @HelixOS-Org/graphics
+/graphics/lumina-core/                  @HelixOS-Org/graphics
+/graphics/lumina-backend/               @HelixOS-Org/graphics
+/graphics/lumina-render/                @HelixOS-Org/graphics
+/graphics/lumina-pipeline/              @HelixOS-Org/graphics
+/graphics/lumina-material/              @HelixOS-Org/graphics
+/graphics/lumina-mesh/                  @HelixOS-Org/graphics
+/graphics/lumina-shader/                @HelixOS-Org/graphics
+/graphics/lumina-ir/                    @HelixOS-Org/graphics
+/graphics/lumina-spirv/                 @HelixOS-Org/graphics
+/graphics/lumina-derive/                @HelixOS-Org/graphics
+/graphics/lumina-memory/                @HelixOS-Org/graphics
+/graphics/lumina-sync/                  @HelixOS-Org/graphics
+/graphics/lumina-debug/                 @HelixOS-Org/graphics
+/graphics/lumina-math/                  @HelixOS-Org/graphics
+/graphics/lumina-3d/                    @HelixOS-Org/graphics
+/graphics/lumina-scene/                 @HelixOS-Org/graphics
+/graphics/lumina-ui/                    @HelixOS-Org/graphics
+/graphics/lumina-tools/                 @HelixOS-Org/graphics
+/graphics/lumina-asset/                 @HelixOS-Org/graphics
+/graphics/lumina-inspector/             @HelixOS-Org/graphics
+
+# ══════════════════════════════════════════════════════════════════════
+# DRIVERS
+# ══════════════════════════════════════════════════════════════════════
+
+/drivers/                               @HelixOS-Org/drivers
+/drivers/gpu/                           @HelixOS-Org/drivers @HelixOS-Org/graphics
+
+# ══════════════════════════════════════════════════════════════════════
+# BUILD SYSTEM & TOOLING
+# ══════════════════════════════════════════════════════════════════════
+
+/scripts/                               @HelixOS-Org/core
+/profiles/                              @HelixOS-Org/core
+/build/                                 @HelixOS-Org/core
+Makefile                                @HelixOS-Org/core
+justfile                                @HelixOS-Org/core
+Dockerfile                              @HelixOS-Org/core
+docker-compose.yml                      @HelixOS-Org/core
+flake.nix                               @HelixOS-Org/core
+rustfmt.toml                            @HelixOS-Org/core
+.clippy.toml                            @HelixOS-Org/core
+
+# ══════════════════════════════════════════════════════════════════════
+# BENCHMARKS
+# ══════════════════════════════════════════════════════════════════════
+
+/benchmarks/                            @HelixOS-Org/core
+
+# ══════════════════════════════════════════════════════════════════════
 # DOCUMENTATION
-# =============================================================================
+# ══════════════════════════════════════════════════════════════════════
 
-/docs/                              @helix-os/docs-team
-*.md                                @helix-os/docs-team
+/docs/                                  @HelixOS-Org/docs
+README.md                              @HelixOS-Org/core
+CONTRIBUTING.md                         @HelixOS-Org/core
+CODE_OF_CONDUCT.md                      @HelixOS-Org/core
+CREDITS.md                              @HelixOS-Org/core
+LICENSE                                 @HelixOS-Org/core
 
-# Security documentation requires security team
-/docs/**/security*                  @helix-os/security
-/SECURITY.md                        @helix-os/security
+# Security docs — require security team
+/docs/**/security*                      @HelixOS-Org/security
+SECURITY.md                             @HelixOS-Org/security @HelixOS-Org/core
