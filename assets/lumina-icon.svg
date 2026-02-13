@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <linearGradient id="prism" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#FFECB3"/>
+      <stop offset="50%" stop-color="#FFD54F"/>
+      <stop offset="100%" stop-color="#FF8F00"/>
+    </linearGradient>
+    <radialGradient id="core" cx="50%" cy="42%" r="45%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.85"/>
+      <stop offset="50%" stop-color="#FFD54F" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FF8F00" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="rayGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Prism -->
+  <g transform="translate(78, 85)" filter="url(#glow)">
+    <circle cx="0" cy="0" r="38" fill="url(#core)" opacity="0.5"/>
+    <polygon points="0,-50 -30,0 0,50 30,0"
+             fill="none" stroke="url(#prism)" stroke-width="1.8" stroke-linejoin="round" opacity="0.95"/>
+    <line x1="0" y1="-50" x2="-15" y2="25" stroke="#FFD54F" stroke-width="0.5" opacity="0.25"/>
+    <line x1="0" y1="-50" x2="15"  y2="25" stroke="#FFD54F" stroke-width="0.5" opacity="0.25"/>
+    <line x1="-30" y1="0" x2="30" y2="0" stroke="#FFD54F" stroke-width="0.4" opacity="0.18"/>
+    <circle cx="0" cy="-6" r="3.5" fill="#FFFFFF" opacity="0.8"/>
+    <circle cx="0" cy="-6" r="7" fill="#FFD54F" opacity="0.08"/>
+  </g>
+
+  <!-- Light in -->
+  <g filter="url(#rayGlow)">
+    <line x1="16" y1="34" x2="56" y2="58" stroke="#FFFFFF" stroke-width="1" opacity="0.28" stroke-linecap="round"/>
+  </g>
+
+  <!-- Spectrum out -->
+  <g filter="url(#rayGlow)" opacity="0.65">
+    <line x1="108" y1="62" x2="148" y2="42" stroke="#FF5252" stroke-width="1.1" stroke-linecap="round"/>
+    <line x1="108" y1="70" x2="150" y2="56" stroke="#FFAB40" stroke-width="1.1" stroke-linecap="round"/>
+    <line x1="108" y1="78" x2="152" y2="72" stroke="#FFD740" stroke-width="1.1" stroke-linecap="round"/>
+    <line x1="108" y1="85" x2="152" y2="85" stroke="#69F0AE" stroke-width="1.1" stroke-linecap="round"/>
+    <line x1="108" y1="92" x2="150" y2="98" stroke="#40C4FF" stroke-width="1.1" stroke-linecap="round"/>
+    <line x1="108" y1="100" x2="148" y2="114" stroke="#7C4DFF" stroke-width="1.1" stroke-linecap="round"/>
+    <line x1="108" y1="108" x2="144" y2="128" stroke="#E040FB" stroke-width="1.1" stroke-linecap="round"/>
+  </g>
+
+  <!-- LUMINA -->
+  <text x="90" y="162"
+        font-family="'Helvetica Neue', 'Segoe UI', Arial, sans-serif"
+        font-size="16" font-weight="200"
+        fill="#FFD54F" letter-spacing="6" text-anchor="middle"
+        opacity="0.85">LUMINA</text>
+</svg>
