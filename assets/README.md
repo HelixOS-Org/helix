@@ -1,73 +1,103 @@
-# Helix OS - Logo Assets
+# Helix OS — Assets
 
-## Available Files
+All visual assets for the Helix OS project. Every file is **SVG** (vector) — no pixelization at any scale.
 
-### Main Logos
-- **`logo.svg`** - Primary logo with blue/purple gradient
-- **`logo-alt.svg`** - Alternative version with geometric spiral
-- **`logo-mono.svg`** - Monochrome version (pure black)
+---
 
-### Icons
-- **`icon.svg`** - 64x64 square icon optimized for app icons
-- **`favicon.svg`** - To be used as favicon
+## Files
 
-### Banners
-- **`logo-banner.svg`** - Horizontal logo with text for README
+### Core Identity
+
+| File | Description | Dimensions |
+|------|-------------|------------|
+| `logo.svg` | Primary helix logo with blue → purple gradient | 200×200 |
+| `icon.svg` | Square icon optimized for small sizes & favicons | 64×64 |
+| `logo-banner.svg` | Horizontal layout: icon + "HELIX" text | 400×100 |
+| `helix-banner-transparent.svg` | Banner with helix icon, "HELIX" text & "OS" badge — transparent background | 680×130 |
+| `social-preview.svg` | Social/OpenGraph preview card | — |
+
+### Subsystem Logos
+
+| File | Description |
+|------|-------------|
+| `nexus-logo.svg` | NEXUS subsystem logo |
+| `lumina-logo.svg` | Lumina subsystem logo |
+| `lumina-icon.svg` | Lumina subsystem icon |
+
+---
+
+## Colors
+
+| Role | Hex | Preview |
+|------|-----|---------|
+| Primary Blue | `#4A90E2` | 🔵 |
+| Mid Purple | `#7B68EE` | 🟣 |
+| Accent Purple | `#9B59B6` | 💜 |
+
+All main assets use a horizontal gradient: `#4A90E2` → `#7B68EE` → `#9B59B6`.
+
+---
 
 ## Usage
 
-### In the README
+### In a README
+
 ```markdown
 <div align="center">
-  <img src="assets/logo.svg" width="200" alt="Helix OS Logo">
+  <img src="assets/logo.svg" width="200" alt="Helix OS">
+</div>
+```
+
+### Banner (transparent, for dark backgrounds)
+
+```markdown
+<div align="center">
+  <img src="assets/helix-banner-transparent.svg" width="560" alt="Helix OS">
 </div>
 ```
 
 ### As favicon
+
 ```html
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 ```
 
-### PNG Conversion
-To convert to PNG with transparency:
+---
+
+## PNG Conversion
+
+All SVGs are vector — convert to PNG at any resolution without quality loss:
+
 ```bash
-# With Inkscape
+# rsvg-convert (recommended)
+rsvg-convert -w 512 -h 512 logo.svg -o logo-512.png
+
+# Inkscape
 inkscape logo.svg -w 512 -h 512 -o logo-512.png
 
-# With ImageMagick
+# ImageMagick
 convert -background none logo.svg -resize 512x512 logo-512.png
-
-# With rsvg-convert
-rsvg-convert -w 512 -h 512 logo.svg -o logo-512.png
 ```
 
-## Color Variants
+---
 
-### Gradient Colors
-- Primary Blue: `#4A90E2`
-- Secondary Purple: `#7B68EE`
-
-### Monochrome Versions
-- Black: `#000000`
-- White: `#FFFFFF` (for dark backgrounds)
-
-## Recommended Formats by Usage
+## Recommended Sizes
 
 | Usage | Format | Size |
 |-------|--------|------|
-| README.md | SVG | 200x200 |
-| Favicon | SVG or ICO | 32x32 |
-| App Icon | PNG | 512x512 |
-| Social Media | PNG | 1200x630 |
-| Print | SVG or PDF | Vector |
+| README header | SVG | original |
+| Favicon | SVG / ICO | 32×32 |
+| App / profile icon | PNG | 512×512 |
+| Social preview | PNG | 1280×640 |
+| Print | SVG / PDF | vector |
 
-## Design Concept
+---
 
-The logo represents a stylized **double helix** symbolizing:
-- 🧬 **DNA/Genetic Code** - Modular architecture
-- 🔄 **Spiral** - Continuous evolution, cycles
-- 🔗 **Connections** - Interoperability, communication
-- ⚡ **Circuit** - Technology, innovation
-- 🎯 **Minimalism** - Clarity, efficiency
+## Design
 
-Ultra-clean form for instant recognition at any scale.
+The logo is a stylized **double helix** (two reverse-S curves connected by horizontal rungs) representing:
+
+- 🧬 **DNA** — modular, trait-based architecture
+- 🔄 **Evolution** — self-healing, hot-swappable modules
+- 🔗 **Connections** — interoperability between subsystems
+- 🎯 **Minimalism** — clean, recognizable at any scale
