@@ -1,0 +1,288 @@
+<!-- =============================================================================
+     Helix OS — GitHub Social Preview / Open Graph Image
+     =============================================================================
+     Dimensions: 1280×640 (GitHub recommended for best display)
+     ============================================================================= -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06090f"/>
+      <stop offset="40%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+
+    <!-- Primary brand gradient -->
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4A90E2"/>
+      <stop offset="50%" stop-color="#7B68EE"/>
+      <stop offset="100%" stop-color="#9B59B6"/>
+    </linearGradient>
+
+    <!-- Vertical brand gradient -->
+    <linearGradient id="brandV" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4A90E2"/>
+      <stop offset="100%" stop-color="#9B59B6"/>
+    </linearGradient>
+
+    <!-- Radial glow behind helix icon -->
+    <radialGradient id="centerGlow" cx="50%" cy="42%" r="35%">
+      <stop offset="0%" stop-color="#7B68EE" stop-opacity="0.12"/>
+      <stop offset="60%" stop-color="#4A90E2" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#0d1117" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Radial glow (top-left accent) -->
+    <radialGradient id="glowTL" cx="15%" cy="20%" r="40%">
+      <stop offset="0%" stop-color="#4A90E2" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#0d1117" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Radial glow (bottom-right accent) -->
+    <radialGradient id="glowBR" cx="85%" cy="80%" r="40%">
+      <stop offset="0%" stop-color="#9B59B6" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#0d1117" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Glow filter for helix icon -->
+    <filter id="helixGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for text -->
+    <filter id="textGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#7B68EE" flood-opacity="0.25"/>
+    </filter>
+
+    <!-- Fine particle glow -->
+    <filter id="particleGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+    </filter>
+
+    <!-- Grid pattern -->
+    <pattern id="gridDots" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.6" fill="#ffffff" opacity="0.15"/>
+    </pattern>
+
+    <!-- Noise texture simulation -->
+    <filter id="noise" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise"/>
+      <feBlend in="SourceGraphic" in2="grayNoise" mode="multiply" result="blended"/>
+    </filter>
+  </defs>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       BACKGROUND
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <!-- Base -->
+  <rect width="1280" height="640" fill="url(#bgGrad)"/>
+
+  <!-- Ambient glows -->
+  <rect width="1280" height="640" fill="url(#glowTL)"/>
+  <rect width="1280" height="640" fill="url(#glowBR)"/>
+  <rect width="1280" height="640" fill="url(#centerGlow)"/>
+
+  <!-- Grid dots -->
+  <rect width="1280" height="640" fill="url(#gridDots)" opacity="0.3"/>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       DECORATIVE HELIX STRANDS (background, large)
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <!-- Left decorative strand -->
+  <g opacity="0.06">
+    <path d="M -40,640 Q 80,540 50,440 Q 20,340 120,240 Q 220,140 180,60 Q 150,-20 250,-80"
+          stroke="url(#brand)" stroke-width="2" fill="none"/>
+    <path d="M -10,660 Q 110,560 80,460 Q 50,360 150,260 Q 250,160 210,80 Q 180,0 280,-60"
+          stroke="url(#brand)" stroke-width="1.5" fill="none"/>
+    <!-- Rungs -->
+    <line x1="0" y1="600" x2="40" y2="616" stroke="#7B68EE" stroke-width="0.8"/>
+    <line x1="40" y1="500" x2="80" y2="510" stroke="#7B68EE" stroke-width="0.8"/>
+    <line x1="40" y1="400" x2="90" y2="415" stroke="#7B68EE" stroke-width="0.8"/>
+    <line x1="100" y1="300" x2="140" y2="310" stroke="#7B68EE" stroke-width="0.8"/>
+    <line x1="150" y1="200" x2="200" y2="210" stroke="#7B68EE" stroke-width="0.8"/>
+    <line x1="190" y1="100" x2="220" y2="108" stroke="#7B68EE" stroke-width="0.8"/>
+  </g>
+
+  <!-- Right decorative strand -->
+  <g opacity="0.05">
+    <path d="M 1100,-40 Q 1150,60 1120,160 Q 1090,260 1160,360 Q 1230,460 1200,540 Q 1170,620 1250,700"
+          stroke="url(#brand)" stroke-width="2" fill="none"/>
+    <path d="M 1130,-20 Q 1180,80 1150,180 Q 1120,280 1190,380 Q 1260,480 1230,560 Q 1200,640 1280,720"
+          stroke="url(#brand)" stroke-width="1.5" fill="none"/>
+    <line x1="1130" y1="60" x2="1170" y2="72" stroke="#9B59B6" stroke-width="0.8"/>
+    <line x1="1110" y1="170" x2="1150" y2="178" stroke="#9B59B6" stroke-width="0.8"/>
+    <line x1="1120" y1="280" x2="1165" y2="290" stroke="#9B59B6" stroke-width="0.8"/>
+    <line x1="1170" y1="390" x2="1210" y2="400" stroke="#9B59B6" stroke-width="0.8"/>
+    <line x1="1210" y1="500" x2="1245" y2="510" stroke="#9B59B6" stroke-width="0.8"/>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       FLOATING PARTICLES
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <g filter="url(#particleGlow)">
+    <circle cx="180" cy="120" r="1.5" fill="#4A90E2" opacity="0.5"/>
+    <circle cx="320" cy="80" r="1" fill="#7B68EE" opacity="0.4"/>
+    <circle cx="1050" cy="150" r="1.8" fill="#9B59B6" opacity="0.35"/>
+    <circle cx="950" cy="520" r="1.2" fill="#4A90E2" opacity="0.4"/>
+    <circle cx="200" cy="500" r="1" fill="#7B68EE" opacity="0.3"/>
+    <circle cx="1120" cy="300" r="1.5" fill="#7B68EE" opacity="0.3"/>
+    <circle cx="400" cy="560" r="1" fill="#4A90E2" opacity="0.25"/>
+    <circle cx="850" cy="90" r="1.3" fill="#9B59B6" opacity="0.3"/>
+    <circle cx="700" cy="580" r="0.8" fill="#7B68EE" opacity="0.3"/>
+    <circle cx="130" cy="340" r="1" fill="#4A90E2" opacity="0.2"/>
+    <circle cx="1180" cy="460" r="1.2" fill="#9B59B6" opacity="0.25"/>
+    <circle cx="500" cy="100" r="0.8" fill="#7B68EE" opacity="0.2"/>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CENTRAL HELIX ICON (large, hero element)
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <g transform="translate(540, 130)" filter="url(#helixGlow)">
+    <g stroke="url(#brand)" fill="none" stroke-linecap="round">
+      <!-- Left strand -->
+      <path d="M 30,0 Q 18,30 26,60 Q 34,90 22,120 Q 10,150 24,180"
+            stroke-width="6" opacity="0.9"/>
+      <!-- Right strand -->
+      <path d="M 170,0 Q 182,30 174,60 Q 166,90 178,120 Q 190,150 176,180"
+            stroke-width="6" opacity="0.9"/>
+      <!-- Cross rungs with varying opacity -->
+      <line x1="38" y1="16" x2="162" y2="16" stroke-width="3" opacity="0.25"/>
+      <line x1="30" y1="45" x2="176" y2="45" stroke-width="3" opacity="0.35"/>
+      <line x1="28" y1="75" x2="172" y2="75" stroke-width="3" opacity="0.45"/>
+      <line x1="26" y1="105" x2="174" y2="105" stroke-width="3" opacity="0.35"/>
+      <line x1="20" y1="135" x2="182" y2="135" stroke-width="3" opacity="0.25"/>
+      <line x1="24" y1="165" x2="178" y2="165" stroke-width="3" opacity="0.15"/>
+    </g>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       HELIX TEXT
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <text x="640" y="410"
+        font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif"
+        font-size="88"
+        font-weight="200"
+        letter-spacing="28"
+        fill="#ffffff"
+        text-anchor="middle"
+        filter="url(#textGlow)">HELIX</text>
+
+  <!-- OS badge -->
+  <g transform="translate(843, 365)">
+    <rect width="52" height="30" rx="6" fill="url(#brand)" opacity="0.2"/>
+    <rect width="52" height="30" rx="6" fill="none" stroke="url(#brand)" stroke-width="1.2" opacity="0.5"/>
+    <text x="26" y="21"
+          font-family="'Segoe UI', 'Roboto', 'Arial', sans-serif"
+          font-size="16"
+          font-weight="600"
+          letter-spacing="4"
+          fill="#c8d6e5"
+          text-anchor="middle">OS</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TAGLINE
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <text x="640" y="462"
+        font-family="'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif"
+        font-size="18"
+        font-weight="300"
+        letter-spacing="8"
+        fill="#6e7681"
+        text-anchor="middle">A  MODULAR  KERNEL  FRAMEWORK  IN  RUST</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       BOTTOM FEATURE PILLS
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <g transform="translate(0, 530)">
+    <!-- no_std -->
+    <g transform="translate(310, 0)">
+      <rect width="100" height="32" rx="16" fill="#ffffff" opacity="0.04"/>
+      <rect width="100" height="32" rx="16" fill="none" stroke="#30363d" stroke-width="0.8"/>
+      <text x="50" y="21"
+            font-family="'SF Mono', 'Fira Code', 'Consolas', monospace"
+            font-size="12"
+            font-weight="400"
+            fill="#8b949e"
+            text-anchor="middle">#![no_std]</text>
+    </g>
+
+    <!-- Hot-Reload -->
+    <g transform="translate(430, 0)">
+      <rect width="114" height="32" rx="16" fill="#ffffff" opacity="0.04"/>
+      <rect width="114" height="32" rx="16" fill="none" stroke="#30363d" stroke-width="0.8"/>
+      <text x="57" y="21"
+            font-family="'Segoe UI', 'Roboto', 'Arial', sans-serif"
+            font-size="12"
+            font-weight="400"
+            fill="#8b949e"
+            text-anchor="middle">♻️ Hot-Reload</text>
+    </g>
+
+    <!-- Self-Healing -->
+    <g transform="translate(564, 0)">
+      <rect width="120" height="32" rx="16" fill="#ffffff" opacity="0.04"/>
+      <rect width="120" height="32" rx="16" fill="none" stroke="#30363d" stroke-width="0.8"/>
+      <text x="60" y="21"
+            font-family="'Segoe UI', 'Roboto', 'Arial', sans-serif"
+            font-size="12"
+            font-weight="400"
+            fill="#8b949e"
+            text-anchor="middle">🛡️ Self-Healing</text>
+    </g>
+
+    <!-- x86_64 -->
+    <g transform="translate(704, 0)">
+      <rect width="98" height="32" rx="16" fill="#ffffff" opacity="0.04"/>
+      <rect width="98" height="32" rx="16" fill="none" stroke="#30363d" stroke-width="0.8"/>
+      <text x="49" y="21"
+            font-family="'SF Mono', 'Fira Code', 'Consolas', monospace"
+            font-size="12"
+            font-weight="400"
+            fill="#8b949e"
+            text-anchor="middle">x86_64</text>
+    </g>
+
+    <!-- MIT -->
+    <g transform="translate(822, 0)">
+      <rect width="80" height="32" rx="16" fill="#ffffff" opacity="0.04"/>
+      <rect width="80" height="32" rx="16" fill="none" stroke="#30363d" stroke-width="0.8"/>
+      <text x="40" y="21"
+            font-family="'Segoe UI', 'Roboto', 'Arial', sans-serif"
+            font-size="12"
+            font-weight="400"
+            fill="#8b949e"
+            text-anchor="middle">⚖️ MIT</text>
+    </g>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TOP ACCENT LINE
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <rect x="0" y="0" width="1280" height="3" fill="url(#brand)" opacity="0.6"/>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       BOTTOM ACCENT LINE
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <rect x="0" y="637" width="1280" height="3" fill="url(#brand)" opacity="0.3"/>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       BORDER
+       ═══════════════════════════════════════════════════════════════ -->
+
+  <rect width="1280" height="640" fill="none" stroke="#21262d" stroke-width="1"/>
+</svg>
